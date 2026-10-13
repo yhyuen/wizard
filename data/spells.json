@@ -1,0 +1,166 @@
+{
+  "_doc": "All tuning numbers for the prototype. A stat is base + per x (level - 1); 'floor' rounds down, 'min'/'max' clamp. Starting values only (design doc: readable-arsenal.md).",
+  "progression": {
+    "max_level": 15,
+    "milestones": [5, 10, 15],
+    "xp_base": 8,
+    "xp_step": 4,
+    "wizard_xp_base": 24,
+    "wizard_xp_step": 14,
+    "wizard_hp_base": 100,
+    "wizard_hp_per_level": 8,
+    "blink_charge_levels": [3, 6],
+    "loop_wizard_level_keep": 0.5
+  },
+  "elements": {
+    "fire": {"name": "Fire", "color": "f08a3c"},
+    "earth": {"name": "Earth", "color": "c8964e"}
+  },
+  "spells": {
+    "ember_bolt": {
+      "name": "Ember Bolt", "element": "fire", "slot": "bolt", "key": "LMB",
+      "blurb": "Fast bolt. Adds a flame pip; 3 pips Ignite.",
+      "cast_time": 0.26, "impact": 1, "xp_hit": 1, "xp_ignite": 2,
+      "stats": {
+        "speed": {"label": "Speed", "base": 200, "per": 9},
+        "damage": {"label": "Damage", "base": 6, "per": 0.55, "fmt": "%.1f"}
+      },
+      "milestones": {
+        "5": [
+          {"id": "long_pips", "name": "Slow Burn", "text": "Pips last twice as long"},
+          {"id": "ember_ignite", "name": "Ember Ignite", "text": "Ignite leaves an ember tile"}
+        ],
+        "10": [
+          {"id": "spread_ignite", "name": "Wildfire", "text": "Ignite spreads 1 pip to nearby enemies"},
+          {"id": "double_ignite", "name": "Overheat", "text": "4th pip = double Ignite"}
+        ],
+        "15": [
+          {"id": "pierce", "name": "Lance of Embers", "text": "Bolt pierces 1 enemy"},
+          {"id": "ignite_heal", "name": "Hearthfire", "text": "Ignite heals you a little"}
+        ]
+      }
+    },
+    "pillar": {
+      "name": "Pillar", "element": "fire", "slot": "control", "key": "Q",
+      "blurb": "Delayed fire column on a circle. Adds 2 pips.",
+      "cooldown": 5.0, "impact": 3, "range": 150, "xp_hit": 4,
+      "stats": {
+        "radius": {"label": "Radius", "base": 15, "per": 1.0},
+        "delay": {"label": "Delay", "base": 0.9, "per": -0.028, "min": 0.5, "fmt": "%.2fs"},
+        "damage": {"label": "Damage", "base": 14, "per": 1.2, "fmt": "%.0f", "hidden": true}
+      },
+      "milestones": {
+        "5": [
+          {"id": "knock_up", "name": "Updraft", "text": "Knocks up (Impact 4)"},
+          {"id": "pillar_embers", "name": "Cinderfall", "text": "Leaves embers"}
+        ],
+        "10": [
+          {"id": "twin_pillar", "name": "Twin Pillar", "text": "Second pillar 1s later"},
+          {"id": "pull_center", "name": "Firewell", "text": "Pull to centre first"}
+        ]
+      }
+    },
+    "pyroclasm": {
+      "name": "Pyroclasm", "element": "fire", "slot": "signature", "key": "R",
+      "blurb": "Fireball that bounces between pip-marked enemies.",
+      "cooldown": 10.0, "impact": 2, "speed": 210, "xp_hit": 4,
+      "stats": {
+        "bounces": {"label": "Bounces", "base": 4, "per": 0.2858, "floor": true},
+        "range": {"label": "Range", "base": 80, "per": 4},
+        "damage": {"label": "Damage", "base": 11, "per": 0.8, "fmt": "%.0f", "hidden": true}
+      },
+      "milestones": {
+        "10": [
+          {"id": "bounce_pip", "name": "Kindling", "text": "Each bounce adds a pip"},
+          {"id": "duel_focus", "name": "Grudge", "text": "Bounces prefer the duel target"}
+        ],
+        "15": [
+          {"id": "final_ignite", "name": "Last Light", "text": "Final bounce Ignites regardless"}
+        ]
+      }
+    },
+    "pebble": {
+      "name": "Pebble", "element": "earth", "slot": "bolt", "key": "RMB",
+      "blurb": "Slow heavy shot. Hits drop a lodestone.",
+      "cast_time": 0.5, "impact": 2, "speed": 150, "xp_hit": 3,
+      "stats": {
+        "knockback": {"label": "Knockback", "base": 40, "per": 4},
+        "size": {"label": "Size", "base": 3, "per": 0.2, "fmt": "%.1f"},
+        "damage": {"label": "Damage", "base": 9, "per": 0.7, "fmt": "%.0f", "hidden": true}
+      },
+      "milestones": {
+        "5": [
+          {"id": "far_fling", "name": "Long Throw", "text": "Flung lodestones fly further"},
+          {"id": "wall_bounce", "name": "Ricochet", "text": "Pebble bounces off walls"}
+        ]
+      }
+    },
+    "fling": {
+      "name": "Fling", "element": "earth", "slot": "control", "key": "E",
+      "blurb": "Pushes every orbiting lodestone out in a cone.",
+      "cooldown": 4.0, "impact": 2, "range": 120, "xp_hit": 4,
+      "stats": {
+        "cone": {"label": "Cone", "base": 50, "per": 4, "fmt": "%.0f°"},
+        "force": {"label": "Force", "base": 200, "per": 10},
+        "damage": {"label": "Damage", "base": 9, "per": 0.8, "fmt": "%.0f", "hidden": true}
+      },
+      "milestones": {
+        "5": [
+          {"id": "wall_stun", "name": "Pin", "text": "Enemies knocked into a wall are stunned"},
+          {"id": "pull_back", "name": "Recall", "text": "Pull grounded stones back instead"}
+        ],
+        "10": [
+          {"id": "return_orbit", "name": "Boomerang", "text": "Stones return to orbit"}
+        ]
+      }
+    },
+    "avalanche": {
+      "name": "Avalanche", "element": "earth", "slot": "signature", "key": "R",
+      "blurb": "Every lodestone you own slams the target, one hit per stone.",
+      "cooldown": 9.0, "impact": 1, "final_impact": 3, "range": 170, "xp_hit": 3,
+      "stats": {
+        "cap": {"label": "Stone cap", "base": 3, "per": 0.2, "floor": true},
+        "damage": {"label": "Per stone", "base": 9, "per": 1.0, "fmt": "%.0f"}
+      },
+      "milestones": {
+        "10": [
+          {"id": "gravel", "name": "Scree", "text": "Stones shatter into gravel (slow)"},
+          {"id": "single_target", "name": "Rockslide", "text": "A lone target takes +50%"}
+        ],
+        "15": [
+          {"id": "cap_plus", "name": "Mountain", "text": "Stone cap +2"}
+        ]
+      }
+    }
+  },
+  "magicks": {
+    "meteor": {
+      "name": "Meteor", "pair": ["fire", "earth"], "key": "F",
+      "blurb": "Lodestones ignite and fall as fireballs.",
+      "hint": "Mix fire and stone: catch a lodestone in a Pillar.",
+      "cooldown": 14.0, "impact": 3, "pips": 2,
+      "stats": {
+        "damage": {"label": "Damage", "base": 18, "per": 1.5, "fmt": "%.0f"},
+        "radius": {"label": "Radius", "base": 16, "per": 0.8}
+      }
+    }
+  },
+  "field": {
+    "ember_cap": 6, "ember_life": 6.0, "ember_dps": 6.0,
+    "pip_life": 4.0, "ignite_mult": 2.6, "ignite_radius": 14,
+    "gravel_life": 4.0, "gravel_slow": 0.5
+  },
+  "wizard": {"speed": 72, "radius": 5, "blink_dist": 52, "blink_recharge": 2.6, "iframes": 0.5},
+  "enemies": {
+    "hollow": {"name": "Dust Hollow", "hp": 22, "poise": 0, "speed": 34, "radius": 5, "damage": 6, "windup": 0.6, "reach": 13, "cooldown": 1.1, "xp": 6},
+    "slinger": {"name": "Hollow Slinger", "hp": 18, "poise": 0, "speed": 30, "radius": 5, "damage": 7, "windup": 0.75, "range": 150, "keep": 105, "shot_speed": 150, "cooldown": 2.4, "xp": 8},
+    "rival": {"name": "Silas Vane", "hp": 300, "poise": 1, "speed": 52, "radius": 6, "xp": 60,
+      "spark": {"damage": 9, "windup": 0.35, "speed": 210},
+      "lance": {"damage": 18, "windup": 0.8, "length": 170, "width": 7, "impact": 2},
+      "storm": {"damage": 14, "delay": 1.0, "radius": 16, "cooldown": 6.0},
+      "blink": {"dist": 70, "cooldown": 3.0, "react": 0.25},
+      "summon_at": 0.5, "summon_count": 4}
+  },
+  "impact_reactions": ["none", "flinch", "stagger", "knockdown", "launch"],
+  "reaction_time": {"flinch": 0.12, "stagger": 0.4, "knockdown": 0.85, "launch": 1.1}
+}
