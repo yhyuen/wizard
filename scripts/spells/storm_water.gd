@@ -415,6 +415,8 @@ func draw_field(c: CanvasItem) -> void:
 				A.draw_ellipse_px(z["pos"], z["r"] - 2.0, z["r"] * 0.6 - 2.0, Color(PixelArt.WATER_DEEP, 0.5 * fade))
 				A.draw_ellipse_px(z["pos"] + Vector2(-z["r"] * 0.3, -1), z["r"] * 0.35, z["r"] * 0.15, Color(PixelArt.PAPER, 0.3 * fade))
 			"rod":
+				if A.view != null:
+					continue  # the 3D view stands it up
 				var p: Vector2 = z["pos"].round()
 				c.draw_rect(Rect2(p + Vector2(-1, -12), Vector2(2, 12)), PixelArt.STEEL)
 				c.draw_rect(Rect2(p + Vector2(-2, -13), Vector2(4, 2)), PixelArt.STORM)

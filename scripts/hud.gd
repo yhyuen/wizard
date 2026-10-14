@@ -188,13 +188,13 @@ func _draw_fight() -> void:
 	# Hover: hits to kill with your current Bolt (design doc §4.4) and Poise.
 	var h: Unit = arena.hover
 	if h and main.mode == "fight":
-		var sp: Vector2 = h.pos * 2.0 + Vector2(14, -30)
+		var sp: Vector2 = arena.screen_pos(h.pos, 1.8 if arena.view else 15.0) + Vector2(14, 0)
 		var bolt: String = kit.slot_spell("bolt1")
 		var hits := ceili(h.hp / Progression.stat(bolt, "damage"))
 		_text(sp, "×%d" % hits, 13, kit.element_color(Progression.spell(bolt)["element"]))
 		_text(sp + Vector2(0, 13), "Poise %d" % h.poise, 10, Color(1, 1, 1, 0.75))
 	if main.mode == "fight" and arena.shrine_ready():
-		_text(arena.shrine_pos() * 2.0 + Vector2(-60, -58), "G: the Orrery", 13, PixelArt.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 120)
+		_text(arena.screen_pos(arena.shrine_pos(), 1.6 if arena.view else 21.0) + Vector2(-60, -16), "G: the Orrery", 13, PixelArt.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 120)
 	_draw_cards()
 
 

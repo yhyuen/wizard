@@ -1,13 +1,17 @@
 extends Node
-## Root: the pixel-art arena in a 480×270 SubViewport scaled up ×2, the HUD on top at 960×540,
-## and the title, fight and Loop Ledger flow, plus the Orrery shrine menu. Input becomes an intent
-## dictionary each physics frame, so tests can drive the same code with a bot.
+## Root: the arena seen through the 3D ink view (scripts/view/), the HUD on top at 960×540, and
+## the title, fight and Loop Ledger flow, plus the Orrery shrine menu. Input becomes an intent
+## dictionary each physics frame, so tests can drive the same code with a bot. With "enabled":
+## false in data/visual.json the old pixel-art arena (480×270 scaled up ×2) comes back.
 
 const Arena := preload("res://scripts/arena.gd")
 const Hud := preload("res://scripts/hud.gd")
+const View3D := preload("res://scripts/view/view3d.gd")
+const Marks := preload("res://scripts/view/marks.gd")
 
 var arena
 var hud
+var view  # the 3D view, or null for the flat pixel arena
 var container: SubViewportContainer
 var mode := "title"  # title, fight, ledger
 var bot: Callable  # tests and the F2 autoplay set this: func(arena) -> intent
@@ -17,6 +21,53 @@ var shrine_open := false
 
 
 func _ready() -> void:
+	var vis = JSON.parse_string(FileAccess.get_file_as_string("res://data/visual.json"))
+	if vis is Dictionary and vis.get("enabled", true):
+		_build_3d(int(vis.get("overlay_scale", 3)))
+	else:
+		_build_flat()
+	hud = Hud.new()
+	hud.main = self
+	hud.arena = arena
+	add_child(hud)
+	arena.paused = true
+	arena.toast.connect(hud.push_toast)
+	arena.banner.connect(hud.set_banner)
+	arena.fight_over.connect(_on_fight_over)
+	Progression.spell_leveled.connect(_on_spell_leveled)
+	Progression.mutation_picked.connect(_on_mutation)
+	Progression.wizard_leveled.connect(_on_wizard_leveled)
+	Progression.magick_learned.connect(_on_magick)
+	Progression.hint_learned.connect(_on_hint)
+
+
+## The arena draws its flat marks into an offscreen viewport (scaled up so lines stay fine),
+## which the 3D view lays on the ground under the figures.
+func _build_3d(over: int) -> void:
+	var vp := SubViewport.new()
+	vp.size = Vector2i(480 * over, 270 * over)
+	vp.transparent_bg = true
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	vp.handle_input_locally = false
+	vp.gui_disable_input = true
+	add_child(vp)
+	var holder := Node2D.new()
+	holder.scale = Vector2(over, over)
+	vp.add_child(holder)
+	arena = Arena.new()
+	view = View3D.new()
+	view.setup(arena, vp)
+	arena.view = view
+	holder.add_child(arena)
+	add_child(view)
+	var marks := Marks.new()
+	marks.view = view
+	marks.arena = arena
+	view.marks = marks
+	add_child(marks)
+
+
+func _build_flat() -> void:
 	container = SubViewportContainer.new()
 	container.stretch = true
 	container.stretch_shrink = 2
@@ -32,19 +83,6 @@ func _ready() -> void:
 	container.add_child(vp)
 	arena = Arena.new()
 	vp.add_child(arena)
-	hud = Hud.new()
-	hud.main = self
-	hud.arena = arena
-	add_child(hud)
-	arena.paused = true
-	arena.toast.connect(hud.push_toast)
-	arena.banner.connect(hud.set_banner)
-	arena.fight_over.connect(_on_fight_over)
-	Progression.spell_leveled.connect(_on_spell_leveled)
-	Progression.mutation_picked.connect(_on_mutation)
-	Progression.wizard_leveled.connect(_on_wizard_leveled)
-	Progression.magick_learned.connect(_on_magick)
-	Progression.hint_learned.connect(_on_hint)
 
 
 func start_fight() -> void:
@@ -117,7 +155,7 @@ func _fight_input() -> void:
 		for id in Progression.data["spells"]:
 			Progression.set_level(id, Progression.level(id) + 1)
 		hud.push_toast("Practice: every spell +1 level", PixelArt.GOLD)
-	var mouse: Vector2 = hud.get_local_mouse_position() / 2.0
+	var mouse: Vector2 = view.to_sim(hud.get_local_mouse_position()) if view else hud.get_local_mouse_position() / 2.0
 	if bot.is_valid():
 		arena.intent = bot.call(arena)
 		arena.mouse = arena.intent.get("aim", arena.mouse)

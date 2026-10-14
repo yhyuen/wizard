@@ -1,0 +1,463 @@
+extends Node3D
+## The fight in low poly: flat-shaded figures, a faceted yard and hills, props, under the tilted
+## camera Wuxia uses, over the same 2D sim. The arena still simulates everything and still draws
+## the flat telegraphs (rings, cones, lines, hold-to-aim previews, the reticle) into an
+## offscreen viewport, which lies on the ground here as a decal, so a telegraph stays exactly
+## its hitbox. Spells and everything else that stands up are solid low-poly shapes
+## (spells3d.gd). It reads the sim each frame and never changes it.
+
+const Figure := preload("res://scripts/view/figure.gd")
+const Spells3D := preload("res://scripts/view/spells3d.gd")
+const OVERLAY_SHADER := preload("res://scripts/view/overlay.gdshader")
+const CFG_PATH := "res://data/visual.json"
+const SIM_CENTRE := Vector2(240, 135)
+const SIM_SIZE := Vector2(480, 270)
+const MAX_LIGHTS := 8
+
+var arena
+var cfg: Dictionary
+var S := 0.0556  # metres per sim pixel
+var camera: Camera3D
+var overlay: SubViewport
+var marks: Control  # pips and HP chunks over heads, in screen space
+
+var _env: Environment
+var _sun: DirectionalLight3D
+var _ground: ShaderMaterial
+var _overlay_mat: ShaderMaterial
+var _mood := "day"
+var _mood_k := 0.0  # 0 day .. 1 dusk, eased toward the target
+var _mood_override := ""
+var _figs := {}  # unit id -> {"node", "unit", "cast_t", "casts"}
+var spells  # Spells3D
+var _lights: Array[OmniLight3D] = []
+var _light_wants: Array = []
+var _shrine: Node3D
+var _shrine_rings: Array = []
+var _last_casts := 0
+var _cast_t := 99.0
+var _cam_base := Vector3.ZERO
+
+
+func setup(the_arena, vp: SubViewport) -> void:
+	arena = the_arena
+	overlay = vp
+	cfg = JSON.parse_string(FileAccess.get_file_as_string(CFG_PATH))
+	S = float(cfg["metres_per_px"])
+
+
+func _ready() -> void:
+	_build_env()
+	_build_ground()
+	_build_overlay()
+	_build_props()
+	_build_shrine()
+	spells = Spells3D.new(self)
+	for i in MAX_LIGHTS:
+		var l := OmniLight3D.new()
+		l.visible = false
+		l.shadow_enabled = false
+		add_child(l)
+		_lights.append(l)
+	camera = Camera3D.new()
+	camera.fov = float(cfg["camera"]["fov"])
+	add_child(camera)
+	var o: Array = cfg["camera"]["offset"]
+	var at: Array = cfg["camera"]["look_at"]
+	var target := Vector3(at[0], at[1], at[2])
+	_cam_base = target + Vector3(o[0], o[1], o[2])
+	camera.position = _cam_base
+	camera.look_at(target)
+	camera.current = true
+	_apply_mood(0.0)
+
+
+# --- coordinates ----------------------------------------------------------------
+
+func to_world(p: Vector2, h := 0.0) -> Vector3:
+	return Vector3((p.x - SIM_CENTRE.x) * S, h, (p.y - SIM_CENTRE.y) * S)
+
+
+## A sim point (and a height in metres) on screen, in the HUD's 960×540 coordinates.
+func to_screen(p: Vector2, h := 0.0) -> Vector2:
+	return camera.unproject_position(to_world(p, h))
+
+
+## Where a screen point (HUD coordinates) meets the ground, in sim pixels.
+func to_sim(screen: Vector2) -> Vector2:
+	var from := camera.project_ray_origin(screen)
+	var dir := camera.project_ray_normal(screen)
+	if absf(dir.y) < 0.0001:
+		return arena.mouse
+	var hit := from + dir * (-from.y / dir.y)
+	return Vector2(hit.x / S, hit.z / S) + SIM_CENTRE
+
+
+static func face_rot(d: Vector2) -> float:
+	return -atan2(d.y, d.x) + PI / 2.0
+
+
+# --- building ---------------------------------------------------------------------
+
+func _build_env() -> void:
+	_env = Environment.new()
+	_env.background_mode = Environment.BG_COLOR
+	_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	_env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	_env.glow_enabled = true
+	_env.glow_strength = 1.1
+	_env.glow_bloom = 0.05
+	_env.glow_hdr_threshold = 0.9
+	_env.glow_blend_mode = Environment.GLOW_BLEND_MODE_ADDITIVE
+	var we := WorldEnvironment.new()
+	we.environment = _env
+	add_child(we)
+	_sun = DirectionalLight3D.new()
+	_sun.shadow_enabled = true
+	_sun.directional_shadow_max_distance = 60.0
+	add_child(_sun)
+
+
+## The ground: a faceted mesh, one tone per triangle. The yard is flat (the telegraphs lie on
+## it); outside the fence the land rises into low hills.
+func _build_ground() -> void:
+	_ground = ShaderMaterial.new()
+	_ground.shader = Figure.SHADER
+	_ground.set_shader_parameter("use_vcol", true)
+	_ground.set_shader_parameter("rim", 0.0)
+	var g: Dictionary = cfg["ground"]
+	var cell := float(g["cell_m"])
+	var ext: Array = g["extent_m"]
+	var nx := int(ext[0] / cell)
+	var nz := int(ext[1] / cell)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1234
+	var grid := []
+	for iz in nz + 1:
+		var row := []
+		for ix in nx + 1:
+			var x := (ix - nx * 0.5) * cell
+			var z := (iz - nz * 0.5) * cell
+			if ix > 0 and ix < nx and iz > 0 and iz < nz:
+				x += rng.randf_range(-0.35, 0.35) * cell
+				z += rng.randf_range(-0.35, 0.35) * cell
+			row.append(Vector3(x, height(x, z), z))
+		grid.append(row)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for iz in nz:
+		for ix in nx:
+			var a: Vector3 = grid[iz][ix]
+			var b: Vector3 = grid[iz][ix + 1]
+			var c: Vector3 = grid[iz + 1][ix]
+			var d: Vector3 = grid[iz + 1][ix + 1]
+			var tris := [[a, b, d], [a, d, c]] if (ix + iz) % 2 == 0 else [[a, b, c], [b, d, c]]
+			for t in tris:
+				var mid: Vector3 = (t[0] + t[1] + t[2]) / 3.0
+				var kind := _ground_kind(mid)
+				var shade := rng.randf_range(0.92, 1.08)
+				for v in [t[0], t[2], t[1]]:
+					st.set_color(Color(shade, shade, shade))
+					st.set_uv(Vector2(kind, 0))
+					st.add_vertex(v)
+	st.generate_normals()
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = _ground
+	add_child(mi)
+
+
+## How far a point (metres) lies outside the yard's fence.
+func _outside(x: float, z: float) -> float:
+	var b: Rect2 = arena.BOUNDS
+	var lo := to_world(b.position)
+	var hi := to_world(b.end)
+	var dx := maxf(lo.x - x, x - hi.x)
+	var dz := maxf(lo.z - z, z - hi.z)
+	return maxf(0.0, maxf(dx, dz))
+
+
+## Ground height (metres): flat in the yard and just past the fence, hills further out.
+func height(x: float, z: float) -> float:
+	var out := _outside(x, z)
+	var hill := 0.5 + 0.5 * sin(x * 0.31 + 1.7) * sin(z * 0.37 + 0.4) + 0.3 * sin(x * 0.11 - z * 0.17)
+	return smoothstep(1.5, 9.0, out) * maxf(0.0, hill) * float(cfg["ground"]["hill_m"])
+
+
+## 0 dirt, 1 grass, 2 hill, 3 path: the yard is trodden dirt, paths lead out of the gates.
+func _ground_kind(p: Vector3) -> int:
+	var g: Dictionary = cfg["ground"]
+	var sim := Vector2(p.x / S, p.z / S) + SIM_CENTRE
+	for pth in g["paths"]:
+		var a := Vector2(pth[0][0], pth[0][1])
+		var c := Vector2(pth[1][0], pth[1][1])
+		if Geometry2D.get_closest_point_to_segment(sim, a, c).distance_to(sim) < float(g["path_width_px"]) * 0.5:
+			return 3
+	var out := _outside(p.x, p.z)
+	if out <= 0.2:
+		return 0
+	return 2 if p.y > 0.6 else 1
+
+
+func _build_overlay() -> void:
+	_overlay_mat = ShaderMaterial.new()
+	_overlay_mat.shader = OVERLAY_SHADER
+	_overlay_mat.set_shader_parameter("marks", overlay.get_texture())
+	var mi := MeshInstance3D.new()
+	var pm := PlaneMesh.new()
+	pm.size = SIM_SIZE * S
+	mi.mesh = pm
+	mi.material_override = _overlay_mat
+	mi.position = to_world(SIM_SIZE * 0.5, 0.03)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mi)
+
+
+func _prop(id: String, at: Vector3, rot: float, s: float) -> void:
+	var n: Node3D = (load("res://assets/models/props/%s.glb" % id) as PackedScene).instantiate()
+	n.position = Vector3(at.x, height(at.x, at.z), at.z)
+	n.rotation_degrees.y = rot
+	n.scale = Vector3.ONE * s
+	add_child(n)
+	Figure.style(n, float(cfg["darken"]))
+
+
+func _build_props() -> void:
+	# The yard's fence along the sim's bounds, open at the four gates.
+	var b: Rect2 = arena.BOUNDS
+	var gap := float(cfg["fence_gap_px"])
+	var step := 2.6 / S
+	var sides := [
+		[b.position, Vector2(b.end.x, b.position.y), 0.0],
+		[Vector2(b.position.x, b.end.y), b.end, 0.0],
+		[b.position, Vector2(b.position.x, b.end.y), 90.0],
+		[Vector2(b.end.x, b.position.y), b.end, 90.0],
+	]
+	for sd in sides:
+		var a: Vector2 = sd[0]
+		var c: Vector2 = sd[1]
+		var n := int(ceil(a.distance_to(c) / step))
+		for i in n:
+			var p := a.lerp(c, (i + 0.5) / n)
+			var near_gate := false
+			for g in arena.GATES:
+				if p.distance_to(g) < gap:
+					near_gate = true
+			if not near_gate:
+				_prop("fence", to_world(p), sd[2], 1.0)
+	for pr in cfg["props"]:
+		_prop(pr[0], to_world(Vector2(pr[1], pr[2])), float(pr[3]), float(pr[4]))
+
+
+## The Orrery: a stone plinth, a brass post and two rings that turn; it glows while usable.
+
+
+## The Orrery: a stone plinth, a brass post and two rings that turn round a gem; it glows
+## while usable.
+func _build_shrine() -> void:
+	_shrine = Node3D.new()
+	_shrine.position = to_world(arena.shrine_pos())
+	add_child(_shrine)
+	var plinth := MeshInstance3D.new()
+	plinth.mesh = Figure._cyl(0.3, 0.38, 0.35, 6)
+	plinth.position.y = 0.175
+	plinth.material_override = Figure.mat(Color("4a4652"))
+	_shrine.add_child(plinth)
+	var post := MeshInstance3D.new()
+	post.mesh = Figure._cyl(0.04, 0.05, 0.6, 5)
+	post.position.y = 0.65
+	post.material_override = Figure.mat(Color("b08a3a"))
+	_shrine.add_child(post)
+	for i in 2:
+		var ring := MeshInstance3D.new()
+		var tm := TorusMesh.new()
+		tm.inner_radius = 0.3 - 0.07 * i
+		tm.outer_radius = 0.34 - 0.07 * i
+		tm.rings = 10
+		tm.ring_segments = 3
+		ring.mesh = tm
+		ring.position.y = 1.15
+		ring.material_override = Figure.mat(Color("c9a45a"))
+		_shrine.add_child(ring)
+		_shrine_rings.append(ring)
+	var core := MeshInstance3D.new()
+	core.mesh = Spells3D.octa(0.08, 1.0)
+	core.material_override = Figure.mat(Color("ffd36b"), 1.5)
+	core.position.y = 1.15
+	_shrine.add_child(core)
+	_shrine_rings.append(core)
+
+
+## 0 by day .. 1 at dusk.
+func dusk() -> float:
+	return _mood_k
+
+
+func want_light(at: Vector3, col: Color, energy: float, rng: float) -> void:
+	_light_wants.append([at, col, energy, rng])
+
+
+# --- every frame --------------------------------------------------------------------
+
+func _process(delta: float) -> void:
+	if arena == null or arena.player == null:
+		return
+	if Input.is_action_just_pressed("mood"):
+		_mood_override = ("dusk" if _mood_k < 0.5 else "day")
+	var want: String = _mood_override if _mood_override != "" else str(cfg["phase_moods"].get(arena.phase, "day"))
+	_mood_k = move_toward(_mood_k, 1.0 if want == "dusk" else 0.0, delta / 2.5)
+	_apply_mood(_mood_k)
+
+	_light_wants.clear()
+	_sync_figures(delta)
+	spells.sync(delta)
+	_sync_shrine()
+	_place_lights()
+
+	var sh: float = arena.shake
+	camera.position = _cam_base + (Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * sh * 0.03 if sh > 0.3 else Vector3.ZERO)
+	if marks != null:
+		marks.queue_redraw()
+
+
+func _apply_mood(k: float) -> void:
+	var a: Dictionary = cfg["moods"]["day"]
+	var b: Dictionary = cfg["moods"]["dusk"]
+	var col := func(key: String) -> Color: return Color(str(a[key])).lerp(Color(str(b[key])), k)
+	var num := func(key: String) -> float: return lerpf(float(a[key]), float(b[key]), k)
+	_env.background_color = col.call("bg")
+	_env.ambient_light_color = col.call("ambient")
+	_env.ambient_light_energy = num.call("ambient_energy")
+	_env.glow_intensity = num.call("glow")
+	_sun.light_color = col.call("sun")
+	_sun.light_energy = num.call("sun_energy")
+	var ra: Array = a["sun_rot"]
+	var rb: Array = b["sun_rot"]
+	_sun.rotation_degrees = Vector3(lerpf(ra[0], rb[0], k), lerpf(ra[1], rb[1], k), 0)
+	var cols := PackedVector3Array()
+	for key in ["dirt", "grass", "hill", "path"]:
+		var c := Color(str(a["ground"][key])).lerp(Color(str(b["ground"][key])), k)
+		cols.append(Vector3(c.r, c.g, c.b))
+	_ground.set_shader_parameter("kind_cols", cols)
+	_overlay_mat.set_shader_parameter("boost", num.call("overlay"))
+
+
+func _fig_for(u: Unit) -> Dictionary:
+	if _figs.has(u.id):
+		return _figs[u.id]
+	var f := Figure.new()
+	f.build(cfg["figures"][u.kind], float(cfg["darken"]))
+	add_child(f)
+	var rec := {"node": f, "unit": u, "rot": 0.0, "seen": true, "run_t": randf() * 2.0}
+	if u.team == 1:
+		rec["rot"] = face_rot(arena.player.pos - u.pos)
+	_figs[u.id] = rec
+	return rec
+
+
+func _sync_figures(delta: float) -> void:
+	for id in _figs:
+		_figs[id]["seen"] = false
+	var P: Unit = arena.player
+	var casts: int = int(arena.stats["casts"])
+	if casts > _last_casts:
+		_cast_t = 0.0
+	_last_casts = casts
+	_cast_t += delta
+	for u in arena.units:
+		var rec := _fig_for(u)
+		rec["seen"] = true
+		var f = rec["node"]
+		f.position = to_world(u.pos, u.lift() * S)
+		# Facing: the wizard faces the aim; enemies face the wizard, or where they walk.
+		var d: Vector2 = (arena.mouse - u.pos) if u == P else (P.pos - u.pos)
+		if d.length() > 0.5 and not u.dead:
+			rec["rot"] = lerp_angle(rec["rot"], face_rot(d), clampf(delta * 14.0, 0.0, 1.0))
+		f.rotation.y = rec["rot"]
+		var pose := _pose(u, rec, delta)
+		f.pose(pose[0], pose[1], delta)
+		var fade := 0.0
+		var dark := 0.0
+		if u.dead:
+			var k := 1.0 - clampf(u.death_t / 0.6, 0.0, 1.0)
+			fade = smoothstep(0.4, 1.0, k)
+			dark = 0.35 * k
+		elif u == P and u.iframes > 0.0:
+			fade = 0.45
+		f.set_look(clampf(u.flash * 6.0, 0.0, 1.0), Color("fff0d8"), fade, dark)
+		if u.kind == "rival" and not u.dead:
+			want_light(to_world(u.pos, 1.6), PixelArt.STORM, 0.6, 3.0)
+	for id in _figs.keys():
+		if not _figs[id]["seen"]:
+			_figs[id]["node"].queue_free()
+			_figs.erase(id)
+
+
+## Which clip the unit shows, and at what time: reactions first, then attacks, then moving.
+func _pose(u: Unit, rec: Dictionary, delta: float) -> Array:
+	var P: Unit = arena.player
+	var staff := u == P
+	if u.dead:
+		var k := 1.0 - clampf(u.death_t / 0.6, 0.0, 1.0)
+		return ["down", k * Figure.clip_len("down")]
+	if u.reaction != "" and u.reaction_t > 0.0:
+		var k := 1.0 - u.reaction_t / maxf(0.01, u.reaction_len)
+		match u.reaction:
+			"knockdown":
+				return ["down", minf(k * 1.6, 1.0) * Figure.clip_len("down")]
+			"launch":
+				return ["air", k * Figure.clip_len("air")]
+			"stagger":
+				return ["stagger", k * Figure.clip_len("stagger")]
+			_:
+				return ["hit", k * Figure.clip_len("hit")]
+	if u.stun > 0.0:
+		return ["stagger", fmod(u.anim, Figure.clip_len("stagger"))]
+	if u == P:
+		if arena.kit.holding != "":
+			return ["channel", Figure.clip_len("channel") * 0.4]
+		if _cast_t < 0.45:
+			return ["staff_thrust", 0.12 + _cast_t * 1.2]
+	elif u.state in ["windup", "lance", "spark", "storm"] and u.state_t > 0.0:
+		var clip := "overhead" if u.kind == "hollow" else ("channel" if u.state == "storm" else "cast")
+		var e: Dictionary = arena.D["enemies"][u.kind]
+		var total := float(e.get("windup", 0.6))
+		var k := 1.0 - clampf(u.state_t / maxf(0.05, total), 0.0, 1.0)
+		var anim: Animation = Figure._lib.get_animation(clip)
+		var impact := 0.3 if anim == null else anim.length * 0.42
+		return [clip, k * impact]
+	if u.moving:
+		rec["run_t"] += delta * clampf(u.speed / 50.0, 0.7, 1.4)
+		var run := "staff_run" if staff else "run"
+		return [run, fmod(rec["run_t"], Figure.clip_len(run))]
+	rec["run_t"] += delta
+	var idle := "staff_idle" if staff else "stand"
+	return [idle, fmod(rec["run_t"], Figure.clip_len(idle))]
+
+
+func _sync_shrine() -> void:
+	var ready: bool = arena.shrine_ready()
+	var spin := Time.get_ticks_msec() / 900.0
+	_shrine_rings[0].rotation = Vector3(spin, 0, 0.4)
+	_shrine_rings[1].rotation = Vector3(0.5, 0, spin * 1.3)
+	_shrine_rings[2].rotation.y = spin * 2.0
+	Spells3D.paint(_shrine_rings[2], PixelArt.FIRE_HOT if ready else PixelArt.PAPER, 2.0 if ready else 0.3)
+	if ready:
+		want_light(_shrine.position + Vector3(0, 1.2, 0), PixelArt.GOLD, 1.2, 3.0)
+
+
+## Spells light the scene at dusk: the brightest few wants get a real light.
+func _place_lights() -> void:
+	var scale := lerpf(float(cfg["moods"]["day"]["lights"]), float(cfg["moods"]["dusk"]["lights"]), _mood_k)
+	_light_wants.sort_custom(func(a, b): return a[2] > b[2])
+	for i in MAX_LIGHTS:
+		var l := _lights[i]
+		if i < _light_wants.size() and scale > 0.01:
+			var w: Array = _light_wants[i]
+			l.visible = true
+			l.position = w[0]
+			l.light_color = w[1]
+			l.light_energy = float(w[2]) * scale
+			l.omni_range = float(w[3])
+		else:
+			l.visible = false

@@ -49,6 +49,7 @@ var fight_time := 0.0
 var stats := {"casts": 0, "damage_taken": 0.0, "kills": 0, "by_spell": {}}
 
 var _tex := {}
+var view = null  # the 3D view (scripts/view/view3d.gd); when set, _draw only lays the flat marks
 
 
 func _ready() -> void:
@@ -227,7 +228,8 @@ func _physics_process(dt: float) -> void:
 		return
 	_update_fx(dt)
 	shake = maxf(0.0, shake - dt * 18.0)
-	position = Vector2(rng.randf_range(-1, 1), rng.randf_range(-1, 1)) * shake if shake > 0.3 else Vector2.ZERO
+	if view == null:
+		position = Vector2(rng.randf_range(-1, 1), rng.randf_range(-1, 1)) * shake if shake > 0.3 else Vector2.ZERO
 	if hitstop > 0.0:
 		hitstop -= dt
 		return
@@ -709,6 +711,9 @@ func _update_fx(dt: float) -> void:
 # --- drawing ----------------------------------------------------------------
 
 func _draw() -> void:
+	if view != null:
+		_draw_marks()
+		return
 	draw_texture(_tex["ground"], Vector2.ZERO)
 	_draw_shrine()
 	for z in zones:
@@ -732,6 +737,32 @@ func _draw() -> void:
 		_draw_fx(f)
 	kit.draw(self)
 	_draw_reticle()
+
+
+## With the 3D view, only the flat telegraphs: they become the ground's decal, and the view
+## draws figures, stones, projectiles, effects and anything standing up.
+func _draw_marks() -> void:
+	if shrine_ready():
+		draw_arc(shrine_pos() + Vector2(0, -6), float(D["shrine"]["reach"]), 0, TAU, 32, Color(PixelArt.GOLD, 0.35), 1.0, false)
+	for z in zones:
+		_draw_zone(z)
+	kit.draw_field(self)
+	for u in units:
+		if not u.dead:
+			draw_ellipse_px(u.pos + Vector2(0, 1), u.radius + 1.0, 2.5, Color(0, 0, 0, 0.3))
+	for f in fxs:
+		if f["kind"] == "cone":  # a level-up ghost of a cone; the view draws every other effect
+			_draw_fx(f)
+	kit.draw(self)
+	_draw_reticle()
+
+
+## A sim point on the HUD (960×540): through the 3D camera when there is one. `h` is a height
+## in metres for the 3D view, or in sim pixels for the flat one.
+func screen_pos(p: Vector2, h := 0.0) -> Vector2:
+	if view != null:
+		return view.to_screen(p, h)
+	return (p - Vector2(0, h)) * 2.0
 
 
 func _draw_unit(u: Unit) -> void:
@@ -841,10 +872,14 @@ func _draw_zone(z: Dictionary) -> void:
 	var t: float = z["t"]
 	match z["kind"]:
 		"ember":
+			if view != null:
+				return
 			var frames: Array = _tex["ember"]
 			var fade := clampf((z["life"] - t) / 1.0, 0.3, 1.0)
 			draw_texture(frames[int(t * 6.0) % 2], (z["pos"] - Vector2(3, 5)).round(), Color(1, 1, 1, fade))
 		"gravel":
+			if view != null:
+				return
 			for i in 10:
 				var a := i * 2.4
 				var o := Vector2(cos(a), sin(a)) * fmod(i * 3.7, z["r"])
@@ -859,7 +894,7 @@ func _draw_zone(z: Dictionary) -> void:
 			if z.has("ghost_r"):
 				draw_dashed_circle(z["pos"], z["ghost_r"], Color(PixelArt.PAPER, 0.7))
 			draw_circle(z["pos"], z["r"] * k, Color(col, 0.35 if bright else 0.12), true, -1.0, false)
-			if z["kind"] == "meteor":
+			if z["kind"] == "meteor" and view == null:
 				var fall: Vector2 = z["pos"] + Vector2(-20, -60) * (1.0 - k)
 				draw_circle(fall, 3.0, PixelArt.FIRE_HOT, true, -1.0, false)
 				draw_texture(_tex["stone"], (fall - Vector2(3, 3)).round(), Color(1, 0.7, 0.4))
@@ -890,6 +925,8 @@ func _draw_zone(z: Dictionary) -> void:
 			var k := clampf(t / z["delay"], 0.0, 1.0)
 			draw_line(z["a"], z["b"], Color(PixelArt.DANGER, 0.3 + 0.5 * k), 1.0)
 		"tome":
+			if view != null:
+				return
 			var p: Vector2 = z["pos"].round() + Vector2(0, -2 + roundf(sin(t * 3.0)))
 			draw_rect(Rect2(p + Vector2(-4, -3), Vector2(8, 6)), PixelArt.INK)
 			draw_rect(Rect2(p + Vector2(-3, -2), Vector2(3, 4)), PixelArt.PAPER)
@@ -899,6 +936,8 @@ func _draw_zone(z: Dictionary) -> void:
 				draw_rect(Rect2(p + Vector2(4, -6), Vector2(1, 1)), PixelArt.GOLD)
 		"column":
 			var k: float = 1.0 - t / z["life"]
+			if view != null:
+				return
 			draw_rect(Rect2(z["pos"] + Vector2(-z["r"] * 0.6, -40), Vector2(z["r"] * 1.2, 40)), Color(PixelArt.FIRE, 0.5 * k))
 			draw_rect(Rect2(z["pos"] + Vector2(-z["r"] * 0.3, -40), Vector2(z["r"] * 0.6, 40)), Color(PixelArt.FIRE_HOT, 0.7 * k))
 
@@ -965,6 +1004,8 @@ func _draw_fx(f: Dictionary) -> void:
 			draw_dashed_line(f["pos"], f["pos"] + Vector2.from_angle(dir.angle() + f["cone"] * 0.5) * f["r"], gc)
 			draw_arc(f["pos"], f["r"], dir.angle() - f["cone"] * 0.5, dir.angle() + f["cone"] * 0.5, 12, gc, 1.0, false)
 		"rise":
+			if view != null:
+				return
 			draw_texture(_tex["stone"], (f["pos"] - Vector2(3, 3 + 30.0 * k)).round(), Color(1, 0.6, 0.3, 1.0 - k))
 
 
