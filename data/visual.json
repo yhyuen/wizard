@@ -1,10 +1,9 @@
 {
-  "_doc": "The 3D view (scripts/view/view3d.gd): ink figures over the 2D sim, Wuxia's look in Western colours. Purely visual: hitboxes and rules stay in the sim. Positions are sim pixels unless named in metres.",
+  "_doc": "The 3D view (scripts/view/view3d.gd): flat-shaded low-poly figures, ground and spells over the 2D sim. Purely visual: hitboxes and rules stay in the sim. Positions are sim pixels unless named in metres.",
   "metres_per_px": 0.0556,
   "camera": {"offset": [0, 19.5, 12.0], "look_at": [0, 0, 0.9], "fov": 40},
   "overlay_scale": 3,
-  "darken": 0.18,
-  "outline_px": 1.7,
+  "darken": 0.1,
 
   "_figures_doc": "Per unit kind: a model from assets/models/figures, scale, recipe colours swapped (hex: hex), tint [hex, amount] for every other colour, a hat on the head bone, glowing eyes, the weapon shown.",
   "figures": {
@@ -24,19 +23,20 @@
     "day": {
       "bg": "151a25", "ambient": "8fa3c8", "ambient_energy": 0.55,
       "sun": "f6e2bf", "sun_energy": 1.25, "sun_rot": [-55, 35, 0],
-      "ground": {"base": "2c2720", "wash": "352e25", "dirt": "463a2b", "grass": "232c1d", "wet": "1f2021", "ink": "101318"},
-      "outline": "0d1018", "glow": 0.4, "lights": 0.0, "overlay": 1.0, "rim": 0.22
+      "ground": {"dirt": "8a6c48", "grass": "5d7a3e", "hill": "4c6636", "path": "9c7f58"},
+      "glow": 0.5, "lights": 0.0, "overlay": 1.0
     },
     "dusk": {
       "bg": "0b0e16", "ambient": "6a7caa", "ambient_energy": 0.45,
       "sun": "9fb2e0", "sun_energy": 0.55, "sun_rot": [-60, -30, 0],
-      "ground": {"base": "222632", "wash": "292e3a", "dirt": "33333a", "grass": "1a2422", "wet": "15181e", "ink": "07090e"},
-      "outline": "05070b", "glow": 1.1, "lights": 1.0, "overlay": 1.25, "rim": 0.3
+      "ground": {"dirt": "4a4650", "grass": "2e3d3a", "hill": "263330", "path": "54505a"},
+      "glow": 1.1, "lights": 1.0, "overlay": 1.25
     }
   },
 
+  "_ground_doc": "A faceted mesh: cell size and extent in metres, hill height outside the fence, paths out of the gates (sim pixels).",
   "ground": {
-    "patches": [[240, 140, 210, "dirt"], [40, 20, 70, "grass"], [450, 20, 80, "grass"], [30, 262, 60, "grass"], [460, 262, 70, "grass"]],
+    "cell_m": 1.1, "extent_m": [70, 50], "hill_m": 2.2,
     "paths": [[[-60, 140], [20, 140]], [[460, 140], [540, 140]], [[240, -60], [240, 34]], [[240, 248], [240, 330]]],
     "path_width_px": 40
   },

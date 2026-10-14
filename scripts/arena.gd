@@ -739,8 +739,8 @@ func _draw() -> void:
 	_draw_reticle()
 
 
-## With the 3D view, only what lies flat on the ground: it becomes the ground's decal, and the
-## view draws figures, stones, projectiles and anything standing up.
+## With the 3D view, only the flat telegraphs: they become the ground's decal, and the view
+## draws figures, stones, projectiles, effects and anything standing up.
 func _draw_marks() -> void:
 	if shrine_ready():
 		draw_arc(shrine_pos() + Vector2(0, -6), float(D["shrine"]["reach"]), 0, TAU, 32, Color(PixelArt.GOLD, 0.35), 1.0, false)
@@ -751,7 +751,8 @@ func _draw_marks() -> void:
 		if not u.dead:
 			draw_ellipse_px(u.pos + Vector2(0, 1), u.radius + 1.0, 2.5, Color(0, 0, 0, 0.3))
 	for f in fxs:
-		_draw_fx(f)
+		if f["kind"] == "cone":  # a level-up ghost of a cone; the view draws every other effect
+			_draw_fx(f)
 	kit.draw(self)
 	_draw_reticle()
 
@@ -872,12 +873,13 @@ func _draw_zone(z: Dictionary) -> void:
 	match z["kind"]:
 		"ember":
 			if view != null:
-				draw_circle(z["pos"], 4.0, Color(PixelArt.FIRE, 0.25), true, -1.0, false)
 				return
 			var frames: Array = _tex["ember"]
 			var fade := clampf((z["life"] - t) / 1.0, 0.3, 1.0)
 			draw_texture(frames[int(t * 6.0) % 2], (z["pos"] - Vector2(3, 5)).round(), Color(1, 1, 1, fade))
 		"gravel":
+			if view != null:
+				return
 			for i in 10:
 				var a := i * 2.4
 				var o := Vector2(cos(a), sin(a)) * fmod(i * 3.7, z["r"])
@@ -935,7 +937,6 @@ func _draw_zone(z: Dictionary) -> void:
 		"column":
 			var k: float = 1.0 - t / z["life"]
 			if view != null:
-				draw_circle(z["pos"], z["r"], Color(PixelArt.FIRE, 0.35 * k), true, -1.0, false)
 				return
 			draw_rect(Rect2(z["pos"] + Vector2(-z["r"] * 0.6, -40), Vector2(z["r"] * 1.2, 40)), Color(PixelArt.FIRE, 0.5 * k))
 			draw_rect(Rect2(z["pos"] + Vector2(-z["r"] * 0.3, -40), Vector2(z["r"] * 0.6, 40)), Color(PixelArt.FIRE_HOT, 0.7 * k))
@@ -962,9 +963,6 @@ func _draw_fx(f: Dictionary) -> void:
 			draw_line(f["pos"], f["to"], Color(PixelArt.PAPER, 1.0 - k), f["w"])
 			draw_line(f["pos"], f["to"], Color(col, 1.0 - k), maxf(1.0, f["w"] - 4.0))
 		"bolt":
-			if view != null:
-				draw_circle(f["pos"], 6.0 * (1.0 - k), Color(col, 0.6 * (1.0 - k)), true, -1.0, false)
-				return
 			var p: Vector2 = f["pos"]
 			var prev := p + Vector2(0, -80)
 			for i in range(1, 6):

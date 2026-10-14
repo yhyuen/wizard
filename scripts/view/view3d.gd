@@ -1,13 +1,13 @@
 extends Node3D
-## The fight seen as Wuxia sees its fights: ink figures, an ink-wash yard and props under a
-## tilted camera, over the same 2D sim. The arena still simulates everything and still draws
-## the flat marks (telegraphs, previews, zones, effects, the reticle) into an offscreen
-## viewport, which lies on the ground here as a decal; this node adds what stands up off the
-## ground: figures, lodestones, projectiles, flames, the Orrery, lightning. It reads the sim
-## each frame and never changes it.
+## The fight in low poly: flat-shaded figures, a faceted yard and hills, props, under the tilted
+## camera Wuxia uses, over the same 2D sim. The arena still simulates everything and still draws
+## the flat telegraphs (rings, cones, lines, hold-to-aim previews, the reticle) into an
+## offscreen viewport, which lies on the ground here as a decal, so a telegraph stays exactly
+## its hitbox. Spells and everything else that stands up are solid low-poly shapes
+## (spells3d.gd). It reads the sim each frame and never changes it.
 
 const Figure := preload("res://scripts/view/figure.gd")
-const GROUND_SHADER := preload("res://scripts/view/ground.gdshader")
+const Spells3D := preload("res://scripts/view/spells3d.gd")
 const OVERLAY_SHADER := preload("res://scripts/view/overlay.gdshader")
 const CFG_PATH := "res://data/visual.json"
 const SIM_CENTRE := Vector2(240, 135)
@@ -29,8 +29,7 @@ var _mood := "day"
 var _mood_k := 0.0  # 0 day .. 1 dusk, eased toward the target
 var _mood_override := ""
 var _figs := {}  # unit id -> {"node", "unit", "cast_t", "casts"}
-var _pools := {}  # kind -> Array of nodes
-var _used := {}  # kind -> how many used this frame
+var spells  # Spells3D
 var _lights: Array[OmniLight3D] = []
 var _light_wants: Array = []
 var _shrine: Node3D
@@ -45,7 +44,6 @@ func setup(the_arena, vp: SubViewport) -> void:
 	overlay = vp
 	cfg = JSON.parse_string(FileAccess.get_file_as_string(CFG_PATH))
 	S = float(cfg["metres_per_px"])
-	Figure.outline(Color(str(cfg["moods"]["day"]["outline"])), float(cfg["outline_px"]))
 
 
 func _ready() -> void:
@@ -54,6 +52,7 @@ func _ready() -> void:
 	_build_overlay()
 	_build_props()
 	_build_shrine()
+	spells = Spells3D.new(self)
 	for i in MAX_LIGHTS:
 		var l := OmniLight3D.new()
 		l.visible = false
@@ -119,45 +118,85 @@ func _build_env() -> void:
 	add_child(_sun)
 
 
+## The ground: a faceted mesh, one tone per triangle. The yard is flat (the telegraphs lie on
+## it); outside the fence the land rises into low hills.
 func _build_ground() -> void:
 	_ground = ShaderMaterial.new()
-	_ground.shader = GROUND_SHADER
-	var b: Rect2 = arena.BOUNDS
-	_ground.set_shader_parameter("half_size", b.size * S * 0.5 + Vector2(1.5, 1.5))
+	_ground.shader = Figure.SHADER
+	_ground.set_shader_parameter("use_vcol", true)
+	_ground.set_shader_parameter("rim", 0.0)
 	var g: Dictionary = cfg["ground"]
-	var kinds := {"dirt": 0, "grass": 1, "wet": 2}
-	var pats: Array = []
-	for q in g["patches"]:
-		var w := to_world(Vector2(q[0], q[1]))
-		pats.append(Vector4(w.x, w.z, float(q[2]) * S, kinds[q[3]]))
-	var segs: Array = []
-	var infos: Array = []
-	for pth in g["paths"]:
-		var a := to_world(Vector2(pth[0][0], pth[0][1]))
-		var c := to_world(Vector2(pth[1][0], pth[1][1]))
-		segs.append(Vector4(a.x, a.z, c.x, c.z))
-		infos.append(Vector4(float(g["path_width_px"]) * S, 0, 0, 0))
-	_ground.set_shader_parameter("patch_n", pats.size())
-	_ground.set_shader_parameter("patches", _pad(pats, 16))
-	_ground.set_shader_parameter("seg_n", segs.size())
-	_ground.set_shader_parameter("segs", _pad(segs, 16))
-	_ground.set_shader_parameter("seg_info", _pad(infos, 16))
+	var cell := float(g["cell_m"])
+	var ext: Array = g["extent_m"]
+	var nx := int(ext[0] / cell)
+	var nz := int(ext[1] / cell)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1234
+	var grid := []
+	for iz in nz + 1:
+		var row := []
+		for ix in nx + 1:
+			var x := (ix - nx * 0.5) * cell
+			var z := (iz - nz * 0.5) * cell
+			if ix > 0 and ix < nx and iz > 0 and iz < nz:
+				x += rng.randf_range(-0.35, 0.35) * cell
+				z += rng.randf_range(-0.35, 0.35) * cell
+			row.append(Vector3(x, height(x, z), z))
+		grid.append(row)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for iz in nz:
+		for ix in nx:
+			var a: Vector3 = grid[iz][ix]
+			var b: Vector3 = grid[iz][ix + 1]
+			var c: Vector3 = grid[iz + 1][ix]
+			var d: Vector3 = grid[iz + 1][ix + 1]
+			var tris := [[a, b, d], [a, d, c]] if (ix + iz) % 2 == 0 else [[a, b, c], [b, d, c]]
+			for t in tris:
+				var mid: Vector3 = (t[0] + t[1] + t[2]) / 3.0
+				var kind := _ground_kind(mid)
+				var shade := rng.randf_range(0.92, 1.08)
+				for v in [t[0], t[2], t[1]]:
+					st.set_color(Color(shade, shade, shade))
+					st.set_uv(Vector2(kind, 0))
+					st.add_vertex(v)
+	st.generate_normals()
 	var mi := MeshInstance3D.new()
-	var pm := PlaneMesh.new()
-	pm.size = Vector2(90, 90)
-	mi.mesh = pm
+	mi.mesh = st.commit()
 	mi.material_override = _ground
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mi)
 
 
-static func _pad(a: Array, n: int) -> PackedVector4Array:
-	var out := PackedVector4Array()
-	for v in a:
-		out.append(v)
-	while out.size() < n:
-		out.append(Vector4.ZERO)
-	return out
+## How far a point (metres) lies outside the yard's fence.
+func _outside(x: float, z: float) -> float:
+	var b: Rect2 = arena.BOUNDS
+	var lo := to_world(b.position)
+	var hi := to_world(b.end)
+	var dx := maxf(lo.x - x, x - hi.x)
+	var dz := maxf(lo.z - z, z - hi.z)
+	return maxf(0.0, maxf(dx, dz))
+
+
+## Ground height (metres): flat in the yard and just past the fence, hills further out.
+func height(x: float, z: float) -> float:
+	var out := _outside(x, z)
+	var hill := 0.5 + 0.5 * sin(x * 0.31 + 1.7) * sin(z * 0.37 + 0.4) + 0.3 * sin(x * 0.11 - z * 0.17)
+	return smoothstep(1.5, 9.0, out) * maxf(0.0, hill) * float(cfg["ground"]["hill_m"])
+
+
+## 0 dirt, 1 grass, 2 hill, 3 path: the yard is trodden dirt, paths lead out of the gates.
+func _ground_kind(p: Vector3) -> int:
+	var g: Dictionary = cfg["ground"]
+	var sim := Vector2(p.x / S, p.z / S) + SIM_CENTRE
+	for pth in g["paths"]:
+		var a := Vector2(pth[0][0], pth[0][1])
+		var c := Vector2(pth[1][0], pth[1][1])
+		if Geometry2D.get_closest_point_to_segment(sim, a, c).distance_to(sim) < float(g["path_width_px"]) * 0.5:
+			return 3
+	var out := _outside(p.x, p.z)
+	if out <= 0.2:
+		return 0
+	return 2 if p.y > 0.6 else 1
 
 
 func _build_overlay() -> void:
@@ -176,7 +215,7 @@ func _build_overlay() -> void:
 
 func _prop(id: String, at: Vector3, rot: float, s: float) -> void:
 	var n: Node3D = (load("res://assets/models/props/%s.glb" % id) as PackedScene).instantiate()
-	n.position = at
+	n.position = Vector3(at.x, height(at.x, at.z), at.z)
 	n.rotation_degrees.y = rot
 	n.scale = Vector3.ONE * s
 	add_child(n)
@@ -211,184 +250,50 @@ func _build_props() -> void:
 
 
 ## The Orrery: a stone plinth, a brass post and two rings that turn; it glows while usable.
+
+
+## The Orrery: a stone plinth, a brass post and two rings that turn round a gem; it glows
+## while usable.
 func _build_shrine() -> void:
 	_shrine = Node3D.new()
 	_shrine.position = to_world(arena.shrine_pos())
 	add_child(_shrine)
 	var plinth := MeshInstance3D.new()
-	var bm := BoxMesh.new()
-	bm.size = Vector3(0.6, 0.35, 0.6)
-	plinth.mesh = bm
+	plinth.mesh = Figure._cyl(0.3, 0.38, 0.35, 6)
 	plinth.position.y = 0.175
-	plinth.material_override = Figure.ink(Color("4a4652"))
+	plinth.material_override = Figure.mat(Color("4a4652"))
 	_shrine.add_child(plinth)
 	var post := MeshInstance3D.new()
-	post.mesh = Figure._cyl(0.04, 0.05, 0.6)
+	post.mesh = Figure._cyl(0.04, 0.05, 0.6, 5)
 	post.position.y = 0.65
-	post.material_override = Figure.ink(Color("b08a3a"))
+	post.material_override = Figure.mat(Color("b08a3a"))
 	_shrine.add_child(post)
 	for i in 2:
 		var ring := MeshInstance3D.new()
 		var tm := TorusMesh.new()
 		tm.inner_radius = 0.3 - 0.07 * i
 		tm.outer_radius = 0.34 - 0.07 * i
-		tm.rings = 24
-		tm.ring_segments = 6
+		tm.rings = 10
+		tm.ring_segments = 3
 		ring.mesh = tm
 		ring.position.y = 1.15
-		ring.material_override = Figure.ink(Color("c9a45a"))
+		ring.material_override = Figure.mat(Color("c9a45a"))
 		_shrine.add_child(ring)
 		_shrine_rings.append(ring)
-	var core := _glow_node(0.07, Color("ffd36b"))
+	var core := MeshInstance3D.new()
+	core.mesh = Spells3D.octa(0.08, 1.0)
+	core.material_override = Figure.mat(Color("ffd36b"), 1.5)
 	core.position.y = 1.15
 	_shrine.add_child(core)
 	_shrine_rings.append(core)
 
 
-# --- materials and pools --------------------------------------------------------------
-
-## A glowing sphere: emissive, so it blooms at dusk.
-func _glow_node(r: float, col: Color) -> MeshInstance3D:
-	var mi := MeshInstance3D.new()
-	var sm := SphereMesh.new()
-	sm.radius = r
-	sm.height = r * 2.0
-	sm.radial_segments = 10
-	sm.rings = 5
-	mi.mesh = sm
-	var m := StandardMaterial3D.new()
-	m.albedo_color = Color.BLACK
-	m.emission_enabled = true
-	m.emission = col
-	m.emission_energy_multiplier = 2.0
-	mi.material_override = m
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	return mi
+## 0 by day .. 1 at dusk.
+func dusk() -> float:
+	return _mood_k
 
 
-## Additive and unshaded: light that has no body (a fire column, a lightning stroke).
-static func _add_mat() -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	m.cull_mode = BaseMaterial3D.CULL_DISABLED
-	m.no_depth_test = false
-	m.albedo_color = Color.BLACK
-	return m
-
-
-static func _set_glow(mi: MeshInstance3D, col: Color, energy: float) -> void:
-	var m := mi.material_override as StandardMaterial3D
-	m.emission = col
-	m.emission_energy_multiplier = energy
-
-
-func _take(kind: String) -> Node3D:
-	if not _pools.has(kind):
-		_pools[kind] = []
-	var pool: Array = _pools[kind]
-	var i: int = _used.get(kind, 0)
-	_used[kind] = i + 1
-	if i < pool.size():
-		pool[i].visible = true
-		return pool[i]
-	var n := _make(kind)
-	add_child(n)
-	pool.append(n)
-	return n
-
-
-func _make(kind: String) -> Node3D:
-	match kind:
-		"orb":
-			return _glow_node(0.15, Color.WHITE)
-		"rock":
-			var mi := MeshInstance3D.new()
-			var sm := SphereMesh.new()
-			sm.radius = 0.15
-			sm.height = 0.24
-			sm.radial_segments = 6
-			sm.rings = 3
-			mi.mesh = sm
-			mi.material_override = Figure.ink(PixelArt.EARTH.darkened(0.15))
-			return mi
-		"flame":
-			var n := Node3D.new()
-			for k in 2:
-				var mi := MeshInstance3D.new()
-				var pm := PrismMesh.new()
-				var h := 0.5 - 0.18 * k
-				pm.size = Vector3(0.22 - 0.08 * k, h, 0.05)
-				mi.mesh = pm
-				var m := StandardMaterial3D.new()
-				m.albedo_color = Color.BLACK
-				m.emission_enabled = true
-				m.emission = PixelArt.FIRE if k == 0 else PixelArt.FIRE_HOT
-				m.emission_energy_multiplier = 2.0
-				mi.material_override = m
-				mi.position = Vector3(0, h * 0.5, 0.01 * k)
-				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-				n.add_child(mi)
-			return n
-		"column":
-			var mi := MeshInstance3D.new()
-			mi.mesh = Figure._cyl(1.0, 1.0, 1.0, 12)
-			mi.material_override = _add_mat()
-			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			return mi
-		"rod":
-			var n := Node3D.new()
-			var pole := MeshInstance3D.new()
-			pole.mesh = Figure._cyl(0.03, 0.04, 0.9, 6)
-			pole.position.y = 0.45
-			pole.material_override = Figure.ink(PixelArt.STEEL)
-			n.add_child(pole)
-			var tip := _glow_node(0.07, PixelArt.STORM)
-			tip.position.y = 0.95
-			tip.name = "Tip"
-			n.add_child(tip)
-			return n
-		"tome":
-			var n := Node3D.new()
-			for sx in [-1.0, 1.0]:
-				var page := MeshInstance3D.new()
-				var bm := BoxMesh.new()
-				bm.size = Vector3(0.22, 0.03, 0.3)
-				page.mesh = bm
-				page.position = Vector3(0.11 * sx, 0, 0)
-				page.rotation_degrees.z = -12.0 * sx
-				page.material_override = Figure.ink(PixelArt.PAPER)
-				n.add_child(page)
-			var spine := _glow_node(0.03, PixelArt.GOLD)
-			n.add_child(spine)
-			return n
-		"bolt":
-			var n := Node3D.new()
-			for i in 5:
-				var mi := MeshInstance3D.new()
-				var bm := BoxMesh.new()
-				bm.size = Vector3(0.06, 0.06, 1.0)
-				mi.mesh = bm
-				mi.material_override = _add_mat()
-				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-				n.add_child(mi)
-			return n
-	return Node3D.new()
-
-
-func _begin_pools() -> void:
-	_used.clear()
-	_light_wants.clear()
-
-
-func _end_pools() -> void:
-	for kind in _pools:
-		var pool: Array = _pools[kind]
-		for i in range(_used.get(kind, 0), pool.size()):
-			pool[i].visible = false
-
-
-func _want_light(at: Vector3, col: Color, energy: float, rng: float) -> void:
+func want_light(at: Vector3, col: Color, energy: float, rng: float) -> void:
 	_light_wants.append([at, col, energy, rng])
 
 
@@ -403,14 +308,10 @@ func _process(delta: float) -> void:
 	_mood_k = move_toward(_mood_k, 1.0 if want == "dusk" else 0.0, delta / 2.5)
 	_apply_mood(_mood_k)
 
-	_begin_pools()
+	_light_wants.clear()
 	_sync_figures(delta)
-	_sync_stones()
-	_sync_projs()
-	_sync_zones()
-	_sync_fx()
+	spells.sync(delta)
 	_sync_shrine()
-	_end_pools()
 	_place_lights()
 
 	var sh: float = arena.shake
@@ -433,10 +334,12 @@ func _apply_mood(k: float) -> void:
 	var ra: Array = a["sun_rot"]
 	var rb: Array = b["sun_rot"]
 	_sun.rotation_degrees = Vector3(lerpf(ra[0], rb[0], k), lerpf(ra[1], rb[1], k), 0)
-	for key in ["base", "wash", "dirt", "grass", "wet", "ink"]:
-		_ground.set_shader_parameter(key + "_col", Color(str(a["ground"][key])).lerp(Color(str(b["ground"][key])), k))
+	var cols := PackedVector3Array()
+	for key in ["dirt", "grass", "hill", "path"]:
+		var c := Color(str(a["ground"][key])).lerp(Color(str(b["ground"][key])), k)
+		cols.append(Vector3(c.r, c.g, c.b))
+	_ground.set_shader_parameter("kind_cols", cols)
 	_overlay_mat.set_shader_parameter("boost", num.call("overlay"))
-	Figure.outline(col.call("outline"), float(cfg["outline_px"]))
 
 
 func _fig_for(u: Unit) -> Dictionary:
@@ -483,7 +386,7 @@ func _sync_figures(delta: float) -> void:
 			fade = 0.45
 		f.set_look(clampf(u.flash * 6.0, 0.0, 1.0), Color("fff0d8"), fade, dark)
 		if u.kind == "rival" and not u.dead:
-			_want_light(to_world(u.pos, 1.6), PixelArt.STORM, 0.6, 3.0)
+			want_light(to_world(u.pos, 1.6), PixelArt.STORM, 0.6, 3.0)
 	for id in _figs.keys():
 		if not _figs[id]["seen"]:
 			_figs[id]["node"].queue_free()
@@ -532,128 +435,15 @@ func _pose(u: Unit, rec: Dictionary, delta: float) -> Array:
 	return [idle, fmod(rec["run_t"], Figure.clip_len(idle))]
 
 
-func _sync_stones() -> void:
-	for s in arena.stones:
-		var r := _take("rock")
-		var p: Vector2 = s["pos"]
-		var h := 0.12
-		match s["state"]:
-			"orbit", "return", "recall":
-				p += Vector2(0, 4)
-				h = 1.1
-			"flung":
-				h = 0.6
-			"slam":
-				h = 1.0 + maxf(0.0, float(s.get("delay", 0.0))) * 3.0
-		r.position = to_world(p, h)
-		r.rotation.y += 0.05
-
-
-func _sync_projs() -> void:
-	for p in arena.projs:
-		if p.get("ghost", false):
-			continue
-		var at := to_world(p["pos"], 0.7)
-		if p["kind"] == "pebble":
-			var r := _take("rock")
-			r.position = at
-			continue
-		var o := _take("orb") as MeshInstance3D
-		var col: Color = p["color"]
-		if p["kind"] in ["ember", "pyro"]:
-			col = PixelArt.FIRE
-		o.position = at
-		o.scale = Vector3.ONE * clampf(float(p["r"]) / 2.5, 0.8, 2.2)
-		_set_glow(o, col, lerpf(1.1, 1.8, _mood_k))
-		if p["kind"] in ["ember", "pyro"]:
-			_want_light(at, PixelArt.FIRE, 1.6, 3.5)
-		elif p.get("team", 0) == 1 or col == PixelArt.DANGER:
-			_want_light(at, col, 1.0, 2.5)
-
-
-func _sync_zones() -> void:
-	for z in arena.zones:
-		var t: float = z["t"]
-		match z["kind"]:
-			"ember":
-				var f := _take("flame")
-				f.position = to_world(z["pos"])
-				var fade := clampf((z["life"] - t) / 1.0, 0.3, 1.0)
-				f.scale = Vector3(1.0, (0.8 + 0.25 * sin(t * 13.0 + z["pos"].x)) * fade, 1.0)
-				f.rotation.y = camera.rotation.y
-				_want_light(to_world(z["pos"], 0.5), PixelArt.FIRE, 1.4 * fade, 3.0)
-			"tome":
-				var b := _take("tome")
-				b.position = to_world(z["pos"], 0.55 + 0.06 * sin(t * 3.0))
-				b.rotation.y = t * 0.8
-				_want_light(b.position, PixelArt.GOLD, 0.8, 2.0)
-			"column":
-				var c := _take("column") as MeshInstance3D
-				var k: float = 1.0 - t / z["life"]
-				var r: float = float(z["r"]) * S * 0.6
-				c.scale = Vector3(r, 2.4, r)
-				c.position = to_world(z["pos"], 1.2)
-				(c.material_override as StandardMaterial3D).albedo_color = PixelArt.FIRE.lerp(PixelArt.FIRE_HOT, k) * (0.8 * k)
-				_want_light(to_world(z["pos"], 1.0), PixelArt.FIRE, 3.0 * k, 5.0)
-			"meteor":
-				var k := clampf(t / z["delay"], 0.0, 1.0)
-				var o := _take("orb") as MeshInstance3D
-				o.position = to_world(z["pos"] + Vector2(-20, 0) * (1.0 - k), 0.3 + 6.0 * (1.0 - k))
-				o.scale = Vector3.ONE * 2.2
-				_set_glow(o, PixelArt.FIRE_HOT, 3.0)
-				_want_light(o.position, PixelArt.FIRE, 2.0, 5.0)
-			"rod":
-				var r := _take("rod")
-				r.position = to_world(z["pos"])
-				var lit: bool = z.get("zap_t", 1.0) < 0.15 or int(t * 4.0) % 2 == 0
-				_set_glow(r.get_node("Tip"), PixelArt.STORM, 3.0 if lit else 1.0)
-				if lit:
-					_want_light(to_world(z["pos"], 1.0), PixelArt.STORM, 0.8, 2.0)
-			"storm", "strike":
-				var k := clampf(t / maxf(0.01, float(z.get("delay", 1.0))), 0.0, 1.0)
-				_want_light(to_world(z["pos"], 1.0), PixelArt.STORM, 0.6 * k, float(z["r"]) * S * 2.0)
-
-
-func _sync_fx() -> void:
-	for f in arena.fxs:
-		var k: float = f["t"] / f["life"]
-		match f["kind"]:
-			"bolt":
-				var n := _take("bolt")
-				var base := to_world(f["pos"])
-				var pts := [Vector3(0.2, 4.4, -0.3), Vector3(-0.15, 3.3, 0.1), Vector3(0.2, 2.4, -0.1), Vector3(-0.15, 1.5, 0.15), Vector3(0.1, 0.6, 0.0), Vector3.ZERO]
-				var i := 0
-				for seg in n.get_children():
-					var a: Vector3 = base + pts[i]
-					var b: Vector3 = base + pts[i + 1]
-					var mi := seg as MeshInstance3D
-					mi.look_at_from_position((a + b) * 0.5, b, Vector3.RIGHT)
-					mi.scale = Vector3(1, 1, a.distance_to(b))
-					(mi.material_override as StandardMaterial3D).albedo_color = Color(f.get("color", PixelArt.STORM)) * (1.0 - k)
-					i += 1
-				_want_light(base + Vector3(0, 1.5, 0), PixelArt.STORM, 3.0 * (1.0 - k), 5.0)
-			"rise":
-				var r := _take("rock")
-				r.position = to_world(f["pos"], 0.2 + 2.0 * k)
-			"burst":
-				var col: Color = f.get("color", PixelArt.PAPER)
-				if col == PixelArt.FIRE or col == PixelArt.FIRE_HOT:
-					_want_light(to_world(f["pos"], 0.6), PixelArt.FIRE, 1.5 * (1.0 - k), 3.0)
-				elif col == PixelArt.STORM:
-					_want_light(to_world(f["pos"], 0.6), PixelArt.STORM, 1.5 * (1.0 - k), 3.0)
-			"zap", "beam":
-				var a := to_world(f["pos"], 0.8)
-				_want_light(a, f.get("color", PixelArt.STORM), 1.5 * (1.0 - k), 3.0)
-
-
 func _sync_shrine() -> void:
 	var ready: bool = arena.shrine_ready()
 	var spin := Time.get_ticks_msec() / 900.0
 	_shrine_rings[0].rotation = Vector3(spin, 0, 0.4)
 	_shrine_rings[1].rotation = Vector3(0.5, 0, spin * 1.3)
-	_set_glow(_shrine_rings[2], PixelArt.FIRE_HOT if ready else PixelArt.PAPER, 3.0 if ready else 0.6)
+	_shrine_rings[2].rotation.y = spin * 2.0
+	Spells3D.paint(_shrine_rings[2], PixelArt.FIRE_HOT if ready else PixelArt.PAPER, 2.0 if ready else 0.3)
 	if ready:
-		_want_light(_shrine.position + Vector3(0, 1.2, 0), PixelArt.GOLD, 1.2, 3.0)
+		want_light(_shrine.position + Vector3(0, 1.2, 0), PixelArt.GOLD, 1.2, 3.0)
 
 
 ## Spells light the scene at dusk: the brightest few wants get a real light.

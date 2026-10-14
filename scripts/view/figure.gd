@@ -1,15 +1,13 @@
 extends Node3D
-## One ink figure on the field: a low-poly model drawn with the ink shader and its pixel-width
-## outline (the Wuxia look), posed from the animation library each frame. Purely visual: the
-## sim's Unit stays the truth and this never changes it.
+## One figure on the field: a low-poly model drawn flat-shaded (every face its own tone), posed
+## from the shared animation library each frame. Purely visual: the sim's Unit stays the truth
+## and this never changes it.
 
 const DIR := "res://assets/models/figures/"
-const INK_SHADER := preload("res://scripts/view/ink_char.gdshader")
-const INK_OUTLINE := preload("res://scripts/view/ink_outline.gdshader")
+const SHADER := preload("res://scripts/view/lowpoly.gdshader")
 const BLEND := 0.08
 
 static var _lib: AnimationLibrary
-static var _outline: ShaderMaterial
 
 var model: Node3D
 var skel: Skeleton3D
@@ -22,26 +20,17 @@ var _blend := 1.0
 var _base_scale := 1.0
 
 
-## The shared outline pass, in the colour `look` names (one per scene).
-static func outline(col: Color, px: float) -> ShaderMaterial:
-	if _outline == null:
-		_outline = ShaderMaterial.new()
-		_outline.shader = INK_OUTLINE
-	_outline.set_shader_parameter("color", col)
-	_outline.set_shader_parameter("width", px)
-	return _outline
-
-
-## An ink material for meshes made in code (hats, stones, the shrine), outlined like the figures.
-static func ink(col: Color) -> ShaderMaterial:
+## A flat-shaded material for meshes made in code (hats, rocks, the shrine, spell shapes).
+## `glow` > 0 makes it emit its own colour.
+static func mat(col: Color, glow := 0.0) -> ShaderMaterial:
 	var sm := ShaderMaterial.new()
-	sm.shader = INK_SHADER
+	sm.shader = SHADER
 	sm.set_shader_parameter("albedo", col)
-	sm.next_pass = _outline
+	sm.set_shader_parameter("glow", glow)
 	return sm
 
 
-## Ink shading and the outline on every surface under `n`. `remap` swaps a recipe colour (hex,
+## Flat shading on every surface under `n`. `remap` swaps a recipe colour (hex,
 ## no #) for another; `tint` (alpha = amount) pulls every other colour toward one tone.
 static func style(n: Node, darken: float, remap := {}, tint := Color(0, 0, 0, 0), out: Array = []) -> void:
 	if n is MeshInstance3D:
@@ -54,7 +43,7 @@ static func style(n: Node, darken: float, remap := {}, tint := Color(0, 0, 0, 0)
 				col = Color(str(remap[hx]))
 			elif tint.a > 0.0:
 				col = col.lerp(Color(tint, 1.0), tint.a)
-			var sm := ink(col.darkened(darken))
+			var sm := mat(col.darkened(darken))
 			mi.set_surface_override_material(s, sm)
 			out.append(sm)
 	for c in n.get_children():
@@ -155,7 +144,7 @@ func _bone_node(bone: String) -> Node3D:
 func _part(at: Node3D, mesh: Mesh, col: Color, pos: Vector3, rot := Vector3.ZERO) -> void:
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
-	var m := ink(col)
+	var m := mat(col)
 	mats.append(m)
 	mi.material_override = m
 	mi.position = pos
@@ -163,7 +152,7 @@ func _part(at: Node3D, mesh: Mesh, col: Color, pos: Vector3, rot := Vector3.ZERO
 	at.add_child(mi)
 
 
-static func _cyl(top: float, bottom: float, h: float, segs := 12) -> CylinderMesh:
+static func _cyl(top: float, bottom: float, h: float, segs := 7) -> CylinderMesh:
 	var cm := CylinderMesh.new()
 	cm.top_radius = top
 	cm.bottom_radius = bottom
@@ -184,11 +173,11 @@ func _hat(h: Dictionary) -> void:
 	var y := 0.25
 	match str(h["kind"]):
 		"wizard":
-			_part(at, _cyl(0.3, 0.33, 0.03, 16), col, Vector3(0, y - 0.02, 0))
+			_part(at, _cyl(0.3, 0.33, 0.03, 8), col, Vector3(0, y - 0.02, 0))
 			_part(at, _cyl(0.135, 0.15, 0.06), band, Vector3(0, y + 0.02, 0))
-			_part(at, _cyl(0.0, 0.15, 0.5, 10), col, Vector3(0, y + 0.23, -0.03), Vector3(-14, 0, 0))
+			_part(at, _cyl(0.0, 0.15, 0.5, 6), col, Vector3(0, y + 0.23, -0.03), Vector3(-14, 0, 0))
 		_:
-			_part(at, _cyl(0.26, 0.28, 0.03, 16), col, Vector3(0, y - 0.03, 0))
+			_part(at, _cyl(0.26, 0.28, 0.03, 8), col, Vector3(0, y - 0.03, 0))
 			_part(at, _cyl(0.12, 0.14, 0.14), col, Vector3(0, y + 0.05, 0))
 			_part(at, _cyl(0.142, 0.142, 0.03), band, Vector3(0, y + 0.0, 0))
 

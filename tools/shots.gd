@@ -5,7 +5,7 @@ extends SceneTree
 ##       --fixed-fps 60 --script res://tools/shots.gd -- --out DIR [--at 4,14,30] [--seed 3]
 ##
 ## The bot plays loop 1 at practice levels; a shot is saved at each second in --at (shot_<s>.png),
-## and one when Silas arrives (shot_duel.png) and a few seconds into the duel (shot_dusk.png).
+## the first Ember Bolt well clear of the caster (shot_fireball.png), one when Silas arrives (shot_duel.png) and a few seconds into the duel (shot_dusk.png).
 
 var main
 var bot
@@ -15,6 +15,7 @@ var at: Array = [4, 12, 24]
 var Progression
 var _duel_f := -1
 var _jump := false  # --duel: skip the waves and go straight to Silas
+var _fireball := false
 
 
 func _initialize() -> void:
@@ -58,6 +59,9 @@ func _process(_dt: float) -> bool:
 	for t in at:
 		if frames == int(t) * 60:
 			_shot("shot_%d" % t)
+	if not _fireball and frames > 120 and _comet_in_flight():
+		_fireball = true
+		_shot("shot_fireball")
 	if main.arena.phase == "duel" and _duel_f < 0:
 		_duel_f = frames
 	if _duel_f > 0 and frames == _duel_f + 150:
@@ -66,3 +70,10 @@ func _process(_dt: float) -> bool:
 		_shot("shot_dusk")
 		return true
 	return s > 240.0
+
+
+func _comet_in_flight() -> bool:
+	for p in main.arena.projs:
+		if p["kind"] == "ember" and float(p["t"]) > 0.15:
+			return true
+	return false
