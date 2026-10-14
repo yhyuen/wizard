@@ -1,8 +1,8 @@
 # Wizard: Readable Arsenal prototype
 
-A small browser prototype of the wizard game, built from the "Readable Arsenal" design: four elements (**Fire, Earth, Storm, Water**) carried two at a time, two Magicks (**Meteor** and **Conductor**), one fight (**Ambush at the Mill**), pixel art, and progression you can see. Godot 4.7, GDScript, web export.
+A small browser prototype of the wizard game, built from the "Readable Arsenal" design: four elements (**Fire, Earth, Storm, Water**) carried two at a time, two Magicks (**Meteor** and **Conductor**), one fight (**Ambush at the Mill**), the Wuxia game's ink-figure look, and progression you can see. Godot 4.7, GDScript, web export.
 
-![The Orrery shrine](docs/screens/shrine.png)
+![The Mill yard by day](docs/screens/ink_day.png)
 
 ## Play it
 
@@ -25,6 +25,7 @@ A small browser prototype of the wizard game, built from the "Readable Arsenal" 
 | 1 / 2 | Pick a milestone mutation |
 | F1 | Practice: every spell +1 level (to see milestones and mutations quickly) |
 | F2 | Autoplay: a bot plays; press again to take over |
+| F3 | Flip the light between day and dusk (to compare them) |
 
 Holding Q, E, R or F shows the exact telegraph; the telegraph is the hitbox.
 
@@ -46,7 +47,7 @@ Wet enemies show a blue drip. Lightning that touches a wet enemy chains one hop 
 
 Other pairs (Fire + Storm, Earth + Water, and so on) work, but have no Magick in the prototype yet.
 
-![Storm + Water against Silas](docs/screens/storm_water.png)
+![Silas arrives at dusk](docs/screens/ink_dusk.png)
 
 ## The fight
 
@@ -69,6 +70,14 @@ Two waves of Dust Hollows (melee, red wedge telegraphs) and Hollow Slingers (red
 3. **Elements and milestone picks change only at an Orrery shrine.** The Orrery stands in the middle of the yard. Press G beside it while the yard is quiet (before the first wave and between waves) to choose your two elements and re-pick any mutation of the spells you carry. There is no free re-pick at the start of a loop.
 4. **Magicks: discovery in combat, with tomes as hints.** A Magick unlocks only when its two elements meet in a fight. A tome lies by the fence in each loop while there is a Magick you have neither discovered nor read about; walking over it gives a hint ("Storm finds water"), shown on the F card. Hints carry across loops; they never unlock the Magick themselves.
 
+## The look
+
+The yard borrows the Wuxia game's art direction (its `scripts/visual` shaders and models, copied here): low-poly figures with stepped ink shading and a pixel-width ink outline, an ink-wash ground instead of tiles, and muted world colours so that the element colours, gold and the red of a telegraph stay free for what matters. The magic is what changes: the waves are fought by day, and when Silas steps through the gate the light falls to dusk, so fire, lightning and the Orrery become the light sources.
+
+The sim is still the 2D one. `scripts/view/view3d.gd` reads it every frame and never changes it: the arena draws its flat marks (telegraphs, hold-to-aim previews, zones, effects, the reticle) into an offscreen viewport that lies on the ground as a decal, so a telegraph is still exactly the hitbox, and the view adds what stands up: figures, lodestones, projectiles, flames, rods, the Orrery, lightning. Figures, hats, colours, the two moods, the ground and the props are in `data/visual.json`; `"enabled": false` there brings back the old pixel arena.
+
+The figures are Wuxia's models for now (the elder under a wide pointed hat as the wizard, ash-grey bandits with ember eyes as Hollows, a swordsman in a frontier hat as Silas). Western models of their own are the next step.
+
 ## Not in this prototype
 
 Frost and Time, Magicks for the other pairs, relics and Focus, the town and the 28-day calendar, audio, and Silas as a full Storm kit (he only uses three of its moves). Three mutations differ from the design doc because the prototype has nothing for them to act on: Arc Lance's *Full charge pierces walls* is **Overcharge** (full charge deals double, the yard has no walls), Splash's *Spray heals ally echoes* is **Spillway** (Splash leaves a puddle, there are no echoes), and Maelstrom's *Combines with any Magick* counts everything in the whirlpool as wet for Conductor. All numbers are starting values in `data/spells.json`.
@@ -85,8 +94,15 @@ Frost and Time, Magicks for the other pairs, relics and Focus, the town and the 
 | `scripts/spells/storm_water.gd` | Storm and Water spells, rods, puddles, the whirlpool and Conductor |
 | `scripts/ai.gd` | Hollows, Slingers and Silas Vane |
 | `scripts/hud.gd` | Spell cards, HP and caps, duel bar, toasts, milestone picker, the Orrery menu, title, Ledger |
-| `scripts/pixel_art.gd` | Hand-placed pixel sprites and the yard, baked into textures at start |
+| `data/visual.json` | The 3D view: figures (model, colours, hat), day and dusk moods, the ground, props, camera |
+| `scripts/view/view3d.gd` | The 3D view over the sim: camera, light and mood, ground, props, the marks decal, figures, stones, projectiles, flames, the Orrery |
+| `scripts/view/figure.gd` | One ink figure: the model with ink materials, hats and eyes, posed from the shared clip library |
+| `scripts/view/marks.gd` | Flame pips, HP chunks, stun stars and Wet over heads, in screen space |
+| `scripts/view/*.gdshader` | Ink figure shading and outline (from Wuxia), the ink-wash ground, the marks decal |
+| `assets/models/` | Figures, the clip library and props, from the Wuxia game |
+| `scripts/pixel_art.gd` | The palette, and the pixel sprites the flat fallback still draws |
 | `scripts/bot.gd` | The bot used by the fight test and F2 autoplay |
+| `tools/shots.gd` | Screenshots of the fight for review (needs a display; see its header) |
 | `tools/tests/` | `unit.gd` (progression rules) and `fight.gd` (the bot plays loop 1 as Fire + Earth, swaps to Storm + Water at the Orrery, and plays loop 2) |
 
 Progress saves to `user://progress.json` (in the browser, the site's IndexedDB). Delete twice on the Ledger screen wipes it.

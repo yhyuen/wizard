@@ -1,0 +1,52 @@
+{
+  "_doc": "The 3D view (scripts/view/view3d.gd): ink figures over the 2D sim, Wuxia's look in Western colours. Purely visual: hitboxes and rules stay in the sim. Positions are sim pixels unless named in metres.",
+  "metres_per_px": 0.0556,
+  "camera": {"offset": [0, 19.5, 12.0], "look_at": [0, 0, 0.9], "fov": 40},
+  "overlay_scale": 3,
+  "darken": 0.18,
+  "outline_px": 1.7,
+
+  "_figures_doc": "Per unit kind: a model from assets/models/figures, scale, recipe colours swapped (hex: hex), tint [hex, amount] for every other colour, a hat on the head bone, glowing eyes, the weapon shown.",
+  "figures": {
+    "wizard": {"model": "elder", "scale": 1.0, "weapon": "staff",
+      "colors": {"5e5a62": "34416e", "8a8690": "c9a45a", "3a3640": "6b3a2a", "3a3840": "2c2a30"},
+      "hat": {"kind": "wizard", "color": "2c365e", "band": "c9a45a"}},
+    "hollow": {"model": "bandit", "scale": 0.95, "tint": ["6e6a62", 0.75], "eyes": "ff9a3c"},
+    "slinger": {"model": "bandit", "scale": 0.92, "tint": ["59684a", 0.7], "eyes": "ffd36b"},
+    "rival": {"model": "swordsman", "scale": 1.02,
+      "colors": {"7d8aa0": "3e5560", "c4cbd6": "8fe8ff", "3d4552": "2a2f33", "8c7a5a": "6b5a45"},
+      "hat": {"kind": "frontier", "color": "3a3029", "band": "8fe8ff"}}
+  },
+
+  "_moods_doc": "Day for the waves; dusk when Silas arrives, so spells become the light. F3 flips the mood for review.",
+  "phase_moods": {"duel": "dusk", "won": "dusk", "lost": "dusk"},
+  "moods": {
+    "day": {
+      "bg": "151a25", "ambient": "8fa3c8", "ambient_energy": 0.55,
+      "sun": "f6e2bf", "sun_energy": 1.25, "sun_rot": [-55, 35, 0],
+      "ground": {"base": "2c2720", "wash": "352e25", "dirt": "463a2b", "grass": "232c1d", "wet": "1f2021", "ink": "101318"},
+      "outline": "0d1018", "glow": 0.4, "lights": 0.0, "overlay": 1.0, "rim": 0.22
+    },
+    "dusk": {
+      "bg": "0b0e16", "ambient": "6a7caa", "ambient_energy": 0.45,
+      "sun": "9fb2e0", "sun_energy": 0.55, "sun_rot": [-60, -30, 0],
+      "ground": {"base": "222632", "wash": "292e3a", "dirt": "33333a", "grass": "1a2422", "wet": "15181e", "ink": "07090e"},
+      "outline": "05070b", "glow": 1.1, "lights": 1.0, "overlay": 1.25, "rim": 0.3
+    }
+  },
+
+  "ground": {
+    "patches": [[240, 140, 210, "dirt"], [40, 20, 70, "grass"], [450, 20, 80, "grass"], [30, 262, 60, "grass"], [460, 262, 70, "grass"]],
+    "paths": [[[-60, 140], [20, 140]], [[460, 140], [540, 140]], [[240, -60], [240, 34]], [[240, 248], [240, 330]]],
+    "path_width_px": 40
+  },
+
+  "_props_doc": "Set dressing outside the fence: model, sim position, rotation (degrees), scale.",
+  "props": [
+    ["barrels", 60, 12, 20, 1.0], ["crates", 95, 8, -10, 1.0], ["cart", 395, 10, 70, 1.0],
+    ["well", -8, 60, 0, 0.9], ["tree", 10, -20, 0, 1.2], ["tree", 470, -18, 120, 1.1],
+    ["rock_big", -10, 230, 30, 1.0], ["rock_small", 492, 230, 0, 1.0], ["signpost", 500, 120, 90, 1.0],
+    ["tree", 150, -36, 60, 1.0], ["rock_small", 330, -8, 20, 0.8]
+  ],
+  "fence_gap_px": 30
+}

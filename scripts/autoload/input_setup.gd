@@ -26,6 +26,7 @@ func _ready() -> void:
 	_keys("cancel", [KEY_ESCAPE])
 	_keys("pick3", [KEY_3])
 	_keys("pick4", [KEY_4])
+	_keys("mood", [KEY_F3])
 
 
 func _ensure(action: String) -> void:
