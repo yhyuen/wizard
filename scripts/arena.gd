@@ -1,7 +1,9 @@
 extends Node2D
 ## The Mill yard: the prototype's one fight. Two waves of Hollows, then a duel with Silas Vane,
-## who calls more Hollows at half HP. This node simulates and draws every unit, projectile,
-## telegraph, field object and effect; the wizard's spells live in kit.gd, enemy minds in ai.gd.
+## who calls more Hollows at half HP. An Orrery shrine stands in the yard (change elements and
+## re-pick mutations while it is quiet), and a tome may lie by the fence. This node simulates and
+## draws every unit, projectile, telegraph, field object and effect; the wizard's spells live in
+## kit.gd and scripts/spells/, enemy minds in ai.gd.
 
 signal fight_over(won: bool)
 signal toast(text: String, color: Color)
@@ -42,6 +44,7 @@ var phase_t := 0.0
 var spawn_queue: Array = []
 var summoned := false
 var over_t := -1.0
+var clear_t := 0.0  # seconds the yard has been quiet between waves
 var fight_time := 0.0
 var stats := {"casts": 0, "damage_taken": 0.0, "kills": 0, "by_spell": {}}
 
@@ -77,12 +80,13 @@ func start() -> void:
 	spawn_queue.clear()
 	summoned = false
 	over_t = -1.0
+	clear_t = 0.0
 	fight_time = 0.0
 	stats = {"casts": 0, "damage_taken": 0.0, "kills": 0, "by_spell": {}}
 	player = Unit.new()
 	player.kind = "wizard"
 	player.team = 0
-	player.pos = Vector2(240, 150)
+	player.pos = Vector2(240, 142)
 	player.radius = float(D["wizard"]["radius"])
 	player.speed = float(D["wizard"]["speed"])
 	player.max_hp = Progression.max_hp()
@@ -90,6 +94,7 @@ func start() -> void:
 	player.hp_lag = player.hp
 	_add(player)
 	kit.reset()
+	_place_tome()
 	set_phase("intro")
 
 
@@ -145,6 +150,7 @@ func set_phase(p: String) -> void:
 	match p:
 		"intro":
 			banner.emit("Loop %d  ·  Day 3  ·  Ambush at the Mill" % Progression.loop())
+			toast.emit("G at the Orrery: change elements or re-pick mutations", PixelArt.GOLD)
 		"wave1":
 			banner.emit("Dust Hollows climb the fence")
 			for i in 6:
@@ -171,15 +177,21 @@ func _flow(dt: float) -> void:
 			var g: Vector2 = GATES[int(s["gate"]) % GATES.size()]
 			spawn(s["kind"], g + Vector2(rng.randf_range(-6, 6), rng.randf_range(-6, 6)))
 	var cleared := spawn_queue.is_empty() and enemies().is_empty()
+	if cleared and phase in ["wave1", "wave2"] and phase_t > 1.0:
+		if clear_t == 0.0:
+			toast.emit("The yard is quiet. The Orrery hums (G).", PixelArt.GOLD)
+		clear_t += dt
+	else:
+		clear_t = 0.0
 	match phase:
 		"intro":
-			if phase_t > 2.2:
+			if phase_t > 3.0:
 				set_phase("wave1")
 		"wave1":
-			if cleared and phase_t > 1.0:
+			if clear_t > 2.5:
 				set_phase("wave2")
 		"wave2":
-			if cleared and phase_t > 1.0:
+			if clear_t > 2.5:
 				set_phase("duel")
 		"duel":
 			var r := rival()
@@ -265,6 +277,7 @@ func _update_unit(u: Unit, dt: float) -> void:
 			u.reaction = ""
 	u.stun = maxf(0.0, u.stun - dt)
 	u.slow_t = maxf(0.0, u.slow_t - dt)
+	u.wet_t = maxf(0.0, u.wet_t - dt)
 	if u.pips > 0:
 		u.pip_timer -= dt
 		if u.pip_timer <= 0.0:
@@ -289,6 +302,8 @@ func _update_unit(u: Unit, dt: float) -> void:
 				hit(u, float(D["field"]["ember_dps"]) * 0.5, -1, Vector2.ZERO, 0.0, true)
 		elif z["kind"] == "gravel" and u.team == 1 and u.pos.distance_to(z["pos"]) < float(z["r"]):
 			u.slow_t = 0.2
+		elif z["kind"] == "tome" and u == player and u.pos.distance_to(z["pos"]) < 9.0:
+			_read_tome(z)
 
 
 func move_speed(u: Unit) -> float:
@@ -419,14 +434,52 @@ func add_ember(at: Vector2) -> void:
 	zones.append({"kind": "ember", "pos": at, "t": 0.0, "life": float(D["field"]["ember_life"]), "owner": 0})
 	for s in stones:
 		if s["pos"].distance_to(at) < 8.0:
-			discover_meteor()
+			discover("meteor")
 
 
-func discover_meteor() -> void:
-	if Progression.knows("meteor"):
+## Magicks are discovered by making their two elements meet in a fight (design doc §5).
+func discover(magick: String) -> void:
+	if Progression.knows(magick):
 		return
-	Progression.learn("meteor")
-	fx("ring", player.pos, {"color": PixelArt.FIRE_HOT, "r": 30.0, "life": 0.8})
+	Progression.learn(magick)
+	fx("ring", player.pos, {"color": PixelArt.GOLD, "r": 30.0, "life": 0.8})
+
+
+func unknown_magick_toast(magick: String) -> void:
+	var m: Dictionary = D["magicks"][magick]
+	if Progression.has_hint(magick):
+		toast.emit("%s is still unknown. The tome said: %s" % [m["name"], m["hint"]], PixelArt.GOLD)
+	else:
+		var pair: Array = m["pair"]
+		toast.emit("Unknown Magick. Make %s and %s meet in a fight, or find a tome." % [D["elements"][pair[0]]["name"], D["elements"][pair[1]]["name"]], PixelArt.GOLD)
+
+
+# --- the Orrery shrine and tomes --------------------------------------------
+
+func shrine_pos() -> Vector2:
+	var p: Array = D["shrine"]["pos"]
+	return Vector2(p[0], p[1])
+
+
+## The shrine works while the yard is quiet: before the first wave and between waves.
+func shrine_ready() -> bool:
+	return phase in ["intro", "wave1", "wave2"] and spawn_queue.is_empty() and enemies().is_empty() \
+		and not player.dead and player.pos.distance_to(shrine_pos()) <= float(D["shrine"]["reach"])
+
+
+func _place_tome() -> void:
+	var subject := Progression.tome_subject()
+	if subject == "":
+		return
+	var spots: Array = D["shrine"]["tome_spots"]
+	var sp: Array = spots[(Progression.loop() - 1) % spots.size()]
+	add_zone({"kind": "tome", "pos": Vector2(sp[0], sp[1]), "subject": subject})
+
+
+func _read_tome(z: Dictionary) -> void:
+	zones.erase(z)
+	Progression.read_tome(z["subject"])
+	fx("ring", z["pos"], {"color": PixelArt.GOLD, "r": 16.0, "life": 0.5})
 
 
 # --- projectiles ------------------------------------------------------------
@@ -508,7 +561,7 @@ func _update_zones(dt: float) -> void:
 	for z in zones.duplicate():
 		z["t"] += dt
 		match z["kind"]:
-			"ember", "gravel", "column":
+			"ember", "gravel", "column", "rod", "puddle":
 				if z["t"] >= z["life"]:
 					zones.erase(z)
 			"slash":
@@ -529,11 +582,9 @@ func _update_zones(dt: float) -> void:
 
 
 func _detonate(z: Dictionary) -> void:
+	if z["owner"] == 0 and kit.detonate(z):
+		return
 	match z["kind"]:
-		"pillar":
-			kit.pillar_hits(z)
-		"meteor":
-			kit.meteor_hits(z)
 		"storm":
 			fx("bolt", z["pos"], {"color": PixelArt.STORM, "life": 0.25})
 			fx("burst", z["pos"], {"color": PixelArt.STORM, "r": z["r"], "life": 0.25})
@@ -606,7 +657,7 @@ func _update_stones(dt: float) -> void:
 					step = (player.pos - s["pos"]).normalized() * float(s["speed"]) * dt
 				s["pos"] += step
 				s["dist"] += step.length()
-				kit.stone_sweep(s)
+				kit.fe.stone_sweep(s)
 				if s["state"] == "recall" and s["pos"].distance_to(player.pos) < 12.0:
 					s["state"] = "orbit"
 				elif s["state"] == "flung" and (s["dist"] >= s["range"] or not BOUNDS.has_point(s["pos"])):
@@ -626,7 +677,7 @@ func _update_stones(dt: float) -> void:
 					continue
 				s["pos"] = s["pos"].move_toward(t.pos, 300.0 * dt)
 				if s["pos"].distance_to(t.pos) < t.radius + 2.0:
-					kit.avalanche_hit(s, t)
+					kit.fe.avalanche_hit(s, t)
 
 
 static var _tipped := false
@@ -659,8 +710,10 @@ func _update_fx(dt: float) -> void:
 
 func _draw() -> void:
 	draw_texture(_tex["ground"], Vector2.ZERO)
+	_draw_shrine()
 	for z in zones:
 		_draw_zone(z)
+	kit.draw_field(self)
 	for s in stones:
 		if s["state"] == "ground":
 			_draw_stone(s)
@@ -713,6 +766,10 @@ func _draw_unit(u: Unit) -> void:
 		for i in 3:
 			var o := Vector2(cos(a + i * TAU / 3.0) * 5.0, sin(a + i * TAU / 3.0) * 1.5)
 			draw_rect(Rect2((head + o).round(), Vector2.ONE), PixelArt.GOLD)
+	if u.wet_t > 0.0:
+		# Wet: a drip under the feet and a droplet by the head.
+		draw_rect(Rect2((u.pos + Vector2(-3, 0)).round(), Vector2(6, 1)), Color(PixelArt.WATER, 0.7))
+		draw_rect(Rect2((head + Vector2(5, 2)).round(), Vector2(2, 3)), PixelArt.WATER)
 	if u.team == 1:
 		_draw_pips(u, head + Vector2(0, -1))
 		if u.kind != "rival":
@@ -832,6 +889,14 @@ func _draw_zone(z: Dictionary) -> void:
 		"line":
 			var k := clampf(t / z["delay"], 0.0, 1.0)
 			draw_line(z["a"], z["b"], Color(PixelArt.DANGER, 0.3 + 0.5 * k), 1.0)
+		"tome":
+			var p: Vector2 = z["pos"].round() + Vector2(0, -2 + roundf(sin(t * 3.0)))
+			draw_rect(Rect2(p + Vector2(-4, -3), Vector2(8, 6)), PixelArt.INK)
+			draw_rect(Rect2(p + Vector2(-3, -2), Vector2(3, 4)), PixelArt.PAPER)
+			draw_rect(Rect2(p + Vector2(0, -2), Vector2(3, 4)), PixelArt.PAPER)
+			draw_rect(Rect2(p + Vector2(-1, -3), Vector2(1, 6)), PixelArt.GOLD)
+			if int(t * 2.0) % 2 == 0:
+				draw_rect(Rect2(p + Vector2(4, -6), Vector2(1, 1)), PixelArt.GOLD)
 		"column":
 			var k: float = 1.0 - t / z["life"]
 			draw_rect(Rect2(z["pos"] + Vector2(-z["r"] * 0.6, -40), Vector2(z["r"] * 1.2, 40)), Color(PixelArt.FIRE, 0.5 * k))
@@ -876,6 +941,29 @@ func _draw_fx(f: Dictionary) -> void:
 				var a := i * TAU / 8.0 + k
 				var o := Vector2(cos(a) * 9.0, -20.0 * k + sin(a) * 3.0)
 				draw_rect(Rect2((f["pos"] + o).round(), Vector2.ONE), Color(PixelArt.GOLD, 1.0 - k))
+		"zap":
+			var a: Vector2 = f["pos"]
+			var b: Vector2 = f["to"]
+			var n := (b - a).orthogonal().normalized()
+			var prev := a
+			var steps := maxi(2, int(a.distance_to(b) / 8.0))
+			for i in range(1, steps + 1):
+				var nxt := a.lerp(b, float(i) / steps) + (n * rng.randf_range(-3, 3) if i < steps else Vector2.ZERO)
+				draw_line(prev, nxt, Color(col, 1.0 - k), f.get("w", 1.0))
+				prev = nxt
+		"spray":
+			var dir: Vector2 = f["dir"]
+			for i in 7:
+				var a := dir.angle() + lerpf(-f["cone"] * 0.5, f["cone"] * 0.5, i / 6.0)
+				var p: Vector2 = f["pos"] + Vector2.from_angle(a) * f["r"] * (0.3 + 0.7 * k) * (0.8 + 0.2 * fmod(i * 1.7, 1.0))
+				draw_rect(Rect2(p.round(), Vector2(2, 1)), Color(PixelArt.WATER, 1.0 - k))
+		"cone":
+			# A level-up ghost for a bolt cone: the old size, dashed.
+			var dir: Vector2 = f["dir"]
+			var gc := Color(PixelArt.PAPER, 0.7 * (1.0 - k))
+			draw_dashed_line(f["pos"], f["pos"] + Vector2.from_angle(dir.angle() - f["cone"] * 0.5) * f["r"], gc)
+			draw_dashed_line(f["pos"], f["pos"] + Vector2.from_angle(dir.angle() + f["cone"] * 0.5) * f["r"], gc)
+			draw_arc(f["pos"], f["r"], dir.angle() - f["cone"] * 0.5, dir.angle() + f["cone"] * 0.5, 12, gc, 1.0, false)
 		"rise":
 			draw_texture(_tex["stone"], (f["pos"] - Vector2(3, 3 + 30.0 * k)).round(), Color(1, 0.6, 0.3, 1.0 - k))
 
@@ -895,6 +983,21 @@ func draw_ellipse_px(c: Vector2, rx: float, ry: float, col: Color) -> void:
 		var a := i * TAU / 12.0
 		pts.append(c + Vector2(cos(a) * rx, sin(a) * ry))
 	draw_colored_polygon(pts, col)
+
+
+## The Orrery: a brass armillary on a plinth. It glows while it can be used.
+func _draw_shrine() -> void:
+	var p := shrine_pos().round()
+	var ready := shrine_ready()
+	draw_ellipse_px(p + Vector2(0, 1), 9.0, 3.0, Color(0, 0, 0, 0.35))
+	draw_rect(Rect2(p + Vector2(-5, -5), Vector2(10, 5)), PixelArt.STONE)
+	draw_rect(Rect2(p + Vector2(-1, -12), Vector2(2, 7)), PixelArt.GOLD)
+	var spin := Time.get_ticks_msec() / 900.0
+	draw_arc(p + Vector2(0, -17), 6.0, 0, TAU, 16, PixelArt.GOLD, 1.0, false)
+	draw_arc(p + Vector2(0, -17), 6.0 * absf(cos(spin)), 0, TAU, 16, Color(PixelArt.GOLD, 0.8), 1.0, false)
+	draw_rect(Rect2(p + Vector2(-1, -18), Vector2(2, 2)), PixelArt.FIRE_HOT if ready else PixelArt.PAPER)
+	if ready:
+		draw_arc(p + Vector2(0, -6), float(D["shrine"]["reach"]), 0, TAU, 32, Color(PixelArt.GOLD, 0.35), 1.0, false)
 
 
 func draw_dashed_circle(c: Vector2, r: float, col: Color) -> void:

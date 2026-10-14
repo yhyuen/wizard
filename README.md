@@ -1,6 +1,8 @@
 # Wizard: Readable Arsenal prototype
 
-A small browser prototype of the wizard game, built from the "Readable Arsenal" design: one element pair (**Fire + Earth**), one fight (**Ambush at the Mill**), pixel art, and progression you can see. Godot 4.7, GDScript, web export.
+A small browser prototype of the wizard game, built from the "Readable Arsenal" design: four elements (**Fire, Earth, Storm, Water**) carried two at a time, two Magicks (**Meteor** and **Conductor**), one fight (**Ambush at the Mill**), pixel art, and progression you can see. Godot 4.7, GDScript, web export.
+
+![The Orrery shrine](docs/screens/shrine.png)
 
 ## Play it
 
@@ -14,18 +16,37 @@ A small browser prototype of the wizard game, built from the "Readable Arsenal" 
 | --- | --- |
 | WASD | Move |
 | Mouse | Aim |
-| LMB | **Ember Bolt** (Fire bolt). Adds a flame pip; 3 pips = **Ignite** |
-| RMB | **Pebble** (Earth bolt). Heavy knockback; a hit drops a **lodestone** that orbits you |
-| Q (hold, release) | **Pillar**: a fire column on a circle telegraph after a delay. Adds 2 pips |
-| E (hold, release) | **Fling**: pushes your orbiting lodestones out in a cone |
-| R (hold, release) | **Signature**: Pyroclasm (bounces between pip-marked enemies) or Avalanche (every lodestone slams one target). **Tab** swaps them |
-| F (hold, release) | **Meteor**, the Fire + Earth Magick. Locked until you discover it |
+| LMB / RMB | The **Bolt** of element 1 / element 2 |
+| Q / E (hold, release) | The **Control** spell of element 1 / element 2 |
+| R (hold, release) | **Signature** of either element. **Tab** swaps them |
+| F (hold, release) | The **Magick** of the pair. Locked until you discover it |
+| G | The **Orrery** shrine, while the yard is quiet and you stand by it |
 | Space | Blink (charges grow with wizard level) |
 | 1 / 2 | Pick a milestone mutation |
 | F1 | Practice: every spell +1 level (to see milestones and mutations quickly) |
 | F2 | Autoplay: a bot plays; press again to take over |
 
 Holding Q, E, R or F shows the exact telegraph; the telegraph is the hitbox.
+
+## The four elements
+
+| Element | Bolt | Control | Signature | Field object |
+| --- | --- | --- | --- | --- |
+| **Fire** | Ember Bolt: adds a flame pip; 3 pips = **Ignite** | Pillar: a delayed fire column; adds 2 pips | Pyroclasm: bounces between pip-marked enemies | Embers (cap 6) |
+| **Earth** | Pebble: heavy knockback; a hit drops a **lodestone** that orbits you | Fling: pushes your lodestones out in a cone | Avalanche: every lodestone slams one target | Lodestones (cap 3 to 7) |
+| **Storm** | Spark: an instant zig-zag to the nearest enemy in a cone, then chains | Arc Lance: hold to charge a line (you move slowly), release to strike along it | Storm Call: strikes on circles around the aim; the last leaves a **rod** | Lightning rods (cap 3): each zaps a nearby enemy |
+| **Water** | Splash: a short spray that pushes and makes enemies **Wet** | Undertow: a wave that carries enemies and leaves a **puddle** | Maelstrom: a whirlpool that pulls enemies together | Puddles (cap 3): standing in one makes you Wet |
+
+Wet enemies show a blue drip. Lightning that touches a wet enemy chains one hop further.
+
+| Pair | Magick | Discover it by |
+| --- | --- | --- |
+| Fire + Earth | **Meteor**: lodestones ignite and fall as fireballs | Fire touching a lodestone (catch one in a Pillar) |
+| Storm + Water | **Conductor**: a chain arc runs through every wet enemy in reach | Lightning striking a wet enemy |
+
+Other pairs (Fire + Storm, Earth + Water, and so on) work, but have no Magick in the prototype yet.
+
+![Storm + Water against Silas](docs/screens/storm_water.png)
 
 ## The fight
 
@@ -35,36 +56,38 @@ Two waves of Dust Hollows (melee, red wedge telegraphs) and Hollow Slingers (red
 
 - **Level-ups are visible.** A spell levels from its own hits. You get a toast with the stat change ("Speed 209 › 218"), the card flashes, and for the next few casts a dashed ghost shows the *old* size: an old-speed ghost bolt that the new one outruns, the old Pillar radius, the old Fling cone.
 - **Milestones at 5, 10 and 15** pause the fight for a pick between two mutations. The card's name gets a star and lists the mutation. Ember Bolt usually reaches 5 in the first fight.
-- **Field objects** are counted by your HP bar: lodestones (cap 3, Avalanche raises it to 7) and embers (cap 6).
-- **Impact vs Poise.** Hollows have Poise 0, Silas has Poise 1. Ember Bolt (Impact 1) only makes Silas show a small "x", Pebble (2) makes him flinch, Pillar (3) staggers him and breaks his wind-up; Updraft (4) knocks him down.
-- **Enemy HP in chunks of 10.** Hovering an enemy shows hits-to-kill with your current Ember Bolt (×N).
+- **Field objects** are counted by your HP bar, one row per equipped element: lodestones (cap 3, Avalanche raises it to 7), embers (cap 6), rods (cap 3) and puddles (cap 3).
+- **Impact vs Poise.** Hollows have Poise 0, Silas has Poise 1. Ember Bolt (Impact 1) only makes Silas show a small "x", Pebble (2) makes him flinch, Pillar (3) and a fully charged Arc Lance stagger him and break his wind-up; Updraft (4) knocks him down.
+- **Enemy HP in chunks of 10.** Hovering an enemy shows hits-to-kill with your element-1 Bolt (×N).
 - **Hit-stop and shake** scale with the share of the target's HP removed, not raw damage.
-- **The loop as a measuring stick.** Spell levels, mutations and Magicks carry over; the wizard level drops to half. The Ledger lists every loop and draws a sparkline of win times.
+- **The loop as a measuring stick.** Spell levels, mutations, Magicks, tome hints and your loadout carry over; the wizard level drops to half. The Ledger lists every loop with the pair you carried and draws a sparkline of win times.
 
-## Defaults chosen for the design doc's open questions
+## The design decisions, as built
 
-1. Elements equipped: two (already decided).
+1. **Two elements equipped.** You start with Fire + Earth; Storm and Water wait at the Orrery.
 2. **Wizard level halves each loop** (rounded down, minimum 1). Spells keep their levels.
-3. **Milestone picks are re-pickable only at an Orrery shrine.** There is no shrine in this prototype, so picks are permanent for now; the picker says so.
-4. **Magicks are discovered in combat, with tomes as a later fallback.** Meteor unlocks when fire touches a lodestone (catch one in a Pillar, or let an ember land on one). The F card shows a hint so nobody gets stuck.
+3. **Elements and milestone picks change only at an Orrery shrine.** The Orrery stands in the middle of the yard. Press G beside it while the yard is quiet (before the first wave and between waves) to choose your two elements and re-pick any mutation of the spells you carry. There is no free re-pick at the start of a loop.
+4. **Magicks: discovery in combat, with tomes as hints.** A Magick unlocks only when its two elements meet in a fight. A tome lies by the fence in each loop while there is a Magick you have neither discovered nor read about; walking over it gives a hint ("Storm finds water"), shown on the F card. Hints carry across loops; they never unlock the Magick themselves.
 
 ## Not in this prototype
 
-The other four elements (Storm, Frost, Water, Time), Orrery shrines, relics and Focus, the town and the 28-day calendar, audio, and Silas as a full Storm kit (he only uses three of its moves). All numbers are starting values in `data/spells.json`.
+Frost and Time, Magicks for the other pairs, relics and Focus, the town and the 28-day calendar, audio, and Silas as a full Storm kit (he only uses three of its moves). Three mutations differ from the design doc because the prototype has nothing for them to act on: Arc Lance's *Full charge pierces walls* is **Overcharge** (full charge deals double, the yard has no walls), Splash's *Spray heals ally echoes* is **Spillway** (Splash leaves a puddle, there are no echoes), and Maelstrom's *Combines with any Magick* counts everything in the whirlpool as wet for Conductor. All numbers are starting values in `data/spells.json`.
 
 ## Files
 
 | File | What it does |
 | --- | --- |
-| `data/spells.json` | Every tuning number: spells, stat tracks, milestones, Meteor, enemies, reactions |
-| `scripts/autoload/progression.gd` | Spell XP and levels, mutations, mastery, wizard level, loops, the Ledger, saving |
-| `scripts/arena.gd` | The Mill fight: units, hits and reactions, pips and Ignite, projectiles, telegraphs, lodestones, drawing |
-| `scripts/kit.gd` | The Fire + Earth loadout: casting, hold-to-aim previews and level-up ghosts |
+| `data/spells.json` | Every tuning number: elements, spells, stat tracks, milestones, Magicks, field objects, the shrine, enemies, reactions |
+| `scripts/autoload/progression.gd` | Spell XP and levels, mutations and re-picks, mastery, the loadout, Magicks and tome hints, wizard level, loops, the Ledger, saving |
+| `scripts/arena.gd` | The Mill fight: units, hits and reactions, pips and Ignite, Wet, projectiles, telegraphs, lodestones, the Orrery and tomes, drawing |
+| `scripts/kit.gd` | The loadout: slots, input, casting, blink, hold-to-aim previews and level-up ghosts |
+| `scripts/spells/fire_earth.gd` | Fire and Earth spells and Meteor |
+| `scripts/spells/storm_water.gd` | Storm and Water spells, rods, puddles, the whirlpool and Conductor |
 | `scripts/ai.gd` | Hollows, Slingers and Silas Vane |
-| `scripts/hud.gd` | Spell cards, HP and caps, duel bar, toasts, milestone picker, title, Ledger |
+| `scripts/hud.gd` | Spell cards, HP and caps, duel bar, toasts, milestone picker, the Orrery menu, title, Ledger |
 | `scripts/pixel_art.gd` | Hand-placed pixel sprites and the yard, baked into textures at start |
 | `scripts/bot.gd` | The bot used by the fight test and F2 autoplay |
-| `tools/tests/` | `unit.gd` (progression rules) and `fight.gd` (bot plays the whole fight) |
+| `tools/tests/` | `unit.gd` (progression rules) and `fight.gd` (the bot plays loop 1 as Fire + Earth, swaps to Storm + Water at the Orrery, and plays loop 2) |
 
 Progress saves to `user://progress.json` (in the browser, the site's IndexedDB). Delete twice on the Ledger screen wipes it.
 

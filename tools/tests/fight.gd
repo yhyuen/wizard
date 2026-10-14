@@ -3,7 +3,9 @@ extends SceneTree
 ##
 ##   godot --headless --fixed-fps 60 --script res://tools/tests/fight.gd -- [--loops 2] [--seconds 300]
 ##
-## Exits non-zero if the fight never reaches the duel, nothing levels, or the run stalls.
+## Loop 1 is Fire + Earth. Before loop 2 the bot visits the Orrery shrine, swaps to Storm + Water and
+## re-picks a mutation, so two loops cast every spell and both Magicks.
+## Exits non-zero if nothing levels, a spell is never cast, the shrine fails, or the run stalls.
 
 
 var main
@@ -44,7 +46,8 @@ func _on_over(won: bool) -> void:
 		levels[id] = Progression.level(id)
 	results.append({"won": won, "time": snappedf(a.fight_time, 0.1), "casts": a.stats["casts"],
 		"taken": roundf(a.stats["damage_taken"]), "wizard": Progression.wizard_level(), "levels": levels,
-		"meteor": Progression.knows("meteor"), "phase_reached": a.phase, "by_spell": a.stats["by_spell"].duplicate()})
+		"meteor": Progression.knows("meteor"), "conductor": Progression.knows("conductor"),
+		"elements": Progression.loadout().duplicate(), "phase_reached": a.phase, "by_spell": a.stats["by_spell"].duplicate()})
 	print("[fight] loop %d: %s" % [Progression.loop(), JSON.stringify(results[-1])])
 	done += 1
 	frames = 0
@@ -63,6 +66,8 @@ func _process(_dt: float) -> bool:
 		bot.last_pebbles = 0
 		Progression.next_loop()
 		main.start_fight()
+		if Progression.loop() == 2:
+			_visit_shrine()
 	if frames > limit:
 		print("[fight] stalled in phase %s after %d s" % [main.arena.phase, limit / 60])
 		results.append({"won": false, "stalled": true, "phase_reached": main.arena.phase})
@@ -72,8 +77,30 @@ func _process(_dt: float) -> bool:
 	return false
 
 
+var shrine_fails: Array = []
+
+
+## The Orrery: swap to Storm + Water and flip one Ember Bolt mutation, through the same calls the menu makes.
+func _visit_shrine() -> void:
+	if not main.arena.shrine_ready():
+		shrine_fails.append("the shrine was not usable at the start of the loop")
+		return
+	main.open_shrine()
+	main.shrine_element(0, "storm")
+	main.shrine_element(1, "water")
+	for entry in Progression.repickable("ember_bolt"):
+		main.shrine_repick("ember_bolt", entry["level"], 1 - int(entry["chosen"]))
+		if Progression.repickable("ember_bolt")[0]["chosen"] == entry["chosen"]:
+			shrine_fails.append("re-picking a mutation at the shrine did nothing")
+		break
+	main.close_shrine()
+	if Progression.loadout() != ["storm", "water"]:
+		shrine_fails.append("the shrine did not change the loadout")
+	print("[fight] shrine: now %s" % [Progression.loadout()])
+
+
 func _finish() -> bool:
-	var fails: Array = []
+	var fails: Array = shrine_fails.duplicate()
 	for r in results:
 		if r.get("stalled", false):
 			fails.append("a loop stalled")
@@ -92,7 +119,10 @@ func _finish() -> bool:
 	for r in results:
 		for id in r.get("by_spell", {}):
 			cast_ids[id] = true
-	for id in ["ember_bolt", "pebble", "pillar", "fling", "pyroclasm", "avalanche", "meteor"]:
+	var expect := ["ember_bolt", "pebble", "pillar", "fling", "pyroclasm", "avalanche", "meteor"]
+	if loops >= 2:
+		expect += ["spark", "arc_lance", "storm_call", "splash", "undertow", "maelstrom", "conductor"]
+	for id in expect:
 		if not cast_ids.has(id):
 			fails.append("the bot never cast " + id)
 	print("[fight] reached the duel: %s" % reached_duel)

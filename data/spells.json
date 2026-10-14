@@ -1,5 +1,5 @@
 {
-  "_doc": "All tuning numbers for the prototype. A stat is base + per x (level - 1); 'floor' rounds down, 'min'/'max' clamp. Starting values only (design doc: readable-arsenal.md).",
+  "_doc": "All tuning numbers for the prototype. Bolt/control/signature slots follow each spell's element and slot. A stat is base + per x (level - 1); 'floor' rounds down, 'min'/'max' clamp. Starting values only (design doc: readable-arsenal.md).",
   "progression": {
     "max_level": 15,
     "milestones": [5, 10, 15],
@@ -14,11 +14,14 @@
   },
   "elements": {
     "fire": {"name": "Fire", "color": "f08a3c"},
-    "earth": {"name": "Earth", "color": "c8964e"}
+    "earth": {"name": "Earth", "color": "c8964e"},
+    "storm": {"name": "Storm", "color": "8fe8ff"},
+    "water": {"name": "Water", "color": "4f86e8"}
   },
+  "start_loadout": ["fire", "earth"],
   "spells": {
     "ember_bolt": {
-      "name": "Ember Bolt", "element": "fire", "slot": "bolt", "key": "LMB",
+      "name": "Ember Bolt", "element": "fire", "slot": "bolt",
       "blurb": "Fast bolt. Adds a flame pip; 3 pips Ignite.",
       "cast_time": 0.26, "impact": 1, "xp_hit": 1, "xp_ignite": 2,
       "stats": {
@@ -41,7 +44,7 @@
       }
     },
     "pillar": {
-      "name": "Pillar", "element": "fire", "slot": "control", "key": "Q",
+      "name": "Pillar", "element": "fire", "slot": "control",
       "blurb": "Delayed fire column on a circle. Adds 2 pips.",
       "cooldown": 5.0, "impact": 3, "range": 150, "xp_hit": 4,
       "stats": {
@@ -61,7 +64,7 @@
       }
     },
     "pyroclasm": {
-      "name": "Pyroclasm", "element": "fire", "slot": "signature", "key": "R",
+      "name": "Pyroclasm", "element": "fire", "slot": "signature",
       "blurb": "Fireball that bounces between pip-marked enemies.",
       "cooldown": 10.0, "impact": 2, "speed": 210, "xp_hit": 4,
       "stats": {
@@ -80,7 +83,7 @@
       }
     },
     "pebble": {
-      "name": "Pebble", "element": "earth", "slot": "bolt", "key": "RMB",
+      "name": "Pebble", "element": "earth", "slot": "bolt",
       "blurb": "Slow heavy shot. Hits drop a lodestone.",
       "cast_time": 0.5, "impact": 2, "speed": 150, "xp_hit": 3,
       "stats": {
@@ -96,7 +99,7 @@
       }
     },
     "fling": {
-      "name": "Fling", "element": "earth", "slot": "control", "key": "E",
+      "name": "Fling", "element": "earth", "slot": "control",
       "blurb": "Pushes every orbiting lodestone out in a cone.",
       "cooldown": 4.0, "impact": 2, "range": 120, "xp_hit": 4,
       "stats": {
@@ -115,7 +118,7 @@
       }
     },
     "avalanche": {
-      "name": "Avalanche", "element": "earth", "slot": "signature", "key": "R",
+      "name": "Avalanche", "element": "earth", "slot": "signature",
       "blurb": "Every lodestone you own slams the target, one hit per stone.",
       "cooldown": 9.0, "impact": 1, "final_impact": 3, "range": 170, "xp_hit": 3,
       "stats": {
@@ -131,25 +134,151 @@
           {"id": "cap_plus", "name": "Mountain", "text": "Stone cap +2"}
         ]
       }
+    },
+    "spark": {
+      "name": "Spark", "element": "storm", "slot": "bolt",
+      "blurb": "Zig-zag that hits the nearest enemy in a cone and chains.",
+      "cast_time": 0.3, "impact": 1, "xp_hit": 1, "cone": 70, "hop": 46,
+      "stats": {
+        "range": {"label": "Range", "base": 80, "per": 3},
+        "chains": {"label": "Chain", "base": 1, "per": 0.1429, "floor": true, "max": 3},
+        "damage": {"label": "Damage", "base": 6, "per": 0.55, "fmt": "%.1f", "hidden": true}
+      },
+      "milestones": {
+        "5": [
+          {"id": "rod_chain", "name": "Lightning Rod", "text": "Chains to rods too"},
+          {"id": "stun_third", "name": "Static", "text": "Stuns 0.2s on every 3rd hit"}
+        ]
+      }
+    },
+    "arc_lance": {
+      "name": "Arc Lance", "element": "storm", "slot": "control",
+      "blurb": "Hold to extend a line, release to strike along it.",
+      "cooldown": 5.0, "impact": 2, "full_impact": 3, "xp_hit": 4, "width": 7, "hold_speed": 0.4,
+      "stats": {
+        "range": {"label": "Max range", "base": 90, "per": 5},
+        "charge": {"label": "Charge", "base": 0.9, "per": -0.03, "min": 0.45, "fmt": "%.2fs"},
+        "damage": {"label": "Damage", "base": 15, "per": 1.1, "fmt": "%.0f", "hidden": true}
+      },
+      "milestones": {
+        "5": [
+          {"id": "overcharge", "name": "Overcharge", "text": "Full charge deals double damage"},
+          {"id": "lance_dash", "name": "Ride the Bolt", "text": "Release early = short dash"}
+        ],
+        "10": [
+          {"id": "lance_rod", "name": "Grounding", "text": "Leaves a rod at the end"}
+        ]
+      }
+    },
+    "storm_call": {
+      "name": "Storm Call", "element": "storm", "slot": "signature",
+      "blurb": "Artillery strikes on circles you place. The last leaves a rod.",
+      "cooldown": 9.0, "impact": 2, "range": 170, "xp_hit": 3, "delay": 0.7, "gap": 0.22,
+      "stats": {
+        "strikes": {"label": "Strikes", "base": 3, "per": 0.1429, "floor": true},
+        "radius": {"label": "Radius", "base": 12, "per": 0.6},
+        "damage": {"label": "Damage", "base": 15, "per": 1.1, "fmt": "%.0f", "hidden": true}
+      },
+      "milestones": {
+        "10": [
+          {"id": "rod_strike", "name": "Conduit", "text": "Every rod is struck for free"},
+          {"id": "fast_strikes", "name": "Squall", "text": "Each strike narrower but faster"}
+        ],
+        "15": [
+          {"id": "final_stun", "name": "Thunderhead", "text": "Final strike stuns"}
+        ]
+      }
+    },
+    "splash": {
+      "name": "Splash", "element": "water", "slot": "bolt",
+      "blurb": "Short spray that pushes and makes enemies Wet.",
+      "cast_time": 0.3, "impact": 1, "xp_hit": 1, "range": 48,
+      "stats": {
+        "push": {"label": "Push", "base": 45, "per": 4},
+        "width": {"label": "Width", "base": 40, "per": 2, "fmt": "%.0f°"},
+        "damage": {"label": "Damage", "base": 3, "per": 0.3, "fmt": "%.1f", "hidden": true}
+      },
+      "milestones": {
+        "5": [
+          {"id": "splash_puddle", "name": "Spillway", "text": "Splash leaves a puddle"},
+          {"id": "long_wet", "name": "Soak", "text": "Wet lasts twice as long"}
+        ]
+      }
+    },
+    "undertow": {
+      "name": "Undertow", "element": "water", "slot": "control",
+      "blurb": "A wave that pushes enemies and leaves a puddle.",
+      "cooldown": 5.0, "impact": 2, "xp_hit": 3, "speed": 170,
+      "stats": {
+        "width": {"label": "Width", "base": 26, "per": 1.5},
+        "distance": {"label": "Distance", "base": 90, "per": 5},
+        "damage": {"label": "Damage", "base": 6, "per": 0.6, "fmt": "%.0f", "hidden": true}
+      },
+      "milestones": {
+        "5": [
+          {"id": "undertow_pull", "name": "Riptide", "text": "Pull back instead"},
+          {"id": "big_puddle", "name": "Flood", "text": "Puddle is bigger"}
+        ],
+        "10": [
+          {"id": "two_waves", "name": "Swell", "text": "Two waves"}
+        ]
+      }
+    },
+    "maelstrom": {
+      "name": "Maelstrom", "element": "water", "slot": "signature",
+      "blurb": "A whirlpool that pulls enemies together.",
+      "cooldown": 11.0, "impact": 1, "range": 150, "xp_hit": 1, "pull": 55, "tick": 0.5,
+      "stats": {
+        "radius": {"label": "Pull radius", "base": 34, "per": 1.5},
+        "duration": {"label": "Duration", "base": 2.5, "per": 0.1, "fmt": "%.1fs"},
+        "damage": {"label": "Damage", "base": 2, "per": 0.2, "fmt": "%.1f", "hidden": true}
+      },
+      "milestones": {
+        "10": [
+          {"id": "whirl_throw", "name": "Spout", "text": "Throws them out at the end"},
+          {"id": "whirl_wet", "name": "Deluge", "text": "Everything inside is Wet"}
+        ],
+        "15": [
+          {"id": "whirl_magick", "name": "Eye of the Deep", "text": "Combines with any Magick"}
+        ]
+      }
     }
   },
   "magicks": {
     "meteor": {
       "name": "Meteor", "pair": ["fire", "earth"], "key": "F",
       "blurb": "Lodestones ignite and fall as fireballs.",
-      "hint": "Mix fire and stone: catch a lodestone in a Pillar.",
+      "card_note": "1 meteor per lodestone",
+      "hint": "Fire must touch stone: catch a lodestone in a Pillar.",
+      "hint_card": ["Fire must touch stone.", "Catch a lodestone", "in a Pillar."],
       "cooldown": 14.0, "impact": 3, "pips": 2,
       "stats": {
         "damage": {"label": "Damage", "base": 18, "per": 1.5, "fmt": "%.0f"},
         "radius": {"label": "Radius", "base": 16, "per": 0.8}
+      }
+    },
+    "conductor": {
+      "name": "Conductor", "pair": ["storm", "water"], "key": "F",
+      "blurb": "Every wet enemy is hit by a chain arc.",
+      "card_note": "1 arc per wet enemy",
+      "hint": "Storm finds water: strike a soaked enemy with lightning.",
+      "hint_card": ["Storm finds water.", "Strike a soaked enemy", "with lightning."],
+      "cooldown": 12.0, "impact": 2,
+      "stats": {
+        "damage": {"label": "Per arc", "base": 14, "per": 1.2, "fmt": "%.0f"},
+        "range": {"label": "Reach", "base": 140, "per": 6}
       }
     }
   },
   "field": {
     "ember_cap": 6, "ember_life": 6.0, "ember_dps": 6.0,
     "pip_life": 4.0, "ignite_mult": 2.6, "ignite_radius": 14,
-    "gravel_life": 4.0, "gravel_slow": 0.5
+    "gravel_life": 4.0, "gravel_slow": 0.5,
+    "rod_cap": 3, "rod_life": 10.0, "rod_zap_every": 1.2, "rod_zap_range": 30, "rod_zap_damage": 3,
+    "puddle_cap": 3, "puddle_life": 8.0, "puddle_radius": 14,
+    "wet_time": 4.0
   },
+  "shrine": {"pos": [240, 122], "reach": 22, "tome_spots": [[72, 70], [410, 220], [70, 222], [408, 72]]},
   "wizard": {"speed": 72, "radius": 5, "blink_dist": 52, "blink_recharge": 2.6, "iframes": 0.5},
   "enemies": {
     "hollow": {"name": "Dust Hollow", "hp": 22, "poise": 0, "speed": 34, "radius": 5, "damage": 6, "windup": 0.6, "reach": 13, "cooldown": 1.1, "xp": 6},
