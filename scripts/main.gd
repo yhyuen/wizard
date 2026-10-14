@@ -1,7 +1,7 @@
 extends Node
 ## Root: the pixel-art arena in a 480×270 SubViewport scaled up ×2, the HUD on top at 960×540,
-## and the title, fight and Loop Ledger flow. Input becomes an intent dictionary each physics
-## frame, so tests can drive the same code with a bot.
+## and the title, fight and Loop Ledger flow, plus the Orrery shrine menu. Input becomes an intent
+## dictionary each physics frame, so tests can drive the same code with a bot.
 
 const Arena := preload("res://scripts/arena.gd")
 const Hud := preload("res://scripts/hud.gd")
@@ -13,6 +13,7 @@ var mode := "title"  # title, fight, ledger
 var bot: Callable  # tests and the F2 autoplay set this: func(arena) -> intent
 var autoplay
 var wipe_armed := 0.0
+var shrine_open := false
 
 
 func _ready() -> void:
@@ -43,10 +44,12 @@ func _ready() -> void:
 	Progression.mutation_picked.connect(_on_mutation)
 	Progression.wizard_leveled.connect(_on_wizard_leveled)
 	Progression.magick_learned.connect(_on_magick)
+	Progression.hint_learned.connect(_on_hint)
 
 
 func start_fight() -> void:
 	mode = "fight"
+	shrine_open = false
 	arena.start()
 	arena.paused = false
 	hud.reset()
@@ -77,6 +80,19 @@ func _physics_process(_dt: float) -> void:
 
 
 func _fight_input() -> void:
+	if shrine_open:
+		if Input.is_action_just_pressed("shrine") or Input.is_action_just_pressed("cancel") or not arena.shrine_ready():
+			close_shrine()
+		else:
+			for i in 4:
+				if Input.is_action_just_pressed("pick%d" % (i + 1)):
+					shrine_element(1 if Input.is_key_pressed(KEY_SHIFT) else 0, Progression.elements()[i])
+		return
+	if Input.is_action_just_pressed("shrine") and not bot.is_valid():
+		if arena.shrine_ready():
+			open_shrine()
+		elif arena.phase in ["intro", "wave1", "wave2"]:
+			hud.push_toast("The Orrery answers only while the yard is quiet, and only up close.", PixelArt.GOLD)
 	if not Progression.pending.is_empty():
 		arena.paused = true
 		if Input.is_action_just_pressed("pick1"):
@@ -119,6 +135,42 @@ func _fight_input() -> void:
 	arena.intent = intent
 
 
+# --- the Orrery shrine ----------------------------------------------------------
+
+## The only place to change elements or re-pick a milestone mutation (design doc §7).
+func open_shrine() -> void:
+	if not arena.shrine_ready():
+		return
+	shrine_open = true
+	arena.paused = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
+func close_shrine() -> void:
+	shrine_open = false
+	arena.paused = false
+	arena.kit.reset_slots()
+	if not bot.is_valid():
+		Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
+
+
+## Puts `element` in slot 0 or 1. Choosing the element already in the other slot swaps them.
+func shrine_element(slot: int, element: String) -> void:
+	var lo: Array = Progression.loadout().duplicate()
+	if lo[slot] == element:
+		return
+	if lo[1 - slot] == element:
+		lo.reverse()
+	else:
+		lo[slot] = element
+	Progression.set_loadout(lo[0], lo[1])
+	hud.push_toast("Equipped: %s + %s" % [Progression.data["elements"][lo[0]]["name"], Progression.data["elements"][lo[1]]["name"]], PixelArt.GOLD)
+
+
+func shrine_repick(id: String, lv: int, index: int) -> void:
+	Progression.repick(id, lv, index)
+
+
 func _on_fight_over(won: bool) -> void:
 	var levels := {}
 	for id in Progression.data["spells"]:
@@ -131,8 +183,10 @@ func _on_fight_over(won: bool) -> void:
 		"kills": int(arena.stats["kills"]),
 		"wizard_level": Progression.wizard_level(),
 		"spells": levels,
+		"elements": Progression.loadout().duplicate(),
 	})
 	mode = "ledger"
+	shrine_open = false
 	arena.paused = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
@@ -169,4 +223,9 @@ func _on_wizard_leveled(old: int, new: int) -> void:
 
 
 func _on_magick(id: String) -> void:
-	hud.push_level("meteor", "Magick discovered: %s (F)" % Progression.data["magicks"][id]["name"], Progression.data["magicks"][id]["blurb"])
+	hud.push_level(id, "Magick discovered: %s (F)" % Progression.data["magicks"][id]["name"], Progression.data["magicks"][id]["blurb"])
+
+
+func _on_hint(id: String) -> void:
+	var m: Dictionary = Progression.data["magicks"][id]
+	hud.push_level(id, "A tome on %s" % m["name"], m["hint"])

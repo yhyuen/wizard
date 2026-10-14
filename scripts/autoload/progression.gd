@@ -1,6 +1,6 @@
 extends Node
-## Spell levels, milestone mutations, element mastery, wizard level and the Loop Ledger.
-## Spell knowledge survives a loop; the wizard level drops to half (design doc §3).
+## Spell levels, milestone mutations, element mastery, wizard level, the loadout, Magick hints
+## and the Loop Ledger. Spell knowledge survives a loop; the wizard level drops to half (design doc §3).
 ## Every number lives in data/spells.json.
 
 signal spell_leveled(id: String, old_level: int, new_level: int)
@@ -8,6 +8,8 @@ signal milestone_ready
 signal mutation_picked(id: String, mut: Dictionary)
 signal wizard_leveled(old_level: int, new_level: int)
 signal magick_learned(id: String)
+signal hint_learned(id: String)
+signal loadout_changed
 
 const SAVE_PATH := "user://progress.json"
 
@@ -45,6 +47,8 @@ func fresh() -> Dictionary:
 		"wizard_xp": 0.0,
 		"loop": 1,
 		"magicks": [],
+		"hints": [],
+		"loadout": (data.get("start_loadout", ["fire", "earth"]) as Array).duplicate(),
 		"ledger": [],
 	}
 
@@ -153,6 +157,33 @@ func pick(index: int) -> void:
 	_apply_mut(entry["spell"], int(entry["level"]), opts[clampi(index, 0, opts.size() - 1)])
 
 
+## The milestones a spell has reached that offer a choice: [{"level", "options", "chosen"}].
+## Re-picking happens only at an Orrery shrine (design doc §7, decided 2026-10-14).
+func repickable(id: String) -> Array:
+	var out: Array = []
+	var ms: Dictionary = spell(id).get("milestones", {})
+	for lv in ms:
+		var opts: Array = ms[lv]
+		if opts.size() < 2 or not p["spells"][id]["muts"].has(lv):
+			continue
+		var chosen := 0
+		for i in opts.size():
+			if opts[i]["id"] == p["spells"][id]["muts"][lv]:
+				chosen = i
+		out.append({"level": int(lv), "options": opts, "chosen": chosen})
+	return out
+
+
+func repick(id: String, lv: int, index: int) -> void:
+	var opts: Array = spell(id).get("milestones", {}).get(str(lv), [])
+	if opts.size() < 2 or not p["spells"][id]["muts"].has(str(lv)):
+		return
+	var mut: Dictionary = opts[clampi(index, 0, opts.size() - 1)]
+	if p["spells"][id]["muts"][str(lv)] == mut["id"]:
+		return
+	_apply_mut(id, lv, mut)
+
+
 func _apply_mut(id: String, lv: int, mut: Dictionary) -> void:
 	p["spells"][id]["muts"][str(lv)] = mut["id"]
 	mutation_picked.emit(id, mut)
@@ -187,6 +218,45 @@ func mastery(element: String) -> int:
 	return total
 
 
+# --- loadout --------------------------------------------------------------
+
+func loadout() -> Array:
+	return p["loadout"]
+
+
+func elements() -> Array:
+	return data["elements"].keys()
+
+
+## The spell of `element` in `slot` (bolt, control or signature).
+func spell_for(element: String, slot: String) -> String:
+	for id in data["spells"]:
+		var s: Dictionary = data["spells"][id]
+		if s["element"] == element and s["slot"] == slot:
+			return id
+	return ""
+
+
+## Two different elements, changed only at an Orrery shrine.
+func set_loadout(a: String, b: String) -> void:
+	if a == b or not data["elements"].has(a) or not data["elements"].has(b):
+		return
+	if loadout() == [a, b]:
+		return
+	p["loadout"] = [a, b]
+	loadout_changed.emit()
+	save()
+
+
+## The Magick for the equipped pair, or "" if the prototype has none for it.
+func magick_for(pair: Array) -> String:
+	for id in data["magicks"]:
+		var mp: Array = data["magicks"][id]["pair"]
+		if pair.has(mp[0]) and pair.has(mp[1]):
+			return id
+	return ""
+
+
 # --- magicks --------------------------------------------------------------
 
 func knows(magick: String) -> bool:
@@ -199,6 +269,30 @@ func learn(magick: String) -> void:
 	p["magicks"].append(magick)
 	magick_learned.emit(magick)
 	save()
+
+
+## Tomes give a hint toward a Magick rather than the Magick itself (design doc §5). Hints persist.
+func has_hint(magick: String) -> bool:
+	return magick in p["hints"]
+
+
+func read_tome(magick: String) -> void:
+	if has_hint(magick):
+		return
+	p["hints"].append(magick)
+	hint_learned.emit(magick)
+	save()
+
+
+## The Magick the next tome hints at: unknown and unhinted, the equipped pair's first.
+func tome_subject() -> String:
+	var mine := magick_for(loadout())
+	if mine != "" and not knows(mine) and not has_hint(mine):
+		return mine
+	for id in data["magicks"]:
+		if not knows(id) and not has_hint(id):
+			return id
+	return ""
 
 
 ## A Magick levels with the lower of its two masteries (every 3 mastery points is a level).
@@ -302,4 +396,7 @@ func _load() -> void:
 	for id in data["spells"]:
 		if not base["spells"].has(id):
 			base["spells"][id] = {"level": 1, "xp": 0.0, "muts": {}}
+	var lo: Array = base["loadout"]
+	if lo.size() != 2 or lo[0] == lo[1] or not data["elements"].has(lo[0]) or not data["elements"].has(lo[1]):
+		base["loadout"] = (data.get("start_loadout", ["fire", "earth"]) as Array).duplicate()
 	p = base

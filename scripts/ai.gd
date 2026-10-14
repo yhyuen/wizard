@@ -101,7 +101,7 @@ func _rival(u: Unit, dt: float) -> void:
 	# Dodge on read: a Pillar or Meteor circle over him makes him blink out after a short delay.
 	if u.cooldown("blink") <= 0.0 and not u.flags.has("blink_in"):
 		for z in A.zones:
-			if z["kind"] in ["pillar", "meteor"] and u.pos.distance_to(z["pos"]) < z["r"] + u.radius:
+			if z["kind"] in ["pillar", "meteor", "strike"] and u.pos.distance_to(z["pos"]) < z["r"] + u.radius:
 				u.flags["blink_in"] = float(e["blink"]["react"])
 				break
 	if u.flags.has("blink_in"):

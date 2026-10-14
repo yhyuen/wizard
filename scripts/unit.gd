@@ -26,6 +26,7 @@ var stun := 0.0  # hard lock that is not a reaction (wall stun)
 var flash := 0.0
 var iframes := 0.0
 var slow_t := 0.0
+var wet_t := 0.0  # Wet (Water): lightning chains further and discovers Conductor
 var wall_check := 0.0  # Pin: a stone hit recently, so a wall hit stuns
 
 var anim := 0.0

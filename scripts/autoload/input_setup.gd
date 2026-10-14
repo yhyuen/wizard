@@ -22,6 +22,10 @@ func _ready() -> void:
 	_keys("practice", [KEY_F1])
 	_keys("autoplay", [KEY_F2])
 	_keys("wipe", [KEY_DELETE])
+	_keys("shrine", [KEY_G])
+	_keys("cancel", [KEY_ESCAPE])
+	_keys("pick3", [KEY_3])
+	_keys("pick4", [KEY_4])
 
 
 func _ensure(action: String) -> void:
