@@ -35,6 +35,7 @@ var state := "idle"
 var state_t := 0.0
 var aim := Vector2.ZERO
 var cd := {}
+var cd_total := {}  # spell id -> the full lock last set (longer than the cooldown after an Overdraw)
 var flags := {}
 
 

@@ -133,7 +133,7 @@ func _rival(u: Unit, dt: float) -> void:
 				var s: Dictionary = e["spark"]
 				var dir: Vector2 = (u.aim - u.pos).normalized()
 				A.spawn_proj({"kind": "spark", "team": 1, "pos": u.pos + Vector2(0, -8) + dir * 6.0,
-					"vel": dir * float(s["speed"]), "r": 2.0, "dmg": float(s["damage"]), "impact": 1,
+					"vel": dir * float(s["speed"]), "r": float(s.get("radius", 3.0)), "dmg": float(s["damage"]), "impact": 1,
 					"life": 1.6, "color": PixelArt.STORM})
 				_rival_recover(u, 0.35)
 		"lance":

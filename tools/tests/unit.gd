@@ -25,6 +25,17 @@ func _run() -> void:
 	ok(is_equal_approx(P.stat("ember_bolt", "speed", 3), 218.0), "Ember Bolt speed at Lv 3 is 218")
 	ok(P.stat("pyroclasm", "bounces", 1) == 4.0 and P.stat("pyroclasm", "bounces", 15) == 8.0, "Pyroclasm bounces 4 to 8")
 	ok(P.stat("pillar", "delay", 15) >= 0.5, "Pillar delay is clamped at 0.5 s")
+	for lv in [1, 10, 15]:
+		ok(P.stat("pillar", "delay", lv) >= P.fair_delay(P.stat("pillar", "radius", lv)) - 0.0001, "Pillar at Lv %d is dodgeable at wizard speed" % lv)
+	ok(is_equal_approx(P.fair_delay(15.0), 0.25 + 20.0 / 72.0), "the dodge rule: 0.25 s + (radius + body) / speed")
+	# Cadence scales the spell being cast, and only that spell.
+	P.boost = {"id": "pillar", "damage": 0.7, "size": 1.3, "count": 1}
+	ok(is_equal_approx(P.stat("pillar", "radius"), 15.0 * 1.3) and is_equal_approx(P.stat("pillar", "damage"), 14.0 * 0.7), "a boost scales the cast spell's size and damage")
+	ok(is_equal_approx(P.stat("pillar", "radius", 1), 15.0), "a boost never touches an explicit level (ghost previews)")
+	ok(is_equal_approx(P.stat("ember_bolt", "damage"), 6.0), "a boost leaves other spells alone")
+	P.boost = {"id": "pyroclasm", "damage": 1.0, "size": 1.0, "count": 1}
+	ok(P.stat("pyroclasm", "bounces") == 5.0, "a Resonant cast adds one to a count")
+	P.boost = {}
 	ok(P.stone_cap() == 3, "the stone cap starts at 3")
 	# XP and levels.
 	P.add_xp("ember_bolt", 8.0)
@@ -53,18 +64,26 @@ func _run() -> void:
 	ok(P.wizard_level() == 3, "wizard level 7 drops to 3")
 	ok(P.level("ember_bolt") == 15, "spell levels survive the loop")
 	ok(P.blink_charges(1) == 1 and P.blink_charges(3) == 2 and P.blink_charges(6) == 3, "blink charges at 1, 3, 6")
-	# The loadout: two different elements, set at the Orrery.
+	# The spellbook: six spells from any sphere, set at the Orrery.
 	P.reset_all()
-	ok(P.loadout() == ["fire", "earth"], "the first loop starts with Fire + Earth")
+	ok(P.spellbook() == ["ember_bolt", "pebble", "pillar", "fling", "pyroclasm", "avalanche"], "the first loop starts with the Mars and Jupiter kits")
+	ok(P.loadout() == ["fire", "earth"], "the book's spheres are Mars and Jupiter")
+	P.set_spell(2, "arc_lance")
+	ok(P.spellbook()[2] == "arc_lance" and P.loadout() == ["fire", "earth", "storm"], "any spell goes in any slot, and its sphere joins the book")
+	P.set_spell(0, "pebble")
+	ok(P.spellbook()[0] == "pebble" and P.spellbook()[1] == "ember_bolt", "a spell already in the book swaps slots")
+	ok(P.valid_book(P.spellbook(), P.data["spells"]), "the book stays six different spells")
+	ok(not P.valid_book(["spark", "spark", "pillar", "fling", "pyroclasm", "avalanche"], P.data["spells"]), "a book with a spell twice is invalid")
+	P.set_loadout("fire", "earth")
 	ok(P.spell_for("storm", "bolt") == "spark" and P.spell_for("water", "signature") == "maelstrom", "each element has a bolt, control and signature")
 	ok(P.magick_for(["water", "storm"]) == "conductor" and P.magick_for(["earth", "fire"]) == "meteor", "a pair finds its Magick in either order")
 	ok(P.magick_for(["fire", "storm"]) == "", "a pair without a Magick has none")
 	P.set_loadout("storm", "storm")
-	ok(P.loadout() == ["fire", "earth"], "the same element twice is refused")
+	ok(P.loadout() == ["fire", "earth"], "the same sphere twice is refused as a preset")
 	P.set_loadout("storm", "water")
-	ok(P.loadout() == ["storm", "water"], "the loadout changes")
+	ok(P.spellbook() == ["spark", "splash", "arc_lance", "undertow", "storm_call", "maelstrom"], "a two-sphere preset fills the book")
 	P.next_loop()
-	ok(P.loadout() == ["storm", "water"], "the loadout carries into the next loop")
+	ok(P.loadout() == ["storm", "water"], "the spellbook carries into the next loop")
 	# Re-picking a mutation (only the shrine calls this).
 	P.set_level("pillar", 5)
 	P.pick(0)

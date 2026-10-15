@@ -611,7 +611,7 @@ func _detonate(z: Dictionary) -> void:
 				return
 			var dir: Vector2 = (z["b"] - z["a"]).normalized()
 			var e: Dictionary = D["enemies"]["slinger"]
-			spawn_proj({"kind": "rock", "team": 1, "pos": z["a"], "vel": dir * float(e["shot_speed"]), "r": 2.0,
+			spawn_proj({"kind": "rock", "team": 1, "pos": z["a"], "vel": dir * float(e["shot_speed"]), "r": float(e["shot_radius"]),
 				"dmg": float(e["damage"]), "impact": 1, "life": 1.6, "color": PixelArt.DANGER})
 
 
@@ -750,6 +750,14 @@ func _draw_marks() -> void:
 	for u in units:
 		if not u.dead:
 			draw_ellipse_px(u.pos + Vector2(0, 1), u.radius + 1.0, 2.5, Color(0, 0, 0, 0.3))
+	# Every shot's ground shadow is exactly its hitbox: read where it will hit off the ground,
+	# not off the shot flying above it (design/magic-world-revisit.md §2).
+	for p in projs:
+		if p.get("ghost", false):
+			continue
+		var r := float(p["r"])
+		draw_circle(p["pos"], r, Color(0, 0, 0, 0.4), true, -1.0, true)
+		draw_arc(p["pos"], r, 0, TAU, 16, Color(p["color"], 0.85), 1.0, true)
 	for f in fxs:
 		if f["kind"] == "cone":  # a level-up ghost of a cone; the view draws every other effect
 			_draw_fx(f)

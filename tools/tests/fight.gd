@@ -3,8 +3,9 @@ extends SceneTree
 ##
 ##   godot --headless --fixed-fps 60 --script res://tools/tests/fight.gd -- [--loops 2] [--seconds 300]
 ##
-## Loop 1 is Fire + Earth. Before loop 2 the bot visits the Orrery shrine, swaps to Storm + Water and
-## re-picks a mutation, so two loops cast every spell and both Magicks.
+## Loop 1 is the Mars + Jupiter book. Before loop 2 the bot visits the Orrery shrine, fills the book
+## with the Mercury + Luna spells slot by slot and re-picks a mutation, so two loops cast every spell
+## and both Magicks. Each loop must also weave (a Resonant cast) and spend Aether.
 ## Exits non-zero if nothing levels, a spell is never cast, the shrine fails, or the run stalls.
 
 
@@ -47,7 +48,9 @@ func _on_over(won: bool) -> void:
 	results.append({"won": won, "time": snappedf(a.fight_time, 0.1), "casts": a.stats["casts"],
 		"taken": roundf(a.stats["damage_taken"]), "wizard": Progression.wizard_level(), "levels": levels,
 		"meteor": Progression.knows("meteor"), "conductor": Progression.knows("conductor"),
-		"elements": Progression.loadout().duplicate(), "phase_reached": a.phase, "by_spell": a.stats["by_spell"].duplicate()})
+		"elements": Progression.loadout().duplicate(), "phase_reached": a.phase, "by_spell": a.stats["by_spell"].duplicate(),
+		"loop": Progression.loop(), "resonant": int(a.stats.get("resonant", 0)), "aether_spent": roundf(float(a.stats.get("aether_spent", 0.0))),
+		"dulled": int(a.stats.get("dulled", 0)), "overdraws": int(a.stats.get("overdraws", 0))})
 	print("[fight] loop %d: %s" % [Progression.loop(), JSON.stringify(results[-1])])
 	done += 1
 	frames = 0
@@ -80,22 +83,24 @@ func _process(_dt: float) -> bool:
 var shrine_fails: Array = []
 
 
-## The Orrery: swap to Storm + Water and flip one Ember Bolt mutation, through the same calls the menu makes.
+## The Orrery: put the Mercury + Luna spells in the book and flip one Ember Bolt mutation, through
+## the same calls the menu makes.
 func _visit_shrine() -> void:
 	if not main.arena.shrine_ready():
 		shrine_fails.append("the shrine was not usable at the start of the loop")
 		return
 	main.open_shrine()
-	main.shrine_element(0, "storm")
-	main.shrine_element(1, "water")
+	var book := ["spark", "splash", "arc_lance", "undertow", "storm_call", "maelstrom"]
+	for i in book.size():
+		main.shrine_spell(i, book[i])
 	for entry in Progression.repickable("ember_bolt"):
 		main.shrine_repick("ember_bolt", entry["level"], 1 - int(entry["chosen"]))
 		if Progression.repickable("ember_bolt")[0]["chosen"] == entry["chosen"]:
 			shrine_fails.append("re-picking a mutation at the shrine did nothing")
 		break
 	main.close_shrine()
-	if Progression.loadout() != ["storm", "water"]:
-		shrine_fails.append("the shrine did not change the loadout")
+	if Progression.spellbook() != book:
+		shrine_fails.append("the shrine did not fill the spellbook (got %s)" % [Progression.spellbook()])
 	print("[fight] shrine: now %s" % [Progression.loadout()])
 
 
@@ -125,6 +130,11 @@ func _finish() -> bool:
 	for id in expect:
 		if not cast_ids.has(id):
 			fails.append("the bot never cast " + id)
+	for r in results:
+		if r.has("resonant") and int(r["resonant"]) < 1:
+			fails.append("loop %s never made a Resonant cast" % r.get("loop", "?"))
+		if r.has("aether_spent") and float(r["aether_spent"]) < 100.0:
+			fails.append("loop %s spent under 100 Aether" % r.get("loop", "?"))
 	print("[fight] reached the duel: %s" % reached_duel)
 	for f in fails:
 		print("[fight] FAIL: " + f)

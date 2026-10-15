@@ -10,12 +10,14 @@ var holds := {}  # slot -> frames left to keep it held (Arc Lance charges while 
 var t := 0.0
 var pebble_t := 0.0
 var last_pebbles := 0
+var kit  # the wizard's kit, so presses can wait for Aether instead of Overdrawing
 
 
 func intent(A) -> Dictionary:
 	t += 1.0 / 60.0
 	pebble_t -= 1.0 / 60.0
 	var P: Unit = A.player
+	kit = A.kit
 	var out := {"move": Vector2.ZERO, "aim": P.pos + Vector2(40, 0), "held": {}, "pressed": {}, "released": {}}
 	for s in release:
 		out["released"][s] = true
@@ -85,61 +87,62 @@ func intent(A) -> Dictionary:
 		last_pebbles = pebbles
 		pebble_t = 0.8
 	if stones < Progression.stone_cap() and pebble_t <= 0.0:
-		out["held"]["bolt2"] = true
+		out["held"][kit.slot_of("pebble")] = true
 	else:
-		out["held"]["bolt1"] = true
-	var kit = A.kit
+		out["held"][kit.slot_of("ember_bolt")] = true
 	var marked := foes.filter(func(u): return u.pips > 0).size()
 	var clustered := foes.filter(func(u): return u.pos.distance_to(focus.pos) < 25.0).size()
 	var want := "avalanche" if r and stones >= 3 else "pyroclasm"
 	if P.cooldown("pillar") <= 0.0 and not Progression.knows("meteor") and A.orbit_stones().size() > 0 and near.pos.distance_to(P.pos) < 45.0:
 		out["aim"] = P.pos
-		_press(out, "control1")
+		_press(out, kit.slot_of("pillar"))
 	elif P.cooldown("pillar") <= 0.0 and (clustered >= 2 or focus == r):
-		_press(out, "control1")
+		_press(out, kit.slot_of("pillar"))
 	elif P.cooldown("fling") <= 0.0 and A.orbit_stones().size() >= 2 and near.pos.distance_to(P.pos) < 80.0:
 		out["aim"] = near.pos
-		_press(out, "control2")
+		_press(out, kit.slot_of("fling"))
 	elif Progression.knows("meteor") and P.cooldown("meteor") <= 0.0 and stones >= 2 and (clustered >= 2 or focus == r):
 		_press(out, "magick")
-	elif kit.signature != want:
-		out["pressed"]["swap_signature"] = true
 	elif P.cooldown(want) <= 0.0 and (want == "avalanche" or marked >= 2):
-		_press(out, "signature")
+		_press(out, kit.slot_of(want))
 	return out
 
 
 func _storm_water(A, out: Dictionary, foes: Array, near: Unit, focus: Unit, r: Unit) -> void:
 	var P: Unit = A.player
-	var kit = A.kit
-	var storm := 0 if kit.slot_spell("bolt1") == "spark" else 1
-	var water := 1 - storm
 	var dry_near := near.wet_t <= 0.0 and near.pos.distance_to(P.pos) < 50.0
-	out["held"]["bolt%d" % (water + 1 if dry_near else storm + 1)] = true
+	out["held"][kit.slot_of("splash" if dry_near else "spark")] = true
 	var wet := foes.filter(func(u): return u.wet_t > 0.0).size()
 	var clustered := foes.filter(func(u): return u.pos.distance_to(focus.pos) < 30.0).size()
 	var want := "storm_call" if r and focus == r else "maelstrom"
 	if P.cooldown("undertow") <= 0.0 and near.pos.distance_to(P.pos) < 70.0:
 		out["aim"] = near.pos
-		_press(out, "control%d" % (water + 1))
+		_press(out, kit.slot_of("undertow"))
 	elif P.cooldown("arc_lance") <= 0.0 and focus.pos.distance_to(P.pos) < Progression.stat("arc_lance", "range"):
-		_hold(out, "control%d" % (storm + 1), int(Progression.stat("arc_lance", "charge") * 60.0) + 2)
+		_hold(out, kit.slot_of("arc_lance"), int(Progression.stat("arc_lance", "charge") * 60.0) + 2)
 	elif Progression.knows("conductor") and P.cooldown("conductor") <= 0.0 and (wet >= 2 or (r and r.wet_t > 0.0)):
 		_press(out, "magick")
 	elif P.cooldown(want) <= 0.0 and (want == "storm_call" or clustered >= 2):
-		if kit.signature != want:
-			out["pressed"]["swap_signature"] = true
-		else:
-			_press(out, "signature")
+		_press(out, kit.slot_of(want))
+
+
+## The bot waits for Aether rather than Overdraw.
+func _affords(slot: String) -> bool:
+	var id: String = kit.slot_spell(slot)
+	return slot != "" and id != "" and kit.aether >= kit.aether_cost(id)
 
 
 func _hold(out: Dictionary, slot: String, frames: int) -> void:
+	if not _affords(slot):
+		return
 	out["pressed"][slot] = true
 	out["held"][slot] = true
 	holds[slot] = frames
 
 
 func _press(out: Dictionary, slot: String) -> void:
+	if not _affords(slot):
+		return
 	out["pressed"][slot] = true
 	out["held"][slot] = true
 	release.append(slot)

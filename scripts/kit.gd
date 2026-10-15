@@ -1,10 +1,13 @@
 extends RefCounted
-## The wizard's loadout: two equipped elements (design doc §1), changed only at an Orrery shrine.
-## LMB / RMB are the Bolts of element 1 / 2, Q / E their Control spells, R the Signature (Tab swaps
-## between the two elements' signatures), F the Magick for the pair, Space blink. Q, E, R and F
-## show their telegraph while held and cast on release. The spells live in scripts/spells/.
+## The wizard's spellbook: six slots (LMB, RMB, Q, E, R, F) holding any six known spells, from any
+## sphere, changed only at an Orrery shrine. C is the Magick, Space blink. A Bolt fires while its
+## slot is held; every other spell shows its telegraph while held and casts on release.
+## Spells cost Aether (the mana) and follow Cadence: the same spell cast again in a row is dulled,
+## while weaving different spells refunds Aether and builds notes toward a Resonant cast
+## (design/magic-world-revisit.md §4.2 and §8). The spells live in scripts/spells/.
 
-const HOLD := ["control1", "control2", "signature", "magick"]
+const SLOTS := ["slot1", "slot2", "slot3", "slot4", "slot5", "slot6"]
+const ALL_SLOTS := ["slot1", "slot2", "slot3", "slot4", "slot5", "slot6", "magick"]
 const GHOST_CASTS := 5
 const FireEarth := preload("res://scripts/spells/fire_earth.gd")
 const StormWater := preload("res://scripts/spells/storm_water.gd")
@@ -14,10 +17,11 @@ var fe  # Fire and Earth spells, and Meteor
 var sw  # Storm and Water spells, and Conductor
 var modules: Array = []
 var cast_t = 0.0
-var sig_index = 0
-var signature: String:
-	get:
-		return Progression.spell_for(Progression.loadout()[sig_index], "signature")
+var aether = 100.0
+var last_cast = ""  # the spell cast last, for Cadence
+var repeats = 0  # how many times in a row `last_cast` has been cast again
+var notes = 0  # Cadence notes; a full set makes the next non-Bolt spell Resonant
+var note_t = 0.0  # seconds since the last cast; notes fade after "note_life"
 var blink_charges = 1
 var blink_t = 0.0
 var last_element = "fire"
@@ -39,20 +43,23 @@ func _init(arena) -> void:
 
 func reset() -> void:
 	cast_t = 0.0
+	aether = max_aether()
+	last_cast = ""
+	repeats = 0
+	notes = 0
+	note_t = 0.0
 	blink_charges = Progression.blink_charges()
 	blink_t = 0.0
 	holding = ""
 	hold_t = 0.0
-	sig_index = 0
 	denied.clear()
 	last_element = Progression.loadout()[0]
 	for m in modules:
 		m.reset()
 
 
-## After the loadout changes at the shrine: the signature goes back to element 1's.
+## After the spellbook changes at the shrine.
 func reset_slots() -> void:
-	sig_index = 0
 	holding = ""
 
 
@@ -63,28 +70,94 @@ func _on_leveled(id: String, old: int, _new: int) -> void:
 
 
 func slot_spell(slot: String) -> String:
-	var lo: Array = Progression.loadout()
-	match slot:
-		"bolt1":
-			return Progression.spell_for(lo[0], "bolt")
-		"bolt2":
-			return Progression.spell_for(lo[1], "bolt")
-		"control1":
-			return Progression.spell_for(lo[0], "control")
-		"control2":
-			return Progression.spell_for(lo[1], "control")
-		"signature":
-			return signature
-		"magick":
-			return Progression.magick_for(lo)
+	if slot == "magick":
+		return Progression.magick_for(Progression.loadout())
+	var i := SLOTS.find(slot)
+	return Progression.spellbook()[i] if i >= 0 else ""
+
+
+## The slot holding spell `id`, or "".
+func slot_of(id: String) -> String:
+	for s in ALL_SLOTS:
+		if slot_spell(s) == id:
+			return s
 	return ""
+
+
+func is_bolt(id: String) -> bool:
+	return Progression.data["spells"].has(id) and Progression.spell(id)["slot"] == "bolt"
+
+
+# --- Aether and Cadence -------------------------------------------------------
+
+func max_aether() -> float:
+	return float(A.D["aether"]["max"])
+
+
+func aether_cost(id: String) -> float:
+	if A.D["magicks"].has(id):
+		return float(A.D["magicks"][id].get("aether", A.D["aether"]["costs"]["magick"]))
+	var s: Dictionary = Progression.spell(id)
+	return float(s.get("aether", A.D["aether"]["costs"][s["slot"]]))
+
+
+## How much of its power spell `id` would keep if cast now (repeats in a row dull it).
+func dull(id: String) -> float:
+	var C: Dictionary = A.D["cadence"]
+	var n: int = repeats + 1 if id == last_cast else 0
+	return maxf(float(C["floor"]), 1.0 - float(C["repeat_loss"]) * n)
+
+
+## A full set of notes makes the next non-Bolt spell Resonant.
+func resonant_for(id: String) -> bool:
+	return notes >= int(A.D["cadence"]["notes"]) and not is_bolt(id)
+
+
+## The Cadence scaling for casting (or previewing) spell `id` now.
+func boost_for(id: String, with_dull := true) -> Dictionary:
+	var C: Dictionary = A.D["cadence"]
+	var res := resonant_for(id)
+	return {"id": id, "damage": dull(id) if with_dull else 1.0,
+		"size": float(C["resonant_size"]) if res else 1.0, "count": int(C["resonant_count"]) if res else 0}
+
+
+## Called after a cast lands: updates the repeat count and the notes, refunding Aether for variety.
+func _cadence(id: String) -> void:
+	var C: Dictionary = A.D["cadence"]
+	if id == last_cast:
+		A.stats["dulled"] = int(A.stats.get("dulled", 0)) + 1
+	if resonant_for(id):
+		notes = 0
+		A.stats["resonant"] = int(A.stats.get("resonant", 0)) + 1
+		A.fx("ring", A.player.pos, {"color": PixelArt.PAPER, "r": 18.0, "life": 0.4})
+	elif last_cast != "" and id != last_cast and not (is_bolt(id) and is_bolt(last_cast)):
+		notes = mini(notes + 1, int(C["notes"]))
+		aether = minf(max_aether(), aether + float(C["refund"]))
+	repeats = repeats + 1 if id == last_cast else 0
+	last_cast = id
+	note_t = 0.0
+
+
+## Runs one cast of `id` with Cadence applied; false if the spell refused (no target, no stones).
+func _run(m, id: String) -> bool:
+	Progression.boost = boost_for(id)
+	var ok = m.call(id)
+	Progression.boost = {}
+	return not (ok is bool and ok == false)
 
 
 func equipped(element: String) -> bool:
 	return Progression.loadout().has(element)
 
 
+## How long spell `id` is locked: its cooldown, or longer after an Overdraw.
 func cooldown_total(id: String) -> float:
+	if A.player and A.player.cd_total.has(id):
+		return float(A.player.cd_total[id])
+	return base_cooldown(id)
+
+
+func base_cooldown(id: String) -> float:
 	if A.D["magicks"].has(id):
 		return float(A.D["magicks"][id]["cooldown"])
 	return float(Progression.spell(id).get("cooldown", 0.0))
@@ -120,6 +193,10 @@ func update(dt: float, intent: Dictionary) -> void:
 	aim = intent.get("aim", A.mouse)
 	move = intent.get("move", Vector2.ZERO)
 	cast_t -= dt
+	aether = minf(max_aether(), aether + float(A.D["aether"]["regen"]) * dt)
+	note_t += dt
+	if note_t > float(A.D["cadence"]["note_life"]):
+		notes = 0
 	for k in denied.keys():
 		denied[k] -= dt
 		if denied[k] <= 0.0:
@@ -136,10 +213,6 @@ func update(dt: float, intent: Dictionary) -> void:
 	P.flags["move"] = Vector2.ZERO
 	if absf(aim.x - P.pos.x) > 1.0:
 		P.facing = signf(aim.x - P.pos.x)
-	if pressed.get("swap_signature", false):
-		sig_index = 1 - sig_index
-		var s: Dictionary = Progression.spell(signature)
-		A.toast.emit("Signature: " + s["name"], element_color(s["element"]))
 	if P.locked():
 		holding = ""
 		return
@@ -152,13 +225,16 @@ func update(dt: float, intent: Dictionary) -> void:
 		P.flags["move"] = v
 	if pressed.get("blink", false):
 		blink()
-	if held.get("bolt1", false) and cast_t <= 0.0:
-		bolt(slot_spell("bolt1"))
-	elif held.get("bolt2", false) and cast_t <= 0.0:
-		bolt(slot_spell("bolt2"))
+	if cast_t <= 0.0:
+		for s in SLOTS:
+			if held.get(s, false) and is_bolt(slot_spell(s)):
+				bolt(slot_spell(s))
+				break
 	if holding != "":
 		hold_t += dt
-	for s in HOLD:
+	for s in ALL_SLOTS:
+		if is_bolt(slot_spell(s)):
+			continue
 		if pressed.get(s, false):
 			holding = s
 			hold_t = 0.0
@@ -175,9 +251,10 @@ func bolt(id: String) -> void:
 	var m = _module_for(id)
 	if m == null:
 		return
-	m.call(id)
+	_run(m, id)
 	cast_t = float(Progression.spell(id)["cast_time"])
 	last_element = Progression.spell(id)["element"]
+	_cadence(id)
 	count(id)
 
 
@@ -192,11 +269,24 @@ func cast(slot: String) -> void:
 		denied[slot] = 0.4
 		return
 	var m = _module_for(id)
-	var ok = m != null and m.call(id)
+	var ok = m != null and _run(m, id)
 	if not ok:
 		denied[slot] = 0.4
 		return
-	P.cd[id] = cooldown_total(id)
+	var cost := aether_cost(id)
+	var lock := base_cooldown(id)
+	if aether < cost:
+		# Overdraw: the missing Aether is paid in HP, and the spell is locked for a while.
+		var O: Dictionary = A.D["overdraw"]
+		P.hp = maxf(1.0, P.hp - (cost - aether) * float(O["hp_per_aether"]))
+		lock = maxf(lock, float(O["lock"]))
+		A.fx("burst", P.pos + Vector2(0, -6), {"color": PixelArt.DANGER, "r": 8.0, "life": 0.3})
+		A.stats["overdraws"] = int(A.stats.get("overdraws", 0)) + 1
+	aether = maxf(0.0, aether - cost)
+	A.stats["aether_spent"] = float(A.stats.get("aether_spent", 0.0)) + cost
+	_cadence(id)
+	P.cd[id] = lock
+	P.cd_total[id] = lock
 	if Progression.data["spells"].has(id):
 		last_element = Progression.spell(id)["element"]
 	count(id)
@@ -268,7 +358,7 @@ func draw_field(c: CanvasItem) -> void:
 
 # --- previews -----------------------------------------------------------------
 
-## While Q/E/R/F is held, its telegraph shows exactly what will be hit. After a level-up, a
+## While a non-Bolt slot is held, its telegraph shows exactly what will be hit. After a level-up, a
 ## dashed ghost shows the old size for a few casts (design doc §3).
 func draw(c: CanvasItem) -> void:
 	var P: Unit = A.player
@@ -278,9 +368,12 @@ func draw(c: CanvasItem) -> void:
 	if id == "":
 		return
 	var ghost_old: int = ghosts[id]["old"] if ghosts.has(id) else 0
+	# A Resonant cast previews at its real, bigger size: the telegraph is the hitbox.
+	Progression.boost = boost_for(id, false)
 	for m in modules:
 		if m.draw_preview(c, id, ghost_old):
-			return
+			break
+	Progression.boost = {}
 
 
 func draw_cone(c: CanvasItem, dir: Vector2, cone: float, reach_len: float, col: Color) -> void:
