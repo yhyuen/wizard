@@ -1,18 +1,20 @@
 {
-  "_doc": "The 3D view (scripts/view/view3d.gd): flat-shaded low-poly figures, ground and spells over the 2D sim. Purely visual: hitboxes and rules stay in the sim. Positions are sim pixels unless named in metres.",
+  "_doc": "The 3D view (scripts/view/view3d.gd): low-poly figures, ground and spells over the 2D sim, lit and coloured after Magicka (soft figures, saturated colour, glowing spells, a camera that follows a little). Purely visual: hitboxes and rules stay in the sim. Positions are sim pixels unless named in metres.",
   "metres_per_px": 0.0556,
-  "camera": {"offset": [0, 19.5, 12.0], "look_at": [0, 0, 0.9], "fov": 40},
+  "camera": {"offset": [0, 16.5, 10.8], "look_at": [0, 0, 0.9], "fov": 40, "follow": 0.75, "follow_limit_m": [2.8, 1.3]},
+  "adjust": {"saturation": 1.1, "contrast": 1.05, "brightness": 1.0},
+  "props_facet": 0.6,
   "overlay_scale": 3,
   "darken": 0.1,
 
-  "_figures_doc": "Per unit kind: a model from assets/models/figures, scale, recipe colours swapped (hex: hex), tint [hex, amount] for every other colour, a hat on the head bone, glowing eyes, the weapon shown.",
+  "_figures_doc": "Per unit kind: a model from assets/models/figures, scale, recipe colours swapped (hex: hex), tint [hex, amount] for every other colour, a hat on the head bone (hood, wizard, frontier), glowing eyes, the weapon shown, a glowing staff gem, facet (1 faceted .. 0 smooth).",
   "figures": {
-    "wizard": {"model": "elder", "scale": 1.0, "weapon": "staff",
-      "colors": {"5e5a62": "34416e", "8a8690": "c9a45a", "3a3640": "6b3a2a", "3a3840": "2c2a30"},
-      "hat": {"kind": "wizard", "color": "2c365e", "band": "c9a45a"}},
-    "hollow": {"model": "bandit", "scale": 0.95, "tint": ["6e6a62", 0.75], "eyes": "ff9a3c"},
-    "slinger": {"model": "bandit", "scale": 0.92, "tint": ["59684a", 0.7], "eyes": "ffd36b"},
-    "rival": {"model": "swordsman", "scale": 1.02,
+    "wizard": {"model": "elder", "scale": 1.08, "weapon": "staff", "facet": 0.3, "eyes": "bfe6ff", "staff_gem": "ffb347",
+      "colors": {"5e5a62": "3358b8", "8a8690": "e8c25a", "3a3640": "7a4a2a", "3a3840": "2a2f45"},
+      "hat": {"kind": "hood", "color": "3358b8", "band": "e8c25a"}},
+    "hollow": {"model": "bandit", "scale": 0.95, "facet": 0.5, "tint": ["6e6a62", 0.75], "eyes": "ff9a3c"},
+    "slinger": {"model": "bandit", "scale": 0.92, "facet": 0.5, "tint": ["59684a", 0.7], "eyes": "ffd36b"},
+    "rival": {"model": "swordsman", "scale": 1.02, "facet": 0.4,
       "colors": {"7d8aa0": "3e5560", "c4cbd6": "8fe8ff", "3d4552": "2a2f33", "8c7a5a": "6b5a45"},
       "hat": {"kind": "frontier", "color": "3a3029", "band": "8fe8ff"}}
   },
@@ -21,22 +23,22 @@
   "phase_moods": {"duel": "dusk", "won": "dusk", "lost": "dusk"},
   "moods": {
     "day": {
-      "bg": "151a25", "ambient": "8fa3c8", "ambient_energy": 0.55,
-      "sun": "f6e2bf", "sun_energy": 1.25, "sun_rot": [-55, 35, 0],
-      "ground": {"dirt": "8a6c48", "grass": "5d7a3e", "hill": "4c6636", "path": "9c7f58"},
-      "glow": 0.5, "lights": 0.0, "overlay": 1.0
+      "bg": "151a25", "ambient": "7f9ad6", "ambient_energy": 0.6,
+      "sun": "ffe6b8", "sun_energy": 1.35, "sun_rot": [-55, 35, 0],
+      "ground": {"dirt": "8a6c4c", "grass": "5a863e", "hill": "4a7636", "path": "9e8866"},
+      "glow": 0.8, "lights": 0.5, "overlay": 1.0
     },
     "dusk": {
       "bg": "0b0e16", "ambient": "6a7caa", "ambient_energy": 0.45,
       "sun": "9fb2e0", "sun_energy": 0.55, "sun_rot": [-60, -30, 0],
-      "ground": {"dirt": "4a4650", "grass": "2e3d3a", "hill": "263330", "path": "54505a"},
-      "glow": 1.1, "lights": 1.0, "overlay": 1.25
+      "ground": {"dirt": "48464f", "grass": "2c4440", "hill": "253a36", "path": "54525e"},
+      "glow": 1.2, "lights": 1.0, "overlay": 1.25
     }
   },
 
   "_ground_doc": "A faceted mesh: cell size and extent in metres, hill height outside the fence, paths out of the gates (sim pixels).",
   "ground": {
-    "cell_m": 1.1, "extent_m": [70, 50], "hill_m": 2.2,
+    "cell_m": 1.1, "extent_m": [70, 50], "hill_m": 2.2, "shade_var": 0.05,
     "paths": [[[-60, 140], [20, 140]], [[460, 140], [540, 140]], [[240, -60], [240, 34]], [[240, 248], [240, 330]]],
     "path_width_px": 40
   },

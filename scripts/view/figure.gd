@@ -1,6 +1,7 @@
 extends Node3D
-## One figure on the field: a low-poly model drawn flat-shaded (every face its own tone), posed
-## from the shared animation library each frame. Purely visual: the sim's Unit stays the truth
+## One figure on the field: a low-poly model, shaded soft or faceted (`facet`), posed from the
+## shared animation library each frame. Wizards wear Magicka-style deep hoods with glowing eyes
+## and carry a staff with a glowing gem. Purely visual: the sim's Unit stays the truth
 ## and this never changes it.
 
 const DIR := "res://assets/models/figures/"
@@ -32,7 +33,7 @@ static func mat(col: Color, glow := 0.0) -> ShaderMaterial:
 
 ## Flat shading on every surface under `n`. `remap` swaps a recipe colour (hex,
 ## no #) for another; `tint` (alpha = amount) pulls every other colour toward one tone.
-static func style(n: Node, darken: float, remap := {}, tint := Color(0, 0, 0, 0), out: Array = []) -> void:
+static func style(n: Node, darken: float, remap := {}, tint := Color(0, 0, 0, 0), out: Array = [], facet := 1.0) -> void:
 	if n is MeshInstance3D:
 		var mi := n as MeshInstance3D
 		for s in mi.mesh.get_surface_count():
@@ -44,13 +45,19 @@ static func style(n: Node, darken: float, remap := {}, tint := Color(0, 0, 0, 0)
 			elif tint.a > 0.0:
 				col = col.lerp(Color(tint, 1.0), tint.a)
 			var sm := mat(col.darkened(darken))
+			sm.set_shader_parameter("facet", facet)
 			mi.set_surface_override_material(s, sm)
 			out.append(sm)
 	for c in n.get_children():
-		style(c, darken, remap, tint, out)
+		style(c, darken, remap, tint, out, facet)
 
 
-## `def` comes from data/visual.json "figures": model, scale, colors, tint, hat, eyes, weapon.
+var _facet := 1.0
+var gem: MeshInstance3D  # the staff's gem, lit by the view in the caster's element colour
+
+
+## `def` comes from data/visual.json "figures": model, scale, colors, tint, hat, eyes, weapon,
+## facet (1 faceted .. 0 smooth), staff_gem.
 func build(def: Dictionary, darken: float) -> void:
 	model = (load(DIR + str(def["model"]) + ".glb") as PackedScene).instantiate()
 	add_child(model)
@@ -59,8 +66,9 @@ func build(def: Dictionary, darken: float) -> void:
 	var tint := Color(0, 0, 0, 0)
 	if def.has("tint"):
 		tint = Color(str(def["tint"][0]), float(def["tint"][1]))
+	_facet = float(def.get("facet", 1.0))
 	var out: Array = []
-	style(model, darken, def.get("colors", {}), tint, out)
+	style(model, darken, def.get("colors", {}), tint, out, _facet)
 	for m in out:
 		mats.append(m)
 	for n in model.find_children("*", "Skeleton3D", true, false):
@@ -73,8 +81,11 @@ func build(def: Dictionary, darken: float) -> void:
 			wn.visible = w == weapon
 	if def.has("hat"):
 		_hat(def["hat"])
+	var hooded: bool = def.has("hat") and str(def["hat"]["kind"]) == "hood"
 	if def.has("eyes"):
-		_eyes(Color(str(def["eyes"])))
+		_eyes(Color(str(def["eyes"])), 0.19 if hooded else 0.1, 0.06 if hooded else 0.08)
+	if weapon == "staff" and def.has("staff_gem"):
+		_staff_gem(Color(str(def["staff_gem"])))
 
 	if _lib == null:
 		var src: Node = (load(DIR + "anims.glb") as PackedScene).instantiate()
@@ -145,6 +156,7 @@ func _part(at: Node3D, mesh: Mesh, col: Color, pos: Vector3, rot := Vector3.ZERO
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
 	var m := mat(col)
+	m.set_shader_parameter("facet", _facet)
 	mats.append(m)
 	mi.material_override = m
 	mi.position = pos
@@ -162,8 +174,9 @@ static func _cyl(top: float, bottom: float, h: float, segs := 7) -> CylinderMesh
 	return cm
 
 
-## Hats are parts on the head bone, so they ride every clip: "wizard" (a wide brim and a tall
-## crooked cone with a band) or "frontier" (a flat brim and a low crown).
+## Hats are parts on the head bone, so they ride every clip: "hood" (Magicka's deep pointed cowl,
+## the face lost in shadow, with a mantle and trim on the shoulders), "wizard" (a wide brim and a
+## tall crooked cone with a band) or "frontier" (a flat brim and a low crown).
 func _hat(h: Dictionary) -> void:
 	if skel == null:
 		return
@@ -172,6 +185,19 @@ func _hat(h: Dictionary) -> void:
 	var band := Color(str(h.get("band", h["color"])))
 	var y := 0.25
 	match str(h["kind"]):
+		"hood":
+			var cowl := SphereMesh.new()
+			cowl.radius = 0.2
+			cowl.height = 0.4
+			cowl.radial_segments = 10
+			cowl.rings = 5
+			_part(at, cowl, col, Vector3(0, 0.09, -0.01))
+			# the opening: a dark oval where the face should be
+			_part(at, _cyl(0.115, 0.115, 0.02, 10), Color("120e16"), Vector3(0, 0.06, 0.175), Vector3(90, 0, 0))
+			_part(at, _cyl(0.0, 0.16, 0.42, 8), col, Vector3(0, 0.33, -0.12), Vector3(-38, 0, 0))
+			var ch := _bone_node("chest")
+			_part(ch, _cyl(0.15, 0.31, 0.24, 10), col, Vector3(0, 0.15, 0))
+			_part(ch, _cyl(0.315, 0.315, 0.035, 10), band, Vector3(0, 0.035, 0))
 		"wizard":
 			_part(at, _cyl(0.3, 0.33, 0.03, 8), col, Vector3(0, y - 0.02, 0))
 			_part(at, _cyl(0.135, 0.15, 0.06), band, Vector3(0, y + 0.02, 0))
@@ -182,14 +208,14 @@ func _hat(h: Dictionary) -> void:
 			_part(at, _cyl(0.142, 0.142, 0.03), band, Vector3(0, y + 0.0, 0))
 
 
-## Two glowing points on the face (the Hollows' ember eyes).
-func _eyes(col: Color) -> void:
+## Two glowing points on the face (the Hollows' ember eyes, the wizard's eyes under the hood).
+## They glow past the bloom threshold, so they shine.
+func _eyes(col: Color, z := 0.1, y := 0.08) -> void:
 	if skel == null:
 		return
 	var at := _bone_node("head")
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.albedo_color = col
+	var m := mat(col, 2.5)
+	mats.append(m)  # so they fade out with the body
 	for sx in [-1.0, 1.0]:
 		var mi := MeshInstance3D.new()
 		var sm := SphereMesh.new()
@@ -199,6 +225,39 @@ func _eyes(col: Color) -> void:
 		sm.rings = 3
 		mi.mesh = sm
 		mi.material_override = m
-		mi.position = Vector3(0.035 * sx, 0.08, 0.1)
+		mi.position = Vector3(0.04 * sx, y, z)
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		at.add_child(mi)
+
+
+## A faceted gem on the far end of the staff, riding the grip bone. The end is found from the
+## staff mesh itself, so it follows whatever staff the model carries.
+func _staff_gem(col: Color) -> void:
+	var staff := model.find_child("weapon_staff", true, false) as MeshInstance3D
+	if staff == null or skel == null:
+		return
+	var grip := skel.find_bone("grip_R")
+	if grip < 0:
+		return
+	var box := staff.get_aabb()
+	var rest := skel.get_bone_global_rest(grip)
+	var axis := 1 if box.size.y >= box.size.x and box.size.y >= box.size.z else (0 if box.size.x >= box.size.z else 2)
+	var lo := box.get_center()
+	var hi := box.get_center()
+	lo[axis] = box.position[axis]
+	hi[axis] = box.end[axis]
+	var tip := hi if hi.distance_to(rest.origin) > lo.distance_to(rest.origin) else lo
+	var at := _bone_node("grip_R")
+	gem = MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.07
+	sm.height = 0.16
+	sm.radial_segments = 5
+	sm.rings = 2
+	gem.mesh = sm
+	var gm := mat(col, 1.6)
+	mats.append(gm)
+	gem.material_override = gm
+	gem.position = rest.affine_inverse() * tip
+	gem.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	at.add_child(gem)

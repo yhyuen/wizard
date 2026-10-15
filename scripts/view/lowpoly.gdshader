@@ -1,6 +1,8 @@
-// Flat-shaded low-poly: every face takes one light value from its own normal (worked out from
-// screen-space derivatives, so any mesh reads faceted however it was exported). A soft wrap and a
-// cool rim keep figures off the ground; `glow` makes a surface emit its own colour (spell shapes).
+// Low-poly shading. `facet` 1 gives every face one light value from its own normal (worked out from
+// screen-space derivatives, so any mesh reads faceted however it was exported); lower values blend
+// toward the smooth vertex normal for the softer, rounder Magicka-style figures. A soft wrap, a
+// warm-to-cool shadow tint and a rim keep figures off the ground; `glow` makes a surface emit its
+// own colour (spell shapes).
 // Hit flash, the beaten darkening and the dithered fade-out are per-instance uniforms.
 // Works on the Compatibility renderer (the browser build).
 shader_type spatial;
@@ -10,6 +12,7 @@ uniform vec4 albedo : source_color = vec4(1.0);
 uniform bool use_vcol = false;       // the ground: UV.x picks a kind colour, COLOR.r shades the face
 uniform vec3 kind_cols[4];           // the ground's dirt, grass, hill and path colours
 uniform float glow = 0.0;            // > 0: emits albedo * glow (blooms at dusk)
+uniform float facet = 1.0;           // 1 = flat faces, 0 = smooth
 uniform float wrap = 0.25;           // how far round the light reaches
 uniform vec4 rim_color : source_color = vec4(0.62, 0.72, 0.9, 1.0);
 uniform float rim = 0.15;
@@ -34,7 +37,9 @@ void vertex() {
 void fragment() {
 	// one normal per face
 	vec3 n = normalize(cross(dFdx(VERTEX), dFdy(VERTEX)));
-	NORMAL = dot(n, VIEW) < 0.0 ? -n : n;  // whichever way the face was wound, it faces us
+	n = dot(n, VIEW) < 0.0 ? -n : n;  // whichever way the face was wound, it faces us
+	vec3 sn = dot(NORMAL, VIEW) < 0.0 ? -NORMAL : NORMAL;
+	NORMAL = normalize(mix(sn, n, facet));
 	vec3 c = albedo.rgb;
 	if (use_vcol) {
 		c = kind_cols[clamp(int(UV.x + 0.5), 0, 3)] * COLOR.r;

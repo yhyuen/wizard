@@ -1,8 +1,8 @@
 # Wizard: Readable Arsenal prototype
 
-A small browser prototype of the wizard game, built from the "Readable Arsenal" design: four elements (**Fire, Earth, Storm, Water**) carried two at a time, two Magicks (**Meteor** and **Conductor**), one fight (**Ambush at the Mill**), a flat-shaded low-poly look, and progression you can see. Godot 4.7, GDScript, web export.
+A small browser prototype of the wizard game, built from the "Readable Arsenal" design: four elements (**Fire, Earth, Storm, Water**) carried two at a time, two Magicks (**Meteor** and **Conductor**), one fight (**Ambush at the Mill**), a low-poly look lit after Magicka, and progression you can see. Godot 4.7, GDScript, web export.
 
-![The Mill yard by day](docs/screens/lowpoly_day.png)
+![The Mill yard by day](docs/screens/magicka_day.png)
 
 ## Play it
 
@@ -47,7 +47,7 @@ Wet enemies show a blue drip. Lightning that touches a wet enemy chains one hop 
 
 Other pairs (Fire + Storm, Earth + Water, and so on) work, but have no Magick in the prototype yet.
 
-![Silas arrives at dusk](docs/screens/lowpoly_dusk.png)
+![Silas arrives at dusk](docs/screens/magicka_dusk.png)
 
 ## The fight
 
@@ -72,7 +72,7 @@ Two waves of Dust Hollows (melee, red wedge telegraphs) and Hollow Slingers (red
 
 ## The look
 
-Everything is low-poly and flat-shaded: each face takes one light value (`scripts/view/lowpoly.gdshader`), the ground is a faceted mesh of dirt, grass, hills and paths, and the figures and props are the Wuxia game's low-poly models. The spells are solid geometry too, not particles: Ember Bolt is a comet (League of Legends' Brand Q as the reference) with a white-hot core and flame tongues streaming back, stones are faceted rocks, Storm shots are crystals, lightning is a chain of thin prisms, and impacts throw shards that shrink away instead of fading. World colours stay muted so that the element colours, gold and the red of a telegraph stay free for what matters. The magic is what changes: the waves are fought by day, and when Silas steps through the gate the light falls to dusk, so fire, lightning and the Orrery become the light sources.
+Everything is low-poly, lit and coloured after Magicka. The ground is a faceted mesh of dirt, grass, hills and paths; the figures are shaded softer (`facet` in `scripts/view/lowpoly.gdshader` blends flat faces toward smooth), and the wizard wears Magicka's deep pointed hood with a mantle, the face lost in shadow except for two glowing eyes, and carries a staff with a glowing gem. Colours are saturated a little (`"adjust"` in `data/visual.json`), and the camera sits closer than the whole yard and drifts part of the way after the player, so the wizards stay big on screen while the fence and gates stay in view. The figures and props are the Wuxia game's low-poly models. The spells are solid geometry too, not particles: Ember Bolt is a comet (League of Legends' Brand Q as the reference) with a white-hot core and flame tongues streaming back, stones are faceted rocks, Storm shots are crystals, lightning is a chain of thin prisms, and impacts throw shards that shrink away instead of fading. Round the hot ones a soft halo (`halo.gdshader`) glows into the bloom, the way Magicka's spells light the air, while the solid shapes keep their colour. The world stays a step less saturated than the spells, so that the element colours, gold and the red of a telegraph stay free for what matters. The magic is what changes: the waves are fought by day, and when Silas steps through the gate the light falls to dusk, so fire, lightning and the Orrery become the light sources.
 
 The sim is still the 2D one. `scripts/view/view3d.gd` reads it every frame and never changes it: the arena draws its flat marks (telegraphs, hold-to-aim previews, zones, effects, the reticle) into an offscreen viewport that lies on the ground as a decal, so a telegraph is still exactly the hitbox, and the view adds what stands up: figures, lodestones, projectiles, flames, rods, the Orrery, lightning. Spells are drawn a little bigger than their hitboxes so they read from the camera; the ground mark under them is the exact size. Figures, hats, colours, the two moods, the ground and the props are in `data/visual.json`; `"enabled": false` there brings back the old pixel arena.
 
@@ -99,7 +99,7 @@ Frost and Time, Magicks for the other pairs, relics and Focus, the town and the 
 | `scripts/view/spells3d.gd` | Spells as low-poly shapes: the comet fireball, rocks, crystals, flames, pillars, the meteor, lightning, impact shards |
 | `scripts/view/figure.gd` | One figure: the model with flat-shaded materials, hats and eyes, posed from the shared clip library |
 | `scripts/view/marks.gd` | Flame pips, HP chunks, stun stars and Wet over heads, in screen space |
-| `scripts/view/*.gdshader` | Flat low-poly shading (figures, props, ground, spells) and the marks decal |
+| `scripts/view/*.gdshader` | Low-poly shading (figures, props, ground, spells), spell halos and the marks decal |
 | `assets/models/` | Figures, the clip library and props, from the Wuxia game |
 | `scripts/pixel_art.gd` | The palette, and the pixel sprites the flat fallback still draws |
 | `scripts/bot.gd` | The bot used by the fight test and F2 autoplay |

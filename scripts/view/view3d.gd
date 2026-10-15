@@ -1,6 +1,7 @@
 extends Node3D
-## The fight in low poly: flat-shaded figures, a faceted yard and hills, props, under the tilted
-## camera Wuxia uses, over the same 2D sim. The arena still simulates everything and still draws
+## The fight in low poly, lit the Magicka way: soft-shaded hooded wizards, a faceted yard and
+## hills, props, saturated colour and bloom, under a tilted camera that follows the player a
+## little, over the same 2D sim. The arena still simulates everything and still draws
 ## the flat telegraphs (rings, cones, lines, hold-to-aim previews, the reticle) into an
 ## offscreen viewport, which lies on the ground here as a decal, so a telegraph stays exactly
 ## its hitbox. Spells and everything else that stands up are solid low-poly shapes
@@ -37,6 +38,7 @@ var _shrine_rings: Array = []
 var _last_casts := 0
 var _cast_t := 99.0
 var _cam_base := Vector3.ZERO
+var _cam_pan := Vector3.ZERO  # how far the camera has followed the player off the centre
 
 
 func setup(the_arena, vp: SubViewport) -> void:
@@ -109,6 +111,12 @@ func _build_env() -> void:
 	_env.glow_bloom = 0.05
 	_env.glow_hdr_threshold = 0.9
 	_env.glow_blend_mode = Environment.GLOW_BLEND_MODE_ADDITIVE
+	var adj: Dictionary = cfg.get("adjust", {})
+	if not adj.is_empty():
+		_env.adjustment_enabled = true
+		_env.adjustment_saturation = float(adj.get("saturation", 1.0))
+		_env.adjustment_contrast = float(adj.get("contrast", 1.0))
+		_env.adjustment_brightness = float(adj.get("brightness", 1.0))
 	var we := WorldEnvironment.new()
 	we.environment = _env
 	add_child(we)
@@ -126,6 +134,7 @@ func _build_ground() -> void:
 	_ground.set_shader_parameter("use_vcol", true)
 	_ground.set_shader_parameter("rim", 0.0)
 	var g: Dictionary = cfg["ground"]
+	var shade_var := float(g.get("shade_var", 0.08))
 	var cell := float(g["cell_m"])
 	var ext: Array = g["extent_m"]
 	var nx := int(ext[0] / cell)
@@ -155,7 +164,7 @@ func _build_ground() -> void:
 			for t in tris:
 				var mid: Vector3 = (t[0] + t[1] + t[2]) / 3.0
 				var kind := _ground_kind(mid)
-				var shade := rng.randf_range(0.92, 1.08)
+				var shade := rng.randf_range(1.0 - shade_var, 1.0 + shade_var)
 				for v in [t[0], t[2], t[1]]:
 					st.set_color(Color(shade, shade, shade))
 					st.set_uv(Vector2(kind, 0))
@@ -219,7 +228,7 @@ func _prop(id: String, at: Vector3, rot: float, s: float) -> void:
 	n.rotation_degrees.y = rot
 	n.scale = Vector3.ONE * s
 	add_child(n)
-	Figure.style(n, float(cfg["darken"]))
+	Figure.style(n, float(cfg["darken"]), {}, Color(0, 0, 0, 0), [], float(cfg.get("props_facet", 1.0)))
 
 
 func _build_props() -> void:
@@ -314,10 +323,25 @@ func _process(delta: float) -> void:
 	_sync_shrine()
 	_place_lights()
 
+	_follow(delta)
 	var sh: float = arena.shake
-	camera.position = _cam_base + (Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * sh * 0.03 if sh > 0.3 else Vector3.ZERO)
+	camera.position = _cam_base + _cam_pan + (Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * sh * 0.03 if sh > 0.3 else Vector3.ZERO)
 	if marks != null:
 		marks.queue_redraw()
+
+
+## The camera sits closer than the whole yard and drifts after the player (Magicka keeps the
+## wizards big on screen), but only part of the way and never past "follow_limit_m", so the
+## fence and the gates stay in view.
+func _follow(delta: float) -> void:
+	var c: Dictionary = cfg["camera"]
+	var k := float(c.get("follow", 0.0))
+	if k <= 0.0:
+		return
+	var lim: Array = c.get("follow_limit_m", [0, 0])
+	var p := to_world(arena.player.pos) * k
+	var want := Vector3(clampf(p.x, -lim[0], lim[0]), 0.0, clampf(p.z, -lim[1], lim[1]))
+	_cam_pan = _cam_pan.lerp(want, 1.0 - exp(-delta * 4.0))
 
 
 func _apply_mood(k: float) -> void:
