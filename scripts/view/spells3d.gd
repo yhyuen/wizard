@@ -1,11 +1,12 @@
 extends RefCounted
 ## The spells as low-poly shapes: every shot, stone, burst and lingering field object is a few
-## flat-shaded facets in its element's colour, glowing at dusk. Bursts and rings shrink away
-## instead of fading, so nothing is see-through and everything reads as solid geometry. The
+## flat-shaded facets in its element's colour. Bursts and rings shrink away instead of fading, so
+## the shapes stay solid; round the hot ones a soft halo glows into the bloom (Magicka's look). The
 ## telegraphs that are hitboxes (rings, cones, lines on the ground) stay the arena's own marks,
 ## laid on the ground by the view. Reads the sim each frame and never changes it.
 
 const Figure := preload("res://scripts/view/figure.gd")
+const HALO_SHADER := preload("res://scripts/view/halo.gdshader")
 
 var view
 var arena
@@ -104,6 +105,14 @@ func take(kind: String) -> Node3D:
 
 func _make(kind: String, i: int) -> Node3D:
 	match kind:
+		"halo":
+			var mi := MeshInstance3D.new()
+			mi.mesh = QuadMesh.new()
+			var hm := ShaderMaterial.new()
+			hm.shader = HALO_SHADER
+			mi.material_override = hm
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			return mi
 		"gem":
 			return _mi(octa(0.12, 2.2), Color.WHITE, 1.5)
 		"orb":
@@ -274,6 +283,18 @@ func sync(_delta: float) -> void:
 			pool[i].visible = false
 
 
+## A glow `d` metres across round `at`. Fainter by day, when the sun is doing the lighting.
+func halo(at: Vector3, col: Color, d: float, strength := 1.0) -> void:
+	if d <= 0.01 or strength <= 0.01:
+		return
+	var h := take("halo") as MeshInstance3D
+	h.position = at
+	h.scale = Vector3.ONE * d
+	var m := h.material_override as ShaderMaterial
+	m.set_shader_parameter("color", col)
+	m.set_shader_parameter("strength", strength * lerpf(0.55, 1.0, view.dusk()))
+
+
 func _w(p: Vector2, h := 0.0) -> Vector3:
 	return view.to_world(p, h)
 
@@ -344,6 +365,8 @@ func _projs(dusk: float) -> void:
 					sh.scale = Vector3.ONE * size * 0.6 * (1.0 - back)
 					sh.rotation = Vector3(p["t"] * 11.0 + k, p["t"] * 7.0, 0)
 					paint(sh, PixelArt.FIRE_HOT, gl * 1.5)
+				halo(at, PixelArt.FIRE, 0.75 * size, 1.4)
+				halo(at - dir * 0.3 * size, PixelArt.FIRE.lerp(PixelArt.DANGER, 0.3), 0.6 * size, 0.8)
 				view.want_light(at, PixelArt.FIRE, 1.6, 3.5)
 			_:
 				var fire := false
@@ -359,6 +382,7 @@ func _projs(dusk: float) -> void:
 					sh.scale = Vector3.ONE * size * (0.8 - 0.25 * k)
 					sh.rotation = Vector3(p["t"] * 11.0 + k, p["t"] * 7.0, 0)
 					paint(sh, PixelArt.FIRE_HOT if fire else col.lightened(0.3), _glow(dusk, 1.0, 2.0))
+				halo(at, col, minf(0.55 * size, 1.3), 1.3)
 				if fire:
 					view.want_light(at, PixelArt.FIRE, 1.6, 3.5)
 				else:
@@ -375,6 +399,7 @@ func _zones(dusk: float) -> void:
 				var fade := clampf((z["life"] - t) / 1.0, 0.3, 1.0)
 				f.scale = Vector3(1.0, (0.8 + 0.25 * sin(t * 13.0 + z["pos"].x)) * fade, 1.0)
 				f.rotation.y = t * 0.7 + z["pos"].x
+				halo(_w(z["pos"], 0.45), PixelArt.FIRE, 1.6 * fade, 0.9)
 				view.want_light(_w(z["pos"], 0.5), PixelArt.FIRE, 1.4 * fade, 3.0)
 			"column":
 				# Pillar erupts: stone spikes punch up round a fire core, then sink
@@ -385,6 +410,7 @@ func _zones(dusk: float) -> void:
 				c.position = _w(z["pos"], -1.0 + up)
 				c.scale = Vector3(r, 1.0, r)
 				paint(c.get_node("Core"), PixelArt.FIRE.lerp(PixelArt.FIRE_HOT, 1.0 - k), _glow(dusk, 1.2, 2.4))
+				halo(_w(z["pos"], 0.6), PixelArt.FIRE, r * 2.6 * up, 1.2 * (1.0 - k))
 				view.want_light(_w(z["pos"], 1.0), PixelArt.FIRE, 3.0 * (1.0 - k), 5.0)
 			"meteor":
 				var k := clampf(t / z["delay"], 0.0, 1.0)
@@ -396,6 +422,7 @@ func _zones(dusk: float) -> void:
 				tail.position = b.position + Vector3(0.4, 0.8, 0)
 				tail.scale = Vector3.ONE * 2.5
 				paint(tail, PixelArt.FIRE_HOT, 2.0)
+				halo(b.position, PixelArt.FIRE, 2.4, 1.3)
 				view.want_light(b.position, PixelArt.FIRE, 2.0, 5.0)
 			"gravel":
 				for i in 6:
@@ -412,6 +439,7 @@ func _zones(dusk: float) -> void:
 				paint(r.get_node("Tip"), PixelArt.STORM, 2.4 if lit else 0.6)
 				r.get_node("Tip").rotation.y = t * 3.0
 				if lit:
+					halo(r.get_node("Tip").global_position, PixelArt.STORM, 0.7, 1.4)
 					view.want_light(_w(z["pos"], 1.0), PixelArt.STORM, 0.8, 2.0)
 			"whirl":
 				for i in 2:
@@ -424,6 +452,7 @@ func _zones(dusk: float) -> void:
 				var b := take("tome")
 				b.position = _w(z["pos"], 0.55 + 0.06 * sin(t * 3.0))
 				b.rotation.y = t * 0.8
+				halo(b.position, PixelArt.GOLD, 0.8, 0.8)
 				view.want_light(b.position, PixelArt.GOLD, 0.8, 2.0)
 			"storm", "strike":
 				var k := clampf(t / maxf(0.01, float(z.get("delay", 1.0))), 0.0, 1.0)
@@ -471,6 +500,8 @@ func _fx(dusk: float) -> void:
 					sh.scale = Vector3.ONE * left * (1.3 if f["kind"] == "burst" else 0.8)
 					sh.rotation = Vector3(k * 8.0 + i, a, 0)
 					paint(sh, col, g)
+				if f["kind"] == "burst":
+					halo(at, col, float(f.get("r", 6.0)) * view.S * 3.0 * (0.6 + 0.6 * k), 1.6 * left)
 				if col == PixelArt.FIRE or col == PixelArt.FIRE_HOT or col == PixelArt.STORM:
 					view.want_light(at, col, 1.5 * left, 3.0)
 			"ring", "levelup":
@@ -498,6 +529,7 @@ func _fx(dusk: float) -> void:
 				_stick(at, _w(f["to"], 0.6), 0.04 * left, col, g)
 			"beam":
 				_stick(_w(f["pos"], 0.7), _w(f["to"], 0.7), float(f.get("w", 6.0)) * view.S * 0.4 * left, col, g)
+				halo(_w(f["to"], 0.7), col, 1.2, 1.4 * left)
 				view.want_light(_w(f["pos"].lerp(f["to"], 0.5), 0.8), col, 2.0 * left, 4.0)
 			"zap":
 				var a3 := _w(f["pos"], 0.8)
@@ -511,6 +543,7 @@ func _fx(dusk: float) -> void:
 						nxt += side * _jit(seed_v + floorf(k * 6.0), i) * 0.18 + Vector3(0, _jit(seed_v, i + 3) * 0.12, 0)
 					_stick(prev, nxt, 0.035 * float(f.get("w", 1.0)) * left, col, g)
 					prev = nxt
+				halo(b3, col, 0.9, 1.5 * left)
 				view.want_light((a3 + b3) * 0.5, col, 1.5 * left, 3.0)
 			"bolt":
 				var base := _w(f["pos"])
@@ -519,6 +552,7 @@ func _fx(dusk: float) -> void:
 					var nxt := base + Vector3(_jit(seed_v, i) * 0.3 if i < 6 else 0.0, 5.0 - i * (5.0 / 6.0), _jit(seed_v, i + 5) * 0.2 if i < 6 else 0.0)
 					_stick(prev, nxt, 0.07 * left, col, g * 1.4)
 					prev = nxt
+				halo(base + Vector3(0, 0.4, 0), PixelArt.STORM, 2.4, 2.0 * left)
 				view.want_light(base + Vector3(0, 1.5, 0), PixelArt.STORM, 3.0 * left, 5.0)
 			"swipe":
 				var dir: Vector2 = f["dir"]
