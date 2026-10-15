@@ -13,17 +13,25 @@
     "loop_wizard_level_keep": 0.5
   },
   "elements": {
-    "fire": {"name": "Fire", "color": "f08a3c"},
-    "earth": {"name": "Earth", "color": "c8964e"},
-    "storm": {"name": "Storm", "color": "8fe8ff"},
-    "water": {"name": "Water", "color": "4f86e8"}
+    "fire": {"name": "Mars", "was": "Fire", "color": "f08a3c"},
+    "earth": {"name": "Jupiter", "was": "Earth", "color": "c8964e"},
+    "storm": {"name": "Mercury", "was": "Storm", "color": "8fe8ff"},
+    "water": {"name": "Luna", "was": "Water", "color": "4f86e8"}
   },
-  "start_loadout": ["fire", "earth"],
+  "_spellbook_doc": "Six spellbook slots (LMB, RMB, Q, E, R, F) hold any six known spells, from any sphere; changed at the Orrery shrine. Bolts fire while held; every other spell aims while held and casts on release. The Magick (C) is the first Magick whose two spheres are both in the book.",
+  "start_spellbook": ["ember_bolt", "pebble", "pillar", "fling", "pyroclasm", "avalanche"],
+  "_aether_doc": "Aether is the mana (design/magic-world-revisit.md section 8). Cost by spell kind unless a spell sets its own 'aether'. Cadence: the same spell cast again in a row loses 'repeat_loss' per repeat down to 'floor'; a cast that differs from the last one, where at least one of the two is not a Bolt, adds a note and refunds 'refund' Aether. At 'notes' notes the next non-Bolt spell is Resonant (size x 'resonant_size', counts + 'resonant_count'). Notes fade after 'note_life' seconds without a cast.",
+  "aether": {"max": 100, "regen": 12, "costs": {"bolt": 0, "control": 20, "signature": 45, "magick": 50}},
+  "_overdraw_doc": "Short on Aether, a spell still casts: the missing Aether is paid in HP ('hp_per_aether' each) and the spell is locked for 'lock' seconds. A desperate option, never the efficient one.",
+  "overdraw": {"hp_per_aether": 0.5, "lock": 10.0},
+  "cadence": {"repeat_loss": 0.15, "floor": 0.55, "notes": 4, "refund": 10, "note_life": 3.0, "resonant_size": 1.3, "resonant_count": 1},
+  "_dodge_doc": "A circle telegraph the wizard places never lands faster than a wizard-speed target can leave it: delay >= reaction + (radius + wizard radius) / wizard speed (design/magic-world-revisit.md section 3).",
+  "dodge": {"reaction": 0.25},
   "spells": {
     "ember_bolt": {
       "name": "Ember Bolt", "element": "fire", "slot": "bolt",
       "blurb": "Fast bolt. Adds a flame pip; 3 pips Ignite.",
-      "cast_time": 0.26, "impact": 1, "xp_hit": 1, "xp_ignite": 2,
+      "cast_time": 0.26, "impact": 1, "xp_hit": 1, "xp_ignite": 2, "radius": 3.5,
       "stats": {
         "speed": {"label": "Speed", "base": 200, "per": 9},
         "damage": {"label": "Damage", "base": 6, "per": 0.55, "fmt": "%.1f"}
@@ -66,7 +74,7 @@
     "pyroclasm": {
       "name": "Pyroclasm", "element": "fire", "slot": "signature",
       "blurb": "Fireball that bounces between pip-marked enemies.",
-      "cooldown": 10.0, "impact": 2, "speed": 210, "xp_hit": 4,
+      "cooldown": 10.0, "impact": 2, "speed": 210, "xp_hit": 4, "radius": 4.0,
       "stats": {
         "bounces": {"label": "Bounces", "base": 4, "per": 0.2858, "floor": true},
         "range": {"label": "Range", "base": 80, "per": 4},
@@ -246,7 +254,7 @@
   },
   "magicks": {
     "meteor": {
-      "name": "Meteor", "pair": ["fire", "earth"], "key": "F",
+      "name": "Meteor", "pair": ["fire", "earth"], "key": "C",
       "blurb": "Lodestones ignite and fall as fireballs.",
       "card_note": "1 meteor per lodestone",
       "hint": "Fire must touch stone: catch a lodestone in a Pillar.",
@@ -258,7 +266,7 @@
       }
     },
     "conductor": {
-      "name": "Conductor", "pair": ["storm", "water"], "key": "F",
+      "name": "Conductor", "pair": ["storm", "water"], "key": "C",
       "blurb": "Every wet enemy is hit by a chain arc.",
       "card_note": "1 arc per wet enemy",
       "hint": "Storm finds water: strike a soaked enemy with lightning.",
@@ -282,9 +290,9 @@
   "wizard": {"speed": 72, "radius": 5, "blink_dist": 52, "blink_recharge": 2.6, "iframes": 0.5},
   "enemies": {
     "hollow": {"name": "Dust Hollow", "hp": 22, "poise": 0, "speed": 34, "radius": 5, "damage": 6, "windup": 0.6, "reach": 13, "cooldown": 1.1, "xp": 6},
-    "slinger": {"name": "Hollow Slinger", "hp": 18, "poise": 0, "speed": 30, "radius": 5, "damage": 7, "windup": 0.75, "range": 150, "keep": 105, "shot_speed": 150, "cooldown": 2.4, "xp": 8},
+    "slinger": {"name": "Hollow Slinger", "hp": 18, "poise": 0, "speed": 30, "radius": 5, "damage": 7, "windup": 0.75, "range": 150, "keep": 105, "shot_speed": 150, "shot_radius": 3.0, "cooldown": 2.4, "xp": 8},
     "rival": {"name": "Silas Vane", "hp": 300, "poise": 1, "speed": 52, "radius": 6, "xp": 60,
-      "spark": {"damage": 9, "windup": 0.35, "speed": 210},
+      "spark": {"damage": 9, "windup": 0.35, "speed": 210, "radius": 3.0},
       "lance": {"damage": 18, "windup": 0.8, "length": 170, "width": 7, "impact": 2},
       "storm": {"damage": 14, "delay": 1.0, "radius": 16, "cooldown": 6.0},
       "blink": {"dist": 70, "cooldown": 3.0, "react": 0.25},

@@ -99,7 +99,7 @@ func _physics_process(_dt: float) -> void:
 	wipe_armed = maxf(0.0, wipe_armed - _dt)
 	match mode:
 		"title":
-			if Input.is_action_just_pressed("confirm") or Input.is_action_just_pressed("bolt1") or bot.is_valid():
+			if Input.is_action_just_pressed("confirm") or Input.is_action_just_pressed("slot1") or bot.is_valid():
 				start_fight()
 		"fight":
 			_fight_input()
@@ -121,10 +121,6 @@ func _fight_input() -> void:
 	if shrine_open:
 		if Input.is_action_just_pressed("shrine") or Input.is_action_just_pressed("cancel") or not arena.shrine_ready():
 			close_shrine()
-		else:
-			for i in 4:
-				if Input.is_action_just_pressed("pick%d" % (i + 1)):
-					shrine_element(1 if Input.is_key_pressed(KEY_SHIFT) else 0, Progression.elements()[i])
 		return
 	if Input.is_action_just_pressed("shrine") and not bot.is_valid():
 		if arena.shrine_ready():
@@ -166,7 +162,7 @@ func _fight_input() -> void:
 		"aim": mouse,
 		"held": {}, "pressed": {}, "released": {},
 	}
-	for a in ["bolt1", "bolt2", "control1", "control2", "signature", "magick", "blink", "swap_signature"]:
+	for a in ["slot1", "slot2", "slot3", "slot4", "slot5", "slot6", "magick", "blink"]:
 		intent["held"][a] = Input.is_action_pressed(a)
 		intent["pressed"][a] = Input.is_action_just_pressed(a)
 		intent["released"][a] = Input.is_action_just_released(a)
@@ -192,17 +188,12 @@ func close_shrine() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 
 
-## Puts `element` in slot 0 or 1. Choosing the element already in the other slot swaps them.
-func shrine_element(slot: int, element: String) -> void:
-	var lo: Array = Progression.loadout().duplicate()
-	if lo[slot] == element:
+## Puts spell `id` in spellbook slot `index` (0-5). A spell already in another slot swaps with it.
+func shrine_spell(index: int, id: String) -> void:
+	if Progression.spellbook()[index] == id:
 		return
-	if lo[1 - slot] == element:
-		lo.reverse()
-	else:
-		lo[slot] = element
-	Progression.set_loadout(lo[0], lo[1])
-	hud.push_toast("Equipped: %s + %s" % [Progression.data["elements"][lo[0]]["name"], Progression.data["elements"][lo[1]]["name"]], PixelArt.GOLD)
+	Progression.set_spell(index, id)
+	hud.push_toast("%s: %s" % [Hud.KEYS[Hud.SLOTS[index]], Progression.spell(id)["name"]], PixelArt.GOLD)
 
 
 func shrine_repick(id: String, lv: int, index: int) -> void:
@@ -222,6 +213,7 @@ func _on_fight_over(won: bool) -> void:
 		"wizard_level": Progression.wizard_level(),
 		"spells": levels,
 		"elements": Progression.loadout().duplicate(),
+		"spellbook": Progression.spellbook().duplicate(),
 	})
 	mode = "ledger"
 	shrine_open = false
@@ -261,7 +253,7 @@ func _on_wizard_leveled(old: int, new: int) -> void:
 
 
 func _on_magick(id: String) -> void:
-	hud.push_level(id, "Magick discovered: %s (F)" % Progression.data["magicks"][id]["name"], Progression.data["magicks"][id]["blurb"])
+	hud.push_level(id, "Magick discovered: %s (C)" % Progression.data["magicks"][id]["name"], Progression.data["magicks"][id]["blurb"])
 
 
 func _on_hint(id: String) -> void:

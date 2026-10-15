@@ -321,32 +321,39 @@ func _stones() -> void:
 		r.rotation = Vector3(t * 1.3, t * 2.0 + p.x, 0)
 
 
-## Shots fly at chest height, pointing along their velocity: fire and storm as glowing
-## crystals with a spark or two behind, pebbles and thrown stones as rocks, water as a drop.
-const SHOT_SCALE := 1.8
+## Shots fly low (knee to hip), pointing along their velocity: fire as a comet, storm as a
+## glowing crystal with a spark or two behind, pebbles and thrown stones as rocks. The solid part
+## of a shot is drawn the size of its hitbox (a touch over), and only halos and tails reach past
+## it, tails always behind. Each shot also casts a ground shadow exactly its hitbox (arena.gd
+## _draw_marks), so where it will hit reads off the ground (design/magic-world-revisit.md §2).
+const SHOT_SCALE := 1.1
+const SHOT_HEIGHT := 0.4
+## The radius each shot mesh is built at, so it can be scaled to its hitbox.
+const SHOT_BASE := {"rock": 0.17, "fireball": 0.17, "gem": 0.12}
 
 
 func _projs(dusk: float) -> void:
 	for p in arena.projs:
 		if p.get("ghost", false):
 			continue
-		var at := _w(p["pos"], 0.7)
+		var at := _w(p["pos"], SHOT_HEIGHT)
 		var v: Vector2 = p["vel"]
 		var dir := Vector3(v.x, 0, v.y).normalized() if v.length() > 0.1 else Vector3.FORWARD
 		var col: Color = p["color"]
-		# drawn bigger than the hitbox so a shot reads from the camera; its ground mark stays exact
-		var size := clampf(float(p["r"]) / 2.0, 0.8, 2.2) * SHOT_SCALE
+		var hit_m: float = float(p["r"]) * view.S  # the hitbox radius in metres
 		match p["kind"]:
 			"pebble", "rock":
+				var size: float = hit_m / SHOT_BASE["rock"] * SHOT_SCALE
 				var r := take("rock")
 				r.position = at
-				r.scale = Vector3.ONE * size * 0.6
+				r.scale = Vector3.ONE * size
 				r.rotation = Vector3(p["t"] * 9.0, p["t"] * 6.0, 0)
 			"ember", "pyro":
+				var size: float = hit_m / SHOT_BASE["fireball"] * SHOT_SCALE
 				var fb := take("fireball")
 				fb.position = at
 				fb.look_at(at + dir, Vector3.UP)
-				fb.scale = Vector3.ONE * size * (0.8 if p["kind"] == "ember" else 1.0)
+				fb.scale = Vector3.ONE * size
 				var tail: Node3D = fb.get_node("Tail")
 				tail.rotation.z = p["t"] * 9.0
 				tail.scale = Vector3(1.0, 1.0, 1.1 + 0.3 * sin(p["t"] * 31.0))
@@ -370,6 +377,7 @@ func _projs(dusk: float) -> void:
 				view.want_light(at, PixelArt.FIRE, 1.6, 3.5)
 			_:
 				var fire := false
+				var size: float = hit_m / SHOT_BASE["gem"] * SHOT_SCALE
 				var g := take("gem")
 				g.position = at
 				g.look_at(at + dir, Vector3.UP)

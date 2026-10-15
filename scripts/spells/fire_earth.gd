@@ -43,14 +43,14 @@ func detonate(z: Dictionary) -> bool:
 func ember_bolt() -> void:
 	var dir = K.aim_dir()
 	A.spawn_proj({"kind": "ember", "team": 0, "pos": K.origin() + dir * 5.0,
-		"vel": dir * Progression.stat("ember_bolt", "speed"), "r": 1.5, "life": 1.4,
+		"vel": dir * Progression.stat("ember_bolt", "speed"), "r": float(Progression.spell("ember_bolt")["radius"]), "life": 1.4,
 		"dmg": Progression.stat("ember_bolt", "damage"), "color": PixelArt.FIRE,
 		"pierce": 1 if Progression.has_mut("ember_bolt", "pierce") else 0})
 	if K.ghosts.has("ember_bolt"):
 		# The ghost: a bolt at the old speed, so the new one visibly outruns it.
 		var old = Progression.stat("ember_bolt", "speed", K.ghosts["ember_bolt"]["old"])
 		A.spawn_proj({"kind": "ember", "team": 0, "ghost": true, "pos": K.origin() + dir * 5.0,
-			"vel": dir * old, "r": 1.5, "life": 1.2, "color": PixelArt.PAPER})
+			"vel": dir * old, "r": float(Progression.spell("ember_bolt")["radius"]), "life": 1.2, "color": PixelArt.PAPER})
 		K.use_ghost("ember_bolt")
 
 
@@ -96,8 +96,9 @@ func on_proj_hit(p: Dictionary, u: Unit) -> bool:
 
 func pillar() -> bool:
 	var s: Dictionary = Progression.spell("pillar")
-	var z = {"kind": "pillar", "pos": _pillar_target(), "r": Progression.stat("pillar", "radius"),
-		"delay": Progression.stat("pillar", "delay"), "dmg": Progression.stat("pillar", "damage"),
+	var r := Progression.stat("pillar", "radius")
+	var z = {"kind": "pillar", "pos": _pillar_target(), "r": r,
+		"delay": maxf(Progression.stat("pillar", "delay"), Progression.fair_delay(r)), "dmg": Progression.stat("pillar", "damage"),
 		"impact": 4 if Progression.has_mut("pillar", "knock_up") else int(s["impact"])}
 	if K.ghosts.has("pillar"):
 		z["ghost_r"] = Progression.stat("pillar", "radius", K.ghosts["pillar"]["old"])
@@ -137,7 +138,7 @@ func pillar_hits(z: Dictionary) -> void:
 func pyroclasm() -> bool:
 	var dir = K.aim_dir()
 	A.spawn_proj({"kind": "pyro", "team": 0, "pos": K.origin() + dir * 5.0,
-		"vel": dir * float(Progression.spell("pyroclasm")["speed"]), "r": 2.5, "life": 1.5,
+		"vel": dir * float(Progression.spell("pyroclasm")["speed"]), "r": float(Progression.spell("pyroclasm")["radius"]), "life": 1.5,
 		"dmg": Progression.stat("pyroclasm", "damage"), "bounces": int(Progression.stat("pyroclasm", "bounces")),
 		"range": Progression.stat("pyroclasm", "range"), "color": PixelArt.FIRE})
 	return true

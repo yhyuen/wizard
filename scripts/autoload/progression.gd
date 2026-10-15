@@ -1,5 +1,5 @@
 extends Node
-## Spell levels, milestone mutations, element mastery, wizard level, the loadout, Magick hints
+## Spell levels, milestone mutations, element mastery, wizard level, the spellbook, Magick hints
 ## and the Loop Ledger. Spell knowledge survives a loop; the wizard level drops to half (design doc §3).
 ## Every number lives in data/spells.json.
 
@@ -17,6 +17,12 @@ var data: Dictionary = {}
 var p: Dictionary = {}
 var pending: Array = []  # milestones waiting for a pick: {"spell", "level"}
 var save_enabled := true  # tests turn saving off
+## While the kit casts or previews a spell, Cadence scales it: {"id", "damage", "size", "count"}.
+## stat() applies it to that spell's current-level damage, size and count tracks.
+var boost: Dictionary = {}
+
+const SIZE_KEYS := ["radius", "size", "cone", "width"]
+const COUNT_KEYS := ["bounces", "strikes", "chains"]
 
 
 func _ready() -> void:
@@ -38,6 +44,8 @@ static func load_data() -> Dictionary:
 
 
 func fresh() -> Dictionary:
+	if data.is_empty():
+		data = load_data()
 	var spells := {}
 	for id in data.get("spells", {}):
 		spells[id] = {"level": 1, "xp": 0.0, "muts": {}}
@@ -48,7 +56,7 @@ func fresh() -> Dictionary:
 		"loop": 1,
 		"magicks": [],
 		"hints": [],
-		"loadout": (data.get("start_loadout", ["fire", "earth"]) as Array).duplicate(),
+		"spellbook": (data["start_spellbook"] as Array).duplicate(),
 		"ledger": [],
 	}
 
@@ -89,12 +97,30 @@ static func stat_value(def: Dictionary, lv: int) -> float:
 
 
 func stat(id: String, key: String, lv := -1) -> float:
-	if lv < 0:
+	var current := lv < 0
+	if current:
 		lv = level(id)
 	var v := stat_value(spell(id)["stats"][key], lv)
 	if id == "avalanche" and key == "cap" and has_mut("avalanche", "cap_plus"):
 		v += 2
+	if current and not boost.is_empty() and boost["id"] == id:
+		if key == "damage":
+			v *= float(boost["damage"])
+		elif key in SIZE_KEYS:
+			v *= float(boost["size"])
+		elif key in COUNT_KEYS:
+			v += int(boost["count"])
+	# The telegraph never lands faster than a wizard-speed target can leave it.
+	if id == "pillar" and key == "delay":
+		v = maxf(v, fair_delay(stat("pillar", "radius", -1 if current else lv)))
 	return v
+
+
+## The shortest fair delay for a circle telegraph of radius `r`: a target as fast as the wizard,
+## standing at its centre, can still step out (data "dodge"; design/magic-world-revisit.md §3).
+func fair_delay(r: float) -> float:
+	var w: Dictionary = data["wizard"]
+	return float(data["dodge"]["reaction"]) + (r + float(w["radius"])) / float(w["speed"])
 
 
 func stone_cap() -> int:
@@ -218,10 +244,21 @@ func mastery(element: String) -> int:
 	return total
 
 
-# --- loadout --------------------------------------------------------------
+# --- the spellbook --------------------------------------------------------
 
+## Six spells, one per slot (LMB, RMB, Q, E, R, F), from any sphere. Changed at an Orrery shrine.
+func spellbook() -> Array:
+	return p["spellbook"]
+
+
+## The spheres in the spellbook, in slot order.
 func loadout() -> Array:
-	return p["loadout"]
+	var out: Array = []
+	for id in spellbook():
+		var e: String = spell(id)["element"]
+		if not out.has(e):
+			out.append(e)
+	return out
 
 
 func elements() -> Array:
@@ -237,18 +274,50 @@ func spell_for(element: String, slot: String) -> String:
 	return ""
 
 
-## Two different elements, changed only at an Orrery shrine.
-func set_loadout(a: String, b: String) -> void:
-	if a == b or not data["elements"].has(a) or not data["elements"].has(b):
+## Puts spell `id` in slot `index`. If it is already in another slot, the two swap.
+func set_spell(index: int, id: String) -> void:
+	if not data["spells"].has(id) or index < 0 or index >= spellbook().size():
 		return
-	if loadout() == [a, b]:
+	var book: Array = spellbook().duplicate()
+	if book[index] == id:
 		return
-	p["loadout"] = [a, b]
+	var at := book.find(id)
+	if at >= 0:
+		book[at] = book[index]
+	book[index] = id
+	p["spellbook"] = book
 	loadout_changed.emit()
 	save()
 
 
-## The Magick for the equipped pair, or "" if the prototype has none for it.
+static func valid_book(book, spells: Dictionary) -> bool:
+	if typeof(book) != TYPE_ARRAY or book.size() != 6:
+		return false
+	var seen := {}
+	for id in book:
+		if typeof(id) != TYPE_STRING or not spells.has(id) or seen.has(id):
+			return false
+		seen[id] = true
+	return true
+
+
+## Fills the book with two spheres' kits: their Bolts on LMB / RMB, Controls on Q / E, Signatures
+## on R / F (a quick preset; the shrine sets slots one by one).
+func set_loadout(a: String, b: String) -> void:
+	if a == b or not data["elements"].has(a) or not data["elements"].has(b):
+		return
+	var book: Array = []
+	for slot in ["bolt", "control", "signature"]:
+		book.append(spell_for(a, slot))
+		book.append(spell_for(b, slot))
+	if book == spellbook():
+		return
+	p["spellbook"] = book
+	loadout_changed.emit()
+	save()
+
+
+## The first Magick whose two spheres are both in `spheres`, or "" if there is none.
 func magick_for(pair: Array) -> String:
 	for id in data["magicks"]:
 		var mp: Array = data["magicks"][id]["pair"]
@@ -396,7 +465,10 @@ func _load() -> void:
 	for id in data["spells"]:
 		if not base["spells"].has(id):
 			base["spells"][id] = {"level": 1, "xp": 0.0, "muts": {}}
-	var lo: Array = base["loadout"]
-	if lo.size() != 2 or lo[0] == lo[1] or not data["elements"].has(lo[0]) or not data["elements"].has(lo[1]):
-		base["loadout"] = (data.get("start_loadout", ["fire", "earth"]) as Array).duplicate()
 	p = base
+	# Saves from before the spellbook carried two elements: fill the book with their kits.
+	if not valid_book(p["spellbook"], data["spells"]):
+		p["spellbook"] = (data["start_spellbook"] as Array).duplicate()
+		var lo = parsed.get("loadout", [])
+		if typeof(lo) == TYPE_ARRAY and lo.size() == 2:
+			set_loadout(str(lo[0]), str(lo[1]))
