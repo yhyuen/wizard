@@ -341,7 +341,7 @@ func _draw_magick_card(r: Rect2, slot: String, id: String) -> void:
 	var pair_name := "%s + %s" % [el[m["pair"][0]]["name"], el[m["pair"][1]]["name"]]
 	if not known:
 		_text(r.position + Vector2(33, 17), "Magick: ???", 12, Color(1, 1, 1, 0.6))
-		var lines: Array = m["hint_card"] if Progression.has_hint(id) else ["Make %s and" % el[m["pair"][0]]["name"], "%s meet in a fight." % el[m["pair"][1]]["name"], "Tomes hold hints."]
+		var lines: Array = m["hint_card"] if Progression.has_hint(id) else ["Make %s and" % el[m["pair"][0]]["name"], "%s meet in a fight." % el[m["pair"][1]]["name"] if el[m["pair"][1]]["name"].length() <= 5 else "%s meet." % el[m["pair"][1]]["name"], "Tomes hold hints."]
 		for i in lines.size():
 			_text(r.position + Vector2(8, 40 + i * 14), lines[i], 11, Color(1, 1, 1, 0.6 if i == 0 else 0.45))
 		return
