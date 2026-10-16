@@ -53,8 +53,8 @@ jobs:
       - name: Unit checks
         run: tools/ci/godot.sh --script res://tools/tests/unit.gd
 
-      - name: Bot playthrough (two loops)
-        run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/fight.gd -- --loops 2 --seconds 240
+      - name: Bot playthrough (three loops)
+        run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/fight.gd -- --loops 3 --seconds 240
 
       - name: Web export
         run: |

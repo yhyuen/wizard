@@ -398,6 +398,7 @@ func _process(delta: float) -> void:
 
 	_light_wants.clear()
 	_sync_figures(delta)
+	_sync_echo(delta)
 	spells.sync(delta)
 	_sync_shrine()
 	_place_lights()
@@ -477,6 +478,8 @@ func _sync_figures(delta: float) -> void:
 		f.position = to_world(u.pos, u.lift() * S)
 		# Facing: the wizard faces the aim; enemies face the wizard, or where they walk.
 		var d: Vector2 = (arena.mouse - u.pos) if u == P else (P.pos - u.pos)
+		if u.kind == "inverted":
+			d = -d  # the Backward Slinger keeps its back to you
 		if d.length() > 0.5 and not u.dead:
 			rec["rot"] = lerp_angle(rec["rot"], face_rot(d), clampf(delta * 14.0, 0.0, 1.0))
 		f.rotation.y = rec["rot"]
@@ -544,6 +547,37 @@ func _pose(u: Unit, rec: Dictionary, delta: float) -> Array:
 	rec["run_t"] += delta
 	var idle := "staff_idle" if staff else "stand"
 	return [idle, fmod(rec["run_t"], Figure.clip_len(idle))]
+
+
+var _echo_fig: Figure = null
+var _echo_rot := 0.0
+var _echo_run := 0.0
+
+
+## Your echo: last fight's you, walking it backwards. It faces where you aimed while its feet run
+## the other way, the run clip played in reverse.
+func _sync_echo(delta: float) -> void:
+	var e: Dictionary = arena.echo
+	if e.is_empty() or not e.get("on", false):
+		if _echo_fig != null:
+			_echo_fig.visible = false
+		return
+	if _echo_fig == null:
+		_echo_fig = Figure.new()
+		_echo_fig.build(cfg["figures"]["echo"], float(cfg["darken"]))
+		add_child(_echo_fig)
+	_echo_fig.visible = true
+	_echo_fig.position = to_world(e["pos"])
+	_echo_rot = lerp_angle(_echo_rot, face_rot(e["aim"]), clampf(delta * 10.0, 0.0, 1.0))
+	_echo_fig.rotation.y = _echo_rot
+	if e["moving"]:
+		_echo_run -= delta
+		_echo_fig.pose("staff_run", fposmod(_echo_run, Figure.clip_len("staff_run")), delta)
+	else:
+		_echo_run += delta
+		_echo_fig.pose("staff_idle", fposmod(_echo_run, Figure.clip_len("staff_idle")), delta)
+	_echo_fig.set_look(0.3, PixelArt.HOURS, float(e["fade"]), 0.0)
+	want_light(to_world(e["pos"], 1.6), PixelArt.HOURS, 0.5 * (1.0 - float(e["fade"])), 2.5)
 
 
 func _sync_shrine() -> void:

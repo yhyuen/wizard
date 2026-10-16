@@ -462,6 +462,17 @@ func _zones(glow_k: float) -> void:
 				b.rotation.y = t * 0.8
 				halo(b.position, PixelArt.GOLD, 0.8, 0.8)
 				view.want_light(b.position, PixelArt.GOLD, 0.8, 2.0)
+			"rewind_form", "rline":
+				# Hours: a shard grows where a stone or a Rewind Shard will appear, before it flies home
+				var k := clampf(t / maxf(0.01, float(z.get("delay", 1.0))), 0.0, 1.0)
+				var at2: Vector2 = z["pos"] if z["kind"] == "rewind_form" else z["a"]
+				var g := take("gem")
+				g.position = _w(at2, SHOT_HEIGHT + 0.2 * (1.0 - k))
+				g.rotation = Vector3(0, t * 6.0, 0.4)
+				g.scale = Vector3.ONE * (0.4 + 1.2 * k)
+				paint(g, PixelArt.HOURS, _glow(glow_k, 1.0, 2.0))
+				halo(g.position, PixelArt.HOURS, 0.6 + 0.6 * k, 1.2 * k)
+				view.want_light(g.position, PixelArt.HOURS, 1.2 * k, 2.5)
 			"storm", "strike":
 				var k := clampf(t / maxf(0.01, float(z.get("delay", 1.0))), 0.0, 1.0)
 				view.want_light(_w(z["pos"], 1.0), PixelArt.STORM, 0.6 * k, float(z["r"]) * view.S * 2.0)

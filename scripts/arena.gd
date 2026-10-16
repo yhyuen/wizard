@@ -4,6 +4,9 @@ extends Node2D
 ## re-pick mutations while it is quiet), and a tome may lie by the fence. This node simulates and
 ## draws every unit, projectile, telegraph, field object and effect; the wizard's spells live in
 ## kit.gd and scripts/spells/, enemy minds in ai.gd.
+## Inversion test (story option A, the Palindrome): a Backward Slinger in wave 2 whose stones
+## fly home into its hand, Rewind Shard (Hours) from loop 2, and your echo: the last fight you
+## played, walked backwards from where it ended to where it began.
 
 signal fight_over(won: bool)
 signal toast(text: String, color: Color)
@@ -49,6 +52,14 @@ var clear_t := 0.0  # seconds the yard has been quiet between waves
 var fight_time := 0.0
 var stats := {"casts": 0, "damage_taken": 0.0, "kills": 0, "by_spell": {}}
 
+const ECHO_STEP := 0.1  # seconds between echo samples
+var echo_rec: Array = []  # this fight, sampled: [x, y, aim_x, aim_y, cast] per step
+var echo_rec_t := 0.0
+var echo_casts := 0
+var echo_play: Array = []  # the last fight's samples, played backwards
+var echo := {}  # the echo now: {"pos", "aim", "on", "fade", "moving"}; empty when there is none
+var echo_last_i := -1
+
 var _tex := {}
 var view = null  # the 3D view (scripts/view/view3d.gd); when set, _draw only lays the flat marks
 
@@ -61,9 +72,11 @@ func _ready() -> void:
 	_tex["hollow"] = PixelArt.frames("hollow", PixelArt.HOLLOW, PixelArt.HOLLOW_STEP)
 	_tex["slinger"] = PixelArt.frames("slinger", PixelArt.HOLLOW, PixelArt.HOLLOW_STEP, {"h": "G", "H": "v", "r": "y"})
 	_tex["rival"] = PixelArt.frames("rival", PixelArt.RIVAL, PixelArt.RIVAL_STEP)
+	_tex["inverted"] = PixelArt.frames("inverted", PixelArt.HOLLOW, PixelArt.HOLLOW_STEP, {"h": "y", "H": "y", "r": "G"})
 	_tex["wizard_flash"] = PixelArt.flash("wizard", PixelArt.WIZARD)
 	_tex["hollow_flash"] = PixelArt.flash("hollow", PixelArt.HOLLOW)
 	_tex["slinger_flash"] = _tex["hollow_flash"]
+	_tex["inverted_flash"] = _tex["hollow_flash"]
 	_tex["rival_flash"] = PixelArt.flash("rival", PixelArt.RIVAL)
 	_tex["stone"] = PixelArt.tex("stone", PixelArt.LODESTONE)
 	_tex["ember"] = [PixelArt.tex("ember", PixelArt.EMBER), PixelArt.tex("ember_b", PixelArt.EMBER_B)]
@@ -85,6 +98,12 @@ func start() -> void:
 	clear_t = 0.0
 	fight_time = 0.0
 	stats = {"casts": 0, "damage_taken": 0.0, "kills": 0, "by_spell": {}}
+	echo_rec = []
+	echo_rec_t = 0.0
+	echo_casts = 0
+	echo_play = Progression.echo_track()
+	echo = {}
+	echo_last_i = -1
 	player = Unit.new()
 	player.kind = "wizard"
 	player.team = 0
@@ -123,6 +142,9 @@ func spawn(kind: String, at: Vector2) -> Unit:
 	u.state_t = 0.5
 	_add(u)
 	fx("dust", at, {"r": 8.0, "life": 0.5})
+	if kind == "inverted" and not stats.has("inverted_seen"):
+		stats["inverted_seen"] = true
+		toast.emit("That Slinger walks backwards. Its stones fly home to its hand.", PixelArt.HOURS)
 	return u
 
 
@@ -153,6 +175,11 @@ func set_phase(p: String) -> void:
 		"intro":
 			banner.emit("Loop %d  ·  Day 3  ·  Ambush at the Mill" % Progression.loop())
 			toast.emit("G at the Orrery: change elements or re-pick mutations", PixelArt.GOLD)
+			for id in Progression.spellbook():
+				if int(Progression.spell(id).get("from_loop", 1)) == Progression.loop():
+					toast.emit("Something came back with you: %s (%s)" % [Progression.spell(id)["name"], "slot 6"], PixelArt.HOURS)
+			if not echo_play.is_empty():
+				toast.emit("Someone in your robe is in the yard, walking backwards.", PixelArt.HOURS)
 		"wave1":
 			banner.emit("Dust Hollows climb the fence")
 			for i in 6:
@@ -163,6 +190,7 @@ func set_phase(p: String) -> void:
 				spawn_queue.append({"t": 0.3 + i * 0.35, "kind": "hollow", "gate": (i + 1) % 4})
 			spawn_queue.append({"t": 1.5, "kind": "slinger", "gate": 2})
 			spawn_queue.append({"t": 2.2, "kind": "slinger", "gate": 3})
+			spawn_queue.append({"t": 3.0, "kind": "inverted", "gate": 1})
 		"duel":
 			banner.emit("Silas Vane, the Storm Rider, steps through the gate")
 			spawn_queue.append({"t": 0.8, "kind": "rival", "gate": 1})
@@ -214,6 +242,8 @@ func _end(won: bool) -> void:
 		return
 	phase = "won" if won else "lost"
 	over_t = 1.6
+	if not echo_rec.is_empty():
+		Progression.set_echo(echo_rec, won)
 	if won:
 		banner.emit("The Hollows crumble with their master")
 		for u in enemies():
@@ -238,6 +268,7 @@ func _physics_process(dt: float) -> void:
 	orbit_ang += dt * 3.0
 	if not player.dead:
 		kit.update(dt, intent)
+	_echo(dt)
 	for u in units:
 		_update_unit(u, dt)
 		if u.team == 1 and not u.dead:
@@ -262,6 +293,59 @@ func _physics_process(dt: float) -> void:
 
 func _process(_dt: float) -> void:
 	queue_redraw()
+
+
+# --- the echo ---------------------------------------------------------------
+
+## Records this fight, and plays the last one backwards: the echo starts where that fight ended
+## (where you fell, or where Silas fell) and walks your path in reverse to where it began. Where
+## you cast, a shard flies back into its hand. It touches nothing; it is a clue, not a unit.
+func _echo(dt: float) -> void:
+	var fighting := phase in ["wave1", "wave2", "duel"]
+	if fighting and not player.dead:
+		echo_rec_t += dt
+		while echo_rec_t >= ECHO_STEP:
+			echo_rec_t -= ECHO_STEP
+			var a: Vector2 = kit.aim_dir()
+			var cast := 1 if int(stats["casts"]) > echo_casts else 0
+			echo_casts = int(stats["casts"])
+			echo_rec.append_array([snappedf(player.pos.x, 0.1), snappedf(player.pos.y, 0.1), snappedf(a.x, 0.01), snappedf(a.y, 0.01), cast])
+	var n := echo_play.size() / 5
+	if n < 2:
+		echo = {}
+		return
+	if echo.is_empty():
+		echo = {"pos": _echo_at(n - 1), "aim": Vector2.RIGHT, "on": false, "fade": 1.0, "moving": false}
+	if not fighting:
+		echo["on"] = phase == "intro"
+		echo["moving"] = false
+		echo["fade"] = move_toward(echo["fade"], 1.0 if phase in ["won", "lost"] else 0.45, dt * 2.0)
+		return
+	# Backwards in time: sample n-1 at the first second of the fight, sample 0 at the end of it.
+	var f := float(n - 1) - fight_time / ECHO_STEP
+	if f <= 0.0:
+		echo["pos"] = _echo_at(0)
+		echo["moving"] = false
+		echo["fade"] = move_toward(echo["fade"], 1.0, dt * 1.5)  # gone where you began
+		echo["on"] = echo["fade"] < 1.0
+		return
+	var i := mini(int(floor(f)), n - 2)
+	var before: Vector2 = echo["pos"]
+	echo["pos"] = _echo_at(i).lerp(_echo_at(i + 1), f - i)
+	echo["moving"] = before.distance_to(echo["pos"]) > 0.05
+	echo["aim"] = Vector2(echo_play[i * 5 + 2], echo_play[i * 5 + 3])
+	echo["on"] = true
+	echo["fade"] = move_toward(echo["fade"], 0.45, dt * 2.0)
+	if echo_last_i != i:
+		for j in range(maxi(i, 0), echo_last_i if echo_last_i >= 0 else i + 1):
+			if int(echo_play[j * 5 + 4]) == 1:
+				var hand: Vector2 = echo["pos"] + Vector2(0, -6)
+				fx("trail", hand + echo["aim"] * 45.0, {"to": hand, "color": PixelArt.HOURS, "life": 0.3})
+		echo_last_i = i
+
+
+func _echo_at(i: int) -> Vector2:
+	return Vector2(echo_play[i * 5], echo_play[i * 5 + 1])
 
 
 func _update_unit(u: Unit, dt: float) -> void:
@@ -606,6 +690,18 @@ func _detonate(z: Dictionary) -> void:
 			var to := player.pos - o.pos
 			if to.length() < z["reach"] + player.radius and absf(to.angle_to(z["dir"])) < z["arc"] * 0.5:
 				hit(player, z["dmg"], 1, to.normalized(), 40.0)
+		"rline":
+			# Inverted: the stone appears behind you and flies home to the Slinger's hand.
+			var o := unit_by_id(z["owner"])
+			if o == null or o.dead:
+				return
+			var e: Dictionary = D["enemies"]["inverted"]
+			var to: Vector2 = z["b"] - z["a"]
+			spawn_proj({"kind": "rshard", "team": 1, "pos": z["a"], "vel": to.normalized() * float(e["shot_speed"]),
+				"r": float(e["shot_radius"]), "dmg": float(e["damage"]), "impact": 1, "life": to.length() / float(e["shot_speed"]),
+				"color": PixelArt.DANGER})
+			fx("burst", z["a"], {"color": PixelArt.HOURS, "r": 5.0, "life": 0.25})
+			stats["inverted_shots"] = int(stats.get("inverted_shots", 0)) + 1
 		"line":
 			var o := unit_by_id(z["owner"])
 			if z.get("visual", false) or o == null or o.dead:
@@ -729,6 +825,14 @@ func _draw() -> void:
 		draw_ellipse_px(u.pos + Vector2(0, 1), u.radius + 1.0, 2.0, Color(0, 0, 0, 0.35))
 	for u in live:
 		_draw_unit(u)
+	if echo.get("on", false):
+		var tex: Texture2D = _tex["wizard"][0]
+		var size := tex.get_size()
+		var tl: Vector2 = (echo["pos"] - Vector2(size.x / 2.0, size.y - 1.0)).round()
+		var rect := Rect2(tl, size)
+		if echo["aim"].x < 0.0:
+			rect = Rect2(tl + Vector2(size.x, 0), Vector2(-size.x, size.y))
+		draw_texture_rect(tex, rect, false, Color(PixelArt.HOURS, 1.0 - echo["fade"]))
 	for s in stones:
 		if s["state"] != "ground":
 			_draw_stone(s)
@@ -752,6 +856,8 @@ func _draw_marks() -> void:
 	for u in units:
 		if not u.dead:
 			draw_ellipse_px(u.pos + Vector2(0, 1), u.radius + 1.0, 2.5, Color(0, 0, 0, 0.3))
+	if echo.get("on", false):
+		draw_ellipse_px(echo["pos"] + Vector2(0, 1), 6.0, 2.5, Color(PixelArt.HOURS, 0.25 * (1.0 - echo["fade"])))
 	# Every shot's ground shadow is exactly its hitbox: read where it will hit off the ground,
 	# not off the shot flying above it (design/magic-world-revisit.md §2).
 	for p in projs:
@@ -935,6 +1041,21 @@ func _draw_zone(z: Dictionary) -> void:
 		"line":
 			var k := clampf(t / z["delay"], 0.0, 1.0)
 			draw_line(z["a"], z["b"], Color(PixelArt.DANGER, 0.3 + 0.5 * k), 1.0)
+		"rline":
+			# The inverted shot: red line, and the spot behind you where the stone will appear
+			# grows toward its hitbox; chevrons point home, toward the Slinger.
+			var k := clampf(t / z["delay"], 0.0, 1.0)
+			var dir: Vector2 = (z["b"] - z["a"]).normalized()
+			var n := dir.orthogonal() * 2.0
+			draw_line(z["a"], z["b"], Color(PixelArt.DANGER, 0.3 + 0.5 * k), 1.0)
+			var steps := int(z["a"].distance_to(z["b"]) / 18.0)
+			for i in range(1, steps):
+				var p: Vector2 = z["a"] + dir * 18.0 * i
+				draw_line(p - dir * 3.0 + n, p, Color(PixelArt.DANGER, 0.6), 1.0)
+				draw_line(p - dir * 3.0 - n, p, Color(PixelArt.DANGER, 0.6), 1.0)
+			var r := float(D["enemies"]["inverted"]["shot_radius"])
+			draw_arc(z["a"], r, 0, TAU, 12, PixelArt.HOURS, 1.0, true)
+			draw_circle(z["a"], r * k, Color(PixelArt.HOURS, 0.5), true, -1.0, true)
 		"tome":
 			if view != null:
 				return
