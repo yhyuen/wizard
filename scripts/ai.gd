@@ -98,7 +98,7 @@ func _slinger(u: Unit, dt: float) -> void:
 				u.cd["attack"] = float(e["cooldown"]) * A.rng.randf_range(0.8, 1.2)
 
 
-## The Backward Slinger: keeps its back to you, and its stones fly the wrong way. The telegraph
+## The Backward Slinger: faces you, but walks and throws backwards, and its stones fly the wrong way. The telegraph
 ## runs from a spot behind you to its hand; the stone appears at that spot and flies home.
 func _inverted(u: Unit, dt: float) -> void:
 	var e: Dictionary = A.D["enemies"]["inverted"]
@@ -114,7 +114,7 @@ func _inverted(u: Unit, dt: float) -> void:
 				dir = -to
 			dir += to.orthogonal().normalized() * (-0.6 if int(u.id) % 2 == 0 else 0.6)
 			_step(u, dir, dt)
-			u.facing = -signf(to.x) if absf(to.x) > 0.1 else u.facing
+			u.facing = signf(to.x) if absf(to.x) > 0.1 else u.facing
 			if d < float(e["range"]) and u.cooldown("attack") <= 0.0:
 				u.state = "windup"
 				u.state_t = float(e["windup"])
