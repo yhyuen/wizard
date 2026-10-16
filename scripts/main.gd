@@ -19,7 +19,8 @@ var bot: Callable  # tests and the F2 autoplay set this: func(arena) -> intent
 var autoplay
 var wipe_armed := 0.0
 var shrine_open := false
-var controls  # scripts/controls.gd: classic or League-style; Tab on the title card switches
+var controls  # scripts/controls.gd: classic or League-style; Tab switches, any time
+var told_controls := false  # the first fight names the scheme once
 
 
 func _ready() -> void:
@@ -96,17 +97,29 @@ func start_fight() -> void:
 	arena.paused = false
 	controls.reset()
 	hud.reset()
+	if not told_controls and not bot.is_valid():
+		told_controls = true
+		_toast_controls()
 	if not bot.is_valid():
 		Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 
 
+## Names the control scheme in a toast, replacing the last one so Tab presses do not stack.
+func _toast_controls() -> void:
+	hud.toasts = hud.toasts.filter(func(t): return not t["text"].begins_with("Controls: "))
+	hud.push_toast("Controls: %s  ·  Tab to switch" % controls.NAMES[controls.scheme], PixelArt.GOLD)
+
+
 func _physics_process(_dt: float) -> void:
 	wipe_armed = maxf(0.0, wipe_armed - _dt)
+	# Tab switches the control scheme anywhere: the title card, mid-fight or the Ledger.
+	if Input.is_action_just_pressed("controls") and not bot.is_valid():
+		controls.cycle()
+		if mode != "title":
+			_toast_controls()
 	match mode:
 		"title":
-			if Input.is_action_just_pressed("controls"):
-				controls.cycle()
-			elif Input.is_action_just_pressed("confirm") or Input.is_action_just_pressed("slot1") or bot.is_valid():
+			if Input.is_action_just_pressed("confirm") or Input.is_action_just_pressed("slot1") or bot.is_valid():
 				start_fight()
 		"fight":
 			_fight_input()

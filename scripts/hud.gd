@@ -688,4 +688,4 @@ func _draw_ledger() -> void:
 		_text(Vector2(r.position.x + 440, r.end.y - 22), "time to win, by loop", 10, Color(1, 1, 1, 0.5))
 	_text(Vector2(r.position.x + 24, r.end.y - 44), "Spells, mutations and Magicks carry over.", 12, Color(1, 1, 1, 0.75))
 	_text(Vector2(r.position.x + 24, r.end.y - 26), "The wizard level drops to half.", 12, Color(1, 1, 1, 0.75))
-	_text(Vector2(0, r.end.y + 40), "Enter: wake again in Loop %d      Delete twice: wipe the save" % (Progression.loop() + 1), 16, PixelArt.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 960)
+	_text(Vector2(0, r.end.y + 40), "Enter: wake again in Loop %d      Tab: controls      Delete twice: wipe the save" % (Progression.loop() + 1), 16, PixelArt.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 960)
