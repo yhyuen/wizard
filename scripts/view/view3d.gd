@@ -1,7 +1,7 @@
 extends Node3D
-## The fight in low poly at night (GDD 6.3, "moody night"): smooth low-poly shapes with bumpy,
-## glossy materials, moonlight, low mist, the edge of Vellmar with lit windows and lamp posts
-## round the yard, and spells as the main light, under a tilted camera that follows the player
+## The fight in low poly at night (GDD 6.3, "moody night"): faceted low-poly shapes with matte,
+## bumpy materials, moonlight, low mist, a cobbled plaza at the edge of Vellmar with lit windows
+## and lamp posts round it (town.gd), and spells as the main light, under a tilted camera that follows the player
 ## a little, over the same 2D sim. The arena still simulates everything and still draws
 ## the flat telegraphs (rings, cones, lines, hold-to-aim previews, the reticle) into an
 ## offscreen viewport, which lies on the ground here as a decal, so a telegraph stays exactly
@@ -15,7 +15,7 @@ const OVERLAY_SHADER := preload("res://scripts/view/overlay.gdshader")
 const CFG_PATH := "res://data/visual.json"
 const SIM_CENTRE := Vector2(240, 135)
 const SIM_SIZE := Vector2(480, 270)
-const MAX_LIGHTS := 6  # with up to two lamps near any ground chunk, inside the browser renderer's 8 lights per mesh
+const MAX_LIGHTS := 4  # spell lights; each re-draws the meshes it touches in the browser renderer
 
 var arena
 var cfg: Dictionary
@@ -138,7 +138,8 @@ func _build_env() -> void:
 	add_child(we)
 	_sun = DirectionalLight3D.new()
 	_sun.shadow_enabled = true
-	_sun.directional_shadow_max_distance = 60.0
+	_sun.directional_shadow_max_distance = 45.0
+	_sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL  # one shadow pass, not four
 	add_child(_sun)
 
 
@@ -224,6 +225,8 @@ func _outside(x: float, z: float) -> float:
 ## Ground height (metres): flat in the yard and just past the fence, hills further out.
 func height(x: float, z: float) -> float:
 	var out := _outside(x, z)
+	if out <= 0.0 and cfg.has("town"):
+		return -0.05  # the grout under the cobbles
 	var hill := 0.5 + 0.5 * sin(x * 0.31 + 1.7) * sin(z * 0.37 + 0.4) + 0.3 * sin(x * 0.11 - z * 0.17)
 	return smoothstep(1.5, 9.0, out) * maxf(0.0, hill) * float(cfg["ground"]["hill_m"])
 
@@ -252,7 +255,7 @@ func _build_overlay() -> void:
 	pm.size = SIM_SIZE * S
 	mi.mesh = pm
 	mi.material_override = _overlay_mat
-	mi.position = to_world(SIM_SIZE * 0.5, 0.03)
+	mi.position = to_world(SIM_SIZE * 0.5, 0.06)  # just over the cobbles
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mi)
 
@@ -267,6 +270,8 @@ func _prop(id: String, at: Vector3, rot: float, s: float) -> void:
 
 
 func _build_props() -> void:
+	if cfg.has("town"):
+		return  # the town builds the kerb and the clutter, merged
 	# The yard's fence along the sim's bounds, open at the four gates.
 	var b: Rect2 = arena.BOUNDS
 	var gap := float(cfg["fence_gap_px"])
@@ -289,7 +294,7 @@ func _build_props() -> void:
 					near_gate = true
 			if not near_gate:
 				_prop("fence", to_world(p), sd[2], 1.0)
-	for pr in cfg["props"]:
+	for pr in cfg.get("props", []):
 		_prop(pr[0], to_world(Vector2(pr[1], pr[2])), float(pr[3]), float(pr[4]))
 
 
@@ -299,6 +304,7 @@ func _build_shrine() -> void:
 	_shrine = Node3D.new()
 	_shrine.position = to_world(arena.shrine_pos())
 	add_child(_shrine)
+	_shrine.scale = Vector3.ONE * float(cfg.get("shrine_scale", 1.0))
 	var plinth := MeshInstance3D.new()
 	plinth.mesh = Figure._cyl(0.3, 0.38, 0.35, 6)
 	plinth.position.y = 0.175
@@ -320,6 +326,12 @@ func _build_shrine() -> void:
 		ring.position.y = 1.15
 		ring.material_override = Figure.finish(Figure.mat(Color("c9a45a")), "metal")
 		_shrine.add_child(ring)
+		# a planet riding each ring, in a Sphere colour
+		var planet := MeshInstance3D.new()
+		planet.mesh = Spells3D.octa(0.045, 1.0)
+		planet.material_override = Figure.mat(Color(["aab6ff", "f0773c"][i]), 1.2)
+		planet.position = Vector3(0.32 - 0.07 * i, 0, 0)
+		ring.add_child(planet)
 		_shrine_rings.append(ring)
 	var core := MeshInstance3D.new()
 	core.mesh = Spells3D.octa(0.08, 1.0)
