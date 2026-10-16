@@ -14,7 +14,21 @@ var arena
 var hud
 var view  # the 3D view, or null for the flat pixel arena
 var container: SubViewportContainer
-var mode := "title"  # title, fight, ledger
+var mode := "title"  # title, tests, fight, ledger
+## Test scenes (T on the title card): jump straight into one part of the game. A test never
+## touches the save: the progress is put back as it was when you leave the menu.
+const TEST_SCENES := [
+	{"id": "", "name": "Full fight", "text": "The normal run: both waves, then Silas"},
+	{"id": "wave1", "name": "Wave 1: Dust Hollows", "text": "Melee Hollows, straight away"},
+	{"id": "wave2", "name": "Wave 2: Slingers", "text": "Slingers and a Backward Slinger"},
+	{"id": "duel", "name": "Duel: Silas Vane", "text": "Straight to the Storm Rider"},
+	{"id": "backward", "name": "Backward Slingers", "text": "Stones that fly home, on repeat"},
+	{"id": "inversion", "name": "Loop 2: Rewind and the echo", "text": "Rewind on F and your backwards echo"},
+	{"id": "shrine", "name": "The Orrery", "text": "Shrine open, every spell unlocked"},
+	{"id": "dummies", "name": "Practice yard", "text": "Hollows that never strike back"},
+]
+var testing := false  # in a test scene, or its menu
+var _saved_p := {}  # the progress to put back after testing
 var bot: Callable  # tests and the F2 autoplay set this: func(arena) -> intent
 var autoplay
 var wipe_armed := 0.0
@@ -90,10 +104,10 @@ func _build_flat() -> void:
 	vp.add_child(arena)
 
 
-func start_fight() -> void:
+func start_fight(scene := "") -> void:
 	mode = "fight"
 	shrine_open = false
-	arena.start()
+	arena.start(scene)
 	arena.paused = false
 	controls.reset()
 	hud.reset()
@@ -119,8 +133,17 @@ func _physics_process(_dt: float) -> void:
 			_toast_controls()
 	match mode:
 		"title":
-			if Input.is_action_just_pressed("confirm") or Input.is_action_just_pressed("slot1") or bot.is_valid():
+			if Input.is_action_just_pressed("tests") and not bot.is_valid():
+				open_tests()
+			elif Input.is_action_just_pressed("confirm") or Input.is_action_just_pressed("slot1") or bot.is_valid():
 				start_fight()
+		"tests":
+			if Input.is_action_just_pressed("cancel") or Input.is_action_just_pressed("tests"):
+				close_tests()
+			for i in TEST_SCENES.size():
+				if Input.is_action_just_pressed("pick%d" % (i + 1)):
+					run_test(i)
+					break
 		"fight":
 			_fight_input()
 		"ledger":
@@ -138,6 +161,9 @@ func _physics_process(_dt: float) -> void:
 
 
 func _fight_input() -> void:
+	if testing and not shrine_open and Input.is_action_just_pressed("cancel"):
+		open_tests()
+		return
 	if shrine_open:
 		if Input.is_action_just_pressed("shrine") or Input.is_action_just_pressed("cancel") or not arena.shrine_ready():
 			close_shrine()
@@ -180,6 +206,56 @@ func _fight_input() -> void:
 	arena.intent = controls.intent(arena, mouse, get_physics_process_delta_time())
 
 
+# --- test scenes ------------------------------------------------------------------
+
+func open_tests() -> void:
+	if not testing:
+		testing = true
+		_saved_p = Progression.p.duplicate(true)
+		Progression.save_enabled = false
+	mode = "tests"
+	shrine_open = false
+	arena.paused = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
+## Back to the title card, with the progress exactly as it was before testing.
+func close_tests() -> void:
+	if testing:
+		testing = false
+		Progression.p = _saved_p
+		Progression.pending.clear()
+		Progression.save_enabled = not "--script" in OS.get_cmdline_args()
+	mode = "title"
+
+
+## Sets up what scene `i` needs (later loops, Rewind, an echo), then starts it.
+func run_test(i: int) -> void:
+	var t: Dictionary = TEST_SCENES[i]
+	Progression.p = _saved_p.duplicate(true)
+	Progression.pending.clear()
+	if t["id"] in ["inversion", "shrine"]:
+		if Progression.loop() < 2:
+			Progression.next_loop()  # Rewind comes back with you, into slot 6
+		if t["id"] == "inversion":
+			if not Progression.spellbook().has("rewind"):
+				Progression.set_spell(5, "rewind")
+			if Progression.echo_track().is_empty():
+				Progression.p["echo"] = {"loop": Progression.loop() - 1, "won": false, "track": _made_up_echo()}
+	start_fight(t["id"])
+	if t["id"] == "shrine":
+		open_shrine()
+
+
+## A last fight to replay when there is none yet: a slow loop round the yard, casting now and then.
+func _made_up_echo() -> Array:
+	var track: Array = []
+	for i in 600:
+		var a := i * 0.012
+		track.append_array([240.0 + cos(a) * 70.0, 142.0 + sin(a) * 45.0, cos(a + 1.5), sin(a + 1.5), 1 if i % 9 == 0 else 0])
+	return track
+
+
 # --- the Orrery shrine ----------------------------------------------------------
 
 ## The only place to change elements or re-pick a milestone mutation (design doc §7).
@@ -212,6 +288,10 @@ func shrine_repick(id: String, lv: int, index: int) -> void:
 
 
 func _on_fight_over(won: bool) -> void:
+	if testing:
+		hud.push_toast("Test over: %s" % ("won" if won else "fell"), PixelArt.GOLD)
+		open_tests()
+		return
 	var levels := {}
 	for id in Progression.data["spells"]:
 		levels[id] = Progression.level(id)

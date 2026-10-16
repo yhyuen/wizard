@@ -56,6 +56,9 @@ jobs:
       - name: Bot playthrough (three loops)
         run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/fight.gd -- --loops 3 --seconds 240
 
+      - name: Test scenes
+        run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/scenes.gd
+
       - name: Web export
         run: |
           mkdir -p export/web
