@@ -178,10 +178,15 @@ func spawn(kind: String, at: Vector2) -> Unit:
 	u.state = "enter"
 	u.state_t = 0.5
 	_add(u)
-	fx("dust", at, {"r": 8.0, "life": 0.5})
+	if kind == "inverted":
+		# Its death played backwards: it lies here dead, then rises.
+		u.state_t = float(e["rise"])
+		fx("ring", at, {"color": PixelArt.HOURS, "r": 10.0, "life": u.state_t})
+	else:
+		fx("dust", at, {"r": 8.0, "life": 0.5})
 	if kind == "inverted" and not stats.has("inverted_seen"):
 		stats["inverted_seen"] = true
-		toast.emit("That Slinger walks backwards. Its stones fly home to its hand.", PixelArt.HOURS)
+		toast.emit("That Slinger rose from the dead. Its stones fly home to its hand.", PixelArt.HOURS)
 	return u
 
 
@@ -514,7 +519,7 @@ func kill(u: Unit) -> void:
 		_end(false)
 		return
 	stats["kills"] += 1
-	fx("burst", u.pos, {"color": PixelArt.PAPER, "r": 9.0, "life": 0.35})
+	fx("burst", u.pos, {"color": PixelArt.HOURS if u.kind == "inverted" else PixelArt.PAPER, "r": 9.0, "life": 0.35})
 	Progression.add_wizard_xp(float(D["enemies"][u.kind]["xp"]))
 	if u.kind == "rival":
 		_end(true)

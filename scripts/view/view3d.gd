@@ -511,7 +511,15 @@ func _pose(u: Unit, rec: Dictionary, delta: float) -> Array:
 	var staff := u == P
 	if u.dead:
 		var k := 1.0 - clampf(u.death_t / 0.6, 0.0, 1.0)
+		if u.kind == "inverted":
+			# it came into the fight by rising from death, so it leaves standing, fading out of time
+			return ["stand", 0.0]
 		return ["down", k * Figure.clip_len("down")]
+	if u.state == "enter" and u.kind == "inverted":
+		# the Backward Slinger's death played in reverse: it lies dead, then rises
+		var rise := float(arena.D["enemies"]["inverted"]["rise"])
+		var k := clampf(u.state_t / rise, 0.0, 1.0)
+		return ["down", smoothstep(0.0, 1.0, k) * Figure.clip_len("down")]
 	if u.reaction != "" and u.reaction_t > 0.0:
 		var k := 1.0 - u.reaction_t / maxf(0.01, u.reaction_len)
 		match u.reaction:
