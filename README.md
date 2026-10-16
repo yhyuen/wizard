@@ -1,8 +1,8 @@
 # Wizard: spellbook prototype
 
-A small browser prototype of the wizard game. Magic comes from four of the planetary spheres, **Mars, Jupiter, Mercury and Luna** (they were Fire, Earth, Storm and Water). You carry a **spellbook** of any six spells from any sphere, pay for them in **Aether** (the mana), and **Cadence** rewards weaving different spells over spamming one. There are two Magicks (**Meteor** and **Conductor**), one fight (**Ambush at the Mill**), a low-poly look lit after Magicka, and progression you can see. Godot 4.7, GDScript, web export. The design is in the project's `design/magic-world-revisit.md` and `design/gdd/`.
+A small browser prototype of the wizard game. Magic comes from four of the planetary spheres, **Mars, Jupiter, Mercury and Luna** (they were Fire, Earth, Storm and Water). You carry a **spellbook** of any six spells from any sphere, pay for them in **Aether** (the mana), and **Cadence** rewards weaving different spells over spamming one. There are two Magicks (**Meteor** and **Conductor**), one fight (**Ambush at the Mill**), a moody night look with a star-atlas HUD, and progression you can see. Godot 4.7, GDScript, web export. The design is in the project's `design/magic-world-revisit.md` and `design/gdd/`.
 
-![The Mill yard by day](docs/screens/magicka_day.png)
+![The Mill yard at night](docs/screens/night_waves.jpg)
 
 ## Play it
 
@@ -23,15 +23,15 @@ A small browser prototype of the wizard game. Magic comes from four of the plane
 | 1 / 2 | Pick a milestone mutation |
 | F1 | Practice: every spell +1 level (to see milestones and mutations quickly) |
 | F2 | Autoplay: a bot plays; press again to take over |
-| F3 | Flip the light between day and dusk (to compare them) |
+| F3 | Flip the light between the waves' night and the duel's deeper night (to compare them) |
 
 Holding a spell's slot shows the exact telegraph; the telegraph is the hitbox. Every shot also casts a ground shadow that is exactly its hitbox, so read where a shot will hit off the ground, not off the shot flying above it.
 
 ## Spellbook, Aether and Cadence
 
 - **Spellbook.** Six slots, any six spells from any sphere; you start with the Mars and Jupiter kits. At the Orrery, pick a slot, then a spell (a spell already in the book swaps slots).
-- **Aether** (the purple bar under HP) is the mana: 100, refilling 12 a second. Bolts are free, Controls cost 20, Signatures 45 and Magicks 50 (the small purple number on each card).
-- **Cadence.** Casting the same spell again in a row dulls it by 15% a time, down to 55% (the red ×0.85 on its card). Changing spell, where at least one of the two is not a Bolt, adds a note (the dots under Aether) and refunds 10 Aether. With four notes the next non-Bolt spell is **Resonant**: 30% bigger, and one more bounce, strike or chain, previewed at its real size. Notes fade after 3 seconds without a cast.
+- **Aether** (the violet line under Vitality) is the mana: 100, refilling 12 a second. Bolts are free, Controls cost 20, Signatures 45 and Magicks 50 (written under each spell's star).
+- **Cadence.** Casting the same spell again in a row dulls it by 15% a time, down to 55% (the red ×0.85 by its star). Changing spell, where at least one of the two is not a Bolt, adds a note (a star by the reticle) and refunds 10 Aether. With four notes the next non-Bolt spell is **Resonant**: 30% bigger, and one more bounce, strike or chain, previewed at its real size. Notes fade after 3 seconds without a cast.
 - **Overdraw.** Short on Aether, a spell still casts: the missing Aether costs half as much HP, and the spell is locked for 10 seconds.
 - **Fair telegraphs.** A circle telegraph never lands faster than a wizard-speed target can step out of it from the centre: 0.25 s + (radius + body) ÷ speed. Pillar's delay stops shrinking where that rule bites (about Lv 10).
 - All of it is data in `data/spells.json` (`start_spellbook`, `aether`, `cadence`, `overdraw`, `dodge`).
@@ -54,7 +54,7 @@ Wet enemies show a blue drip. Lightning that touches a wet enemy chains one hop 
 
 A Magick is on C whenever spells of both its spheres are in the book. Other pairs have no Magick in the prototype yet; Magicks as fusion recipes come later.
 
-![Silas arrives at dusk](docs/screens/magicka_dusk.png)
+![Silas arrives](docs/screens/night_duel.jpg)
 
 ## The fight
 
@@ -62,9 +62,9 @@ Two waves of Dust Hollows (melee, red wedge telegraphs) and Hollow Slingers (red
 
 ## What to look for (the "readable" part)
 
-- **Level-ups are visible.** A spell levels from its own hits. You get a toast with the stat change ("Speed 209 › 218"), the card flashes, and for the next few casts a dashed ghost shows the *old* size: an old-speed ghost bolt that the new one outruns, the old Pillar radius, the old Fling cone.
-- **Milestones at 5, 10 and 15** pause the fight for a pick between two mutations. The card's name gets a star and lists the mutation. Ember Bolt usually reaches 5 in the first fight.
-- **Field objects** are counted by your HP bar, one row per sphere in the book that has one: lodestones (cap 3, Avalanche raises it to 7), embers (cap 6), rods (cap 3) and puddles (cap 3).
+- **Level-ups are visible.** A spell levels from its own hits. You get a toast with the stat change ("Speed 209 › 218"), the spell's star flashes, and for the next few casts a dashed ghost shows the *old* size: an old-speed ghost bolt that the new one outruns, the old Pillar radius, the old Fling cone.
+- **Milestones at 5, 10 and 15** pause the fight for a pick between two mutations. The spell's name gets a small star; hover its star in the spellbook for its numbers and mutations. Ember Bolt usually reaches 5 in the first fight.
+- **Field objects** are counted under Vitality and Aether, one row per sphere in the book that has one: lodestones (cap 3, Avalanche raises it to 7), embers (cap 6), rods (cap 3) and puddles (cap 3).
 - **Impact vs Poise.** Hollows have Poise 0, Silas has Poise 1. Ember Bolt (Impact 1) only makes Silas show a small "x", Pebble (2) makes him flinch, Pillar (3) and a fully charged Arc Lance stagger him and break his wind-up; Updraft (4) knocks him down.
 - **Enemy HP in chunks of 10.** Hovering an enemy shows hits-to-kill with the first Bolt in your book (×N).
 - **Hit-stop and shake** scale with the share of the target's HP removed, not raw damage.
@@ -75,13 +75,20 @@ Two waves of Dust Hollows (melee, red wedge telegraphs) and Hollow Slingers (red
 1. **A six-spell spellbook from any sphere** (replaces "two elements equipped", 2026-10-15). You start with the Mars and Jupiter kits; the Mercury and Luna spells wait at the Orrery.
 2. **Wizard level halves each loop** (rounded down, minimum 1). Spells keep their levels.
 3. **The spellbook and milestone picks change only at an Orrery shrine.** The Orrery stands in the middle of the yard. Press G beside it while the yard is quiet (before the first wave and between waves) to fill the book's six slots and re-pick any mutation of the spells you carry. There is no free re-pick at the start of a loop.
-4. **Magicks: discovery in combat, with tomes as hints.** A Magick unlocks only when its two elements meet in a fight. A tome lies by the fence in each loop while there is a Magick you have neither discovered nor read about; walking over it gives a hint ("Storm finds water"), shown on the Magick card (C). Hints carry across loops; they never unlock the Magick themselves.
+4. **Magicks: discovery in combat, with tomes as hints.** A Magick unlocks only when its two elements meet in a fight. A tome lies by the fence in each loop while there is a Magick you have neither discovered nor read about; walking over it gives a hint ("Storm finds water"), shown under the Magick's diamond (C). Hints carry across loops; they never unlock the Magick themselves.
 
 ## The look
 
-Everything is low-poly, lit and coloured after Magicka. The ground is a faceted mesh of dirt, grass, hills and paths; the figures are shaded softer (`facet` in `scripts/view/lowpoly.gdshader` blends flat faces toward smooth), and the wizard wears Magicka's deep pointed hood with a mantle, the face lost in shadow except for two glowing eyes, and carries a staff with a glowing gem. Colours are saturated a little (`"adjust"` in `data/visual.json`), and the camera sits closer than the whole yard and drifts part of the way after the player, so the wizards stay big on screen while the fence and gates stay in view. The figures and props are the Wuxia game's low-poly models. The spells are solid geometry too, not particles: Ember Bolt is a comet (League of Legends' Brand Q as the reference) with a white-hot core and flame tongues streaming back, stones are faceted rocks, Storm shots are crystals, lightning is a chain of thin prisms, and impacts throw shards that shrink away instead of fading. Round the hot ones a soft halo (`halo.gdshader`) glows into the bloom, the way Magicka's spells light the air, while the solid shapes keep their colour. The world stays a step less saturated than the spells, so that the element colours, gold and the red of a telegraph stay free for what matters. The magic is what changes: the waves are fought by day, and when Silas steps through the gate the light falls to dusk, so fire, lightning and the Orrery become the light sources.
+The art direction is locked in the GDD (`design/gdd/06-presentation-and-tech.md`, 6.3 and 6.6), picked by Harold from rated mockups on 2026-10-16: a **moody night** world and a **Star Atlas** interface.
 
-The sim is still the 2D one. `scripts/view/view3d.gd` reads it every frame and never changes it: the arena draws its flat marks (telegraphs, hold-to-aim previews, zones, effects, the reticle) into an offscreen viewport that lies on the ground as a decal, so a telegraph is still exactly the hitbox, and the view adds what stands up: figures, lodestones, projectiles, flames, rods, the Orrery, lightning. A shot's solid part is drawn at about its hitbox size, flying low (0.4 m), and only its halo and tail reach past it, the tail always behind; its ground shadow is the exact hitbox. Figures, hats, colours, the two moods, the ground and the props are in `data/visual.json`; `"enabled": false` there brings back the old pixel arena.
+- **The world at night.** The Mill yard sits at the edge of Vellmar after dark: moonlight from above, a cool ambient, a low mist, timber houses with lit windows past the fence, and lamp posts whose lanterns are real lights pooling on the ground. The wizard's staff gem carries a small warm light, so the player never vanishes, and the spells are the main light: Ember Bolt lights the ground as it flies. When Silas steps through the gate the night deepens and the spells glow harder. A dark vignette (a gradient drawn over the 3D, `"vignette"` in `data/visual.json`) and a muted, slightly desaturated grade (`"adjust"`) keep the eye on the middle and leave colour to the spheres, gold and the red of telegraphs.
+- **Models and materials.** Low-poly silhouettes with smooth shading and real-feeling materials, no facets or outlines: `scripts/view/lowpoly.gdshader` adds a bump from a shared noise normal map projected from the world axes, albedo mottling and a specular highlight with its own gloss. The finishes (figure, prop, stone, metal, ground) are named in `"surfaces"` in `data/visual.json`, so stone reads rough, brass and the damp ground catch the lamps. The ground is cut into chunks so a lamp or a spell light only re-draws the ground near it, within the browser renderer's eight lights per mesh.
+- **The interface.** Navy glass panels with gold hairlines, Cormorant Garamond and Cormorant SC (OFL, `assets/fonts/`), and the planets' glyphs (Noto Sans Symbols, subset). The spellbook is a constellation of six star rings in each sphere's colour, with the key and level above, the name and Aether cost below, a gold arc for the level's progress, a dark sweep for the cooldown and a gold halo when the cast will be Resonant; hover a star for the spell's numbers. The Magick is the gold diamond on the right. Vitality and Aether are fine lines top left; Cadence is four stars by the reticle; top centre, the loop's 28 days are moon phases ending in the Eclipse's black sun (the prototype's fight is always the first day). The duelist's plate is top right.
+- **Spells** are still solid geometry, not particles: Ember Bolt is a comet (League of Legends' Brand Q as the reference) with a white-hot core and flame tongues streaming back, stones are rocks, Storm shots are crystals, lightning is a chain of thin prisms, and impacts throw shards that shrink away. Round the hot ones a soft halo (`halo.gdshader`) glows into the bloom.
+
+The camera keeps the GDD lock (about 56 to 60 degrees down, 40 degree field of view), sits closer than the whole yard and drifts part of the way after the player. The figures and props are still the Wuxia game's low-poly models.
+
+The sim is still the 2D one. `scripts/view/view3d.gd` reads it every frame and never changes it: the arena draws its flat marks (telegraphs, hold-to-aim previews, zones, effects, the reticle) into an offscreen viewport that lies on the ground as a decal, so a telegraph is still exactly the hitbox, and the view adds what stands up: figures, lodestones, projectiles, flames, rods, the Orrery, lightning. A shot's solid part is drawn at about its hitbox size, flying low (0.4 m), and only its halo and tail reach past it, the tail always behind; its ground shadow is the exact hitbox. Figures, hats, colours, the two moods, the surfaces, the mist, the town and the props are in `data/visual.json`; `"enabled": false` there brings back the old pixel arena.
 
 The figures are Wuxia's models for now (the elder under a wide pointed hat as the wizard, ash-grey bandits with ember eyes as Hollows, a swordsman in a frontier hat as Silas). Western models of their own are the next step.
 
@@ -100,17 +107,20 @@ Frost and Time, Magicks for the other pairs, relics and Focus, the town and the 
 | `scripts/spells/fire_earth.gd` | Fire and Earth spells and Meteor |
 | `scripts/spells/storm_water.gd` | Storm and Water spells, rods, puddles, the whirlpool and Conductor |
 | `scripts/ai.gd` | Hollows, Slingers and Silas Vane |
-| `scripts/hud.gd` | Spell cards, HP and caps, duel bar, toasts, milestone picker, the Orrery menu, title, Ledger |
-| `data/visual.json` | The 3D view: figures (model, colours, hat), day and dusk moods, the ground, props, camera |
-| `scripts/view/view3d.gd` | The 3D view over the sim: camera, light and mood, the faceted ground, props, the marks decal, figures, the Orrery |
+| `scripts/hud.gd` | The Star Atlas HUD: the spellbook constellation and Magick diamond, Vitality and Aether, caps, Cadence stars, the moon row, the duelist's plate; toasts, milestone picker, the Orrery menu, title, Ledger |
+| `data/visual.json` | The 3D view: figures (model, colours, hat), the two night moods, mist, vignette, surfaces, the ground, props, the town, camera |
+| `scripts/view/view3d.gd` | The 3D view over the sim: camera, light, mist and mood, the ground, props, the marks decal, figures, the Orrery, the vignette |
+| `scripts/view/town.gd` | The edge of Vellmar round the yard: houses with lit windows and lamp posts |
 | `scripts/view/spells3d.gd` | Spells as low-poly shapes: the comet fireball, rocks, crystals, flames, pillars, the meteor, lightning, impact shards |
-| `scripts/view/figure.gd` | One figure: the model with flat-shaded materials, hats and eyes, posed from the shared clip library |
+| `scripts/view/figure.gd` | One figure: the model with its materials and the shared surface finishes, hats and eyes, posed from the shared clip library |
 | `scripts/view/marks.gd` | Flame pips, HP chunks, stun stars and Wet over heads, in screen space |
 | `scripts/view/*.gdshader` | Low-poly shading (figures, props, ground, spells), spell halos and the marks decal |
 | `assets/models/` | Figures, the clip library and props, from the Wuxia game |
 | `scripts/pixel_art.gd` | The palette, and the pixel sprites the flat fallback still draws |
 | `scripts/bot.gd` | The bot used by the fight test and F2 autoplay |
 | `tools/shots.gd` | Screenshots of the fight for review (needs a display; see its header) |
+| `tools/menus_shot.gd` | Screenshots of the title, the Orrery, the milestone picker and the Ledger |
+| `assets/fonts/` | Cormorant Garamond, Cormorant SC and a Noto Sans Symbols subset for the planets' glyphs (SIL Open Font License, texts alongside) |
 | `tools/tests/` | `unit.gd` (progression rules) and `fight.gd` (the bot plays loop 1 as Fire + Earth, swaps to Storm + Water at the Orrery, and plays loop 2) |
 
 Progress saves to `user://progress.json` (in the browser, the site's IndexedDB). Delete twice on the Ledger screen wipes it.

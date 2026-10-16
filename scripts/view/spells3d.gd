@@ -272,18 +272,18 @@ func _make(kind: String, i: int) -> Node3D:
 
 func sync(_delta: float) -> void:
 	_used.clear()
-	var dusk: float = view.dusk()
+	var glow_k: float = view.spell_k()
 	_stones()
-	_projs(dusk)
-	_zones(dusk)
-	_fx(dusk)
+	_projs(glow_k)
+	_zones(glow_k)
+	_fx(glow_k)
 	for kind in _pools:
 		var pool: Array = _pools[kind]
 		for i in range(_used.get(kind, 0), pool.size()):
 			pool[i].visible = false
 
 
-## A glow `d` metres across round `at`. Fainter by day, when the sun is doing the lighting.
+## A glow `d` metres across round `at`. Fainter in the waves, brightest in the duel (view.spell_k()).
 func halo(at: Vector3, col: Color, d: float, strength := 1.0) -> void:
 	if d <= 0.01 or strength <= 0.01:
 		return
@@ -292,15 +292,15 @@ func halo(at: Vector3, col: Color, d: float, strength := 1.0) -> void:
 	h.scale = Vector3.ONE * d
 	var m := h.material_override as ShaderMaterial
 	m.set_shader_parameter("color", col)
-	m.set_shader_parameter("strength", strength * lerpf(0.55, 1.0, view.dusk()))
+	m.set_shader_parameter("strength", strength * lerpf(0.55, 1.0, view.spell_k()))
 
 
 func _w(p: Vector2, h := 0.0) -> Vector3:
 	return view.to_world(p, h)
 
 
-func _glow(dusk: float, day := 0.9, night := 1.8) -> float:
-	return lerpf(day, night, dusk)
+func _glow(glow_k: float, dim := 0.9, full := 1.8) -> float:
+	return lerpf(dim, full, glow_k)
 
 
 func _stones() -> void:
@@ -332,7 +332,7 @@ const SHOT_HEIGHT := 0.4
 const SHOT_BASE := {"rock": 0.17, "fireball": 0.17, "gem": 0.12}
 
 
-func _projs(dusk: float) -> void:
+func _projs(glow_k: float) -> void:
 	for p in arena.projs:
 		if p.get("ghost", false):
 			continue
@@ -358,7 +358,7 @@ func _projs(dusk: float) -> void:
 				tail.rotation.z = p["t"] * 9.0
 				tail.scale = Vector3(1.0, 1.0, 1.1 + 0.3 * sin(p["t"] * 31.0))
 				# kept low enough that the shell stays orange instead of blowing out to white
-				var gl := _glow(dusk, 0.45, 0.8)
+				var gl := _glow(glow_k, 0.45, 0.8)
 				paint(fb.get_node("Core"), PixelArt.FIRE_HOT, gl * 2.0)
 				paint(fb.get_node("Shell"), PixelArt.FIRE, gl)
 				for k in tail.get_child_count():
@@ -383,13 +383,13 @@ func _projs(dusk: float) -> void:
 				g.look_at(at + dir, Vector3.UP)
 				g.rotate_object_local(Vector3.FORWARD, p["t"] * 14.0)
 				g.scale = Vector3.ONE * size
-				paint(g, col, _glow(dusk, 1.0, 2.0))
+				paint(g, col, _glow(glow_k, 1.0, 2.0))
 				for k in 2:
 					var sh := take("shard")
 					sh.position = at - dir * (0.25 + 0.22 * k) * size + Vector3(0, 0.05 * sin(p["t"] * 20.0 + k), 0)
 					sh.scale = Vector3.ONE * size * (0.8 - 0.25 * k)
 					sh.rotation = Vector3(p["t"] * 11.0 + k, p["t"] * 7.0, 0)
-					paint(sh, PixelArt.FIRE_HOT if fire else col.lightened(0.3), _glow(dusk, 1.0, 2.0))
+					paint(sh, PixelArt.FIRE_HOT if fire else col.lightened(0.3), _glow(glow_k, 1.0, 2.0))
 				halo(at, col, minf(0.55 * size, 1.3), 1.3)
 				if fire:
 					view.want_light(at, PixelArt.FIRE, 1.6, 3.5)
@@ -397,7 +397,7 @@ func _projs(dusk: float) -> void:
 					view.want_light(at, col, 1.0, 2.5)
 
 
-func _zones(dusk: float) -> void:
+func _zones(glow_k: float) -> void:
 	for z in arena.zones:
 		var t: float = z["t"]
 		match z["kind"]:
@@ -417,7 +417,7 @@ func _zones(dusk: float) -> void:
 				var r: float = float(z["r"]) * view.S / 1.1
 				c.position = _w(z["pos"], -1.0 + up)
 				c.scale = Vector3(r, 1.0, r)
-				paint(c.get_node("Core"), PixelArt.FIRE.lerp(PixelArt.FIRE_HOT, 1.0 - k), _glow(dusk, 1.2, 2.4))
+				paint(c.get_node("Core"), PixelArt.FIRE.lerp(PixelArt.FIRE_HOT, 1.0 - k), _glow(glow_k, 1.2, 2.4))
 				halo(_w(z["pos"], 0.6), PixelArt.FIRE, r * 2.6 * up, 1.2 * (1.0 - k))
 				view.want_light(_w(z["pos"], 1.0), PixelArt.FIRE, 3.0 * (1.0 - k), 5.0)
 			"meteor":
@@ -425,7 +425,7 @@ func _zones(dusk: float) -> void:
 				var b := take("boulder")
 				b.position = _w(z["pos"] + Vector2(-20, 0) * (1.0 - k), 0.3 + 7.0 * (1.0 - k))
 				b.rotation = Vector3(t * 4.0, t * 3.0, 0)
-				paint(b, PixelArt.EARTH.lerp(PixelArt.FIRE, 0.5), _glow(dusk, 0.6, 1.2))
+				paint(b, PixelArt.EARTH.lerp(PixelArt.FIRE, 0.5), _glow(glow_k, 0.6, 1.2))
 				var tail := take("shard")
 				tail.position = b.position + Vector3(0.4, 0.8, 0)
 				tail.scale = Vector3.ONE * 2.5
@@ -488,8 +488,8 @@ static func fract(x: float) -> float:
 	return x - floorf(x)
 
 
-func _fx(dusk: float) -> void:
-	var g := _glow(dusk, 1.2, 2.4)
+func _fx(glow_k: float) -> void:
+	var g := _glow(glow_k, 1.2, 2.4)
 	for f in arena.fxs:
 		var k: float = f["t"] / f["life"]
 		var left := 1.0 - k

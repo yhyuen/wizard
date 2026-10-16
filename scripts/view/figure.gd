@@ -9,6 +9,11 @@ const SHADER := preload("res://scripts/view/lowpoly.gdshader")
 const BLEND := 0.08
 
 static var _lib: AnimationLibrary
+## Surface finishes by name ("figure", "prop", "stone", "metal", "ground"): bump, bump_scale,
+## mottle, spec, gloss, wrap, rim. The view fills this from data/visual.json "surfaces".
+static var SURFACES := {}
+static var _bump_tex: NoiseTexture2D
+static var _mottle_tex: NoiseTexture2D
 
 var model: Node3D
 var skel: Skeleton3D
@@ -31,9 +36,42 @@ static func mat(col: Color, glow := 0.0) -> ShaderMaterial:
 	return sm
 
 
-## Flat shading on every surface under `n`. `remap` swaps a recipe colour (hex,
+## Give a material one of the named finishes (see SURFACES). Glowing shapes keep theirs.
+static func finish(sm: ShaderMaterial, surf: String) -> ShaderMaterial:
+	if surf == "" or not SURFACES.has(surf):
+		return sm
+	if _bump_tex == null:
+		_bump_tex = _noise_tex(true)
+		_mottle_tex = _noise_tex(false)
+	sm.set_shader_parameter("bump_tex", _bump_tex)
+	sm.set_shader_parameter("mottle_tex", _mottle_tex)
+	var f: Dictionary = SURFACES[surf]
+	for k in f:
+		if not str(k).begins_with("_"):
+			sm.set_shader_parameter(k, float(f[k]))
+	return sm
+
+
+## A seamless noise shared by every finish: as a normal map (the bump) or plain (the mottle).
+static func _noise_tex(normal: bool) -> NoiseTexture2D:
+	var t := NoiseTexture2D.new()
+	t.width = 256
+	t.height = 256
+	t.seamless = true
+	t.generate_mipmaps = true
+	t.as_normal_map = normal
+	t.bump_strength = 4.0
+	var n := FastNoiseLite.new()
+	n.seed = 11 if normal else 5
+	n.frequency = 0.02
+	n.fractal_octaves = 4
+	t.noise = n
+	return t
+
+
+## Shading on every surface under `n`, with the `surf` finish. `remap` swaps a recipe colour (hex,
 ## no #) for another; `tint` (alpha = amount) pulls every other colour toward one tone.
-static func style(n: Node, darken: float, remap := {}, tint := Color(0, 0, 0, 0), out: Array = [], facet := 1.0) -> void:
+static func style(n: Node, darken: float, remap := {}, tint := Color(0, 0, 0, 0), out: Array = [], facet := 1.0, surf := "") -> void:
 	if n is MeshInstance3D:
 		var mi := n as MeshInstance3D
 		for s in mi.mesh.get_surface_count():
@@ -46,10 +84,11 @@ static func style(n: Node, darken: float, remap := {}, tint := Color(0, 0, 0, 0)
 				col = col.lerp(Color(tint, 1.0), tint.a)
 			var sm := mat(col.darkened(darken))
 			sm.set_shader_parameter("facet", facet)
+			finish(sm, surf)
 			mi.set_surface_override_material(s, sm)
 			out.append(sm)
 	for c in n.get_children():
-		style(c, darken, remap, tint, out, facet)
+		style(c, darken, remap, tint, out, facet, surf)
 
 
 var _facet := 1.0
@@ -68,7 +107,7 @@ func build(def: Dictionary, darken: float) -> void:
 		tint = Color(str(def["tint"][0]), float(def["tint"][1]))
 	_facet = float(def.get("facet", 1.0))
 	var out: Array = []
-	style(model, darken, def.get("colors", {}), tint, out, _facet)
+	style(model, darken, def.get("colors", {}), tint, out, _facet, "figure")
 	for m in out:
 		mats.append(m)
 	for n in model.find_children("*", "Skeleton3D", true, false):
@@ -157,6 +196,7 @@ func _part(at: Node3D, mesh: Mesh, col: Color, pos: Vector3, rot := Vector3.ZERO
 	mi.mesh = mesh
 	var m := mat(col)
 	m.set_shader_parameter("facet", _facet)
+	finish(m, "figure")
 	mats.append(m)
 	mi.material_override = m
 	mi.position = pos
