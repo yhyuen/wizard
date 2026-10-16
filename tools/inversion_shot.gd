@@ -2,12 +2,13 @@ extends SceneTree
 ## Screenshots of the inversion test for review (needs a display, not --headless):
 ##
 ##   xvfb-run -a -s "-screen 0 1440x810x24" godot --rendering-driver opengl3 --resolution 1440x810 \
-##       --fixed-fps 60 --script res://tools/inversion_shot.gd -- --out DIR
+##       --fixed-fps 60 --script res://tools/inversion_shot.gd -- --out DIR [--fast]
 ##
-## The bot plays loop 1, then loop 2 with Rewind Shard in the book and the echo of loop 1 walking
+## The bot plays loop 1, then loop 2 with Rewind in the book and the echo of loop 1 walking
 ## backwards. Saves the Orrery with the Hours column (inv_shrine.png), a Backward Slinger's stone
-## forming behind the wizard (inv_rline.png), a Rewind Shard forming and flying home
-## (inv_rewind_form.png, inv_rewind_fly.png) and the echo mid-fight (inv_echo.png).
+## forming behind the wizard (inv_rline.png), a Rewind forming and flying home
+## (inv_rewind_form.png, inv_rewind_fly.png) and the echo mid-fight (inv_echo.png). --fast skips
+## loop 1 with a made-up echo, since rendering a whole fight under xvfb is slow.
 
 var main
 var bot
@@ -26,6 +27,15 @@ func _initialize() -> void:
 	Progression = root.get_node("Progression")
 	Progression.save_enabled = false
 	Progression.reset_all()
+	if "--fast" in args:
+		# Skip loop 1: a made-up last fight (a slow loop round the yard, casting now and then).
+		var track: Array = []
+		for i in 600:
+			var ang := i * 0.012
+			track.append_array([240.0 + cos(ang) * 70.0, 142.0 + sin(ang) * 45.0, cos(ang + 1.5), sin(ang + 1.5), 1 if i % 9 == 0 else 0])
+		Progression.set_echo(track, false)
+		Progression.next_loop()
+		shrine_f = 0
 	bot = load("res://scripts/bot.gd").new()
 	main = load("res://scenes/main.tscn").instantiate()
 	main.bot = func(a): return bot.intent(a)

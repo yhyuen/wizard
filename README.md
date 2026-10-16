@@ -67,7 +67,7 @@ Two waves of Dust Hollows (melee, red wedge telegraphs) and Hollow Slingers (red
 A test of the story pitch where someone lives the month backwards (the project's `design/story/storyline-options.md`, option A): can inverted things read clearly in a fight?
 
 - **The Backward Slinger** (wave 2, every loop) keeps its back to you. Its red aim line starts at a spot *behind you*, marked by an amber circle that fills in; the stone appears there and flies home into its hand, through you. Step off the line.
-- **Rewind Shard** (Hours ♄, from loop 2; it lands in slot 6 the first time). Hold to see its path: the shard forms where you aim, then flies back into your hand through everything between, hitting each enemy once and dragging it toward you. Chevrons on the telegraph point home. Form it *behind* a target.
+- **Rewind** (Hours ♄, from loop 2; it lands in slot 6 the first time). Hold to see its path: the shard forms where you aim, then flies back into your hand through everything between, hitting each enemy once and dragging it toward you. Chevrons on the telegraph point home. Form it *behind* a target.
 - **Your echo.** From loop 2, an amber copy of you walks your last fight backwards: it starts where that fight ended and retraces your path to where it began, and where you cast, a shard flies back into its hand. It touches nothing; it is a clue.
 
 ## What to look for (the "readable" part)

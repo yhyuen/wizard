@@ -16,7 +16,7 @@ const HoursKit := preload("res://scripts/spells/hours.gd")
 var A  # the arena
 var fe  # Fire and Earth spells, and Meteor
 var sw  # Storm and Water spells, and Conductor
-var hr  # Hours: Rewind Shard, from loop 2
+var hr  # Hours: Rewind, from loop 2
 var modules: Array = []
 var cast_t = 0.0
 var aether = 100.0

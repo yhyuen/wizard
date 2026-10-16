@@ -463,7 +463,7 @@ func _zones(glow_k: float) -> void:
 				halo(b.position, PixelArt.GOLD, 0.8, 0.8)
 				view.want_light(b.position, PixelArt.GOLD, 0.8, 2.0)
 			"rewind_form", "rline":
-				# Hours: a shard grows where a stone or a Rewind Shard will appear, before it flies home
+				# Hours: a shard grows where a stone or a Rewind will appear, before it flies home
 				var k := clampf(t / maxf(0.01, float(z.get("delay", 1.0))), 0.0, 1.0)
 				var at2: Vector2 = z["pos"] if z["kind"] == "rewind_form" else z["a"]
 				var g := take("gem")

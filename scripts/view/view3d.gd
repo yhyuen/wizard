@@ -576,7 +576,7 @@ func _sync_echo(delta: float) -> void:
 	else:
 		_echo_run += delta
 		_echo_fig.pose("staff_idle", fposmod(_echo_run, Figure.clip_len("staff_idle")), delta)
-	_echo_fig.set_look(0.3, PixelArt.HOURS, float(e["fade"]), 0.0)
+	_echo_fig.set_look(0.6, PixelArt.HOURS, float(e["fade"]), 0.0)
 	want_light(to_world(e["pos"], 1.6), PixelArt.HOURS, 0.5 * (1.0 - float(e["fade"])), 2.5)
 
 

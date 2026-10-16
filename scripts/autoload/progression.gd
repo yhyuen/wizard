@@ -291,7 +291,7 @@ func set_spell(index: int, id: String) -> void:
 	save()
 
 
-## Some spells only come back with you: Hours (Rewind Shard) is there from loop 2 ("from_loop").
+## Some spells only come back with you: Hours (Rewind) is there from loop 2 ("from_loop").
 func unlocked(id: String) -> bool:
 	return loop() >= int(spell(id).get("from_loop", 1))
 

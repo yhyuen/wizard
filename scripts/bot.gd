@@ -3,7 +3,7 @@ extends RefCounted
 ## enemy and steps out of telegraphs (blinking when one is about to land). With Fire + Earth it
 ## keeps lodestones topped up with Pebble and uses Pillar, Fling, the signature and Meteor; with
 ## Storm + Water it soaks enemies with Splash and Undertow, then lights them up with Spark, Arc
-## Lance, Storm Call, Maelstrom and Conductor. With Rewind Shard in the book it forms the shard
+## Lance, Storm Call, Maelstrom and Conductor. With Rewind in the book it forms the shard
 ## behind its target so the shard flies home through it.
 
 var release: Array = []  # slots pressed last frame, released this frame
@@ -78,7 +78,7 @@ func intent(A) -> Dictionary:
 		out["pressed"]["blink"] = true
 	if not holds.is_empty():
 		return out
-	# Casting. Rewind Shard (Hours) forms behind the target, so it flies home through it.
+	# Casting. Rewind (Hours) forms behind the target, so it flies home through it.
 	var rw: String = kit.slot_of("rewind")
 	if rw != "" and P.cooldown("rewind") <= 0.0 and to.length() < 110.0:
 		out["aim"] = focus.pos + to.normalized() * 30.0

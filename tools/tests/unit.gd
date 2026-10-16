@@ -89,11 +89,11 @@ func _run() -> void:
 	ok(P.echo_track().is_empty(), "this loop's own fight is not its echo")
 	P.next_loop()
 	ok(P.spellbook().slice(0, 5) == ["spark", "splash", "arc_lance", "undertow", "storm_call"], "the spellbook carries into the next loop")
-	ok(P.spellbook()[5] == "rewind" and P.unlocked("rewind") and P.open_elements().has("hours"), "Rewind Shard comes back with you in loop 2, in the last slot")
+	ok(P.spellbook()[5] == "rewind" and P.unlocked("rewind") and P.open_elements().has("hours"), "Rewind comes back with you in loop 2, in the last slot")
 	ok(P.echo_track().size() == 10, "the last loop's fight becomes the echo")
 	P.set_spell(5, "maelstrom")
 	P.next_loop()
-	ok(not P.spellbook().has("rewind"), "Rewind Shard is only pushed into the book once")
+	ok(not P.spellbook().has("rewind"), "Rewind is only pushed into the book once")
 	# Re-picking a mutation (only the shrine calls this).
 	P.set_level("pillar", 5)
 	P.pick(0)

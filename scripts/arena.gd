@@ -5,7 +5,7 @@ extends Node2D
 ## draws every unit, projectile, telegraph, field object and effect; the wizard's spells live in
 ## kit.gd and scripts/spells/, enemy minds in ai.gd.
 ## Inversion test (story option A, the Palindrome): a Backward Slinger in wave 2 whose stones
-## fly home into its hand, Rewind Shard (Hours) from loop 2, and your echo: the last fight you
+## fly home into its hand, Rewind (Hours) from loop 2, and your echo: the last fight you
 ## played, walked backwards from where it ended to where it began.
 
 signal fight_over(won: bool)
@@ -319,7 +319,7 @@ func _echo(dt: float) -> void:
 	if not fighting:
 		echo["on"] = phase == "intro"
 		echo["moving"] = false
-		echo["fade"] = move_toward(echo["fade"], 1.0 if phase in ["won", "lost"] else 0.45, dt * 2.0)
+		echo["fade"] = move_toward(echo["fade"], 1.0 if phase in ["won", "lost"] else 0.3, dt * 2.0)
 		return
 	# Backwards in time: sample n-1 at the first second of the fight, sample 0 at the end of it.
 	var f := float(n - 1) - fight_time / ECHO_STEP
@@ -335,7 +335,7 @@ func _echo(dt: float) -> void:
 	echo["moving"] = before.distance_to(echo["pos"]) > 0.05
 	echo["aim"] = Vector2(echo_play[i * 5 + 2], echo_play[i * 5 + 3])
 	echo["on"] = true
-	echo["fade"] = move_toward(echo["fade"], 0.45, dt * 2.0)
+	echo["fade"] = move_toward(echo["fade"], 0.3, dt * 2.0)
 	if echo_last_i != i:
 		for j in range(maxi(i, 0), echo_last_i if echo_last_i >= 0 else i + 1):
 			if int(echo_play[j * 5 + 4]) == 1:

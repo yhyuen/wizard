@@ -1,6 +1,6 @@
 extends RefCounted
 ## Hours, Saturn's inner ray: time run backwards (design/story/storyline-options.md, option A).
-## Rewind Shard forms where you aim, hangs for a moment, then flies back into your hand through
+## Rewind forms where you aim, hangs for a moment, then flies back into your hand through
 ## everything between, dragging what it hits toward you. Its telegraph is the line it will fly,
 ## with chevrons pointing home. It comes back with you from loop 2.
 

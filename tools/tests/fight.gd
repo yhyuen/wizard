@@ -7,7 +7,7 @@ extends SceneTree
 ## with the Mercury + Luna spells slot by slot and re-picks a mutation, so two loops cast every spell
 ## and both Magicks. Each loop must also weave (a Resonant cast) and spend Aether. Every loop meets
 ## the Backward Slinger; from loop 2 the echo of the last fight walks backwards, and before loop 3
-## the bot puts Rewind Shard (Hours) in the book and must cast it.
+## the bot puts Rewind (Hours) in the book and must cast it.
 ## Exits non-zero if nothing levels, a spell is never cast, the shrine fails, or the run stalls.
 
 
@@ -79,7 +79,7 @@ func _process(_dt: float) -> bool:
 			main.shrine_spell(5, "rewind")
 			main.close_shrine()
 			if Progression.spellbook()[5] != "rewind":
-				shrine_fails.append("the shrine did not put Rewind Shard in the book in loop 3")
+				shrine_fails.append("the shrine did not put Rewind in the book in loop 3")
 	if frames > limit:
 		print("[fight] stalled in phase %s after %d s" % [main.arena.phase, limit / 60])
 		results.append({"won": false, "stalled": true, "phase_reached": main.arena.phase})
