@@ -62,6 +62,10 @@ A Magick is on C whenever spells of both its spheres are in the book. Other pair
 
 Two waves of Dust Hollows (melee, red wedge telegraphs) and Hollow Slingers (red aim lines), then a duel with **Silas Vane, the Storm Rider**: a Spark skill shot, an Arc Lance line, Storm Call circles, and a blink out of your Pillars. At half HP he calls more Hollows. Win or fall, the **Loop Ledger** records the run and you wake again in the next loop.
 
+## Test scenes
+
+Press **T** on the title card to open the test menu, then press 1–8 or click a scene to jump straight in: the full fight, wave 1, wave 2, the duel with Silas, Backward Slingers on repeat, loop 2 with Rewind and your echo, the Orrery with every spell unlocked, or a practice yard of Hollows that never strike back. Esc in a scene goes back to the menu, and Esc in the menu goes back to the title card. Testing never touches your save: when you leave the menu, your progress is put back exactly as it was.
+
 ## The inversion test (time running backwards)
 
 A test of the story pitch where someone lives the month backwards (the project's `design/story/storyline-options.md`, option A): can inverted things read clearly in a fight?
@@ -143,6 +147,7 @@ Progress saves to `user://progress.json` (in the browser, the site's IndexedDB).
 ```
 godot --headless --script res://tools/tests/unit.gd
 godot --headless --fixed-fps 60 --script res://tools/tests/fight.gd -- --loops 3
+godot --headless --fixed-fps 60 --script res://tools/tests/scenes.gd
 ```
 
 CI runs both on every PR (via `tools/ci/godot.sh`, which also fails on script errors) and builds the web export.

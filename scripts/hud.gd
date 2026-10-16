@@ -87,6 +87,12 @@ func _process(dt: float) -> void:
 
 func _gui_input(ev: InputEvent) -> void:
 	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+		if main.mode == "tests":
+			for i in main.TEST_SCENES.size():
+				if _test_rect(i).has_point(ev.position):
+					main.run_test(i)
+					accept_event()
+					return
 		if main.mode == "fight" and main.shrine_open:
 			for b in _shrine_buttons():
 				if b["r"].has_point(ev.position):
@@ -162,6 +168,10 @@ func _draw() -> void:
 	match main.mode:
 		"title":
 			_draw_title()
+			return
+		"tests":
+			_draw_tests()
+			_draw_toasts()
 			return
 		"fight", "ledger":
 			_draw_fight()
@@ -649,10 +659,37 @@ func _draw_title() -> void:
 	var sub := "Loop %d  ·  Aether is your mana: weave different spells to earn it back" % Progression.loop()
 	if Progression.p["ledger"].size() > 0:
 		sub += "  ·  your spells remember the earlier loops"
-	_text(Vector2(0, 372), "Tab  ·  Controls: %s" % ctl.NAMES[ctl.scheme], 15, PixelArt.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 960)
+	_text(Vector2(0, 372), "Tab  ·  Controls: %s          T  ·  Test scenes" % ctl.NAMES[ctl.scheme], 15, PixelArt.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 960)
 	_text(Vector2(0, 398), sub, 14, Color(1, 1, 1, 0.7), HORIZONTAL_ALIGNMENT_CENTER, 960)
 	var a := 0.6 + 0.4 * sin(Time.get_ticks_msec() / 300.0)
 	_text(Vector2(0, 436), "Click or press Enter to begin", 20, Color(PixelArt.PAPER, a), HORIZONTAL_ALIGNMENT_CENTER, 960)
+
+
+# --- test scenes ----------------------------------------------------------------
+
+const TESTS := Rect2(210, 60, 540, 420)
+
+
+func _test_rect(i: int) -> Rect2:
+	return Rect2(TESTS.position + Vector2(24, 84 + i * 36), Vector2(TESTS.size.x - 48, 32))
+
+
+func _draw_tests() -> void:
+	draw_rect(Rect2(0, 0, 960, 540), Color(0.02, 0.03, 0.07, 0.85))
+	_panel(TESTS, Color(PixelArt.GOLD, 0.7))
+	_title(TESTS.position + Vector2(0, 38), "Test scenes", 26, PixelArt.GOLD, HORIZONTAL_ALIGNMENT_CENTER, TESTS.size.x)
+	_text(TESTS.position + Vector2(0, 62), "Jump straight in. Nothing here touches your save.", 13, Color(1, 1, 1, 0.65), HORIZONTAL_ALIGNMENT_CENTER, TESTS.size.x)
+	var hover := get_local_mouse_position()
+	for i in main.TEST_SCENES.size():
+		var t: Dictionary = main.TEST_SCENES[i]
+		var r := _test_rect(i)
+		var hot := r.has_point(hover)
+		draw_rect(r, Color(PixelArt.GOLD, 0.18) if hot else Color(0, 0, 0, 0.3))
+		draw_rect(r, PixelArt.GOLD if hot else Color(PixelArt.GOLD, 0.35), false, 1.0)
+		_text(r.position + Vector2(10, 21), str(i + 1), 15, PixelArt.GOLD)
+		_text(r.position + Vector2(40, 21), t["name"], 15, PixelArt.PAPER)
+		_text(r.position + Vector2(250, 21), t["text"], 11, Color(1, 1, 1, 0.6), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 256)
+	_text(Vector2(0, TESTS.end.y + 28), "1–8 or click: start      Esc in a scene: back here      Esc here: title", 14, PixelArt.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 960)
 
 
 func _draw_ledger() -> void:

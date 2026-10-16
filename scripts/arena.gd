@@ -50,6 +50,8 @@ var summoned := false
 var over_t := -1.0
 var clear_t := 0.0  # seconds the yard has been quiet between waves
 var fight_time := 0.0
+var sandbox: Array = []  # test scenes: the group that comes back each time the yard is clear
+var scene := ""  # the test scene this fight was started as ("" for the normal fight)
 var stats := {"casts": 0, "damage_taken": 0.0, "kills": 0, "by_spell": {}}
 
 const ECHO_STEP := 0.1  # seconds between echo samples
@@ -85,7 +87,10 @@ func _ready() -> void:
 	start()
 
 
-func start() -> void:
+## Starts the fight. `test_scene` jumps to one part of it, for testing (main.gd TEST_SCENES).
+func start(test_scene := "") -> void:
+	scene = test_scene
+	sandbox = []
 	units.clear()
 	projs.clear()
 	zones.clear()
@@ -117,6 +122,38 @@ func start() -> void:
 	kit.reset()
 	_place_tome()
 	set_phase("intro")
+	_setup_scene()
+
+
+func _setup_scene() -> void:
+	match scene:
+		"wave1", "wave2", "duel":
+			set_phase(scene)
+		"backward":
+			_sandbox("Two Backward Slingers, again and again", [{"kind": "inverted", "n": 2}])
+		"inversion":
+			_sandbox("Loop %d: Rewind on F, and your echo" % Progression.loop(), [{"kind": "inverted", "n": 2}, {"kind": "hollow", "n": 3}])
+		"shrine":
+			player.pos = shrine_pos() + Vector2(0, 12)
+			_sandbox("A quiet yard by the Orrery", [])
+		"dummies":
+			_sandbox("Practice yard: Hollows that never strike back", [{"kind": "hollow", "n": 4, "dummy": true}])
+
+
+## A test phase: `group` comes back each time the yard has been clear for a moment.
+func _sandbox(title: String, group: Array) -> void:
+	sandbox = group
+	set_phase("sandbox")
+	banner.emit("Test  ·  " + title)
+	_queue_sandbox()
+
+
+func _queue_sandbox() -> void:
+	var i := 0
+	for g in sandbox:
+		for k in int(g["n"]):
+			spawn_queue.append({"t": 0.4 + i * 0.4, "kind": g["kind"], "gate": i % 4, "dummy": g.get("dummy", false)})
+			i += 1
 
 
 func _add(u: Unit) -> Unit:
@@ -198,16 +235,19 @@ func set_phase(p: String) -> void:
 
 func _flow(dt: float) -> void:
 	phase_t += dt
-	if phase in ["wave1", "wave2", "duel"]:
+	if phase in ["wave1", "wave2", "duel", "sandbox"]:
 		fight_time += dt
 	for s in spawn_queue.duplicate():
 		s["t"] -= dt
 		if s["t"] <= 0.0:
 			spawn_queue.erase(s)
 			var g: Vector2 = GATES[int(s["gate"]) % GATES.size()]
-			spawn(s["kind"], g + Vector2(rng.randf_range(-6, 6), rng.randf_range(-6, 6)))
+			var u := spawn(s["kind"], g + Vector2(rng.randf_range(-6, 6), rng.randf_range(-6, 6)))
+			if s.get("dummy", false):
+				u.flags["dummy"] = true
+				u.speed *= 0.5
 	var cleared := spawn_queue.is_empty() and enemies().is_empty()
-	if cleared and phase in ["wave1", "wave2"] and phase_t > 1.0:
+	if cleared and phase in ["wave1", "wave2", "sandbox"] and phase_t > 1.0:
 		if clear_t == 0.0:
 			toast.emit("The yard is quiet. The Orrery hums (G).", PixelArt.GOLD)
 		clear_t += dt
@@ -223,6 +263,10 @@ func _flow(dt: float) -> void:
 		"wave2":
 			if clear_t > 2.5:
 				set_phase("duel")
+		"sandbox":
+			if clear_t > 1.5 and not sandbox.is_empty():
+				clear_t = 0.0
+				_queue_sandbox()
 		"duel":
 			var r := rival()
 			if r and not summoned and r.hp <= r.max_hp * float(D["enemies"]["rival"]["summon_at"]):
@@ -301,7 +345,7 @@ func _process(_dt: float) -> void:
 ## (where you fell, or where Silas fell) and walks your path in reverse to where it began. Where
 ## you cast, a shard flies back into its hand. It touches nothing; it is a clue, not a unit.
 func _echo(dt: float) -> void:
-	var fighting := phase in ["wave1", "wave2", "duel"]
+	var fighting := phase in ["wave1", "wave2", "duel", "sandbox"]
 	if fighting and not player.dead:
 		echo_rec_t += dt
 		while echo_rec_t >= ECHO_STEP:
@@ -550,7 +594,7 @@ func shrine_pos() -> Vector2:
 
 ## The shrine works while the yard is quiet: before the first wave and between waves.
 func shrine_ready() -> bool:
-	return phase in ["intro", "wave1", "wave2"] and spawn_queue.is_empty() and enemies().is_empty() \
+	return phase in ["intro", "wave1", "wave2", "sandbox"] and spawn_queue.is_empty() and enemies().is_empty() \
 		and not player.dead and player.pos.distance_to(shrine_pos()) <= float(D["shrine"]["reach"])
 
 

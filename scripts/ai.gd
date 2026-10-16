@@ -19,6 +19,9 @@ func update(u: Unit, dt: float) -> void:
 		return
 	if u.locked() or A.player.dead or A.phase in ["won", "lost"]:
 		return
+	if u.flags.get("dummy", false):
+		_step(u, A.player.pos - u.pos, dt, 0.3 if u.pos.distance_to(A.player.pos) > 30.0 else 0.0)
+		return
 	match u.kind:
 		"hollow":
 			_hollow(u, dt)

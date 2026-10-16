@@ -27,6 +27,11 @@ func _ready() -> void:
 	_keys("cancel", [KEY_ESCAPE])
 	_keys("pick3", [KEY_3])
 	_keys("pick4", [KEY_4])
+	_keys("pick5", [KEY_5])
+	_keys("pick6", [KEY_6])
+	_keys("pick7", [KEY_7])
+	_keys("pick8", [KEY_8])
+	_keys("tests", [KEY_T])
 	_keys("mood", [KEY_F3])
 	_keys("controls", [KEY_TAB])
 	# The League-style scheme (scripts/controls.gd): right-click moves, Q W E R D F cast.
