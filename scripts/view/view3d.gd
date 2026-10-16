@@ -1,7 +1,8 @@
 extends Node3D
-## The fight in low poly, lit the Magicka way: soft-shaded hooded wizards, a faceted yard and
-## hills, props, saturated colour and bloom, under a tilted camera that follows the player a
-## little, over the same 2D sim. The arena still simulates everything and still draws
+## The fight in low poly at night (GDD 6.3, "moody night"): smooth low-poly shapes with bumpy,
+## glossy materials, moonlight, low mist, the edge of Vellmar with lit windows and lamp posts
+## round the yard, and spells as the main light, under a tilted camera that follows the player
+## a little, over the same 2D sim. The arena still simulates everything and still draws
 ## the flat telegraphs (rings, cones, lines, hold-to-aim previews, the reticle) into an
 ## offscreen viewport, which lies on the ground here as a decal, so a telegraph stays exactly
 ## its hitbox. Spells and everything else that stands up are solid low-poly shapes
@@ -9,11 +10,12 @@ extends Node3D
 
 const Figure := preload("res://scripts/view/figure.gd")
 const Spells3D := preload("res://scripts/view/spells3d.gd")
+const Town := preload("res://scripts/view/town.gd")
 const OVERLAY_SHADER := preload("res://scripts/view/overlay.gdshader")
 const CFG_PATH := "res://data/visual.json"
 const SIM_CENTRE := Vector2(240, 135)
 const SIM_SIZE := Vector2(480, 270)
-const MAX_LIGHTS := 8
+const MAX_LIGHTS := 6  # with up to two lamps near any ground chunk, inside the browser renderer's 8 lights per mesh
 
 var arena
 var cfg: Dictionary
@@ -26,8 +28,7 @@ var _env: Environment
 var _sun: DirectionalLight3D
 var _ground: ShaderMaterial
 var _overlay_mat: ShaderMaterial
-var _mood := "day"
-var _mood_k := 0.0  # 0 day .. 1 dusk, eased toward the target
+var _mood_k := 0.0  # 0 night (the waves) .. 1 the duel's deeper night, eased toward the target
 var _mood_override := ""
 var _figs := {}  # unit id -> {"node", "unit", "cast_t", "casts"}
 var spells  # Spells3D
@@ -46,6 +47,7 @@ func setup(the_arena, vp: SubViewport) -> void:
 	overlay = vp
 	cfg = JSON.parse_string(FileAccess.get_file_as_string(CFG_PATH))
 	S = float(cfg["metres_per_px"])
+	Figure.SURFACES = cfg.get("surfaces", {})
 
 
 func _ready() -> void:
@@ -54,6 +56,11 @@ func _ready() -> void:
 	_build_overlay()
 	_build_props()
 	_build_shrine()
+	if cfg.has("town"):
+		var town := Town.new()
+		add_child(town)
+		town.build(self, cfg["town"])
+	_build_vignette()
 	spells = Spells3D.new(self)
 	for i in MAX_LIGHTS:
 		var l := OmniLight3D.new()
@@ -117,6 +124,15 @@ func _build_env() -> void:
 		_env.adjustment_saturation = float(adj.get("saturation", 1.0))
 		_env.adjustment_contrast = float(adj.get("contrast", 1.0))
 		_env.adjustment_brightness = float(adj.get("brightness", 1.0))
+	var fog: Dictionary = cfg.get("fog", {})
+	if not fog.is_empty():
+		# low mist: thin overall, thicker near the ground
+		_env.fog_enabled = true
+		_env.fog_light_color = Color(str(fog["color"]))
+		_env.fog_density = float(fog["density"])
+		_env.fog_height = float(fog["height"])
+		_env.fog_height_density = float(fog["height_density"])
+		_env.fog_sky_affect = 1.0
 	var we := WorldEnvironment.new()
 	we.environment = _env
 	add_child(we)
@@ -126,13 +142,17 @@ func _build_env() -> void:
 	add_child(_sun)
 
 
-## The ground: a faceted mesh, one tone per triangle. The yard is flat (the telegraphs lie on
-## it); outside the fence the land rises into low hills.
+## The ground: a low-poly mesh with smooth normals taken from the height field, so it reads as
+## soft wet earth under the shader's bump. The yard is flat (the telegraphs lie on it); outside
+## the fence the land rises into low hills. It is cut into chunks so a lamp or a spell light
+## only re-draws the ground near it.
 func _build_ground() -> void:
 	_ground = ShaderMaterial.new()
 	_ground.shader = Figure.SHADER
 	_ground.set_shader_parameter("use_vcol", true)
 	_ground.set_shader_parameter("rim", 0.0)
+	_ground.set_shader_parameter("facet", float(g_facet()))
+	Figure.finish(_ground, "ground")
 	var g: Dictionary = cfg["ground"]
 	var shade_var := float(g.get("shade_var", 0.08))
 	var cell := float(g["cell_m"])
@@ -152,10 +172,15 @@ func _build_ground() -> void:
 				z += rng.randf_range(-0.35, 0.35) * cell
 			row.append(Vector3(x, height(x, z), z))
 		grid.append(row)
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var chunk := int(g.get("chunk_cells", 12))
+	var tools := {}
 	for iz in nz:
 		for ix in nx:
+			var key := Vector2i(ix / chunk, iz / chunk)
+			if not tools.has(key):
+				tools[key] = SurfaceTool.new()
+				tools[key].begin(Mesh.PRIMITIVE_TRIANGLES)
+			var st: SurfaceTool = tools[key]
 			var a: Vector3 = grid[iz][ix]
 			var b: Vector3 = grid[iz][ix + 1]
 			var c: Vector3 = grid[iz + 1][ix]
@@ -168,12 +193,22 @@ func _build_ground() -> void:
 				for v in [t[0], t[2], t[1]]:
 					st.set_color(Color(shade, shade, shade))
 					st.set_uv(Vector2(kind, 0))
+					st.set_normal(_ground_normal(v.x, v.z))
 					st.add_vertex(v)
-	st.generate_normals()
-	var mi := MeshInstance3D.new()
-	mi.mesh = st.commit()
-	mi.material_override = _ground
-	add_child(mi)
+	for key in tools:
+		var mi := MeshInstance3D.new()
+		mi.mesh = tools[key].commit()
+		mi.material_override = _ground
+		add_child(mi)
+
+
+func g_facet() -> float:
+	return float(cfg["ground"].get("facet", 0.0))
+
+
+func _ground_normal(x: float, z: float) -> Vector3:
+	var e := 0.3
+	return Vector3(height(x - e, z) - height(x + e, z), 2.0 * e, height(x, z - e) - height(x, z + e)).normalized()
 
 
 ## How far a point (metres) lies outside the yard's fence.
@@ -228,7 +263,7 @@ func _prop(id: String, at: Vector3, rot: float, s: float) -> void:
 	n.rotation_degrees.y = rot
 	n.scale = Vector3.ONE * s
 	add_child(n)
-	Figure.style(n, float(cfg["darken"]), {}, Color(0, 0, 0, 0), [], float(cfg.get("props_facet", 1.0)))
+	Figure.style(n, float(cfg["darken"]), {}, Color(0, 0, 0, 0), [], float(cfg.get("props_facet", 1.0)), "prop")
 
 
 func _build_props() -> void:
@@ -258,9 +293,6 @@ func _build_props() -> void:
 		_prop(pr[0], to_world(Vector2(pr[1], pr[2])), float(pr[3]), float(pr[4]))
 
 
-## The Orrery: a stone plinth, a brass post and two rings that turn; it glows while usable.
-
-
 ## The Orrery: a stone plinth, a brass post and two rings that turn round a gem; it glows
 ## while usable.
 func _build_shrine() -> void:
@@ -270,12 +302,12 @@ func _build_shrine() -> void:
 	var plinth := MeshInstance3D.new()
 	plinth.mesh = Figure._cyl(0.3, 0.38, 0.35, 6)
 	plinth.position.y = 0.175
-	plinth.material_override = Figure.mat(Color("4a4652"))
+	plinth.material_override = Figure.finish(Figure.mat(Color("4a4652")), "stone")
 	_shrine.add_child(plinth)
 	var post := MeshInstance3D.new()
 	post.mesh = Figure._cyl(0.04, 0.05, 0.6, 5)
 	post.position.y = 0.65
-	post.material_override = Figure.mat(Color("b08a3a"))
+	post.material_override = Figure.finish(Figure.mat(Color("b08a3a")), "metal")
 	_shrine.add_child(post)
 	for i in 2:
 		var ring := MeshInstance3D.new()
@@ -286,7 +318,7 @@ func _build_shrine() -> void:
 		tm.ring_segments = 3
 		ring.mesh = tm
 		ring.position.y = 1.15
-		ring.material_override = Figure.mat(Color("c9a45a"))
+		ring.material_override = Figure.finish(Figure.mat(Color("c9a45a")), "metal")
 		_shrine.add_child(ring)
 		_shrine_rings.append(ring)
 	var core := MeshInstance3D.new()
@@ -297,9 +329,44 @@ func _build_shrine() -> void:
 	_shrine_rings.append(core)
 
 
-## 0 by day .. 1 at dusk.
-func dusk() -> float:
+## A dark edge round the screen, drawn over the 3D and under the HUD. A gradient, not a
+## screen-reading shader, so it costs nothing in the browser.
+func _build_vignette() -> void:
+	var v: Dictionary = cfg.get("vignette", {})
+	if v.is_empty():
+		return
+	var layer := CanvasLayer.new()
+	layer.layer = -1
+	add_child(layer)
+	var gt := GradientTexture2D.new()
+	gt.fill = GradientTexture2D.FILL_RADIAL
+	gt.fill_from = Vector2(0.5, 0.5)
+	gt.fill_to = Vector2(0.5, 0.5) + Vector2(0.5, 0.5) * float(v["radius"])
+	gt.width = 256
+	gt.height = 144
+	var edge := Color(str(v["color"]))
+	var gr := Gradient.new()
+	gr.set_color(0, Color(edge, 0.0))
+	gr.set_color(1, Color(edge, float(v["strength"])))
+	gr.add_point(float(v["inner"]), Color(edge, 0.0))
+	gt.gradient = gr
+	var tr := TextureRect.new()
+	tr.texture = gt
+	tr.stretch_mode = TextureRect.STRETCH_SCALE
+	tr.set_anchors_preset(Control.PRESET_FULL_RECT)
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(tr)
+
+
+## 0 in the waves' night .. 1 in the duel's deeper night.
+func deep() -> float:
 	return _mood_k
+
+
+## How strongly spells glow and light the ground (0 dim .. 1 full): already high in the waves,
+## full in the duel.
+func spell_k() -> float:
+	return lerpf(float(cfg.get("spell_glow_floor", 0.0)), 1.0, _mood_k)
 
 
 func want_light(at: Vector3, col: Color, energy: float, rng: float) -> void:
@@ -312,9 +379,9 @@ func _process(delta: float) -> void:
 	if arena == null or arena.player == null:
 		return
 	if Input.is_action_just_pressed("mood"):
-		_mood_override = ("dusk" if _mood_k < 0.5 else "day")
-	var want: String = _mood_override if _mood_override != "" else str(cfg["phase_moods"].get(arena.phase, "day"))
-	_mood_k = move_toward(_mood_k, 1.0 if want == "dusk" else 0.0, delta / 2.5)
+		_mood_override = ("duel" if _mood_k < 0.5 else "night")
+	var want: String = _mood_override if _mood_override != "" else str(cfg["phase_moods"].get(arena.phase, "night"))
+	_mood_k = move_toward(_mood_k, 1.0 if want == "duel" else 0.0, delta / 2.5)
 	_apply_mood(_mood_k)
 
 	_light_wants.clear()
@@ -345,8 +412,8 @@ func _follow(delta: float) -> void:
 
 
 func _apply_mood(k: float) -> void:
-	var a: Dictionary = cfg["moods"]["day"]
-	var b: Dictionary = cfg["moods"]["dusk"]
+	var a: Dictionary = cfg["moods"]["night"]
+	var b: Dictionary = cfg["moods"]["duel"]
 	var col := func(key: String) -> Color: return Color(str(a[key])).lerp(Color(str(b[key])), k)
 	var num := func(key: String) -> float: return lerpf(float(a[key]), float(b[key]), k)
 	_env.background_color = col.call("bg")
@@ -361,9 +428,12 @@ func _apply_mood(k: float) -> void:
 	var cols := PackedVector3Array()
 	for key in ["dirt", "grass", "hill", "path"]:
 		var c := Color(str(a["ground"][key])).lerp(Color(str(b["ground"][key])), k)
+		if cfg["ground"].get("linear", false):
+			c = c.srgb_to_linear()  # kind_cols is a plain vec3, so it takes linear colour
 		cols.append(Vector3(c.r, c.g, c.b))
 	_ground.set_shader_parameter("kind_cols", cols)
 	_overlay_mat.set_shader_parameter("boost", num.call("overlay"))
+	_env.fog_light_color = col.call("fog") if a.has("fog") else _env.fog_light_color
 
 
 func _fig_for(u: Unit) -> Dictionary:
@@ -411,6 +481,11 @@ func _sync_figures(delta: float) -> void:
 		f.set_look(clampf(u.flash * 6.0, 0.0, 1.0), Color("fff0d8"), fade, dark)
 		if u.kind == "rival" and not u.dead:
 			want_light(to_world(u.pos, 1.6), PixelArt.STORM, 0.6, 3.0)
+		if u == P and not u.dead:
+			# the wizard's staff gem: a small light of their own, so they never vanish in the dark
+			var gl: Array = cfg.get("player_light", [])
+			if not gl.is_empty():
+				want_light(to_world(u.pos, 2.0), Color(str(gl[0])), float(gl[1]), float(gl[2]))
 	for id in _figs.keys():
 		if not _figs[id]["seen"]:
 			_figs[id]["node"].queue_free()
@@ -470,9 +545,9 @@ func _sync_shrine() -> void:
 		want_light(_shrine.position + Vector3(0, 1.2, 0), PixelArt.GOLD, 1.2, 3.0)
 
 
-## Spells light the scene at dusk: the brightest few wants get a real light.
+## Spells light the night: the brightest few wants get a real light.
 func _place_lights() -> void:
-	var scale := lerpf(float(cfg["moods"]["day"]["lights"]), float(cfg["moods"]["dusk"]["lights"]), _mood_k)
+	var scale := lerpf(float(cfg["moods"]["night"]["lights"]), float(cfg["moods"]["duel"]["lights"]), _mood_k)
 	_light_wants.sort_custom(func(a, b): return a[2] > b[2])
 	for i in MAX_LIGHTS:
 		var l := _lights[i]

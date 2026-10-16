@@ -1,16 +1,26 @@
 extends Control
-## Interface at 960×540: spell cards with stat tracks, HP and field-object caps, the duel bar,
-## level-up toasts, the milestone picker, the Orrery shrine, the title card and the Loop Ledger.
+## Interface at 960×540 in the Star Atlas style (GDD 6.6): navy glass panels with gold hairlines,
+## Cormorant small caps, planetary glyphs. The spellbook is a constellation of six star rings
+## with the Magick as a gold diamond; Vitality and Aether are fine lines; Cadence is four stars at
+## the reticle; a row of 28 moon phases ends in the Eclipse. Also the level-up toasts, the
+## milestone picker, the Orrery shrine, the title card and the Loop Ledger.
 
-const CARD := Vector2(128, 78)
 const SLOTS := ["slot1", "slot2", "slot3", "slot4", "slot5", "slot6", "magick"]
 const KEYS := {"slot1": "LMB", "slot2": "RMB", "slot3": "Q", "slot4": "E", "slot5": "R", "slot6": "F", "magick": "C"}
 const AETHER := Color("b48cff")
-const BG := Color(0.07, 0.055, 0.08, 0.86)
+const BG := Color(0.035, 0.055, 0.125, 0.8)  # navy glass
+const HAIR := Color("d8c27a")  # gold hairline
+const VITAL := Color("e8e4d8")
+const RING_R := 22.0
+## The six stars of the spellbook, then the Magick's diamond (HUD coordinates).
+const STARS := [Vector2(273, 476), Vector2(356, 458), Vector2(439, 476), Vector2(522, 458), Vector2(605, 476), Vector2(688, 458)]
+const MAGICK_AT := Vector2(800, 470)
+const LOOP_DAYS := 28
 
 var main
 var arena
-var font: Font
+var font: Font  # Cormorant Garamond, with the glyphs and the default font behind it
+var font_sc: Font  # Cormorant small caps, for titles
 var toasts: Array = []  # {"text", "sub", "color", "t", "big"}
 var banner := ""
 var banner_t := 0.0
@@ -22,7 +32,17 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	size = Vector2(960, 540)
 	mouse_filter = Control.MOUSE_FILTER_PASS
-	font = ThemeDB.fallback_font
+	var glyphs: FontFile = load("res://assets/fonts/NotoSansSymbols-Planets.ttf")
+	font = _font("res://assets/fonts/CormorantGaramond-SemiBold.ttf", glyphs)
+	font_sc = _font("res://assets/fonts/CormorantSC-SemiBold.ttf", glyphs)
+
+
+func _font(path: String, glyphs: Font) -> Font:
+	var f := load(path) as FontFile
+	if f == null:
+		return ThemeDB.fallback_font
+	f.fallbacks = [glyphs, ThemeDB.fallback_font]
+	return f
 
 
 func reset() -> void:
@@ -93,21 +113,50 @@ func _gui_input(ev: InputEvent) -> void:
 
 # --- drawing ----------------------------------------------------------------
 
-func _text(pos: Vector2, s: String, sz := 14, col := PixelArt.PAPER, align := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0) -> void:
-	draw_string(font, pos + Vector2(1, 1), s, align, width, sz, Color(0, 0, 0, 0.7 * col.a))
-	draw_string(font, pos, s, align, width, sz, col)
+## Text in Cormorant (which runs small, so sizes are nudged up), with a soft shadow.
+func _text(pos: Vector2, s: String, sz := 14, col := PixelArt.PAPER, align := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0, f: Font = null) -> void:
+	var fo: Font = font if f == null else f
+	var size_px := int(round(sz * 1.12))
+	draw_string(fo, pos + Vector2(0, 1), s, align, width, size_px, Color(0, 0, 0, 0.75 * col.a))
+	draw_string(fo, pos, s, align, width, size_px, col)
 
 
-func _panel(r: Rect2, border := Color(1, 1, 1, 0.12)) -> void:
+## A title in small caps.
+func _title(pos: Vector2, s: String, sz := 14, col := HAIR, align := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0) -> void:
+	_text(pos, s, sz, col, align, width, font_sc)
+
+
+func _text_w(s: String, sz: int) -> float:
+	return font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, int(round(sz * 1.12))).x
+
+
+## Navy glass with a gold hairline and an inner hairline, like a plate in a star atlas.
+func _panel(r: Rect2, border := Color(HAIR, 0.55)) -> void:
 	draw_rect(r, BG)
-	draw_rect(r, border, false, 2.0)
+	draw_rect(r, border, false, 1.0)
+	draw_rect(r.grow(-3.0), Color(border, border.a * 0.35), false, 1.0)
 
 
-## The mutation mark: a small four-point star (the default font has no ✦).
+## The mutation mark: a small four-point star.
 func star(c: Vector2, r: float, col := PixelArt.GOLD) -> void:
 	var q := r * 0.3
 	draw_colored_polygon(PackedVector2Array([c + Vector2(0, -r), c + Vector2(q, -q), c + Vector2(r, 0), c + Vector2(q, q),
 		c + Vector2(0, r), c + Vector2(-q, q), c + Vector2(-r, 0), c + Vector2(-q, -q)]), col)
+
+
+## A fine meter: a dim hairline with the filled part bright, and a short glow cap at its end.
+func _meter(at: Vector2, w: float, k: float, col: Color, lag := -1.0) -> void:
+	draw_line(at, at + Vector2(w, 0), Color(col, 0.18), 2.0)
+	if lag > k:
+		draw_line(at, at + Vector2(w * clampf(lag, 0, 1), 0), Color(1, 1, 1, 0.45), 2.0)
+	var e := at + Vector2(w * clampf(k, 0, 1), 0)
+	draw_line(at, e, col, 2.0)
+	if k > 0.0:
+		draw_circle(e, 2.0, col.lightened(0.3))
+
+
+func _glyph(e: String) -> String:
+	return str(arena.D["elements"].get(e, {}).get("glyph", "✦"))
 
 
 func _draw() -> void:
@@ -132,88 +181,63 @@ func _draw() -> void:
 func _draw_fight() -> void:
 	var P: Unit = arena.player
 	var kit = arena.kit
-	# Top left: wizard level, HP in chunks of 10, Aether, blink charges, Cadence notes and
-	# field-object caps (design doc §4.3).
+	# Top left: the wizard, Vitality and Aether as fine lines, Blink, field-object caps and
+	# the masteries.
 	var lo: Array = Progression.loadout()
 	var rows: Array = []
 	for e in lo:
 		var f: Dictionary = field_count(e)
 		if int(f["cap"]) > 0 and rows.size() < 3:
 			rows.append(e)
-	_panel(Rect2(8, 8, 236, 100 + rows.size() * 16))
-	_text(Vector2(16, 26), "Wizard  Lv %d" % Progression.wizard_level(), 14)
+	var pr := Rect2(10, 10, 214, 104 + rows.size() * 15)
+	_panel(pr)
+	_title(Vector2(20, 30), "The Wizard  ·  Lv %d" % Progression.wizard_level(), 13)
 	var wx: float = Progression.p["wizard_xp"] / Progression.wizard_xp_needed(Progression.wizard_level())
-	draw_rect(Rect2(130, 18, 104, 4), Color(1, 1, 1, 0.1))
-	draw_rect(Rect2(130, 18, 104 * clampf(wx, 0, 1), 4), PixelArt.PAPER)
-	var hp_r := Rect2(16, 34, 218, 12)
-	draw_rect(hp_r, Color(0.2, 0.1, 0.12))
-	draw_rect(Rect2(hp_r.position, Vector2(hp_r.size.x * P.hp_lag / P.max_hp, 12)), PixelArt.PAPER)
-	draw_rect(Rect2(hp_r.position, Vector2(hp_r.size.x * maxf(P.hp, 0.0) / P.max_hp, 12)), Color("6cc46c"))
-	var chunks := int(P.max_hp / 10.0)
-	for i in range(1, chunks):
-		var x := hp_r.position.x + hp_r.size.x * i * 10.0 / P.max_hp
-		draw_line(Vector2(x, 34), Vector2(x, 46), Color(0, 0, 0, 0.5), 1.0)
-	_text(Vector2(18, 45), "%d / %d" % [ceili(maxf(P.hp, 0.0)), int(P.max_hp)], 11)
-	# Aether, the mana: in chunks of 10, like HP.
-	var ae_r := Rect2(16, 50, 218, 8)
-	draw_rect(ae_r, Color(0.12, 0.1, 0.18))
-	draw_rect(Rect2(ae_r.position, Vector2(ae_r.size.x * kit.aether / kit.max_aether(), 8)), AETHER)
-	for i in range(1, int(kit.max_aether() / 10.0)):
-		var x: float = ae_r.position.x + ae_r.size.x * i * 10.0 / kit.max_aether()
-		draw_line(Vector2(x, 50), Vector2(x, 58), Color(0, 0, 0, 0.45), 1.0)
-	_text(Vector2(16, 72), "Aether %d" % int(kit.aether), 11, AETHER)
-	_text(Vector2(100, 72), "Blink", 11, PixelArt.PAPER)
+	draw_line(Vector2(20, 36), Vector2(214, 36), Color(HAIR, 0.15), 1.0)
+	draw_line(Vector2(20, 36), Vector2(20 + 194 * clampf(wx, 0, 1), 36), Color(HAIR, 0.6), 1.0)
+	_text(Vector2(20, 53), "Vitality", 11, Color(VITAL, 0.8))
+	_text(Vector2(20, 53), "%d / %d" % [ceili(maxf(P.hp, 0.0)), int(P.max_hp)], 11, Color(VITAL, 0.8), HORIZONTAL_ALIGNMENT_RIGHT, 194)
+	_meter(Vector2(20, 59), 194, maxf(P.hp, 0.0) / P.max_hp, VITAL if P.hp > P.max_hp * 0.3 else PixelArt.DANGER, P.hp_lag / P.max_hp)
+	_text(Vector2(20, 76), "Aether", 11, Color(AETHER, 0.9))
+	_text(Vector2(20, 76), "%d / %d" % [int(kit.aether), int(kit.max_aether())], 11, Color(AETHER, 0.9), HORIZONTAL_ALIGNMENT_RIGHT, 194)
+	_meter(Vector2(20, 82), 194, kit.aether / kit.max_aether(), AETHER)
+	_text(Vector2(20, 100), "Blink", 11, Color(VITAL, 0.7))
 	for i in Progression.blink_charges():
-		var col: Color = PixelArt.PAPER if i < kit.blink_charges else Color(1, 1, 1, 0.15)
-		draw_rect(Rect2(134 + i * 11, 64, 8, 8), col)
-	# Cadence: one note per change of spell; a full set makes the next spell Resonant.
-	var full: int = int(arena.D["cadence"]["notes"])
-	_text(Vector2(16, 88), "Cadence", 11, Color(1, 1, 1, 0.7))
-	for i in full:
-		var on: bool = i < kit.notes
-		draw_circle(Vector2(70 + i * 12, 84), 4.0, PixelArt.PAPER if on else Color(1, 1, 1, 0.15))
-	if kit.notes >= full:
-		_text(Vector2(126, 88), "RESONANT", 11, PixelArt.PAPER)
-	# One row of field-object dots per sphere in the book that has one.
+		star(Vector2(58 + i * 12, 96), 4.0, VITAL if i < kit.blink_charges else Color(VITAL, 0.18))
+	# One row of field-object diamonds per sphere in the book that has one.
 	for row in rows.size():
 		var f: Dictionary = field_count(rows[row])
 		var col: Color = kit.element_color(rows[row])
-		var y := 96 + row * 16
-		_text(Vector2(16, y + 8), f["name"], 11, col)
+		var y := 114 + row * 15
+		_text(Vector2(20, y), "%s %s" % [_glyph(rows[row]), f["name"]], 11, col)
 		for i in int(f["cap"]):
-			var filled: bool = i < int(f["count"])
-			draw_rect(Rect2(70 + i * 10, y, 7, 7), col if filled else Color(col, 0.2), filled, -1.0 if filled else 1.0)
+			_diamond(Vector2(88 + i * 11, y - 4), 3.5, col if i < int(f["count"]) else Color(col, 0.22), i < int(f["count"]))
 	var el: Dictionary = arena.D["elements"]
 	var mast: Array = []
 	for e in lo:
-		mast.append("%s %d" % [el[e]["name"], Progression.mastery(e)])
-	_text(Vector2(16, 101 + rows.size() * 16), "Mastery   " + "  ·  ".join(mast), 10, Color(1, 1, 1, 0.6))
-	# Top right: the loop and this run's numbers, which the Ledger keeps.
-	_panel(Rect2(800, 8, 152, 62))
-	_text(Vector2(810, 26), "Loop %d" % Progression.loop(), 14, PixelArt.GOLD)
-	var t: float = arena.fight_time
-	_text(Vector2(810, 44), "%d:%02d   %d casts" % [int(t) / 60, int(t) % 60, int(arena.stats["casts"])], 12)
-	_text(Vector2(810, 61), "%d taken  ·  %d down" % [int(arena.stats["damage_taken"]), int(arena.stats["kills"])], 11, Color(1, 1, 1, 0.7))
-	# Duel bar.
+		mast.append("%s %d" % [_glyph(e), Progression.mastery(e)])
+	_text(Vector2(118, 100), "Mastery  " + "  ".join(mast), 10, Color(HAIR, 0.7), HORIZONTAL_ALIGNMENT_RIGHT, 96)
+	_draw_moons()
+	# Top right: the duelist.
 	var r: Unit = arena.rival()
 	if r:
-		var bar := Rect2(330, 24, 300, 10)
-		_text(Vector2(330, 20), "Silas Vane, Storm Rider   Poise %d" % r.poise, 13, PixelArt.STORM)
-		draw_rect(bar, Color(0.15, 0.1, 0.12))
-		draw_rect(Rect2(bar.position, Vector2(bar.size.x * r.hp_lag / r.max_hp, 10)), PixelArt.PAPER)
-		draw_rect(Rect2(bar.position, Vector2(bar.size.x * r.hp / r.max_hp, 10)), PixelArt.DANGER)
-		for i in range(1, int(r.max_hp / 10.0)):
-			var x := bar.position.x + bar.size.x * i * 10.0 / r.max_hp
-			draw_line(Vector2(x, 24), Vector2(x, 34), Color(0, 0, 0, 0.45), 1.0)
+		var br := Rect2(726, 10, 224, 70)
+		_panel(br)
+		_title(br.position + Vector2(12, 21), "Silas Vane", 15, PixelArt.STORM)
+		_text(br.position + Vector2(12, 36), "Storm Rider  ·  %s %s" % [_glyph("storm"), el["storm"]["name"]], 10, Color(VITAL, 0.55))
+		_meter(br.position + Vector2(12, 46), 200, r.hp / r.max_hp, PixelArt.STORM, r.hp_lag / r.max_hp)
+		_text(br.position + Vector2(12, 63), "Poise", 10, Color(VITAL, 0.7))
+		for i in maxi(r.poise, 0):
+			star(br.position + Vector2(48 + i * 11, 59), 4.0, VITAL)
 		if r.pips > 0:
 			for i in arena.ignite_threshold():
-				draw_rect(Rect2(636 + i * 9, 25, 7, 7), PixelArt.FIRE_HOT if i < r.pips else Color(PixelArt.FIRE, 0.25))
+				_diamond(br.position + Vector2(130 + i * 10, 59), 3.5, PixelArt.FIRE_HOT if i < r.pips else Color(PixelArt.FIRE, 0.25), i < r.pips)
 		if r.wet_t > 0.0:
-			_text(Vector2(636, 46), "Wet", 12, PixelArt.WATER)
-	# Banner.
+			_text(br.position + Vector2(0, 63), "Wet", 11, PixelArt.WATER, HORIZONTAL_ALIGNMENT_RIGHT, 212)
+	# Banner, under the moon row.
 	if banner != "" and banner_t < 3.2:
 		var a := clampf(3.2 - banner_t, 0.0, 1.0) * clampf(banner_t * 4.0, 0.0, 1.0)
-		_text(Vector2(0, 66 if r else 40), banner, 20, Color(PixelArt.PAPER, a), HORIZONTAL_ALIGNMENT_CENTER, 960)
+		_title(Vector2(0, 84), banner, 20, Color(PixelArt.PAPER, a), HORIZONTAL_ALIGNMENT_CENTER, 960)
 	# Hover: hits to kill with your current Bolt (design doc §4.4) and Poise.
 	var h: Unit = arena.hover
 	if h and main.mode == "fight":
@@ -228,8 +252,69 @@ func _draw_fight() -> void:
 			_text(sp, "×%d" % hits, 13, kit.element_color(Progression.spell(bolt)["element"]))
 		_text(sp + Vector2(0, 13), "Poise %d" % h.poise, 10, Color(1, 1, 1, 0.75))
 	if main.mode == "fight" and arena.shrine_ready():
-		_text(arena.screen_pos(arena.shrine_pos(), 1.6 if arena.view else 21.0) + Vector2(-60, -16), "G: the Orrery", 13, PixelArt.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 120)
-	_draw_cards()
+		_title(arena.screen_pos(arena.shrine_pos(), 1.6 if arena.view else 21.0) + Vector2(-60, -16), "G · the Orrery", 13, PixelArt.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 120)
+	if main.mode == "fight":
+		_draw_cadence_stars()
+	_draw_book()
+
+
+## Top centre: the loop's 28 days as moon phases, today ringed, ending in the Eclipse's black
+## sun; this run's numbers under it. (The prototype's fight is always the loop's first day.)
+func _draw_moons() -> void:
+	var step := 12.5
+	var x0 := 480.0 - (LOOP_DAYS + 1) * step / 2.0 + step / 2.0
+	var strip := Rect2(x0 - 12, 10, (LOOP_DAYS + 1) * step + 12, 22)
+	draw_rect(strip, Color(BG, 0.55))
+	draw_line(strip.position + Vector2(0, strip.size.y), strip.end, Color(HAIR, 0.3), 1.0)
+	var today := 0
+	var r := 4.2
+	for i in LOOP_DAYS:
+		var c := Vector2(x0 + i * step, 21)
+		var lit := Color("dfe4f2", 0.8 if i == today else 0.45)
+		draw_circle(c, r, lit)
+		# the shadow slides across: new moon on day 0, full on day 14
+		var dx := -2.0 * r * i / 14.0 if i <= 14 else 2.0 * r * (LOOP_DAYS - i) / 14.0
+		if absf(dx) < 2.0 * r:
+			draw_circle(c + Vector2(dx, 0), r + 0.3, Color(0.05, 0.07, 0.14))
+		draw_arc(c, r, 0, TAU, 16, Color(lit, 0.35), 1.0)
+		if i == today:
+			draw_arc(c, r + 3.0, 0, TAU, 20, HAIR, 1.0)
+	var ec := Vector2(x0 + LOOP_DAYS * step + 2.0, 21)
+	draw_arc(ec, 6.5, 0, TAU, 24, Color(PixelArt.GOLD, 0.8), 1.5)
+	draw_circle(ec, 5.5, Color(0, 0, 0))
+	var t: float = arena.fight_time
+	_title(Vector2(0, 48), "Loop %d   ·   Day %d of %d   ·   %d:%02d   ·   %d casts   ·   %d taken   ·   %d down" % [
+		Progression.loop(), today + 1, LOOP_DAYS, int(t) / 60, int(t) % 60, int(arena.stats["casts"]),
+		int(arena.stats["damage_taken"]), int(arena.stats["kills"])], 11, Color(HAIR, 0.85), HORIZONTAL_ALIGNMENT_CENTER, 960)
+
+
+func _diamond(c: Vector2, r: float, col: Color, filled := true) -> void:
+	var pts := PackedVector2Array([c + Vector2(0, -r), c + Vector2(r, 0), c + Vector2(0, r), c + Vector2(-r, 0)])
+	if filled:
+		draw_colored_polygon(pts, col)
+	else:
+		pts.append(pts[0])
+		draw_polyline(pts, col, 1.0)
+
+
+## Cadence: four stars by the reticle, joined as they light; Resonant when all four are lit.
+func _draw_cadence_stars() -> void:
+	var kit = arena.kit
+	if kit.notes <= 0:
+		return
+	var at: Vector2 = arena.screen_pos(arena.mouse, 0.0) + Vector2(16, -14)
+	var full: int = int(arena.D["cadence"]["notes"])
+	var shape := [Vector2(0, 0), Vector2(9, -6), Vector2(18, -2), Vector2(25, -10)]
+	var resonant: bool = kit.notes >= full
+	var col: Color = PixelArt.GOLD if resonant else VITAL
+	for i in full:
+		var p: Vector2 = at + shape[i % shape.size()]
+		var on: bool = i < kit.notes
+		if on and i > 0:
+			draw_line(at + shape[(i - 1) % shape.size()], p, Color(col, 0.6), 1.0)
+		star(p, 3.5 if on else 2.0, col if on else Color(col, 0.25))
+	if resonant:
+		_title(at + Vector2(0, 14), "Resonant", 10, PixelArt.GOLD)
 
 
 ## The field-object row for an element: its name, how many are out and the cap (design doc §4.3).
@@ -251,122 +336,135 @@ func _zones_of(kind: String) -> int:
 	return arena.zones.filter(func(z): return z["kind"] == kind).size()
 
 
-func _draw_cards() -> void:
+## The spellbook as a constellation: the six stars joined by fine gold lines over a long arc,
+## each a ring in its sphere's colour with the planet's glyph; the Magick is the diamond.
+func _draw_book() -> void:
 	var kit = arena.kit
-	var x0 := (960.0 - SLOTS.size() * (CARD.x + 4.0) + 4.0) / 2.0
-	for i in SLOTS.size():
+	var arc := PackedVector2Array()
+	for i in 41:
+		var x := lerpf(226.0, 736.0, i / 40.0)
+		arc.append(Vector2(x, 530.0 - 26.0 * sin(PI * i / 40.0)))
+	draw_polyline(arc, Color(HAIR, 0.25), 1.0, true)
+	for i in STARS.size() - 1:
+		draw_line(STARS[i], STARS[i + 1], Color(HAIR, 0.3), 1.0, true)
+	var hover := ""
+	var mouse := get_local_mouse_position()
+	for i in 6:
 		var slot: String = SLOTS[i]
 		var id: String = kit.slot_spell(slot)
-		var r := Rect2(Vector2(x0 + i * (CARD.x + 4.0), 540 - CARD.y - 8), CARD)
-		if slot == "magick":
-			_draw_magick_card(r, slot, id)
-		else:
-			_draw_spell_card(r, slot, id)
+		_draw_star_slot(STARS[i], slot, id)
+		if mouse.distance_to(STARS[i]) < RING_R + 4.0:
+			hover = id
+	_draw_magick(MAGICK_AT, "magick", kit.slot_spell("magick"))
+	if hover != "" and main.mode == "fight":
+		_draw_spell_tip(hover, mouse)
 
 
-func _draw_spell_card(r: Rect2, slot: String, id: String) -> void:
+func _draw_star_slot(c: Vector2, slot: String, id: String) -> void:
 	var kit = arena.kit
 	var s: Dictionary = Progression.spell(id)
 	var col: Color = kit.element_color(s["element"])
-	var border := Color(col, 0.6)
+	var ring := col
+	var width := 2.0
 	if glow.has(id):
-		border = PixelArt.GOLD if int(glow[id] * 8.0) % 2 == 0 else col
-	if kit.denied.has(slot):
-		border = PixelArt.DANGER
+		ring = PixelArt.GOLD if int(glow[id] * 8.0) % 2 == 0 else col
 	if kit.holding == slot:
-		border = PixelArt.PAPER
-	_panel(r, border)
-	draw_rect(Rect2(r.position + Vector2(4, 4), Vector2(25, 15)), Color(col, 0.25))
-	_text(r.position + Vector2(4, 16), KEYS[slot], 10, col, HORIZONTAL_ALIGNMENT_CENTER, 25)
-	_text(r.position + Vector2(33, 17), s["name"], 11, PixelArt.PAPER)
-	if Progression.mutated(id):
-		var w := font.get_string_size(s["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
-		star(r.position + Vector2(33 + w + 5, 12), 3.0)
+		ring = PixelArt.PAPER
+		width = 3.0
+	if kit.denied.has(slot):
+		ring = PixelArt.DANGER
+	if kit.resonant_for(id):
+		draw_arc(c, RING_R + 7.0, 0, TAU, 40, Color(PixelArt.GOLD, 0.5 + 0.3 * sin(Time.get_ticks_msec() / 160.0)), 1.5, true)
+	draw_circle(c, RING_R + 1.0, Color(0.03, 0.045, 0.1, 0.9))
+	draw_arc(c, RING_R, 0, TAU, 40, ring, width, true)
+	# the level's progress as a gold arc just outside the ring
 	var lv := Progression.level(id)
-	_text(r.position + Vector2(0, 17), "Lv%d" % lv, 10, PixelArt.GOLD, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 5)
 	var frac := 1.0 if lv >= Progression.max_level() else Progression.xp(id) / Progression.xp_needed(lv)
-	draw_rect(Rect2(r.position + Vector2(6, 23), Vector2(r.size.x - 12, 3)), Color(1, 1, 1, 0.1))
-	draw_rect(Rect2(r.position + Vector2(6, 23), Vector2((r.size.x - 12) * frac, 3)), PixelArt.GOLD)
-	var y := 40.0
-	for key in s["stats"]:
-		var def: Dictionary = s["stats"][key]
-		if def.get("hidden", false):
-			continue
-		_text(r.position + Vector2(8, y), def["label"], 11, Color(1, 1, 1, 0.65))
-		_text(r.position + Vector2(0, y), fmt(def, Progression.stat(id, key)), 11, PixelArt.PAPER, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 8)
-		y += 13.0
-	var muts: Array = Progression.mut_names(id)
-	if not muts.is_empty():
-		star(r.position + Vector2(11, r.size.y - 10), 3.0)
-		_text(r.position + Vector2(18, r.size.y - 6), ", ".join(muts), 10, PixelArt.GOLD, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 22)
-	_draw_cadence(r, id)
-	_draw_cooldown(r, id)
-
-
-## The card's Aether cost, how dulled a repeat would be, and whether the cast will be Resonant.
-func _draw_cadence(r: Rect2, id: String) -> void:
-	var kit = arena.kit
+	draw_arc(c, RING_R + 3.5, -PI / 2.0, -PI / 2.0 + TAU * frac, 40, Color(PixelArt.GOLD, 0.75), 1.0, true)
+	var left: float = arena.player.cooldown(id)
+	if left > 0.0:
+		var k := clampf(left / maxf(kit.cooldown_total(id), 0.01), 0.0, 1.0)
+		var pts := PackedVector2Array([c])
+		for j in 25:
+			pts.append(c + Vector2.from_angle(-PI / 2.0 + TAU * k * j / 24.0) * (RING_R - 1.0))
+		draw_colored_polygon(pts, Color(0, 0, 0, 0.6))
+		_text(c + Vector2(-30, 6), "%.1f" % left, 15, PixelArt.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 60)
+	else:
+		_text(c + Vector2(-30, 9), _glyph(s["element"]), 22, col, HORIZONTAL_ALIGNMENT_CENTER, 60)
+	# key and level above, name and cost below
+	_title(c + Vector2(-40, -RING_R - 8), "%s  ·  %d" % [KEYS[slot], lv], 10, Color(HAIR, 0.85), HORIZONTAL_ALIGNMENT_CENTER, 80)
+	var label: String = s["name"]
+	_text(c + Vector2(-50, RING_R + 15), label, 12, PixelArt.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 100)
+	if Progression.mutated(id):
+		star(c + Vector2(_text_w(label, 12) / 2.0 + 6, RING_R + 10), 3.0)
 	var cost: float = kit.aether_cost(id)
 	if cost > 0.0:
-		var col: Color = AETHER if kit.aether >= cost else PixelArt.DANGER
-		draw_circle(r.position + Vector2(r.size.x - 22, r.size.y - 10), 3.0, col)
-		_text(r.position + Vector2(0, r.size.y - 6), "%d" % int(cost), 10, col, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 6)
+		_text(c + Vector2(-50, RING_R + 27), "%d aether" % int(cost), 9, AETHER if kit.aether >= cost else PixelArt.DANGER, HORIZONTAL_ALIGNMENT_CENTER, 100)
 	var d: float = kit.dull(id)
 	if d < 0.999:
-		_text(r.position + Vector2(0, 32), "×%.2f" % d, 10, PixelArt.DANGER, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 6)
-	if kit.resonant_for(id):
-		draw_rect(Rect2(r.position + Vector2(1, 1), r.size - Vector2(2, 2)), PixelArt.PAPER, false, 1.0)
+		_text(c + Vector2(RING_R - 4, -RING_R + 4), "×%.2f" % d, 10, PixelArt.DANGER)
 
 
-## The Magick card. Unknown Magicks show a tome's hint if one was read (design doc §5).
-func _draw_magick_card(r: Rect2, slot: String, id: String) -> void:
+## The Magick: a gold diamond. Unknown Magicks show a tome's hint if one was read (design doc §5).
+func _draw_magick(c: Vector2, slot: String, id: String) -> void:
 	var kit = arena.kit
+	var r := 20.0
+	_title(c + Vector2(-50, -r - 8), "C  ·  Magick", 10, Color(HAIR, 0.85), HORIZONTAL_ALIGNMENT_CENTER, 100)
+	var border := Color(HAIR, 0.8)
 	if id == "":
-		_panel(r, Color(1, 1, 1, 0.1))
-		_text(r.position + Vector2(5, 16), "C", 11, Color(1, 1, 1, 0.4), HORIZONTAL_ALIGNMENT_CENTER, 28)
-		_text(r.position + Vector2(38, 17), "No Magick", 12, Color(1, 1, 1, 0.5))
-		_text(r.position + Vector2(8, 40), "Carry both spheres", 11, Color(1, 1, 1, 0.45))
-		_text(r.position + Vector2(8, 54), "of a Magick to use it.", 11, Color(1, 1, 1, 0.45))
+		_diamond(c, r, Color(HAIR, 0.25), false)
+		_text(c + Vector2(-70, r + 15), "None for these spheres", 11, Color(1, 1, 1, 0.5), HORIZONTAL_ALIGNMENT_CENTER, 140)
 		return
 	var m: Dictionary = arena.D["magicks"][id]
 	var known := Progression.knows(id)
-	var border := Color(PixelArt.GOLD, 0.6) if known else Color(1, 1, 1, 0.15)
 	if glow.has(id):
 		border = PixelArt.GOLD if int(glow[id] * 8.0) % 2 == 0 else PixelArt.PAPER
 	if kit.denied.has(slot):
 		border = PixelArt.DANGER
-	_panel(r, border)
-	_text(r.position + Vector2(5, 16), "C", 11, PixelArt.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 28)
+	_diamond(c, r + 1.0, Color(0.03, 0.045, 0.1, 0.9))
+	_diamond(c, r, border if known else Color(border, 0.4), false)
+	_diamond(c, r - 4.0, Color(border, 0.25 if known else 0.1), false)
 	var el: Dictionary = arena.D["elements"]
-	var pair_name := "%s + %s" % [el[m["pair"][0]]["name"], el[m["pair"][1]]["name"]]
-	if not known:
-		_text(r.position + Vector2(33, 17), "Magick: ???", 12, Color(1, 1, 1, 0.6))
-		var lines: Array = m["hint_card"] if Progression.has_hint(id) else ["Make %s and" % el[m["pair"][0]]["name"], "%s meet in a fight." % el[m["pair"][1]]["name"] if el[m["pair"][1]]["name"].length() <= 5 else "%s meet." % el[m["pair"][1]]["name"], "Tomes hold hints."]
-		for i in lines.size():
-			_text(r.position + Vector2(8, 40 + i * 14), lines[i], 11, Color(1, 1, 1, 0.6 if i == 0 else 0.45))
-		return
-	_text(r.position + Vector2(33, 17), m["name"], 12, PixelArt.GOLD)
-	_text(r.position + Vector2(0, 17), "Lv %d" % Progression.magick_level(id), 12, PixelArt.GOLD, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 6)
-	_text(r.position + Vector2(8, 32), pair_name + " Magick", 10, Color(1, 1, 1, 0.5))
-	var y := 46.0
-	for key in m["stats"]:
-		var def: Dictionary = m["stats"][key]
-		_text(r.position + Vector2(8, y), def["label"], 11, Color(1, 1, 1, 0.65))
-		_text(r.position + Vector2(0, y), fmt(def, Progression.magick_stat(id, key)), 11, PixelArt.PAPER, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 8)
-		y += 13.0
-	_text(r.position + Vector2(8, r.size.y - 6), m["card_note"], 10, Color(1, 1, 1, 0.5))
-	_draw_cadence(r, id)
-	_draw_cooldown(r, id)
-
-
-func _draw_cooldown(r: Rect2, id: String) -> void:
+	var g := "%s%s" % [_glyph(m["pair"][0]), _glyph(m["pair"][1])]
 	var left: float = arena.player.cooldown(id)
-	if left <= 0.0:
+	if left > 0.0:
+		_text(c + Vector2(-30, 6), "%.1f" % left, 15, PixelArt.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 60)
+	else:
+		_text(c + Vector2(-30, 6), g, 15, PixelArt.GOLD if known else Color(1, 1, 1, 0.35), HORIZONTAL_ALIGNMENT_CENTER, 60)
+	if not known:
+		_text(c + Vector2(-80, r + 15), "Unknown Magick", 12, Color(1, 1, 1, 0.6), HORIZONTAL_ALIGNMENT_CENTER, 160)
+		var hint: String = " ".join(m["hint_card"]) if Progression.has_hint(id) else "Make %s and %s meet." % [el[m["pair"][0]]["name"], el[m["pair"][1]]["name"]]
+		_text(c + Vector2(-80, r + 28), hint, 9, Color(1, 1, 1, 0.45), HORIZONTAL_ALIGNMENT_CENTER, 160)
 		return
-	var total: float = arena.kit.cooldown_total(id)
-	var k := clampf(left / maxf(total, 0.01), 0.0, 1.0)
-	draw_rect(Rect2(r.position + Vector2(2, 2 + (r.size.y - 4) * (1.0 - k)), Vector2(r.size.x - 4, (r.size.y - 4) * k)), Color(0, 0, 0, 0.55))
-	_text(r.position + Vector2(0, r.size.y / 2.0 + 8), "%.1f" % left, 18, PixelArt.PAPER, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+	_text(c + Vector2(-80, r + 15), "%s  ·  Lv %d" % [m["name"], Progression.magick_level(id)], 12, PixelArt.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 160)
+	var cost: float = kit.aether_cost(id)
+	if cost > 0.0:
+		_text(c + Vector2(-80, r + 27), "%d aether" % int(cost), 9, AETHER if kit.aether >= cost else PixelArt.DANGER, HORIZONTAL_ALIGNMENT_CENTER, 160)
+	if kit.resonant_for(id):
+		_diamond(c, r + 6.0, Color(PixelArt.GOLD, 0.6), false)
+
+
+## Hovering a star shows the spell's numbers and mutations, as the old cards did.
+func _draw_spell_tip(id: String, at: Vector2) -> void:
+	var s: Dictionary = Progression.spell(id)
+	var lines: Array = []
+	for key in s["stats"]:
+		var def: Dictionary = s["stats"][key]
+		if not def.get("hidden", false):
+			lines.append([def["label"], fmt(def, Progression.stat(id, key))])
+	var muts: Array = Progression.mut_names(id)
+	var h := 30.0 + lines.size() * 14.0 + (14.0 if not muts.is_empty() else 0.0)
+	var r := Rect2(Vector2(clampf(at.x - 80, 8, 792), 430 - h), Vector2(160, h))
+	_panel(r)
+	_title(r.position + Vector2(10, 18), "%s  Lv %d" % [s["name"], Progression.level(id)], 12, arena.kit.element_color(s["element"]))
+	var y := r.position.y + 34
+	for l in lines:
+		_text(Vector2(r.position.x + 10, y), l[0], 11, Color(1, 1, 1, 0.65))
+		_text(Vector2(r.position.x, y), l[1], 11, PixelArt.PAPER, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 10)
+		y += 14.0
+	if not muts.is_empty():
+		star(Vector2(r.position.x + 13, y - 4), 3.0)
+		_text(Vector2(r.position.x + 20, y), ", ".join(muts), 10, PixelArt.GOLD, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 26)
 
 
 func _draw_toasts() -> void:
@@ -396,14 +494,14 @@ func _draw_picker() -> void:
 	draw_rect(Rect2(0, 0, 960, 540), Color(0, 0, 0, 0.55))
 	var entry: Dictionary = Progression.pending[0]
 	var s: Dictionary = Progression.spell(entry["spell"])
-	_text(Vector2(0, 170), "%s reached Lv %d" % [s["name"], entry["level"]], 24, PixelArt.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 960)
+	_title(Vector2(0, 170), "%s reached Lv %d" % [s["name"], entry["level"]], 24, PixelArt.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 960)
 	_text(Vector2(0, 194), "Choose a mutation. It changes how the spell behaves.", 14, PixelArt.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 960)
 	var opts := Progression.milestone_options(entry)
 	for i in opts.size():
 		var r := _pick_rect(i)
 		var hot := r.has_point(get_local_mouse_position())
 		_panel(r, PixelArt.GOLD if hot else Color(PixelArt.GOLD, 0.5))
-		_text(r.position + Vector2(12, 26), "[%d]  %s" % [i + 1, opts[i]["name"]], 18, PixelArt.GOLD)
+		_title(r.position + Vector2(12, 26), "%d  ·  %s" % [i + 1, opts[i]["name"]], 18, PixelArt.GOLD)
 		_text(r.position + Vector2(12, 56), opts[i]["text"], 14, PixelArt.PAPER, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 24)
 	_text(Vector2(0, 350), "Press 1 or 2, or click. You can re-pick later, but only at an Orrery shrine.", 12, Color(1, 1, 1, 0.6), HORIZONTAL_ALIGNMENT_CENTER, 960)
 
@@ -444,13 +542,13 @@ func _draw_shrine() -> void:
 	var kit = arena.kit
 	draw_rect(Rect2(0, 0, 960, 540), Color(0, 0, 0, 0.6))
 	_panel(SHRINE, Color(PixelArt.GOLD, 0.7))
-	_text(SHRINE.position + Vector2(0, 34), "THE ORRERY", 24, PixelArt.GOLD, HORIZONTAL_ALIGNMENT_CENTER, SHRINE.size.x)
+	_title(SHRINE.position + Vector2(0, 34), "The Orrery", 26, PixelArt.GOLD, HORIZONTAL_ALIGNMENT_CENTER, SHRINE.size.x)
 	_text(SHRINE.position + Vector2(0, 56), "Your spells remember every loop. Choose what to carry, and how it behaves.", 13, Color(1, 1, 1, 0.7), HORIZONTAL_ALIGNMENT_CENTER, SHRINE.size.x)
-	_text(SHRINE.position + Vector2(24, 88), "Spellbook", 16, PixelArt.PAPER)
+	_title(SHRINE.position + Vector2(24, 88), "Spellbook", 16, PixelArt.PAPER)
 	_text(SHRINE.position + Vector2(24, 104), "pick a slot, then a spell", 10, Color(1, 1, 1, 0.45))
-	_text(SHRINE.position + Vector2(190, 88), "Spells", 16, PixelArt.PAPER)
+	_title(SHRINE.position + Vector2(190, 88), "Spells", 16, PixelArt.PAPER)
 	_text(SHRINE.position + Vector2(190, 104), "any sphere, any slot", 10, Color(1, 1, 1, 0.45))
-	_text(SHRINE.position + Vector2(470, 88), "Mutations", 16, PixelArt.PAPER)
+	_title(SHRINE.position + Vector2(470, 88), "Mutations", 16, PixelArt.PAPER)
 	_text(SHRINE.position + Vector2(560, 88), "of the spells in the book; hover for detail", 10, Color(1, 1, 1, 0.45))
 	var hover := get_local_mouse_position()
 	var book: Array = Progression.spellbook()
@@ -517,8 +615,8 @@ func _draw_shrine() -> void:
 
 
 func _draw_title() -> void:
-	draw_rect(Rect2(0, 0, 960, 540), Color(0.05, 0.04, 0.06, 0.78))
-	_text(Vector2(0, 110), "WIZARD", 48, PixelArt.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 960)
+	draw_rect(Rect2(0, 0, 960, 540), Color(0.02, 0.03, 0.07, 0.8))
+	_title(Vector2(0, 110), "Wizard", 54, HAIR, HORIZONTAL_ALIGNMENT_CENTER, 960)
 	var el: Dictionary = Progression.data["elements"]
 	var names: Array = []
 	for e in Progression.loadout():
@@ -553,7 +651,7 @@ func _draw_ledger() -> void:
 	draw_rect(Rect2(0, 0, 960, 540), Color(0, 0, 0, 0.6))
 	var r := Rect2(170, 90, 620, 330)
 	_panel(r, Color(PixelArt.GOLD, 0.6))
-	_text(r.position + Vector2(0, 34), "LOOP LEDGER  ·  Ambush at the Mill", 22, PixelArt.GOLD, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+	_title(r.position + Vector2(0, 34), "Loop Ledger  ·  Ambush at the Mill", 22, PixelArt.GOLD, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 	var entries: Array = Progression.p["ledger"]
 	var shown := entries.slice(maxi(0, entries.size() - 8))
 	var y := r.position.y + 70.0

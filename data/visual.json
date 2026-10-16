@@ -1,44 +1,57 @@
 {
-  "_doc": "The 3D view (scripts/view/view3d.gd): low-poly figures, ground and spells over the 2D sim, lit and coloured after Magicka (soft figures, saturated colour, glowing spells, a camera that follows a little). Purely visual: hitboxes and rules stay in the sim. Positions are sim pixels unless named in metres.",
+  "_doc": "The 3D view (scripts/view/view3d.gd): low-poly figures, ground and spells over the 2D sim, in the moody-night look (GDD 6.3): smooth low-poly shapes with bumpy, glossy materials, moonlight, low mist, lit windows and lamps, spells as the main light, a muted world and a dark vignette. Purely visual: hitboxes and rules stay in the sim. Positions are sim pixels unless named in metres.",
   "metres_per_px": 0.0556,
   "camera": {"offset": [0, 16.5, 10.8], "look_at": [0, 0, 0.9], "fov": 40, "follow": 0.75, "follow_limit_m": [2.8, 1.3]},
-  "adjust": {"saturation": 1.1, "contrast": 1.05, "brightness": 1.0},
-  "props_facet": 0.6,
+  "adjust": {"saturation": 0.82, "contrast": 1.12, "brightness": 1.0},
+  "props_facet": 0.0,
+  "spell_glow_floor": 0.75,
+  "player_light": ["ffcf90", 0.9, 4.5],
+  "fog": {"color": "2a3450", "density": 0.006, "height": 0.6, "height_density": 0.5},
+  "vignette": {"color": "04060d", "strength": 0.8, "radius": 1.2, "inner": 0.42},
+
+  "_surfaces_doc": "Material finishes (scripts/view/lowpoly.gdshader): bump and its noise scale (texture repeats per metre), mottle (albedo variation), spec and gloss (highlight strength and tightness), wrap and rim.",
+  "surfaces": {
+    "figure": {"bump": 0.15, "bump_scale": 1.6, "mottle": 0.06, "spec": 0.25, "gloss": 18.0, "wrap": 0.4, "rim": 0.45},
+    "prop": {"bump": 0.45, "bump_scale": 1.0, "mottle": 0.18, "spec": 0.1, "gloss": 12.0, "wrap": 0.25, "rim": 0.1},
+    "stone": {"bump": 0.7, "bump_scale": 0.7, "mottle": 0.25, "spec": 0.06, "gloss": 10.0, "wrap": 0.2, "rim": 0.05},
+    "metal": {"bump": 0.05, "bump_scale": 1.0, "mottle": 0.05, "spec": 0.8, "gloss": 40.0, "wrap": 0.15, "rim": 0.2},
+    "ground": {"bump": 0.35, "bump_scale": 0.3, "mottle": 0.35, "spec": 0.14, "gloss": 34.0, "wrap": 0.1}
+  },
   "overlay_scale": 3,
   "darken": 0.1,
 
   "_figures_doc": "Per unit kind: a model from assets/models/figures, scale, recipe colours swapped (hex: hex), tint [hex, amount] for every other colour, a hat on the head bone (hood, wizard, frontier), glowing eyes, the weapon shown, a glowing staff gem, facet (1 faceted .. 0 smooth).",
   "figures": {
-    "wizard": {"model": "elder", "scale": 1.08, "weapon": "staff", "facet": 0.3, "eyes": "bfe6ff", "staff_gem": "ffb347",
-      "colors": {"5e5a62": "3358b8", "8a8690": "e8c25a", "3a3640": "7a4a2a", "3a3840": "2a2f45"},
-      "hat": {"kind": "hood", "color": "3358b8", "band": "e8c25a"}},
-    "hollow": {"model": "bandit", "scale": 0.95, "facet": 0.5, "tint": ["6e6a62", 0.75], "eyes": "ff9a3c"},
-    "slinger": {"model": "bandit", "scale": 0.92, "facet": 0.5, "tint": ["59684a", 0.7], "eyes": "ffd36b"},
-    "rival": {"model": "swordsman", "scale": 1.02, "facet": 0.4,
+    "wizard": {"model": "elder", "scale": 1.08, "weapon": "staff", "facet": 0.0, "eyes": "bfe6ff", "staff_gem": "ffb347",
+      "colors": {"5e5a62": "34489a", "8a8690": "d8c27a", "3a3640": "5a3a22", "3a3840": "22263a"},
+      "hat": {"kind": "hood", "color": "34489a", "band": "d8c27a"}},
+    "hollow": {"model": "bandit", "scale": 0.95, "facet": 0.0, "tint": ["6e6a62", 0.75], "eyes": "ff9a3c"},
+    "slinger": {"model": "bandit", "scale": 0.92, "facet": 0.0, "tint": ["59684a", 0.7], "eyes": "ffd36b"},
+    "rival": {"model": "swordsman", "scale": 1.02, "facet": 0.0,
       "colors": {"7d8aa0": "3e5560", "c4cbd6": "8fe8ff", "3d4552": "2a2f33", "8c7a5a": "6b5a45"},
       "hat": {"kind": "frontier", "color": "3a3029", "band": "8fe8ff"}}
   },
 
-  "_moods_doc": "Day for the waves; dusk when Silas arrives, so spells become the light. F3 flips the mood for review.",
-  "phase_moods": {"duel": "dusk", "won": "dusk", "lost": "dusk"},
+  "_moods_doc": "Night for the waves; a deeper night when Silas arrives, so spells are nearly all the light. F3 flips the mood for review. lights scales spell lights; fog tints the mist.",
+  "phase_moods": {"duel": "duel", "won": "duel", "lost": "duel"},
   "moods": {
-    "day": {
-      "bg": "151a25", "ambient": "7f9ad6", "ambient_energy": 0.6,
-      "sun": "ffe6b8", "sun_energy": 1.35, "sun_rot": [-55, 35, 0],
-      "ground": {"dirt": "8a6c4c", "grass": "5a863e", "hill": "4a7636", "path": "9e8866"},
-      "glow": 0.8, "lights": 0.5, "overlay": 1.0
+    "night": {
+      "bg": "07090d", "ambient": "56627e", "ambient_energy": 0.36,
+      "sun": "9ab2e0", "sun_energy": 0.5, "sun_rot": [-60, -30, 0], "fog": "2a3450",
+      "ground": {"dirt": "6e655a", "grass": "3a4636", "hill": "333e30", "path": "776c60"},
+      "glow": 1.1, "lights": 0.85, "overlay": 1.2
     },
-    "dusk": {
-      "bg": "0b0e16", "ambient": "6a7caa", "ambient_energy": 0.45,
-      "sun": "9fb2e0", "sun_energy": 0.55, "sun_rot": [-60, -30, 0],
-      "ground": {"dirt": "48464f", "grass": "2c4440", "hill": "253a36", "path": "54525e"},
-      "glow": 1.2, "lights": 1.0, "overlay": 1.25
+    "duel": {
+      "bg": "05070b", "ambient": "3e4a6a", "ambient_energy": 0.28,
+      "sun": "8aa2d8", "sun_energy": 0.38, "sun_rot": [-62, -40, 0], "fog": "222a44",
+      "ground": {"dirt": "5e564e", "grass": "323c30", "hill": "2c3529", "path": "675e55"},
+      "glow": 1.35, "lights": 1.0, "overlay": 1.3
     }
   },
 
   "_ground_doc": "A faceted mesh: cell size and extent in metres, hill height outside the fence, paths out of the gates (sim pixels).",
   "ground": {
-    "cell_m": 1.1, "extent_m": [70, 50], "hill_m": 2.2, "shade_var": 0.05,
+    "cell_m": 1.1, "extent_m": [70, 50], "hill_m": 1.2, "shade_var": 0.0, "facet": 0.0, "linear": true, "chunk_cells": 8,
     "paths": [[[-60, 140], [20, 140]], [[460, 140], [540, 140]], [[240, -60], [240, 34]], [[240, 248], [240, 330]]],
     "path_width_px": 40
   },
@@ -50,5 +63,19 @@
     ["rock_big", -10, 230, 30, 1.0], ["rock_small", 492, 230, 0, 1.0], ["signpost", 500, 120, 90, 1.0],
     ["tree", 150, -36, 60, 1.0], ["rock_small", 330, -8, 20, 0.8]
   ],
-  "fence_gap_px": 30
+  "fence_gap_px": 30,
+
+  "_town_doc": "The edge of Vellmar round the yard (scripts/view/town.gd). houses: [sim x, sim y, width m, depth m, height m, facing degrees] (the front with the windows faces +z turned by facing); lamps: [sim x, sim y], each a real light.",
+  "town": {
+    "palette": {"wall": "6e665c", "wall2": "5c544a", "wall3": "4e5258", "timber": "2a2220", "roof": "3a3436",
+      "roof2": "2e3440", "roof3": "343a34", "stone": "5a5a5e", "window": "ffb060"},
+    "houses": [
+      [-40, -30, 4.4, 4.0, 3.6, 0], [42, -34, 4.0, 4.0, 4.4, 0], [122, -28, 4.6, 4.0, 3.8, 0],
+      [358, -28, 4.6, 4.0, 4.2, 0], [438, -34, 4.0, 4.0, 3.6, 0], [518, -30, 4.4, 4.0, 4.4, 0],
+      [-66, 70, 4.0, 4.0, 3.8, 90], [-66, 215, 4.0, 4.0, 4.2, 90],
+      [546, 70, 4.0, 4.0, 4.2, -90], [546, 215, 4.0, 4.0, 3.6, -90]
+    ],
+    "lamps": [[2, 16], [478, 16], [2, 266], [478, 266], [212, 18], [268, 18]],
+    "lamp_color": "ffb060", "lamp_energy": 2.6, "lamp_range": 7.0
+  }
 }

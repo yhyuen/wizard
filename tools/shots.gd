@@ -2,7 +2,7 @@ extends SceneTree
 ## Screenshots of the fight for review (needs a display, not --headless):
 ##
 ##   xvfb-run -a -s "-screen 0 1440x810x24" godot --rendering-driver opengl3 --resolution 1440x810 \
-##       --fixed-fps 60 --script res://tools/shots.gd -- --out DIR [--at 4,14,30] [--seed 3]
+##       --fixed-fps 60 --script res://tools/shots.gd -- --out DIR [--at 4,14,30] [--seed 3] [--stop 20] [--nohud]
 ##
 ## The bot plays loop 1 at practice levels; a shot is saved at each second in --at (shot_<s>.png),
 ## the first Ember Bolt well clear of the caster (shot_fireball.png), one when Silas arrives (shot_duel.png) and a few seconds into the duel (shot_dusk.png).
@@ -16,6 +16,8 @@ var Progression
 var _duel_f := -1
 var _jump := false  # --duel: skip the waves and go straight to Silas
 var _fireball := false
+var _stop := 240.0  # --stop: quit after this many seconds
+var _nohud := false  # --nohud: world only
 
 
 func _initialize() -> void:
@@ -23,6 +25,10 @@ func _initialize() -> void:
 	for i in args.size():
 		if args[i] == "--out":
 			out = args[i + 1]
+		elif args[i] == "--stop":
+			_stop = float(args[i + 1])
+		elif args[i] == "--nohud":
+			_nohud = true
 		elif args[i] == "--duel":
 			_jump = true
 		elif args[i] == "--at":
@@ -50,6 +56,8 @@ func _process(_dt: float) -> bool:
 	if frames == 1:
 		for id in Progression.data["spells"]:
 			Progression.set_level(id, 5)
+	if frames == 2 and _nohud:
+		main.hud.visible = false
 	var s := frames / 60.0
 	if _jump and frames == 90:
 		for u in main.arena.enemies():
@@ -69,7 +77,7 @@ func _process(_dt: float) -> bool:
 	if _duel_f > 0 and frames == _duel_f + 480:
 		_shot("shot_dusk")
 		return true
-	return s > 240.0
+	return s > _stop
 
 
 func _comet_in_flight() -> bool:

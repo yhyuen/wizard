@@ -13,10 +13,10 @@
     "loop_wizard_level_keep": 0.5
   },
   "elements": {
-    "fire": {"name": "Mars", "was": "Fire", "color": "f08a3c"},
-    "earth": {"name": "Jupiter", "was": "Earth", "color": "c8964e"},
-    "storm": {"name": "Mercury", "was": "Storm", "color": "8fe8ff"},
-    "water": {"name": "Luna", "was": "Water", "color": "4f86e8"}
+    "fire": {"name": "Mars", "was": "Fire", "glyph": "♂", "color": "f08a3c"},
+    "earth": {"name": "Jupiter", "was": "Earth", "glyph": "♃", "color": "c8964e"},
+    "storm": {"name": "Mercury", "was": "Storm", "glyph": "☿", "color": "8fe8ff"},
+    "water": {"name": "Luna", "was": "Water", "glyph": "☽", "color": "4f86e8"}
   },
   "_spellbook_doc": "Six spellbook slots (LMB, RMB, Q, E, R, F) hold any six known spells, from any sphere; changed at the Orrery shrine. Bolts fire while held; every other spell aims while held and casts on release. The Magick (C) is the first Magick whose two spheres are both in the book.",
   "start_spellbook": ["ember_bolt", "pebble", "pillar", "fling", "pyroclasm", "avalanche"],
