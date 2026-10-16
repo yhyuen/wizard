@@ -478,8 +478,6 @@ func _sync_figures(delta: float) -> void:
 		f.position = to_world(u.pos, u.lift() * S)
 		# Facing: the wizard faces the aim; enemies face the wizard, or where they walk.
 		var d: Vector2 = (arena.mouse - u.pos) if u == P else (P.pos - u.pos)
-		if u.kind == "inverted":
-			d = -d  # the Backward Slinger keeps its back to you
 		if d.length() > 0.5 and not u.dead:
 			rec["rot"] = lerp_angle(rec["rot"], face_rot(d), clampf(delta * 14.0, 0.0, 1.0))
 		f.rotation.y = rec["rot"]
@@ -537,16 +535,19 @@ func _pose(u: Unit, rec: Dictionary, delta: float) -> Array:
 		var e: Dictionary = arena.D["enemies"][u.kind]
 		var total := float(e.get("windup", 0.6))
 		var k := 1.0 - clampf(u.state_t / maxf(0.05, total), 0.0, 1.0)
+		if u.kind == "inverted":
+			k = 1.0 - k  # the Backward Slinger's throw plays in reverse: it catches, not throws
 		var anim: Animation = Figure._lib.get_animation(clip)
 		var impact := 0.3 if anim == null else anim.length * 0.42
 		return [clip, k * impact]
 	if u.moving:
-		rec["run_t"] += delta * clampf(u.speed / 50.0, 0.7, 1.4)
+		# The Backward Slinger faces you but its legs run backwards.
+		rec["run_t"] += delta * clampf(u.speed / 50.0, 0.7, 1.4) * (-1.0 if u.kind == "inverted" else 1.0)
 		var run := "staff_run" if staff else "run"
-		return [run, fmod(rec["run_t"], Figure.clip_len(run))]
+		return [run, fposmod(rec["run_t"], Figure.clip_len(run))]
 	rec["run_t"] += delta
 	var idle := "staff_idle" if staff else "stand"
-	return [idle, fmod(rec["run_t"], Figure.clip_len(idle))]
+	return [idle, fposmod(rec["run_t"], Figure.clip_len(idle))]
 
 
 var _echo_fig: Figure = null
