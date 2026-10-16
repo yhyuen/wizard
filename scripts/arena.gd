@@ -34,6 +34,7 @@ var next_id := 1
 var intent := {}
 var mouse := Vector2(W / 2.0, H / 2.0)
 var hover: Unit = null
+var controls = null  # scripts/controls.gd, for the League-style move and attack markers
 var paused := false
 var hitstop := 0.0
 var shake := 0.0
@@ -736,6 +737,7 @@ func _draw() -> void:
 	for f in fxs:
 		_draw_fx(f)
 	kit.draw(self)
+	_draw_order()
 	_draw_reticle()
 
 
@@ -762,6 +764,7 @@ func _draw_marks() -> void:
 		if f["kind"] == "cone":  # a level-up ghost of a cone; the view draws every other effect
 			_draw_fx(f)
 	kit.draw(self)
+	_draw_order()
 	_draw_reticle()
 
 
@@ -1015,6 +1018,21 @@ func _draw_fx(f: Dictionary) -> void:
 			if view != null:
 				return
 			draw_texture(_tex["stone"], (f["pos"] - Vector2(3, 3 + 30.0 * k)).round(), Color(1, 0.6, 0.3, 1.0 - k))
+
+
+## League-style orders: a ring that closes on the right-clicked point (red on an enemy), and a
+## red ring under the enemy being attacked.
+func _draw_order() -> void:
+	if controls == null or not controls.league():
+		return
+	var o: Dictionary = controls.order
+	if not o.is_empty():
+		var k: float = o["t"] / controls.ORDER_LIFE
+		var col := Color(PixelArt.DANGER if o["attack"] else PixelArt.GOLD, 0.9 * (1.0 - k))
+		draw_arc(o["at"], 7.0 * (1.0 - k) + 2.0, 0, TAU, 16, col, 1.0, true)
+	var t: Unit = controls.target
+	if t != null and not t.dead:
+		draw_arc(t.pos + Vector2(0, 1), t.radius + 3.0, 0, TAU, 20, Color(PixelArt.DANGER, 0.75), 1.0, true)
 
 
 func _draw_reticle() -> void:
