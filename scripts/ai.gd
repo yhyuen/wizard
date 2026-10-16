@@ -24,6 +24,8 @@ func update(u: Unit, dt: float) -> void:
 			_hollow(u, dt)
 		"slinger":
 			_slinger(u, dt)
+		"inverted":
+			_inverted(u, dt)
 		"rival":
 			_rival(u, dt)
 
@@ -86,6 +88,36 @@ func _slinger(u: Unit, dt: float) -> void:
 				var start = u.pos + Vector2(0, -6)
 				A.add_zone({"kind": "line", "owner": u.id, "a": start, "b": start + to.normalized() * float(e["range"]),
 					"delay": float(e["windup"])})
+		"windup":
+			u.state_t -= dt
+			if u.state_t <= 0.0:
+				u.state = "move"
+				u.cd["attack"] = float(e["cooldown"]) * A.rng.randf_range(0.8, 1.2)
+
+
+## The Backward Slinger: keeps its back to you, and its stones fly the wrong way. The telegraph
+## runs from a spot behind you to its hand; the stone appears at that spot and flies home.
+func _inverted(u: Unit, dt: float) -> void:
+	var e: Dictionary = A.D["enemies"]["inverted"]
+	var to: Vector2 = A.player.pos - u.pos
+	var d = to.length()
+	match u.state:
+		"move":
+			var keep = float(e["keep"])
+			var dir = Vector2.ZERO
+			if d > keep + 25.0:
+				dir = to
+			elif d < keep - 30.0:
+				dir = -to
+			dir += to.orthogonal().normalized() * (-0.6 if int(u.id) % 2 == 0 else 0.6)
+			_step(u, dir, dt)
+			u.facing = -signf(to.x) if absf(to.x) > 0.1 else u.facing
+			if d < float(e["range"]) and u.cooldown("attack") <= 0.0:
+				u.state = "windup"
+				u.state_t = float(e["windup"])
+				var hand = u.pos + Vector2(0, -6)
+				var from = A.clamp_in(A.player.pos + to.normalized() * float(e["behind"]), 2.0)
+				A.add_zone({"kind": "rline", "owner": u.id, "a": from, "b": hand, "delay": float(e["windup"])})
 		"windup":
 			u.state_t -= dt
 			if u.state_t <= 0.0:

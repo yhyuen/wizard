@@ -5,7 +5,9 @@ extends SceneTree
 ##
 ## Loop 1 is the Mars + Jupiter book. Before loop 2 the bot visits the Orrery shrine, fills the book
 ## with the Mercury + Luna spells slot by slot and re-picks a mutation, so two loops cast every spell
-## and both Magicks. Each loop must also weave (a Resonant cast) and spend Aether.
+## and both Magicks. Each loop must also weave (a Resonant cast) and spend Aether. Every loop meets
+## the Backward Slinger; from loop 2 the echo of the last fight walks backwards, and before loop 3
+## the bot puts Rewind (Hours) in the book and must cast it.
 ## Exits non-zero if nothing levels, a spell is never cast, the shrine fails, or the run stalls.
 
 
@@ -50,7 +52,8 @@ func _on_over(won: bool) -> void:
 		"meteor": Progression.knows("meteor"), "conductor": Progression.knows("conductor"),
 		"elements": Progression.loadout().duplicate(), "phase_reached": a.phase, "by_spell": a.stats["by_spell"].duplicate(),
 		"loop": Progression.loop(), "resonant": int(a.stats.get("resonant", 0)), "aether_spent": roundf(float(a.stats.get("aether_spent", 0.0))),
-		"dulled": int(a.stats.get("dulled", 0)), "overdraws": int(a.stats.get("overdraws", 0))})
+		"dulled": int(a.stats.get("dulled", 0)), "overdraws": int(a.stats.get("overdraws", 0)),
+		"inverted_shots": int(a.stats.get("inverted_shots", 0)), "echo": not a.echo_play.is_empty()})
 	print("[fight] loop %d: %s" % [Progression.loop(), JSON.stringify(results[-1])])
 	done += 1
 	frames = 0
@@ -71,6 +74,12 @@ func _process(_dt: float) -> bool:
 		main.start_fight()
 		if Progression.loop() == 2:
 			_visit_shrine()
+		elif Progression.loop() == 3:
+			main.open_shrine()
+			main.shrine_spell(5, "rewind")
+			main.close_shrine()
+			if Progression.spellbook()[5] != "rewind":
+				shrine_fails.append("the shrine did not put Rewind in the book in loop 3")
 	if frames > limit:
 		print("[fight] stalled in phase %s after %d s" % [main.arena.phase, limit / 60])
 		results.append({"won": false, "stalled": true, "phase_reached": main.arena.phase})
@@ -127,12 +136,18 @@ func _finish() -> bool:
 	var expect := ["ember_bolt", "pebble", "pillar", "fling", "pyroclasm", "avalanche", "meteor"]
 	if loops >= 2:
 		expect += ["spark", "arc_lance", "storm_call", "splash", "undertow", "maelstrom", "conductor"]
+	if loops >= 3:
+		expect += ["rewind"]
 	for id in expect:
 		if not cast_ids.has(id):
 			fails.append("the bot never cast " + id)
 	for r in results:
 		if r.has("resonant") and int(r["resonant"]) < 1:
 			fails.append("loop %s never made a Resonant cast" % r.get("loop", "?"))
+		if r.has("inverted_shots") and int(r["inverted_shots"]) < 1:
+			fails.append("loop %s: the Backward Slinger never threw a stone home" % r.get("loop", "?"))
+		if r.has("echo") and bool(r["echo"]) != (int(r.get("loop", 1)) > 1):
+			fails.append("loop %s: the echo of the last fight %s" % [r.get("loop", "?"), "was missing" if int(r.get("loop", 1)) > 1 else "appeared in loop 1"])
 		if r.has("aether_spent") and float(r["aether_spent"]) < 100.0:
 			fails.append("loop %s spent under 100 Aether" % r.get("loop", "?"))
 	print("[fight] reached the duel: %s" % reached_duel)

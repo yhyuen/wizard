@@ -16,7 +16,8 @@
     "fire": {"name": "Mars", "was": "Fire", "glyph": "♂", "color": "f08a3c"},
     "earth": {"name": "Jupiter", "was": "Earth", "glyph": "♃", "color": "c8964e"},
     "storm": {"name": "Mercury", "was": "Storm", "glyph": "☿", "color": "8fe8ff"},
-    "water": {"name": "Luna", "was": "Water", "glyph": "☽", "color": "4f86e8"}
+    "water": {"name": "Luna", "was": "Water", "glyph": "☽", "color": "4f86e8"},
+    "hours": {"name": "Hours", "was": "Time", "glyph": "♄", "color": "ffb347"}
   },
   "_spellbook_doc": "Six spellbook slots (LMB, RMB, Q, E, R, F) hold any six known spells, from any sphere; changed at the Orrery shrine. Bolts fire while held; every other spell aims while held and casts on release. The Magick (C) is the first Magick whose two spheres are both in the book.",
   "start_spellbook": ["ember_bolt", "pebble", "pillar", "fling", "pyroclasm", "avalanche"],
@@ -250,6 +251,14 @@
           {"id": "whirl_magick", "name": "Eye of the Deep", "text": "Combines with any Magick"}
         ]
       }
+    },
+    "rewind": {"name": "Rewind", "element": "hours", "slot": "control", "from_loop": 2,
+      "blurb": "A shard forms where you aim, then flies back into your hand through everything between, dragging what it hits toward you.",
+      "cooldown": 4.0, "range": 140, "min_range": 40, "form": 0.4, "speed": 240, "impact": 2, "pull": 45, "xp_hit": 3,
+      "stats": {
+        "damage": {"label": "Damage", "base": 13, "per": 1.0, "fmt": "%.0f"},
+        "radius": {"label": "Width", "base": 4.5, "per": 0.1, "fmt": "%.1f"}
+      }
     }
   },
   "magicks": {
@@ -291,6 +300,7 @@
   "enemies": {
     "hollow": {"name": "Dust Hollow", "hp": 22, "poise": 0, "speed": 34, "radius": 5, "damage": 6, "windup": 0.6, "reach": 13, "cooldown": 1.1, "xp": 6},
     "slinger": {"name": "Hollow Slinger", "hp": 18, "poise": 0, "speed": 30, "radius": 5, "damage": 7, "windup": 0.75, "range": 150, "keep": 105, "shot_speed": 150, "shot_radius": 3.0, "cooldown": 2.4, "xp": 8},
+    "inverted": {"name": "Backward Slinger", "hp": 18, "poise": 0, "speed": 30, "radius": 5, "damage": 8, "windup": 0.9, "range": 150, "keep": 95, "behind": 45, "shot_speed": 150, "shot_radius": 3.0, "cooldown": 2.8, "xp": 10},
     "rival": {"name": "Silas Vane", "hp": 300, "poise": 1, "speed": 52, "radius": 6, "xp": 60,
       "spark": {"damage": 9, "windup": 0.35, "speed": 210, "radius": 3.0},
       "lance": {"damage": 18, "windup": 0.8, "length": 170, "width": 7, "impact": 2},

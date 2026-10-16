@@ -28,6 +28,7 @@ const WATER_DEEP := Color("2a4fa8")
 const STEEL := Color("9aa3b5")
 const STONE := Color("6f6a78")
 const DANGER := Color("e04a3a")
+const HOURS := Color("ffb347")  # Saturn's inner ray: time, and anything inverted
 const GOLD := Color("f0c05a")
 const INK := Color("1b1420")
 const PAPER := Color("ece4d4")

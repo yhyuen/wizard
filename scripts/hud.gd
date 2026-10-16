@@ -508,6 +508,7 @@ func _draw_picker() -> void:
 # --- the Orrery shrine ----------------------------------------------------------
 
 const SHRINE := Rect2(110, 56, 740, 420)
+const SPELL_COL := 55.0  # five sphere columns fit before the mutations
 
 
 ## Every clickable part of the shrine menu; drawing and clicks share it.
@@ -517,13 +518,13 @@ func _shrine_buttons() -> Array:
 	for i in 6:
 		out.append({"kind": "slot", "index": i, "r": Rect2(SHRINE.position + Vector2(24, 112 + i * 30), Vector2(150, 26))})
 	# Every spell, one column per sphere, one row per kind.
-	var els: Array = Progression.elements()
+	var els: Array = Progression.open_elements()
 	var kinds := ["bolt", "control", "signature"]
 	for c in els.size():
 		for k in kinds.size():
 			var id := Progression.spell_for(els[c], kinds[k])
-			if id != "":
-				out.append({"kind": "spell", "id": id, "r": Rect2(SHRINE.position + Vector2(190 + c * 68, 112 + k * 30), Vector2(64, 26))})
+			if id != "" and Progression.unlocked(id):
+				out.append({"kind": "spell", "id": id, "r": Rect2(SHRINE.position + Vector2(190 + c * SPELL_COL, 112 + k * 30), Vector2(SPELL_COL - 3, 26))})
 	# Mutations of the spells in the book, one row per milestone with a choice.
 	var y := SHRINE.position.y + 104.0
 	for id in Progression.spellbook():
@@ -553,9 +554,9 @@ func _draw_shrine() -> void:
 	var book: Array = Progression.spellbook()
 	var y_label := -1.0
 	var any_mut := false
-	var els: Array = Progression.elements()
+	var els: Array = Progression.open_elements()
 	for c in els.size():
-		_text(SHRINE.position + Vector2(190 + c * 68, 230), Progression.data["elements"][els[c]]["name"], 11, kit.element_color(els[c]), HORIZONTAL_ALIGNMENT_CENTER, 64)
+		_text(SHRINE.position + Vector2(190 + c * SPELL_COL, 230), Progression.data["elements"][els[c]]["name"], 11, kit.element_color(els[c]), HORIZONTAL_ALIGNMENT_CENTER, SPELL_COL - 3)
 	var hover_spell := ""
 	for b in _shrine_buttons():
 		var r: Rect2 = b["r"]

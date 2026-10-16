@@ -3,7 +3,8 @@ extends RefCounted
 ## enemy and steps out of telegraphs (blinking when one is about to land). With Fire + Earth it
 ## keeps lodestones topped up with Pebble and uses Pillar, Fling, the signature and Meteor; with
 ## Storm + Water it soaks enemies with Splash and Undertow, then lights them up with Spark, Arc
-## Lance, Storm Call, Maelstrom and Conductor.
+## Lance, Storm Call, Maelstrom and Conductor. With Rewind in the book it forms the shard
+## behind its target so the shard flies home through it.
 
 var release: Array = []  # slots pressed last frame, released this frame
 var holds := {}  # slot -> frames left to keep it held (Arc Lance charges while held)
@@ -63,7 +64,7 @@ func intent(A) -> Dictionary:
 			"lance":
 				c = Geometry2D.get_closest_point_to_segment(P.pos, z["a"], z["b"])
 				hit = P.pos.distance_to(c) < z["w"] + 6.0
-			"line":
+			"line", "rline":
 				if not z.get("visual", false):
 					c = Geometry2D.get_closest_point_to_segment(P.pos, z["a"], z["b"])
 					hit = P.pos.distance_to(c) < 8.0
@@ -77,7 +78,13 @@ func intent(A) -> Dictionary:
 		out["pressed"]["blink"] = true
 	if not holds.is_empty():
 		return out
-	# Casting.
+	# Casting. Rewind (Hours) forms behind the target, so it flies home through it.
+	var rw: String = kit.slot_of("rewind")
+	if rw != "" and P.cooldown("rewind") <= 0.0 and to.length() < 110.0:
+		out["aim"] = focus.pos + to.normalized() * 30.0
+		_press(out, rw)
+		if out["pressed"].has(rw):
+			return out
 	if Progression.loadout().has("storm"):
 		_storm_water(A, out, foes, near, focus, r)
 		return out

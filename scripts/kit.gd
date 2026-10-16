@@ -11,10 +11,12 @@ const ALL_SLOTS := ["slot1", "slot2", "slot3", "slot4", "slot5", "slot6", "magic
 const GHOST_CASTS := 5
 const FireEarth := preload("res://scripts/spells/fire_earth.gd")
 const StormWater := preload("res://scripts/spells/storm_water.gd")
+const HoursKit := preload("res://scripts/spells/hours.gd")
 
 var A  # the arena
 var fe  # Fire and Earth spells, and Meteor
 var sw  # Storm and Water spells, and Conductor
+var hr  # Hours: Rewind, from loop 2
 var modules: Array = []
 var cast_t = 0.0
 var aether = 100.0
@@ -37,7 +39,8 @@ func _init(arena) -> void:
 	A = arena
 	fe = FireEarth.new(arena, self)
 	sw = StormWater.new(arena, self)
-	modules = [fe, sw]
+	hr = HoursKit.new(arena, self)
+	modules = [fe, sw, hr]
 	Progression.spell_leveled.connect(_on_leveled)
 
 
@@ -173,6 +176,8 @@ func element_color(e: String) -> Color:
 			return PixelArt.STORM
 		"water":
 			return PixelArt.WATER
+		"hours":
+			return PixelArt.HOURS
 	return PixelArt.PAPER
 
 

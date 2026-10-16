@@ -62,6 +62,14 @@ A Magick is on C whenever spells of both its spheres are in the book. Other pair
 
 Two waves of Dust Hollows (melee, red wedge telegraphs) and Hollow Slingers (red aim lines), then a duel with **Silas Vane, the Storm Rider**: a Spark skill shot, an Arc Lance line, Storm Call circles, and a blink out of your Pillars. At half HP he calls more Hollows. Win or fall, the **Loop Ledger** records the run and you wake again in the next loop.
 
+## The inversion test (time running backwards)
+
+A test of the story pitch where someone lives the month backwards (the project's `design/story/storyline-options.md`, option A): can inverted things read clearly in a fight?
+
+- **The Backward Slinger** (wave 2, every loop) keeps its back to you. Its red aim line starts at a spot *behind you*, marked by an amber circle that fills in; the stone appears there and flies home into its hand, through you. Step off the line.
+- **Rewind** (Hours ♄, from loop 2; it lands in slot 6 the first time). Hold to see its path: the shard forms where you aim, then flies back into your hand through everything between, hitting each enemy once and dragging it toward you. Chevrons on the telegraph point home. Form it *behind* a target.
+- **Your echo.** From loop 2, an amber copy of you walks your last fight backwards: it starts where that fight ended and retraces your path to where it began, and where you cast, a shard flies back into its hand. It touches nothing; it is a clue.
+
 ## What to look for (the "readable" part)
 
 - **Level-ups are visible.** A spell levels from its own hits. You get a toast with the stat change ("Speed 209 › 218"), the spell's star flashes, and for the next few casts a dashed ghost shows the *old* size: an old-speed ghost bolt that the new one outruns, the old Pillar radius, the old Fling cone.
@@ -134,7 +142,7 @@ Progress saves to `user://progress.json` (in the browser, the site's IndexedDB).
 
 ```
 godot --headless --script res://tools/tests/unit.gd
-godot --headless --fixed-fps 60 --script res://tools/tests/fight.gd -- --loops 2
+godot --headless --fixed-fps 60 --script res://tools/tests/fight.gd -- --loops 3
 ```
 
 CI runs both on every PR (via `tools/ci/godot.sh`, which also fails on script errors) and builds the web export.

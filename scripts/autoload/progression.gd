@@ -58,6 +58,7 @@ func fresh() -> Dictionary:
 		"hints": [],
 		"spellbook": (data["start_spellbook"] as Array).duplicate(),
 		"ledger": [],
+		"echo": {},  # your last fight, replayed backwards next loop: {"loop", "won", "track"}
 	}
 
 
@@ -276,7 +277,7 @@ func spell_for(element: String, slot: String) -> String:
 
 ## Puts spell `id` in slot `index`. If it is already in another slot, the two swap.
 func set_spell(index: int, id: String) -> void:
-	if not data["spells"].has(id) or index < 0 or index >= spellbook().size():
+	if not data["spells"].has(id) or not unlocked(id) or index < 0 or index >= spellbook().size():
 		return
 	var book: Array = spellbook().duplicate()
 	if book[index] == id:
@@ -288,6 +289,20 @@ func set_spell(index: int, id: String) -> void:
 	p["spellbook"] = book
 	loadout_changed.emit()
 	save()
+
+
+## Some spells only come back with you: Hours (Rewind) is there from loop 2 ("from_loop").
+func unlocked(id: String) -> bool:
+	return loop() >= int(spell(id).get("from_loop", 1))
+
+
+## The spheres with at least one spell you can put in the book now.
+func open_elements() -> Array:
+	return elements().filter(func(e):
+		for id in data["spells"]:
+			if data["spells"][id]["element"] == e and unlocked(id):
+				return true
+		return false)
 
 
 static func valid_book(book, spells: Dictionary) -> bool:
@@ -432,7 +447,27 @@ func next_loop() -> void:
 	p["wizard_level"] = maxi(1, int(floor(wizard_level() * keep)))
 	p["wizard_xp"] = 0.0
 	pending.clear()
+	# A spell that first comes back with you this loop goes straight into the last slot (F).
+	for id in data["spells"]:
+		if int(spell(id).get("from_loop", 1)) == loop() and not spellbook().has(id):
+			var book: Array = spellbook().duplicate()
+			book[book.size() - 1] = id
+			p["spellbook"] = book
 	save()
+
+
+## Keeps the fight you just played, to be replayed backwards in the next loop.
+func set_echo(track: Array, won: bool) -> void:
+	p["echo"] = {"loop": loop(), "won": won, "track": track}
+	save()
+
+
+## The last fight's track if it came from an earlier loop, else [].
+func echo_track() -> Array:
+	var e = p.get("echo", {})
+	if typeof(e) != TYPE_DICTIONARY or int(e.get("loop", loop())) >= loop():
+		return []
+	return e.get("track", [])
 
 
 func reset_all() -> void:
