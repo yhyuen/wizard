@@ -6,7 +6,6 @@ extends Control
 ## milestone picker, the Orrery shrine, the title card and the Loop Ledger.
 
 const SLOTS := ["slot1", "slot2", "slot3", "slot4", "slot5", "slot6", "magick"]
-const KEYS := {"slot1": "LMB", "slot2": "RMB", "slot3": "Q", "slot4": "E", "slot5": "R", "slot6": "F", "magick": "C"}
 const AETHER := Color("b48cff")
 const BG := Color(0.035, 0.055, 0.125, 0.8)  # navy glass
 const HAIR := Color("d8c27a")  # gold hairline
@@ -392,7 +391,7 @@ func _draw_star_slot(c: Vector2, slot: String, id: String) -> void:
 	else:
 		_text(c + Vector2(-30, 9), _glyph(s["element"]), 22, col, HORIZONTAL_ALIGNMENT_CENTER, 60)
 	# key and level above, name and cost below
-	_title(c + Vector2(-40, -RING_R - 8), "%s  ·  %d" % [KEYS[slot], lv], 10, Color(HAIR, 0.85), HORIZONTAL_ALIGNMENT_CENTER, 80)
+	_title(c + Vector2(-40, -RING_R - 8), "%s  ·  %d" % [main.controls.key(slot), lv], 10, Color(HAIR, 0.85), HORIZONTAL_ALIGNMENT_CENTER, 80)
 	var label: String = s["name"]
 	_text(c + Vector2(-50, RING_R + 15), label, 12, PixelArt.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 100)
 	if Progression.mutated(id):
@@ -569,7 +568,7 @@ func _draw_shrine() -> void:
 				var on: bool = b["index"] == shrine_slot
 				draw_rect(r, Color(col, 0.3) if on else Color(0, 0, 0, 0.3))
 				draw_rect(r, PixelArt.PAPER if on else (col if hot else Color(col, 0.4)), false, 2.0 if on else 1.0)
-				_text(r.position + Vector2(4, 17), KEYS[SLOTS[b["index"]]], 11, col, HORIZONTAL_ALIGNMENT_CENTER, 30)
+				_text(r.position + Vector2(4, 17), main.controls.key(SLOTS[b["index"]]), 11, col, HORIZONTAL_ALIGNMENT_CENTER, 30)
 				_text(r.position + Vector2(38, 17), s["name"], 12, PixelArt.PAPER if on else Color(1, 1, 1, 0.75))
 				if hot:
 					hover_spell = id
@@ -623,15 +622,22 @@ func _draw_title() -> void:
 		names.append(el[e]["name"])
 	_text(Vector2(0, 140), "Spellbook prototype  ·  %s  ·  Ambush at the Mill" % " + ".join(names), 16, PixelArt.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 960)
 	var book: Array = Progression.spellbook()
+	var ctl = main.controls
+	var k := func(i: int) -> String: return ctl.key(SLOTS[i])
 	var rows := [
 		["WASD", "Move", "Mouse", "Aim"],
-		["LMB", Progression.spell(book[0])["name"], "RMB", Progression.spell(book[1])["name"]],
-		["Q", Progression.spell(book[2])["name"], "E", Progression.spell(book[3])["name"]],
-		["R", Progression.spell(book[4])["name"], "F", Progression.spell(book[5])["name"]],
+		[k.call(0), Progression.spell(book[0])["name"], k.call(1), Progression.spell(book[1])["name"]],
+		[k.call(2), Progression.spell(book[2])["name"], k.call(3), Progression.spell(book[3])["name"]],
+		[k.call(4), Progression.spell(book[4])["name"], k.call(5), Progression.spell(book[5])["name"]],
 		["C", "Magick (discover it first)", "G", "Orrery shrine (when the yard is quiet)"],
 		["Space", "Blink", "F2", "Autoplay"],
 		["F1", "Practice: every spell +1 level", "", "Bolts fire while held; others aim, then cast on release"],
 	]
+	if ctl.league():
+		rows[0] = ["RMB", "Move, or attack an enemy", "S", "Stop"]
+		rows[5] = ["Space", "Blink toward the cursor", "F2", "Autoplay"]
+		if ctl.smart():
+			rows[6][3] = "Spells cast at the cursor the moment you press them"
 	var y := 200.0
 	for row in rows:
 		_text(Vector2(170, y), row[0], 14, PixelArt.GOLD)
@@ -642,7 +648,8 @@ func _draw_title() -> void:
 	var sub := "Loop %d  ·  Aether is your mana: weave different spells to earn it back" % Progression.loop()
 	if Progression.p["ledger"].size() > 0:
 		sub += "  ·  your spells remember the earlier loops"
-	_text(Vector2(0, 394), sub, 14, Color(1, 1, 1, 0.7), HORIZONTAL_ALIGNMENT_CENTER, 960)
+	_text(Vector2(0, 372), "Tab  ·  Controls: %s" % ctl.NAMES[ctl.scheme], 15, PixelArt.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 960)
+	_text(Vector2(0, 398), sub, 14, Color(1, 1, 1, 0.7), HORIZONTAL_ALIGNMENT_CENTER, 960)
 	var a := 0.6 + 0.4 * sin(Time.get_ticks_msec() / 300.0)
 	_text(Vector2(0, 436), "Click or press Enter to begin", 20, Color(PixelArt.PAPER, a), HORIZONTAL_ALIGNMENT_CENTER, 960)
 

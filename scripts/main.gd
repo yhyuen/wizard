@@ -8,6 +8,7 @@ const Arena := preload("res://scripts/arena.gd")
 const Hud := preload("res://scripts/hud.gd")
 const View3D := preload("res://scripts/view/view3d.gd")
 const Marks := preload("res://scripts/view/marks.gd")
+const Controls := preload("res://scripts/controls.gd")
 
 var arena
 var hud
@@ -18,9 +19,11 @@ var bot: Callable  # tests and the F2 autoplay set this: func(arena) -> intent
 var autoplay
 var wipe_armed := 0.0
 var shrine_open := false
+var controls  # scripts/controls.gd: classic or League-style; Tab on the title card switches
 
 
 func _ready() -> void:
+	controls = Controls.new()
 	var vis = JSON.parse_string(FileAccess.get_file_as_string("res://data/visual.json"))
 	if vis is Dictionary and vis.get("enabled", true):
 		_build_3d(int(vis.get("overlay_scale", 3)))
@@ -29,6 +32,7 @@ func _ready() -> void:
 	hud = Hud.new()
 	hud.main = self
 	hud.arena = arena
+	arena.controls = controls
 	add_child(hud)
 	arena.paused = true
 	arena.toast.connect(hud.push_toast)
@@ -90,6 +94,7 @@ func start_fight() -> void:
 	shrine_open = false
 	arena.start()
 	arena.paused = false
+	controls.reset()
 	hud.reset()
 	if not bot.is_valid():
 		Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
@@ -99,7 +104,9 @@ func _physics_process(_dt: float) -> void:
 	wipe_armed = maxf(0.0, wipe_armed - _dt)
 	match mode:
 		"title":
-			if Input.is_action_just_pressed("confirm") or Input.is_action_just_pressed("slot1") or bot.is_valid():
+			if Input.is_action_just_pressed("controls"):
+				controls.cycle()
+			elif Input.is_action_just_pressed("confirm") or Input.is_action_just_pressed("slot1") or bot.is_valid():
 				start_fight()
 		"fight":
 			_fight_input()
@@ -157,16 +164,7 @@ func _fight_input() -> void:
 		arena.mouse = arena.intent.get("aim", arena.mouse)
 		return
 	arena.mouse = mouse
-	var intent := {
-		"move": Input.get_vector("move_left", "move_right", "move_up", "move_down"),
-		"aim": mouse,
-		"held": {}, "pressed": {}, "released": {},
-	}
-	for a in ["slot1", "slot2", "slot3", "slot4", "slot5", "slot6", "magick", "blink"]:
-		intent["held"][a] = Input.is_action_pressed(a)
-		intent["pressed"][a] = Input.is_action_just_pressed(a)
-		intent["released"][a] = Input.is_action_just_released(a)
-	arena.intent = intent
+	arena.intent = controls.intent(arena, mouse, get_physics_process_delta_time())
 
 
 # --- the Orrery shrine ----------------------------------------------------------
@@ -193,7 +191,7 @@ func shrine_spell(index: int, id: String) -> void:
 	if Progression.spellbook()[index] == id:
 		return
 	Progression.set_spell(index, id)
-	hud.push_toast("%s: %s" % [Hud.KEYS[Hud.SLOTS[index]], Progression.spell(id)["name"]], PixelArt.GOLD)
+	hud.push_toast("%s: %s" % [controls.key(Hud.SLOTS[index]), Progression.spell(id)["name"]], PixelArt.GOLD)
 
 
 func shrine_repick(id: String, lv: int, index: int) -> void:

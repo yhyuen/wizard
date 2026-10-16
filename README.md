@@ -25,6 +25,8 @@ A small browser prototype of the wizard game. Magic comes from four of the plane
 | F2 | Autoplay: a bot plays; press again to take over |
 | F3 | Flip the light between the waves' night and the duel's deeper night (to compare them) |
 
+**League-style controls.** Press Tab on the title card to cycle Classic, League and League with smart cast (the choice is remembered). In League mode: right-click the ground to walk there (hold to keep following the cursor), right-click an enemy to walk into range and attack it with your Bolt, S to stop, Q W E R D F for the six slots (cast at the cursor), C for the Magick, Space to blink toward the cursor. With smart cast, spells go off the moment their key goes down, without the telegraph.
+
 Holding a spell's slot shows the exact telegraph; the telegraph is the hitbox. Every shot also casts a ground shadow that is exactly its hitbox, so read where a shot will hit off the ground, not off the shot flying above it.
 
 ## Spellbook, Aether and Cadence

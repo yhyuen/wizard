@@ -103,5 +103,65 @@ func _run() -> void:
 	ok(P.tome_subject() == "", "no tome once every Magick is known or hinted")
 	P.next_loop()
 	ok(P.has_hint("conductor"), "hints carry over loops")
+	_controls(P)
 	print("[unit] %d check(s), %d failed" % [checks, fails])
 	quit(1 if fails > 0 else 0)
+
+
+## The League-style controls turn right-clicks and Q W E R D F into the same intent the kit reads.
+func _controls(P) -> void:
+	P.reset_all()
+	var A = load("res://scripts/arena.gd").new()
+	root.add_child(A)
+	var C = load("res://scripts/controls.gd").new()
+	C.save_enabled = false
+	C.set_scheme("classic")
+	var none := {"held": {}, "pressed": {}, "released": {}}
+	var it: Dictionary = C.build(A, Vector2(10, 10), {"move": Vector2(1, 0), "held": {}, "pressed": {}, "released": {}})
+	ok(it["move"] == Vector2(1, 0) and it["aim"] == Vector2(10, 10), "classic passes WASD and the mouse through")
+	C.set_scheme("league")
+	ok(C.key("slot1") == "Q" and C.key("slot6") == "F", "League keys are Q W E R D F")
+	var P0: Vector2 = A.player.pos
+	var goal: Vector2 = P0 + Vector2(40, 0)
+	var click := {"move_click": true, "held": {}, "pressed": {}, "released": {}}
+	it = C.build(A, goal, click, 1.0 / 60.0)
+	ok(it["move"].is_equal_approx(Vector2(1, 0)) and C.order.size() > 0, "a right-click on the ground walks toward it and leaves a marker")
+	for i in 120:
+		it = C.build(A, Vector2(0, 0), none, 1.0 / 60.0)
+		A.kit.update(1.0 / 60.0, it)
+	ok(A.player.pos.distance_to(goal) <= C.ARRIVE + 1.5 and C.dest == null, "the wizard stops on the clicked point (%s)" % A.player.pos)
+	ok(it["move"] == Vector2.ZERO and C.order.is_empty(), "then stands still, and the marker fades")
+	# Right-click on an enemy: walk into Bolt range, then hold the Bolt at it.
+	var foe: Unit = A.spawn("hollow", A.player.pos + Vector2(200, 0))
+	A.hover = foe
+	it = C.build(A, foe.pos, click, 1.0 / 60.0)
+	A.hover = null
+	ok(C.target == foe and it["move"].x > 0.9 and not it["held"].get("slot1", false), "attacking a far enemy walks toward it")
+	A.player.pos = foe.pos - Vector2(60, 0)
+	it = C.build(A, Vector2(0, 0), none, 1.0 / 60.0)
+	ok(it["move"] == Vector2.ZERO and it["held"].get("slot1", false) and it["aim"] == foe.pos, "in range, the Bolt fires at the enemy, not the cursor")
+	it = C.build(A, Vector2(5, 5), {"held": {"slot3": true}, "pressed": {"slot3": true}, "released": {}}, 1.0 / 60.0)
+	ok(it["aim"] == Vector2(5, 5) and not it["held"].get("slot1", false), "a spell key aims at the cursor even mid-attack")
+	foe.dead = true
+	C.build(A, Vector2(0, 0), none, 1.0 / 60.0)
+	ok(C.target == null, "the attack ends when the enemy falls")
+	C.build(A, goal, click, 1.0 / 60.0)
+	C.build(A, goal, {"stop": true, "held": {}, "pressed": {}, "released": {}}, 1.0 / 60.0)
+	ok(C.dest == null, "S stops")
+	# Quick cast keeps hold-and-release; smart cast casts on the press.
+	it = C.build(A, goal, {"held": {"slot3": true}, "pressed": {"slot3": true}, "released": {}}, 0.0)
+	ok(it["held"]["slot3"] and not it["released"].get("slot3", false), "quick cast holds the telegraph")
+	C.set_scheme("league_smart")
+	it = C.build(A, goal, {"held": {"slot3": true}, "pressed": {"slot3": true}, "released": {}}, 0.0)
+	ok(it["released"]["slot3"] and not it["held"]["slot3"], "smart cast releases on the same frame")
+	it = C.build(A, goal, {"held": {"slot1": true}, "pressed": {"slot1": true}, "released": {}}, 0.0)
+	ok(it["held"]["slot1"] and not it["released"].get("slot1", false), "a Bolt still fires while held")
+	# Blink goes toward the cursor and ends the order.
+	C.build(A, goal + Vector2(0, 30), click, 0.0)
+	it = C.build(A, goal, {"held": {"blink": true}, "pressed": {"blink": true}, "released": {}}, 0.0)
+	ok(it["move"] == Vector2.ZERO and C.dest == null, "blink aims at the cursor and clears the move order")
+	A.kit.modules.clear()  # the kit and its spell modules point at each other
+	A.kit.fe = null
+	A.kit.sw = null
+	A.free()
+	P.reset_all()

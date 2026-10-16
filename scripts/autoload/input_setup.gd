@@ -28,6 +28,17 @@ func _ready() -> void:
 	_keys("pick3", [KEY_3])
 	_keys("pick4", [KEY_4])
 	_keys("mood", [KEY_F3])
+	_keys("controls", [KEY_TAB])
+	# The League-style scheme (scripts/controls.gd): right-click moves, Q W E R D F cast.
+	_mouse("lol_move", MOUSE_BUTTON_RIGHT)
+	_keys("lol_stop", [KEY_S])
+	_keys("lol_slot1", [KEY_Q])
+	_keys("lol_slot2", [KEY_W])
+	_keys("lol_slot3", [KEY_E])
+	_keys("lol_slot4", [KEY_R])
+	_keys("lol_slot5", [KEY_D])
+	_keys("lol_slot6", [KEY_F])
+	_keys("lol_magick", [KEY_C])
 
 
 func _ensure(action: String) -> void:
