@@ -300,7 +300,7 @@
   "enemies": {
     "hollow": {"name": "Dust Hollow", "hp": 22, "poise": 0, "speed": 34, "radius": 5, "damage": 6, "windup": 0.6, "reach": 13, "cooldown": 1.1, "xp": 6},
     "slinger": {"name": "Hollow Slinger", "hp": 18, "poise": 0, "speed": 30, "radius": 5, "damage": 7, "windup": 0.75, "range": 150, "keep": 105, "shot_speed": 150, "shot_radius": 3.0, "cooldown": 2.4, "xp": 8},
-    "inverted": {"name": "Backward Slinger", "hp": 18, "poise": 0, "speed": 30, "radius": 5, "damage": 8, "windup": 0.9, "range": 150, "keep": 95, "behind": 45, "shot_speed": 150, "shot_radius": 3.0, "cooldown": 2.8, "xp": 10},
+    "inverted": {"name": "Backward Slinger", "hp": 18, "poise": 0, "speed": 30, "radius": 5, "damage": 8, "windup": 0.9, "range": 150, "keep": 95, "behind": 45, "shot_speed": 150, "shot_radius": 3.0, "cooldown": 2.8, "rise": 1.2, "xp": 10},
     "rival": {"name": "Silas Vane", "hp": 300, "poise": 1, "speed": 52, "radius": 6, "xp": 60,
       "spark": {"damage": 9, "windup": 0.35, "speed": 210, "radius": 3.0},
       "lance": {"damage": 18, "windup": 0.8, "length": 170, "width": 7, "impact": 2},
