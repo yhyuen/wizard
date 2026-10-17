@@ -29,6 +29,9 @@ window/stretch/aspect="keep"
 [physics]
 
 common/physics_ticks_per_second=60
+; A slow frame runs at most 3 rule ticks to catch up, so a slow browser slows the game down
+; instead of falling further behind.
+common/max_physics_steps_per_frame=3
 
 [rendering]
 

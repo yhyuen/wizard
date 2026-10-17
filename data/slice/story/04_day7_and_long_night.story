@@ -72,6 +72,7 @@ Day twenty-eight. The Eclipse.
 The Moon eats the Sun, and up on the hill the Orrery screams.
 You face it alone. Nobody in this city sat up with you on the last night.
 In the full game this is a fight. In the slice, the month ends here.
++ learn died_alone
 + end_loop eclipse_alone
 
 # --- the Long Night ------------------------------------------------------------

@@ -24,7 +24,8 @@ func _ready() -> void:
 
 
 func fresh_mem() -> Dictionary:
-	return {"loop": 1, "known": {}, "deaths": {}, "trials": [], "fluency": 0, "slice_end_shown": false, "log": []}
+	return {"loop": 1, "known": {}, "deaths": {}, "trials": [], "fluency": 0, "slice_end_shown": false, "log": [],
+		"play_s": 0.0, "fps": {"sum": 0.0, "n": 0, "min": 0}}  # for the playtest run summary
 
 
 func fresh_loop() -> Dictionary:

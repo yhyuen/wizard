@@ -15,6 +15,17 @@ const Slice := preload("res://scripts/game/slice.gd")
 var arena
 var hud
 var view  # the 3D view, or null for the flat pixel arena
+var marks_vp: SubViewport  # the arena's flat marks, drawn offscreen for the 3D view
+## The 3D view renders at most this many pixels across; a bigger window (or a high-DPI screen)
+## gets the 3D scaled up instead of drawn at full size, while the 2D stays sharp.
+const MAX_3D_WIDTH := 1280.0
+## Below this many frames per second for SLOW_SECONDS of a fight, graphics drop to low on their
+## own (F4 switches back); low graphics also draw the 3D at 3/4 size.
+const SLOW_FPS := 40
+const SLOW_SECONDS := 4.0
+const SETTINGS := "user://settings.json"
+var gfx := "auto"  # "auto", "high" or "low", kept in SETTINGS
+var _slow_t := 0.0
 var container: SubViewportContainer
 var mode := "title"  # title, slice, tests, fight, ledger
 var slice  # scripts/game/slice.gd: the slice's title card, day board, scenes and Ledger
@@ -46,6 +57,7 @@ func _ready() -> void:
 	var vis = JSON.parse_string(FileAccess.get_file_as_string("res://data/visual.json"))
 	if vis is Dictionary and vis.get("enabled", true):
 		_build_3d(int(vis.get("overlay_scale", 3)))
+		_load_settings()
 	else:
 		_build_flat()
 	hud = Hud.new()
@@ -83,6 +95,7 @@ func _build_3d(over: int) -> void:
 	vp.handle_input_locally = false
 	vp.gui_disable_input = true
 	add_child(vp)
+	marks_vp = vp
 	var holder := Node2D.new()
 	holder.scale = Vector2(over, over)
 	vp.add_child(holder)
@@ -153,6 +166,55 @@ func start_slice_fight(enc: Dictionary) -> void:
 func _toast_controls() -> void:
 	hud.toasts = hud.toasts.filter(func(t): return not t["text"].begins_with("Controls: "))
 	hud.push_toast("Controls: %s  ·  Tab to switch" % controls.NAMES[controls.scheme], PixelArt.GOLD)
+
+
+func _process(dt: float) -> void:
+	_show_3d(not slice.visible)
+	if view == null or bot.is_valid():
+		return
+	if Input.is_action_just_pressed("graphics"):
+		set_gfx("low" if not view.low else "high")
+		hud.push_toast("Graphics: %s  ·  F4 to switch" % ("low" if view.low else "high"), PixelArt.GOLD)
+	# Auto: a fight that keeps running slow switches to low graphics, once.
+	if gfx == "auto" and mode == "fight" and not view.low:
+		_slow_t = _slow_t + dt if Engine.get_frames_per_second() < SLOW_FPS else 0.0
+		if _slow_t > SLOW_SECONDS:
+			view.set_low(true)
+			hud.push_toast("Running slowly, so graphics are now low  ·  F4 for high", PixelArt.GOLD)
+
+
+func set_gfx(g: String) -> void:
+	gfx = g
+	if view != null:
+		view.set_low(g == "low")
+	var f := FileAccess.open(SETTINGS, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify({"gfx": gfx}))
+
+
+func _load_settings() -> void:
+	if FileAccess.file_exists(SETTINGS):
+		var d = JSON.parse_string(FileAccess.get_file_as_string(SETTINGS))
+		if d is Dictionary and str(d.get("gfx", "")) in ["auto", "high", "low"]:
+			gfx = d["gfx"]
+	if view != null and gfx == "low":
+		view.set_low(true)
+
+
+## The slice's screens cover the whole window, so the 3D world behind them is not drawn at all.
+func _show_3d(on: bool) -> void:
+	if view == null:
+		return
+	var vp := get_viewport()
+	var scale := clampf(MAX_3D_WIDTH / maxf(1.0, DisplayServer.window_get_size().x), 0.5, 1.0)
+	if view.low:
+		scale *= 0.75
+	if not is_equal_approx(vp.scaling_3d_scale, scale):
+		vp.scaling_3d_scale = scale
+	if vp.disable_3d == (not on):
+		return
+	vp.disable_3d = not on
+	marks_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS if on else SubViewport.UPDATE_DISABLED
 
 
 func _physics_process(_dt: float) -> void:

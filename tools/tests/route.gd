@@ -181,6 +181,12 @@ func _report() -> void:
 	if m2 > 25.0:
 		failures.append("the loop that reaches the Long Night takes %.1f minutes, more than 25" % m2)
 	print("[route] %d Ledger entries known, %d steps" % [run.known_ids().size(), steps])
+	# The playtest run summary must describe the run.
+	var summary: String = slice.run_summary()
+	print("[route] run summary:\n" + summary)
+	for want in ["Vellmar slice · build", "Loop 1 died on day 7", "long_night"]:
+		if not want in summary:
+			failures.append("the run summary has no \"%s\"" % want)
 	for f in failures:
 		print("[route] FAIL: " + f)
 	if failures.is_empty():

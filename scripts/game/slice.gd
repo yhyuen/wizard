@@ -11,6 +11,9 @@ signal screen_changed(screen: String)
 
 const Story := preload("res://scripts/game/story.gd")
 const Growth := preload("res://scripts/game/growth.gd")
+const BuildId := preload("res://scripts/game/build_id.gd")
+## Where playtesters send their notes (design/slice/README.md §5, M5).
+const FEEDBACK_URL := "https://claude.ai/artifact/HryjwPHEs8S6swcQYFam6c"
 const Backdrop := preload("res://scripts/ui/backdrop.gd")
 ## First-loop hints (onboarding), one per screen, shown until you leave that screen once.
 const HINTS := {
@@ -30,6 +33,7 @@ var dawn_slot := 0  # the spellbook slot picked on the dawn card
 var backdrop := Backdrop.new()
 var here := ""  # the place picked on the board, for the backdrop of what plays there
 var scene_t := 0.0  # seconds on this screen, for the backdrops' slow movement
+var fps_t := 0.0  # time since the last frame-rate sample in a fight
 var places: Dictionary = {}
 var links: Array = []
 var encounters: Dictionary = {}
@@ -433,12 +437,75 @@ func toggle_ledger() -> void:
 
 func _process(dt: float) -> void:
 	scene_t += dt
+	_track_play(dt)
 	for t in toasts.duplicate():
 		t["t"] += dt
 		if t["t"] > 4.0:
 			toasts.erase(t)
 	if visible:
 		queue_redraw()
+
+
+# --- playtest ------------------------------------------------------------------------
+
+## Counts real time played and, once a second in a fight, the frame rate, for the run summary.
+func _track_play(dt: float) -> void:
+	if screen == "title" or main == null or main.bot.is_valid() or fight_resolver.is_valid():
+		return
+	run.mem["play_s"] = float(run.mem.get("play_s", 0.0)) + dt
+	if screen != "fight":
+		return
+	fps_t += dt
+	if fps_t >= 1.0:
+		fps_t = 0.0
+		var f: Dictionary = run.mem["fps"]
+		var now := int(Engine.get_frames_per_second())
+		f["sum"] = float(f["sum"]) + now
+		f["n"] = int(f["n"]) + 1
+		f["min"] = now if int(f["n"]) == 1 else mini(int(f["min"]), now)
+
+
+## A plain-text report of this month for the feedback form.
+func run_summary() -> String:
+	var out: Array = ["Vellmar slice · build %s · %s" % [BuildId.ID, OS.get_name()]]
+	out.append("Played %d min · loop %d, day %d, %s · %s, %d wells" % [roundi(float(run.mem.get("play_s", 0.0)) / 60.0),
+		run.loop(), run.day(), run.time_name().to_lower(), growth.ring_name(), growth.wells()])
+	var known: Array = run.known_ids().filter(func(id): return ledger.has(id) and ledger[id]["kind"] != "trial")
+	var qs: Array = ledger.keys().filter(func(id): return ledger[id]["kind"] == "question")
+	out.append("Ledger: %d entries · questions answered %d of %d" % [known.size(), qs.filter(func(q): return solved(q)).size(), qs.size()])
+	var reached: Array = []
+	for f in ["ring1", "wren_friend", "door_barred", "survived_day7"]:
+		if run.flag(f):
+			reached.append(f)
+	if run.knows("long_night"):
+		reached.append("long_night")
+	if run.mem.get("slice_end_shown", false):
+		reached.append("slice_end")
+	out.append("This loop / ever: " + (", ".join(reached) if not reached.is_empty() else "nothing yet"))
+	for d in run.mem["log"]:
+		out.append("Loop %d died on day %d, %s: %s (%d learned)" % [d["loop"], d["day"], str(d["time"]).to_lower(), d["cause"], d["learned"].size()])
+	var f: Dictionary = run.mem.get("fps", {})
+	if int(f.get("n", 0)) > 0:
+		out.append("Fights: %d fps on average, %d at worst · graphics %s%s" % [roundi(float(f["sum"]) / int(f["n"])), int(f["min"]),
+			main.gfx, " (now low)" if main.view != null and main.view.low and main.gfx == "auto" else ""])
+	return "\n".join(out)
+
+
+func copy_summary() -> void:
+	DisplayServer.clipboard_set(run_summary())
+	toast("Run summary copied. Paste it into the feedback form.")
+
+
+func open_feedback() -> void:
+	OS.shell_open(FEEDBACK_URL)
+	toast("The feedback form opens in a new tab.")
+
+
+## The two playtest buttons, top right.
+func _draw_playtest_buttons(summary := true) -> void:
+	if summary:
+		button(Rect2(626, 16, 170, 26), "Copy run summary", copy_summary, 0, 13)
+	button(Rect2(806, 16, 134, 26), "Feedback form", open_feedback, 0, 13)
 
 
 func _unhandled_input(ev: InputEvent) -> void:
@@ -563,8 +630,10 @@ func _draw_title() -> void:
 		button(Rect2(370, y, 220, 34), "Begin", new_month, 1, 15)
 	y += 44.0
 	button(Rect2(370, y, 220, 34), "Test scenes", func(): main.open_tests(), 3, 15)
+	_draw_playtest_buttons(run.has_save() and not run.known_ids().is_empty())
 	var ctl = main.controls
-	text(Vector2(0, 470), "Tab  ·  Fight controls: %s" % ctl.NAMES[ctl.scheme], 15, GOLD, HORIZONTAL_ALIGNMENT_CENTER, 960)
+	var g: String = {"auto": "auto", "high": "high", "low": "low"}.get(main.gfx, "auto")
+	text(Vector2(0, 470), "Tab  ·  Fight controls: %s        F4  ·  Graphics: %s" % [ctl.NAMES[ctl.scheme], g], 15, GOLD, HORIZONTAL_ALIGNMENT_CENTER, 960)
 	text(Vector2(0, 494), "Pick places on the board with the mouse. Number keys pick choices, Space carries on, L opens the Ledger.", 13, DIM, HORIZONTAL_ALIGNMENT_CENTER, 960)
 
 
@@ -806,6 +875,7 @@ func _draw_death() -> void:
 	text(Vector2(0, r.end.y - 52), "Your body and your skill reset. Everything you know stays.", 13, DIM, HORIZONTAL_ALIGNMENT_CENTER, 960 - 0.0)
 	button(Rect2(r.position.x + 170, r.end.y - 42, 180, 32), "Wake", wake, 1, 15)
 	button(Rect2(24, 500, 120, 28), "Ledger  (L)", toggle_ledger, 0, 13)
+	_draw_playtest_buttons()
 
 
 func _draw_end() -> void:
@@ -818,11 +888,12 @@ func _draw_end() -> void:
 			else "You told Wren what you could. Somewhere in those pages is where the notes come from.",
 		"In the full game, this is where you can choose to live one deliberate Last Month, making every message come true, and decide at the Gate who walks back.",
 		"This is the end of the vertical slice. Thank you for playing it.",
-		"You can keep playing loops: everything you know stays with you.",
+		"You can keep playing loops: everything you know stays with you. If you're playtesting, copy your run summary (top right) into the feedback form.",
 	]
 	for b in body:
 		y = para(Vector2(r.position.x + 40, y), b, r.size.x - 80, 15, PAPER) + 10.0
 	button(Rect2(r.position.x + 200, r.end.y - 56, 220, 34), "Keep playing", keep_playing, 1, 15)
+	_draw_playtest_buttons()
 
 
 func _draw_ledger() -> void:

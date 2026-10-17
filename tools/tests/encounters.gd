@@ -9,8 +9,15 @@ extends SceneTree
 ## Mill once more with Aldous's millrace tip. Some results are required, because the design rests
 ## on them (design/slice/content.md §4): a fresh Apprentice passes the yard trial, survives the
 ## Mill from the millrace, and does not survive the tide. The rest are printed for tuning.
+##
+## Success criterion 8 (runs well) is checked here too: --fixed-fps runs frames back to back, so
+## the wall time between frames is what one frame of a fight costs without drawing (the rules,
+## the AI, the bot and the 3D view's scripts). Its 95th percentile must stay under FRAME_BUDGET,
+## half a 60 fps frame. That guards against slow-downs; the browser build runs slower than this
+## native one, so the run summary also reports the frames per second players really got.
 
 const LIMIT := 180 * 60
+const FRAME_BUDGET := 8.0  # ms
 const REQUIRE := {"yard_trial fresh": true, "mill_risen fresh+millrace": true, "tide fresh": false}
 
 var main
@@ -21,6 +28,9 @@ var i := -1
 var frames := 0
 var fails: Array = []
 var encounters: Dictionary
+var last_us := 0
+var frame_ms: Array = []  # this fight's frame times
+var worst := {"p95": 0.0, "name": ""}
 
 
 func _initialize() -> void:
@@ -49,6 +59,10 @@ func _process(_dt: float) -> bool:
 		_next()
 		return false
 	frames += 1
+	var now := Time.get_ticks_usec()
+	if frames > 30 and last_us > 0:
+		frame_ms.append((now - last_us) / 1000.0)
+	last_us = now
 	if frames > LIMIT:
 		fails.append("%s did not end within %d s" % [_name(cases[i]), LIMIT / 60])
 		_next()
@@ -61,6 +75,13 @@ func _on_over(won: bool) -> void:
 	var a = main.arena
 	print("[encounters] %-26s %s in %5.1f s, %2d kills, %d downs, %3d damage taken (max HP %d)" % [_name(c), "won " if won else "lost", t,
 		a.stats["kills"], int(a.stats.get("downs", 0)), roundi(a.stats["damage_taken"]), int(a.player.max_hp)])
+	frame_ms.sort()
+	if not frame_ms.is_empty():
+		var p95: float = frame_ms[int(frame_ms.size() * 0.95)]
+		var mean: float = frame_ms.reduce(func(acc, x): return acc + x, 0.0) / frame_ms.size()
+		print("[encounters] %-26s frame %.2f ms mean, %.2f ms p95, %.2f ms worst" % ["", mean, p95, frame_ms[-1]])
+		if p95 > worst["p95"]:
+			worst = {"p95": p95, "name": _name(c)}
 	var survive := float(encounters[c["id"]].get("survive", 0.0))
 	if won and survive > 0.0 and t < survive - 0.5:
 		fails.append("%s was won before its %d s were up" % [_name(c), survive])
@@ -85,7 +106,12 @@ func _profile(p: String) -> void:
 func _next() -> void:
 	i += 1
 	frames = 0
+	frame_ms = []
+	last_us = 0
 	if i >= cases.size():
+		print("[encounters] slowest fight: %s, %.2f ms per frame (p95), budget %.1f ms" % [worst["name"], worst["p95"], FRAME_BUDGET])
+		if worst["p95"] > FRAME_BUDGET:
+			fails.append("%s takes %.2f ms per frame (p95), over the %.1f ms budget" % [worst["name"], worst["p95"], FRAME_BUDGET])
 		for f in fails:
 			print("[encounters] FAIL: " + f)
 		if fails.is_empty():
