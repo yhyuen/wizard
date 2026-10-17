@@ -19,6 +19,7 @@ const GATES := [Vector2(20, 140), Vector2(460, 140), Vector2(240, 34), Vector2(2
 const REACTIONS := ["none", "flinch", "stagger", "knockdown", "launch"]
 const Kit := preload("res://scripts/kit.gd")
 const Ai := preload("res://scripts/ai.gd")
+const Cutscene := preload("res://scripts/game/cutscene.gd")
 
 var D: Dictionary  # data/spells.json
 var kit
@@ -55,6 +56,7 @@ var scene := ""  # the test scene this fight was started as ("" for the normal f
 ## A slice fight (data/slice/encounters.json): its waves run one after another, or on a timer
 ## when it has "survive" seconds. Empty for the old Mill fight and the test scenes.
 var encounter := {}
+var cutscene = null  # scripts/game/cutscene.gd when a short scene plays instead of a fight
 var enc_wave := -1
 var duel_hits := [0, 0]  # a duel to N hits ("hits"): [hits landed on the rival, hits taken]
 var duel_hit_t := [0.0, 0.0]  # a hit only counts once per second, per side
@@ -130,6 +132,9 @@ func start(test_scene := "", enc := {}) -> void:
 	kit.reset()
 	duel_hits = [0, 0]
 	duel_hit_t = [0.0, 0.0]
+	if scene.begins_with("cutscene:"):
+		_setup_scene()
+		return
 	if encounter.is_empty():
 		_place_tome()
 	elif encounter.get("millrace", false):
@@ -139,6 +144,11 @@ func start(test_scene := "", enc := {}) -> void:
 
 
 func _setup_scene() -> void:
+	cutscene = null
+	if scene.begins_with("cutscene:"):
+		cutscene = Cutscene.new(self, scene.trim_prefix("cutscene:"))
+		phase = "cutscene"
+		return
 	match scene:
 		"wave1", "wave2", "duel":
 			set_phase(scene)
@@ -393,6 +403,13 @@ func _physics_process(dt: float) -> void:
 	if hitstop > 0.0:
 		hitstop -= dt
 		return
+	if cutscene != null:
+		if not cutscene.update(dt) and phase == "cutscene":
+			phase = "won"
+			over_t = 0.4
+		_update_zones(dt)
+		_flow(dt)
+		return
 	_flow(dt)
 	orbit_ang += dt * 3.0
 	if not player.dead:
@@ -570,6 +587,9 @@ func hit(u: Unit, dmg: float, impact: int, dir: Vector2, knock := 0.0, quiet := 
 	if u == player:
 		stats["damage_taken"] += dmg
 		u.iframes = float(D["wizard"]["iframes"])
+		Sfx.play("hurt")
+	elif not quiet:
+		Sfx.play("hit")
 	if not quiet:
 		var pct := dmg / u.max_hp
 		hitstop = maxf(hitstop, clampf(pct * 0.35, 0.0, 0.08))

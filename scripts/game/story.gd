@@ -19,12 +19,13 @@ extends RefCounted
 ## (a once-a-day action such as "meditate" already done today), and the values loop, day, time
 ## and ring. A line, effect or outcome can start with [condition] to
 ## happen only when it holds. `place` can list several places; `slot: free` means playing the
-## scene doesn't use up the time of day.
+## scene doesn't use up the time of day. `backdrop: north_door` paints that place behind a scene
+## that has no place of its own (and the scenes it leads to).
 
 const DIR := "res://data/slice/story/"
-const HEADER_KEYS := ["place", "days", "times", "when", "force", "priority", "repeat", "known", "title", "slot"]
+const HEADER_KEYS := ["place", "days", "times", "when", "force", "priority", "repeat", "known", "title", "slot", "backdrop"]
 const EFFECTS := ["learn", "set", "clear", "fight", "wells", "train", "meditate", "study", "goto", "end_loop",
-	"skip_to", "slice_end", "model", "trial"]
+	"skip_to", "slice_end", "model", "trial", "sound", "cutscene"]
 
 var scenes := {}  # id -> scene dictionary
 var errors: Array = []  # parse errors, for the linter
@@ -92,7 +93,7 @@ func parse(text: String, file := "") -> void:
 				errors.append("%s:%d: scene %s is defined twice" % [file, n, id])
 			cur = {"id": id, "file": file, "line": n, "steps": [], "choices": [], "outcomes": {},
 				"days": [], "times": [], "place": "", "places": [], "slot": "", "when": "", "force": false, "priority": 0,
-				"repeat": false, "known": "", "title": ""}
+				"repeat": false, "known": "", "title": "", "backdrop": ""}
 			scenes[id] = cur
 			continue
 		if cur.is_empty():

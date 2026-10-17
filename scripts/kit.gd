@@ -266,6 +266,7 @@ func ward() -> void:
 		return
 	ward_charges -= 1
 	ward_t = float(Progression.rules["ward"]["time"])
+	Sfx.play("ward")
 	A.fx("ring", A.player.pos, {"color": PixelArt.GOLD, "r": 12.0, "life": 0.3})
 
 
@@ -285,6 +286,7 @@ func bolt(id: String) -> void:
 	_run(m, id)
 	cast_t = float(Progression.spell(id)["cast_time"])
 	last_element = Progression.spell(id)["element"]
+	Sfx.play("cast_" + last_element)
 	_cadence(id)
 	count(id)
 
@@ -324,6 +326,7 @@ func cast(slot: String) -> void:
 	P.cd_total[id] = lock
 	if Progression.data["spells"].has(id):
 		last_element = Progression.spell(id)["element"]
+		Sfx.play("cast_" + last_element, 3.0)
 	count(id)
 	use_ghost(id)
 

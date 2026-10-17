@@ -32,6 +32,11 @@
     "echo": {"model": "elder", "scale": 1.08, "weapon": "staff", "facet": 0.7, "eyes": "ffb347", "staff_gem": "ffb347",
       "colors": {"5e5a62": "6a5a3a", "8a8690": "ffb347", "3a3640": "5a3a22", "3a3840": "2a2418"},
       "hat": {"kind": "hood", "color": "6a5a3a", "band": "ffb347"}},
+    "walker": {"model": "elder", "scale": 1.08, "facet": 0.7,
+      "colors": {"5e5a62": "56545e", "8a8690": "c8a050", "3a3640": "3a3840", "3a3840": "2a2a30"},
+      "hat": {"kind": "hood", "color": "8a8a94", "band": "c8a050"}},
+    "townsfolk": {"model": "elder", "scale": 1.0, "facet": 0.7, "tint": ["5a5048", 0.55]},
+    "townsfolk2": {"model": "bandit", "scale": 0.96, "facet": 0.7, "tint": ["4e5662", 0.6]},
     "rival": {"model": "swordsman", "scale": 1.02, "facet": 0.7,
       "colors": {"7d8aa0": "3e5560", "c4cbd6": "8fe8ff", "3d4552": "2a2f33", "8c7a5a": "6b5a45"},
       "hat": {"kind": "frontier", "color": "3a3029", "band": "8fe8ff"}}

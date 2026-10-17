@@ -1,7 +1,7 @@
 extends SceneTree
 ## Screenshots of the slice's screens for review (needs a display, not --headless): the title,
 ## a dawn, the day board, a scene, the Ledger, a death, the Long Night, the end card, a dawn's
-## spellbook at the 2nd Ring and a patrol fight.
+## spellbook at the 2nd Ring, a patrol fight, and the Fire and Mourner reverse scenes.
 ##
 ##   xvfb-run -a -s "-screen 0 1440x810x24" godot --rendering-driver opengl3 --resolution 1440x810 \
 ##       --fixed-fps 60 --script res://tools/slice_shot.gd -- --out DIR
@@ -112,5 +112,17 @@ func _process(_dt: float) -> bool:
 			slice.advance()
 		400:
 			_shot("14_fight")
+			# The Fire's reverse scene, played through the story as in the real game.
+			slice.play("fire")
+		640:
+			_shot("15_fire_rising")
+		850:
+			_shot("16_fire_backwards")
+		1200:
+			print("[slice-shot] after the Fire: mode %s, screen %s" % [main.mode, slice.screen])
+			_shot("17_after_fire")
+			slice.play("mourner")
+		1560:
+			_shot("18_mourner")
 			quit(0)
 	return false

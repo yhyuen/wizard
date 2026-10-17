@@ -4,6 +4,7 @@
 # --- day 7 ---------------------------------------------------------------------
 
 === tide
+backdrop: north_door
 place: anywhere
 days: 7
 times: dusk
@@ -32,6 +33,7 @@ Somehow you are still standing. The dark draws back from the doorway, waiting.
 + set held_the_tide
 
 === door_holds
+backdrop: north_door
 place: anywhere
 days: 7
 times: dusk
@@ -50,6 +52,7 @@ days: 7
 times: night
 force: true
 priority: 50
++ sound bell
 At the last hour of the seventh day, the College bell rings.
 [f("holding_door")] The hammering stops. The voice stops. When at last you lift the bar there is only mist on the hill, and the chalk on the door is gone.
 [f("held_the_tide")] The dark at the door goes out like a tide.

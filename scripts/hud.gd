@@ -172,6 +172,9 @@ func _draw() -> void:
 			_draw_tests()
 			_draw_toasts()
 			return
+		"cutscene":
+			_draw_cutscene()
+			return
 		"fight", "ledger":
 			_draw_fight()
 	if main.mode == "fight" and main.shrine_open:
@@ -184,6 +187,20 @@ func _draw() -> void:
 	if main.mode == "ledger":
 		_draw_ledger()
 	_draw_toasts()
+
+
+## A cutscene: letterbox bars, its caption, and how to skip.
+func _draw_cutscene() -> void:
+	var cs = arena.cutscene
+	if cs == null:
+		return
+	var k := clampf(cs.t * 2.0, 0.0, 1.0)
+	draw_rect(Rect2(0, 0, 960, 46 * k), Color(0, 0, 0, 0.92))
+	draw_rect(Rect2(0, 540 - 70 * k, 960, 70 * k), Color(0, 0, 0, 0.92))
+	var cap: String = cs.caption()
+	if cap != "":
+		_text(Vector2(0, 504), cap, 17, PixelArt.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 960)
+	_text(Vector2(0, 530), "Space to skip", 10, Color(1, 1, 1, 0.35), HORIZONTAL_ALIGNMENT_RIGHT, 940)
 
 
 func _draw_fight() -> void:
