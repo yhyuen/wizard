@@ -173,6 +173,13 @@ func _report() -> void:
 			failures.append("loop %d's death taught nothing" % deaths[i]["loop"])
 	for l in loop_secs:
 		print("[route] loop %d: about %.1f minutes of play" % [l, loop_secs[l] / 60.0])
+	# Success criterion 5: loop 1 takes 8-15 minutes; a loop that reaches the Long Night, 25 at most.
+	var m1: float = float(loop_secs.get(1, 0.0)) / 60.0
+	var m2: float = float(loop_secs.get(2, 0.0)) / 60.0
+	if m1 < 8.0 or m1 > 15.0:
+		failures.append("loop 1 takes %.1f minutes, not 8 to 15" % m1)
+	if m2 > 25.0:
+		failures.append("the loop that reaches the Long Night takes %.1f minutes, more than 25" % m2)
 	print("[route] %d Ledger entries known, %d steps" % [run.known_ids().size(), steps])
 	for f in failures:
 		print("[route] FAIL: " + f)

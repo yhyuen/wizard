@@ -11,6 +11,14 @@ signal screen_changed(screen: String)
 
 const Story := preload("res://scripts/game/story.gd")
 const Growth := preload("res://scripts/game/growth.gd")
+const Backdrop := preload("res://scripts/ui/backdrop.gd")
+## First-loop hints (onboarding), one per screen, shown until you leave that screen once.
+const HINTS := {
+	"dawn": "Each dawn you can change your spellbook. Higher Rings open more slots.",
+	"board": "Pick where to be for this time of day. Gold notes mark events you know are coming. Night is optional; Sleep ends the day.",
+	"scene": "Number keys or a click pick a choice; Space carries on. L opens the Ledger at any time.",
+	"death": "Death resets your power, never what you know. Everything in the Ledger comes with you.",
+}
 const SLOT_NAMES := ["1", "2", "3", "4", "5", "6"]
 const LEDGER_TABS := ["Questions", "Clues", "People", "Insights"]
 
@@ -19,6 +27,9 @@ var run  # the Run autoload
 var story
 var growth  # scripts/game/growth.gd: wells, Rings, Practice, the spellbook
 var dawn_slot := 0  # the spellbook slot picked on the dawn card
+var backdrop := Backdrop.new()
+var here := ""  # the place picked on the board, for the backdrop of what plays there
+var scene_t := 0.0  # seconds on this screen, for the backdrops' slow movement
 var places: Dictionary = {}
 var links: Array = []
 var encounters: Dictionary = {}
@@ -70,6 +81,13 @@ func _ready() -> void:
 func set_screen(s: String) -> void:
 	if s in ["board", "death", "end"]:
 		toasts.clear()  # those screens show what was learnt in their own way
+	if s == "dawn" and screen != "dawn":
+		Sfx.play("chime")
+	if s != screen:
+		scene_t = 0.0
+		if hint_for(screen) != "":
+			run.mem["hints"][screen] = true  # seen once is enough
+	Sfx.ambience(s in ["board", "scene", "dawn"])
 	screen = s
 	visible = s != "fight"
 	screen_changed.emit(s)
@@ -90,6 +108,7 @@ func continue_month() -> void:
 
 ## The start of a day: the end-of-slice card if it is due, otherwise the dawn card.
 func begin_day() -> void:
+	here = "room"  # you wake in your room
 	run.lp["time"] = 0
 	run.save()
 	if run.knows("long_night") and not run.mem.get("slice_end_shown", false):
@@ -126,6 +145,8 @@ func pick_place(id: String) -> void:
 	if ev == "":
 		ev = places[id]["idle"]
 	uses_slot = cur_slot_used(ev)
+	here = id
+	Sfx.play("step")
 	play(ev)
 
 
@@ -151,6 +172,10 @@ func play(id: String, append := false) -> void:
 		finish_pick()
 		return
 	cur = story.scenes[id]
+	if cur.get("backdrop", "") != "":
+		here = cur["backdrop"]
+	elif cur.get("places", []).size() == 1 and places.has(cur["places"][0]):
+		here = cur["places"][0]
 	idx = 0
 	pending = {}
 	opts = []
@@ -185,6 +210,8 @@ func _effect(op: String, arg: String) -> bool:
 			run.learn(arg)
 		"set":
 			var r: int = growth.ring()
+			if arg.begins_with("topic_") and not run.flag(arg):
+				Sfx.play("hiss")  # another topic in the censer
 			run.set_flag(arg)
 			_ring_toast(r)  # the yard trial sets "ring1"
 		"clear":
@@ -193,6 +220,14 @@ func _effect(op: String, arg: String) -> bool:
 			run.learn("model_" + arg)
 		"trial":
 			run.learn("trial_" + arg)
+		"sound":
+			Sfx.play(arg)
+		"cutscene":
+			if fight_resolver.is_valid() or main == null:
+				return false  # tests skip the pictures
+			set_screen("fight")
+			main.start_cutscene(arg)
+			return true
 		"wells", "meditate":
 			if growth.use_today(op):
 				gain_wells(int(arg))
@@ -250,6 +285,7 @@ func advance() -> void:
 	if screen != "scene":
 		return
 	if not pending.is_empty():
+		Sfx.play("page")
 		var p: Dictionary = pending
 		pending = {}
 		match p["op"]:
@@ -277,6 +313,7 @@ func choose(i: int) -> void:
 	if screen != "scene" or not pending.is_empty() or i < 0 or i >= opts.size():
 		return
 	var c: Dictionary = opts[i]
+	Sfx.play("page")
 	if c.get("target", "") != "":
 		play(c["target"])
 	else:
@@ -311,6 +348,12 @@ func _start_fight(id: String) -> void:
 	main.start_slice_fight(enc)
 
 
+## Called by main.gd when a cutscene is over: the scene carries on from where it stopped.
+func cutscene_done() -> void:
+	set_screen("scene")
+	_run_steps()
+
+
 ## Called by main.gd when a fight started here is over.
 func fight_done(won: bool, kills := 0) -> void:
 	set_screen("scene")
@@ -329,6 +372,7 @@ func fight_done(won: bool, kills := 0) -> void:
 
 
 func end_loop(cause: String) -> void:
+	Sfx.play("death")
 	growth.loop_over()
 	run.end_loop(cause)
 	cur = {}
@@ -388,6 +432,7 @@ func toggle_ledger() -> void:
 # --- input -------------------------------------------------------------------------
 
 func _process(dt: float) -> void:
+	scene_t += dt
 	for t in toasts.duplicate():
 		t["t"] += dt
 		if t["t"] > 4.0:
@@ -403,6 +448,10 @@ func _unhandled_input(ev: InputEvent) -> void:
 		var k: int = ev.physical_keycode
 		if k == KEY_L:
 			toggle_ledger()
+		elif k == KEY_M:
+			Sfx.muted = not Sfx.muted
+			Sfx.ambience(not Sfx.muted and screen in ["board", "scene", "dawn"])
+			toast("Sound off (M)" if Sfx.muted else "Sound on (M)")
 		elif ledger_open and k == KEY_ESCAPE:
 			ledger_open = false
 		elif ledger_open and k >= KEY_1 and k <= KEY_4:
@@ -457,8 +506,35 @@ func _draw() -> void:
 		begin_buttons()
 		_draw_ledger()
 	else:
+		_draw_hint()
 		_draw_toasts()
 	end_buttons()
+
+
+## This screen's first-loop hint, or "" once it has been seen.
+func hint_for(s: String) -> String:
+	if not HINTS.has(s) or run.loop() > 1 and s != "death":
+		return ""
+	if not run.mem.has("hints"):
+		run.mem["hints"] = {}
+	return "" if run.mem["hints"].has(s) else HINTS[s]
+
+
+func _draw_hint() -> void:
+	var h := hint_for(screen)
+	if h == "":
+		return
+	var rows: Array = wrap_text(h, 560.0, 13)
+	var r := Rect2(190, 502 - (rows.size() - 1) * 17, 580, 14 + rows.size() * 17)
+	if screen == "scene":
+		r.position = Vector2(700, 300)
+		r.size.x = 236
+		rows = wrap_text(h, 200.0, 13)
+		r.size.y = 14 + rows.size() * 17
+	draw_rect(r, Color(0.02, 0.03, 0.07, 0.94))
+	draw_rect(r, Color(HOURS, 0.6), false, 1.0)
+	for i in rows.size():
+		text(r.position + Vector2(14, 20 + i * 17), rows[i], 13, Color(HOURS, 0.95))
 
 
 func _header() -> void:
@@ -493,6 +569,7 @@ func _draw_title() -> void:
 
 
 func _draw_dawn() -> void:
+	backdrop.paint(self, "room", 0, run.day(), scene_t)
 	_header()
 	var r := Rect2(130, 84, 700, 404)
 	panel(r)
@@ -582,6 +659,7 @@ func _draw_board() -> void:
 	_header()
 	var map := Rect2(24, 76, 912, 412)
 	panel(map, Color(HAIR, 0.35))
+	_draw_atlas(map)
 	title(Vector2(120, 300), "The College of Hours", 13, Color(HAIR, 0.5))
 	title(Vector2(560, 420), "Vellmar", 13, Color(HAIR, 0.5))
 	title(Vector2(770, 112), "The plateau", 13, Color(HAIR, 0.5))
@@ -608,13 +686,48 @@ func _draw_board() -> void:
 		button(Rect2(816, 500, 120, 28), "Sleep", sleep, 0, 13)
 
 
+## The place a scene is set in: its own place if it has one, else where you went.
+func scene_place() -> String:
+	if in_long_night():
+		return "room"
+	return here
+
+
+## The board as a star atlas: a field of faint stars, the graticule of a celestial chart, and a
+## soft glow over each district.
+func _draw_atlas(map: Rect2) -> void:
+	for i in 160:
+		var p := map.position + Vector2(fmod(i * 211.7, map.size.x), fmod(i * 97.3 + i * i * 0.13, map.size.y))
+		var a := 0.12 + fmod(i * 0.071, 0.25)
+		draw_circle(p, 0.7 + fmod(i * 0.37, 0.9), Color(PAPER, a * (0.75 + 0.25 * sin(scene_t * 0.8 + i))))
+	var pole := Vector2(480, 900)
+	for k in 7:
+		draw_arc(pole, 420.0 + k * 70.0, -PI * 0.78, -PI * 0.22, 64, Color(HAIR, 0.06), 1.0, true)
+	for k in 9:
+		var a := -PI * 0.75 + k * PI * 0.0625
+		var from := pole + Vector2.from_angle(a) * 420.0
+		var to := pole + Vector2.from_angle(a) * 900.0
+		draw_line(from, to, Color(HAIR, 0.05), 1.0)
+	for g in [[Vector2(250, 190), 190.0, HAIR], [Vector2(620, 320), 200.0, HOURS], [Vector2(830, 170), 120.0, PAPER]]:
+		for i in 6:
+			draw_circle(g[0], g[1] * (1.0 - i / 6.0), Color(g[2], 0.012))
+	var t: int = run.time()
+	# The hour: a small dial, the sun's or moon's position for this time of day.
+	var dc := Vector2(map.end.x - 46, map.end.y - 40)
+	draw_arc(dc, 22.0, PI, TAU, 24, Color(HAIR, 0.4), 1.0, true)
+	var ang := PI + PI * t / 4.0
+	var body := dc + Vector2.from_angle(ang) * 22.0
+	draw_circle(body, 4.0, HOURS if t < 4 else PAPER)
+
+
 func _draw_scene() -> void:
+	backdrop.paint(self, scene_place(), run.time(), run.day(), scene_t)
 	_header()
 	var r := Rect2(40, 90, 640, 400)
 	panel(r)
 	var place_name := ""
-	if cur.get("places", []).size() == 1 and places.has(cur["places"][0]):
-		place_name = places[cur["places"][0]]["name"]
+	if places.has(scene_place()):
+		place_name = places[scene_place()]["name"]
 	if place_name != "":
 		title(r.position + Vector2(28, 34), place_name, 16, Color(HAIR, 0.8))
 	var y := r.position.y + 70.0

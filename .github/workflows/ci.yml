@@ -71,6 +71,8 @@ jobs:
 
       - name: Test scenes
         run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/scenes.gd
+      - name: Test the story's reverse scenes
+        run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/cutscenes.gd
 
       - name: Web export
         run: |

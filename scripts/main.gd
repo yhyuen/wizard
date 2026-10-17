@@ -133,6 +133,15 @@ func start_fight(scene := "", enc := {}) -> void:
 
 
 ## A fight from the slice's story: `enc` is its entry in data/slice/encounters.json.
+## A short 3D scene from the story (scripts/game/cutscene.gd): "fire" or "mourner".
+func start_cutscene(id: String) -> void:
+	mode = "cutscene"
+	slice.visible = false
+	arena.start("cutscene:" + id)
+	arena.paused = false
+	hud.reset()
+
+
 ## The slice lends the fight its Practice, spellbook and rules (scripts/game/growth.gd).
 func start_slice_fight(enc: Dictionary) -> void:
 	slice_fight = true
@@ -168,6 +177,10 @@ func _physics_process(_dt: float) -> void:
 					break
 		"fight":
 			_fight_input()
+		"cutscene":
+			if Input.is_action_just_pressed("confirm") or Input.is_action_just_pressed("cancel") or Input.is_action_just_pressed("blink"):
+				if arena.cutscene != null:
+					arena.cutscene.t = maxf(arena.cutscene.t, arena.cutscene.LENGTH[arena.cutscene.id])
 		"ledger":
 			if Input.is_action_just_pressed("confirm"):
 				Progression.next_loop()
@@ -313,6 +326,11 @@ func shrine_repick(id: String, lv: int, index: int) -> void:
 
 
 func _on_fight_over(won: bool) -> void:
+	if mode == "cutscene":
+		mode = "slice"
+		arena.paused = true
+		slice.cutscene_done()
+		return
 	if slice_fight:
 		slice_fight = false
 		mode = "slice"

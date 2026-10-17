@@ -8,6 +8,7 @@ place: market
 days: 3
 times: noon
 priority: 20
++ cutscene mourner
 Lantern Market at noon: fish and brass, and steam rising from the pie stalls.
 Across the crowd, someone in a grey veil has stopped dead and is looking straight at you.
 They are weeping. Not loudly. The way people weep at a graveside.

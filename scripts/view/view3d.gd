@@ -478,6 +478,8 @@ func _sync_figures(delta: float) -> void:
 		f.position = to_world(u.pos, u.lift() * S)
 		# Facing: the wizard faces the aim; enemies face the wizard, or where they walk.
 		var d: Vector2 = (arena.mouse - u.pos) if u == P else (P.pos - u.pos)
+		if u.flags.has("face"):
+			d = u.flags["face"]  # a cutscene says where it looks
 		if d.length() > 0.5 and not u.dead:
 			rec["rot"] = lerp_angle(rec["rot"], face_rot(d), clampf(delta * 14.0, 0.0, 1.0))
 		f.rotation.y = rec["rot"]
@@ -509,6 +511,8 @@ func _sync_figures(delta: float) -> void:
 func _pose(u: Unit, rec: Dictionary, delta: float) -> Array:
 	var P: Unit = arena.player
 	var staff := u == P
+	if u.flags.has("pose"):
+		return u.flags["pose"]  # a cutscene poses it (scripts/game/cutscene.gd)
 	if u.dead:
 		var k := 1.0 - clampf(u.death_t / 0.6, 0.0, 1.0)
 		if u.kind == "inverted":
@@ -590,6 +594,8 @@ func _sync_echo(delta: float) -> void:
 
 
 func _sync_shrine() -> void:
+	# A reverse scene from the story is not at the Orrery.
+	_shrine.visible = arena.cutscene == null
 	var ready: bool = arena.shrine_ready()
 	var spin := Time.get_ticks_msec() / 900.0
 	_shrine_rings[0].rotation = Vector3(spin, 0, 0.4)

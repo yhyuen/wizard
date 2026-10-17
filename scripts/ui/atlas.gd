@@ -112,6 +112,7 @@ func end_buttons() -> void:
 func click(at: Vector2) -> bool:
 	for b in _drawn_buttons:
 		if b["r"].has_point(at):
+			Sfx.play("tick")
 			b["act"].call()
 			return true
 	return false

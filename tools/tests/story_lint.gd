@@ -67,6 +67,12 @@ func _initialize() -> void:
 				"end_loop":
 					if not deaths.has(arg):
 						problems.append("%s: no death text for %s" % [where, arg])
+				"cutscene":
+					if not arg in ["fire", "mourner"]:
+						problems.append("%s: no cutscene '%s' (scripts/game/cutscene.gd)" % [where, arg])
+				"sound":
+					if not FileAccess.file_exists("res://assets/sfx/%s.wav" % arg):
+						problems.append("%s: no sound assets/sfx/%s.wav" % [where, arg])
 				"skip_to":
 					if not str(arg.split(" ")[0]).is_valid_int():
 						problems.append("%s: skip_to needs a day" % where)

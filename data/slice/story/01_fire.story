@@ -1,6 +1,7 @@
 # Day 1, dawn: the Fire (trace R1). Every loop opens here. See design/slice/content.md.
 
 === fire
+backdrop: gate
 place: anywhere
 days: 1
 times: morning
@@ -8,6 +9,7 @@ force: true
 slot: free
 priority: 100
 when: loop == 1
++ cutscene fire
 Smoke. Heat on your face. You are lying on the College stairs, and the stairs are burning.
 You can't remember climbing them. You can't remember anything after the Orrery's light.
 Something in the flames moves: a body, veiled, lying in the fire as if it had always been there.
@@ -21,6 +23,7 @@ When the fire burns out, there is no one on the stairs.
 * Get up
 
 === fire_again
+backdrop: gate
 place: anywhere
 days: 1
 times: morning
