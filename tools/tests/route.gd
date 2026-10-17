@@ -45,6 +45,7 @@ var steps := 0
 var loop_secs := {}
 var deaths: Array = []
 var failures: Array = []
+var rings := {}  # loop -> the highest Ring seen at a dawn
 
 
 func _initialize() -> void:
@@ -58,9 +59,10 @@ func _initialize() -> void:
 
 func _go() -> void:
 	slice = main.slice
-	slice.fight_resolver = func(id: String) -> bool:
+	slice.fight_resolver = func(id: String) -> Dictionary:
 		_add_time(FIGHT_SECONDS)
-		return id != "tide"  # loop 1 can't survive the tide; loop 2 never opens the door
+		var won: bool = id != "tide"  # loop 1 can't survive the tide; loop 2 never opens the door
+		return {"won": won, "kills": _kills(id) if won else 0}
 	slice.new_month()
 	while steps < 4000:
 		steps += 1
@@ -77,6 +79,10 @@ func _add_time(s: float) -> void:
 func _step() -> bool:
 	match slice.screen:
 		"dawn":
+			var r: int = slice.growth.ring()
+			if r > int(rings.get(run.loop(), -1)):
+				rings[run.loop()] = r
+				print("[route] loop %d, dawn of day %d: %s, %d wells" % [run.loop(), run.day(), slice.growth.ring_name(), slice.growth.wells()])
 			slice.start_day()
 		"board":
 			var plan: Dictionary = PLAN_1 if run.loop() == 1 else PLAN_2
@@ -96,6 +102,7 @@ func _step() -> bool:
 				_add_time(CHOICE_SECONDS)
 		"death":
 			_deduce()
+			print("[route] loop %d: %s with %d wells at the end" % [run.loop(), slice.growth.ring_name(), slice.growth.wells()])
 			var log: Dictionary = run.mem["log"][-1]
 			deaths.append({"loop": run.loop(), "day": run.day(), "cause": log["cause"], "learned": log["learned"].size()})
 			print("[route] loop %d ends on day %d (%s), learned %d" % [run.loop(), run.day(), log["cause"], log["learned"].size()])
@@ -110,6 +117,17 @@ func _step() -> bool:
 			failures.append("stuck on screen " + slice.screen)
 			return false
 	return true
+
+
+## Everything killable in a won fight (the risen get up again; Silas walks off).
+func _kills(id: String) -> int:
+	var enc: Dictionary = slice.encounters[id]
+	var n := 0
+	for wave in enc["waves"]:
+		for g in wave:
+			if not g["kind"] in enc.get("unkillable", []) and g["kind"] != "rival":
+				n += int(g["n"])
+	return n
 
 
 ## At each death, work out every deduction that's ready: a wrong answer first (which must teach

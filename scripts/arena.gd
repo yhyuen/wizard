@@ -56,6 +56,8 @@ var scene := ""  # the test scene this fight was started as ("" for the normal f
 ## when it has "survive" seconds. Empty for the old Mill fight and the test scenes.
 var encounter := {}
 var enc_wave := -1
+var duel_hits := [0, 0]  # a duel to N hits ("hits"): [hits landed on the rival, hits taken]
+var duel_hit_t := [0.0, 0.0]  # a hit only counts once per second, per side
 var stats := {"casts": 0, "damage_taken": 0.0, "kills": 0, "by_spell": {}}
 
 const ECHO_STEP := 0.1  # seconds between echo samples
@@ -126,8 +128,12 @@ func start(test_scene := "", enc := {}) -> void:
 	player.hp_lag = player.hp
 	_add(player)
 	kit.reset()
+	duel_hits = [0, 0]
+	duel_hit_t = [0.0, 0.0]
 	if encounter.is_empty():
 		_place_tome()
+	elif encounter.get("millrace", false):
+		_add_millrace()
 	set_phase("intro")
 	_setup_scene()
 
@@ -255,6 +261,21 @@ func set_phase(p: String) -> void:
 			spawn_queue.append({"t": 0.8, "kind": "rival", "gate": 1})
 
 
+## The Mill's millrace: a channel of water across the yard that the risen won't cross and their
+## shots won't pass (Aldous's tip; design/slice/content.md §4).
+func _add_millrace() -> void:
+	for i in 9:
+		add_zone({"kind": "puddle", "millrace": true, "pos": Vector2(BOUNDS.position.x + 30 + i * 49.0, 172.0 + sin(i * 1.3) * 4.0),
+			"r": 26.0, "life": 1.0e9})
+
+
+func in_millrace(at: Vector2, pad := 0.0) -> Dictionary:
+	for z in zones:
+		if z.get("millrace", false) and at.distance_to(z["pos"]) < float(z["r"]) + pad:
+			return z
+	return {}
+
+
 func survive_time() -> float:
 	return float(encounter.get("survive", 0.0))
 
@@ -304,6 +325,10 @@ func _flow(dt: float) -> void:
 				set_phase("enc")
 		"enc":
 			if survive_time() > 0.0:
+				# A horde that never stops: one more every "trickle" seconds on top of the waves.
+				var tr := float(encounter.get("trickle", 0.0))
+				if tr > 0.0 and int((phase_t - dt) / tr) != int(phase_t / tr):
+					spawn_queue.append({"t": 0.0, "kind": "hollow", "gate": rng.randi() % GATES.size()})
 				if phase_t >= survive_time():
 					_end(true)
 			elif cleared and phase_t > 1.0:
@@ -377,6 +402,12 @@ func _physics_process(dt: float) -> void:
 		_update_unit(u, dt)
 		if u.team == 1 and not u.dead:
 			ai.update(u, dt)
+			var mr := in_millrace(u.pos, u.radius)
+			if not mr.is_empty():
+				var out: Vector2 = (u.pos - mr["pos"]).normalized()
+				u.pos = mr["pos"] + out * (float(mr["r"]) + u.radius)
+	duel_hit_t[0] = maxf(0.0, duel_hit_t[0] - dt)
+	duel_hit_t[1] = maxf(0.0, duel_hit_t[1] - dt)
 	_separate()
 	_update_projs(dt)
 	_update_zones(dt)
@@ -532,6 +563,8 @@ func _separate() -> void:
 func hit(u: Unit, dmg: float, impact: int, dir: Vector2, knock := 0.0, quiet := false) -> bool:
 	if u.dead or u.iframes > 0.0:
 		return false
+	if encounter.has("hits") and not quiet and dmg >= float(encounter.get("hit_min", 1.0)) and phase == "enc":
+		_duel_hit(u)
 	u.hp -= dmg
 	u.flash = 0.08
 	if u == player:
@@ -562,8 +595,31 @@ func hit(u: Unit, dmg: float, impact: int, dir: Vector2, knock := 0.0, quiet := 
 	return true
 
 
+## First to `hits` clean hits wins a duel (Silas: College rules, no deaths).
+func _duel_hit(u: Unit) -> void:
+	var side := 1 if u == player else (0 if u.kind == "rival" else -1)
+	if side < 0 or duel_hit_t[side] > 0.0:
+		return
+	duel_hit_t[side] = 1.0
+	duel_hits[side] += 1
+	var n := int(encounter["hits"])
+	toast.emit("%s  %d – %d" % ["Hit!" if side == 0 else "Hit taken", duel_hits[0], duel_hits[1]], PixelArt.GOLD if side == 0 else PixelArt.DANGER)
+	if duel_hits[side] >= n:
+		_end(side == 0)
+
+
 func kill(u: Unit) -> void:
 	if u.dead:
+		return
+	# Some things can't be killed, only knocked down (the risen at the Mill).
+	if u != player and u.kind in encounter.get("unkillable", []) and phase == "enc":
+		u.hp = u.max_hp
+		u.stun = float(encounter.get("down_time", 2.5))
+		u.reaction = "knockdown"
+		u.reaction_t = u.stun
+		u.reaction_len = u.stun
+		fx("burst", u.pos, {"color": PixelArt.HOURS, "r": 9.0, "life": 0.35})
+		stats["downs"] = int(stats.get("downs", 0)) + 1
 		return
 	u.dead = true
 	u.hp = 0.0
@@ -573,7 +629,8 @@ func kill(u: Unit) -> void:
 	if u == player:
 		_end(false)
 		return
-	stats["kills"] += 1
+	if phase != "won":
+		stats["kills"] += 1  # not the ones that crumble when the fight is won
 	fx("burst", u.pos, {"color": PixelArt.HOURS if u.kind == "inverted" else PixelArt.PAPER, "r": 9.0, "life": 0.35})
 	Progression.add_wizard_xp(float(D["enemies"][u.kind]["xp"]))
 	if u.kind == "rival":
@@ -654,7 +711,7 @@ func shrine_pos() -> Vector2:
 
 ## The shrine works while the yard is quiet: before the first wave and between waves.
 func shrine_ready() -> bool:
-	return phase in ["intro", "wave1", "wave2", "sandbox"] and spawn_queue.is_empty() and enemies().is_empty() \
+	return encounter.is_empty() and phase in ["intro", "wave1", "wave2", "sandbox"] and spawn_queue.is_empty() and enemies().is_empty() \
 		and not player.dead and player.pos.distance_to(shrine_pos()) <= float(D["shrine"]["reach"])
 
 
@@ -728,7 +785,14 @@ func _enemy_proj(p: Dictionary) -> void:
 			projs.erase(p)
 			fx("burst", s["pos"], {"color": PixelArt.EARTH, "r": 6.0, "life": 0.25})
 			return
+	if not in_millrace(p["pos"]).is_empty():
+		fx("dust", p["pos"], {"color": PixelArt.WATER, "r": 4.0, "life": 0.2})
+		projs.erase(p)
+		return
 	if not player.dead and player.pos.distance_to(p["pos"]) < player.radius + float(p["r"]):
+		if kit.ward_blocks():
+			projs.erase(p)
+			return
 		if hit(player, float(p["dmg"]), int(p.get("impact", 1)), p["vel"].normalized(), 20.0):
 			fx("burst", p["pos"], {"color": p["color"], "r": 5.0, "life": 0.2})
 		projs.erase(p)

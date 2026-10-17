@@ -114,8 +114,61 @@ func _run() -> void:
 	P.next_loop()
 	ok(P.has_hint("conductor"), "hints carry over loops")
 	_controls(P)
+	_growth(P)
 	print("[unit] %d check(s), %d failed" % [checks, fails])
 	quit(1 if fails > 0 else 0)
+
+
+## The slice's growth (design/slice/systems.md §2): wells and Rings, Ring-gated slots and tiers,
+## Practice lent to Progression for a fight, the Echo and Fluency, and the loop reset.
+func _growth(P) -> void:
+	var R = root.get_node("Run")
+	R.save_enabled = false
+	R.new_run()
+	var G = load("res://scripts/game/growth.gd").new(R, P)
+	P.reset_all()
+	var before: Dictionary = P.p
+	ok(G.ring() == 0 and G.slots() == 2 and G.max_hp() == 100.0, "a new loop starts as an Apprentice: 2 slots, 100 Vitality")
+	ok(G.slot_spell(0) == "ember_bolt" and G.slot_spell(1) == "pebble" and G.slot_spell(2) == "", "an Apprentice has two Bolt slots open")
+	ok(not G.set_slot(0, "pillar"), "a Control needs the 1st Ring")
+	ok(not G.set_slot(0, "splash"), "a Model you haven't studied can't go in the book")
+	G.add_wells(30)
+	ok(G.ring() == 0, "wells alone don't pass the yard trial")
+	R.set_flag("ring1")
+	ok(G.ring() == 2 and G.slots() == 4 and G.slot_spell(2) == "pillar", "after the trial, 30 wells is the 2nd Ring with Pillar open")
+	ok(G.max_hp() == 160.0 and G.max_aether() == 130.0 and G.blinks() == 2, "wells raise Vitality and Aether; the 2nd Ring adds a Blink")
+	ok(G.set_slot(0, "fling") and G.book()[0] == "fling" and G.book()[3] == "ember_bolt", "putting a Model in a slot swaps it with where it was")
+	ok(not G.set_slot(4, "ember_bolt"), "slot 5 waits for the 4th Ring")
+	R.learn("model_pyroclasm")
+	ok(G.known_models().has("pyroclasm") and not G.can_cast("pyroclasm"), "a Signature can be known before the 4th Ring lets you cast it")
+	# A fight borrows the loop's Practice and gives it back.
+	G.begin_fight()
+	ok(P.max_hp() == 160.0 and P.max_aether() == 130.0 and P.magick_for(["fire", "earth"]) == "", "in a slice fight Progression uses wells and has no Magicks")
+	ok(P.slot_open(0) and not P.slot_open(4), "in a slice fight locked slots are closed")
+	var w0: float = P.p["wizard_xp"]
+	P.add_xp("fling", P.xp_needed(1))
+	ok(P.level("fling") == 2 and P.p["wizard_xp"] == w0, "slice Practice levels a spell and no wizard level")
+	G.end_fight()
+	ok(P.p == before and P.rules.is_empty(), "the old progress is back after the fight")
+	ok(G.level("fling") == 2, "the fight's Practice stays with this loop")
+	ok(G.use_today("meditate") and not G.use_today("meditate"), "meditating is once a day")
+	var got: Dictionary = G.train()
+	ok(got.has("fling") and got.has("pillar") and not got.has("splash") and G.practice()["pillar"]["xp"] > 0.0, "training adds part of a level to the spells in open slots")
+	# The loop ends on day 7 and a new one starts.
+	R.lp["day"] = 7
+	G.loop_over()
+	R.wake()
+	ok(G.wells() == 0 and G.ring() == 0 and G.level("fling") == 1, "waking resets wells, the Ring and Practice")
+	ok(G.echo()["fling"] == 2 and is_equal_approx(G.fluency(), 0.1), "the Echo keeps Fling's best Practice; reaching day 7 adds Fluency")
+	ok(G.add_wells(5) == 15, "wells regrow three times as fast below last loop's best")
+	G.add_wells(500)
+	ok(G.wells() == int(G.d["well_cap"]), "wells stop at the slice's cap")
+	G.begin_fight()
+	P.add_xp("fling", P.xp_needed(1) / 3.3)
+	ok(P.level("fling") == 2, "below its Echo, Practice grows three times as fast (plus Fluency)")
+	G.end_fight()
+	R.new_run()
+	P.reset_all()
 
 
 ## The League-style controls turn right-clicks and Q W E R D F into the same intent the kit reads.
@@ -170,6 +223,7 @@ func _controls(P) -> void:
 	C.build(A, goal + Vector2(0, 30), click, 0.0)
 	it = C.build(A, goal, {"held": {"blink": true}, "pressed": {"blink": true}, "released": {}}, 0.0)
 	ok(it["move"] == Vector2.ZERO and C.dest == null, "blink aims at the cursor and clears the move order")
+	P.spell_leveled.disconnect(A.kit._on_leveled)
 	A.kit.modules.clear()  # the kit and its spell modules point at each other
 	A.kit.fe = null
 	A.kit.sw = null

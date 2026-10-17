@@ -32,6 +32,8 @@ var hold_t = 0.0  # seconds the current Q/E/R/F has been held (Arc Lance charges
 var ghosts = {}  # spell id -> {"old": level before the level-up, "casts": casts left to show it}
 var denied = {}  # slot -> seconds left on the "not ready" flash
 var aim = Vector2.ZERO
+var ward_charges = 0  # the slice's cantrip on C: blocks the next projectile while it is up
+var ward_t = 0.0
 var move = Vector2.ZERO
 
 
@@ -53,6 +55,8 @@ func reset() -> void:
 	note_t = 0.0
 	blink_charges = Progression.blink_charges()
 	blink_t = 0.0
+	ward_charges = int(Progression.rules.get("ward", {}).get("charges", 0))
+	ward_t = 0.0
 	holding = ""
 	hold_t = 0.0
 	denied.clear()
@@ -76,7 +80,9 @@ func slot_spell(slot: String) -> String:
 	if slot == "magick":
 		return Progression.magick_for(Progression.loadout())
 	var i := SLOTS.find(slot)
-	return Progression.spellbook()[i] if i >= 0 else ""
+	if i < 0 or not Progression.slot_open(i):
+		return ""
+	return Progression.spellbook()[i]
 
 
 ## The slot holding spell `id`, or "".
@@ -94,7 +100,7 @@ func is_bolt(id: String) -> bool:
 # --- Aether and Cadence -------------------------------------------------------
 
 func max_aether() -> float:
-	return float(A.D["aether"]["max"])
+	return Progression.max_aether()
 
 
 func aether_cost(id: String) -> float:
@@ -199,6 +205,7 @@ func update(dt: float, intent: Dictionary) -> void:
 	move = intent.get("move", Vector2.ZERO)
 	cast_t -= dt
 	aether = minf(max_aether(), aether + float(A.D["aether"]["regen"]) * dt)
+	ward_t = maxf(0.0, ward_t - dt)
 	note_t += dt
 	if note_t > float(A.D["cadence"]["note_life"]):
 		notes = 0
@@ -252,6 +259,25 @@ func update(dt: float, intent: Dictionary) -> void:
 		holding = ""
 
 
+## Ward (the slice's cantrip): a ring of light that stops the next projectile, for a moment.
+func ward() -> void:
+	if ward_charges <= 0 or ward_t > 0.0:
+		denied["magick"] = 0.4
+		return
+	ward_charges -= 1
+	ward_t = float(Progression.rules["ward"]["time"])
+	A.fx("ring", A.player.pos, {"color": PixelArt.GOLD, "r": 12.0, "life": 0.3})
+
+
+## True if the Ward is up; it breaks on the projectile it stops.
+func ward_blocks() -> bool:
+	if ward_t <= 0.0:
+		return false
+	ward_t = 0.0
+	A.fx("burst", A.player.pos + Vector2(0, -6), {"color": PixelArt.GOLD, "r": 10.0, "life": 0.3})
+	return true
+
+
 func bolt(id: String) -> void:
 	var m = _module_for(id)
 	if m == null:
@@ -264,10 +290,14 @@ func bolt(id: String) -> void:
 
 
 func cast(slot: String) -> void:
+	if slot == "magick" and Progression.rules.has("ward"):
+		ward()
+		return
 	var id = slot_spell(slot)
 	var P: Unit = A.player
 	if id == "":
-		A.toast.emit("This pair has no Magick in the prototype yet.", PixelArt.PAPER)
+		if slot == "magick":
+			A.toast.emit("This pair has no Magick in the prototype yet.", PixelArt.PAPER)
 		denied[slot] = 0.4
 		return
 	if P.cooldown(id) > 0.0:

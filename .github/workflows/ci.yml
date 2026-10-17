@@ -60,7 +60,10 @@ jobs:
       - name: Route through the slice (loop 1 to the north door, loop 2 to the end)
         run: tools/ci/godot.sh --script res://tools/tests/route.gd
 
-      - name: Slice fights
+      - name: Relearning (loop 3 regains the 3rd Ring by day 3)
+        run: tools/ci/godot.sh --script res://tools/tests/relearn.gd
+
+      - name: Slice fights (fresh and strong, and the millrace)
         run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/encounters.gd
 
       - name: Bot playthrough (three loops)

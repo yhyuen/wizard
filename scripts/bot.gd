@@ -35,6 +35,14 @@ func intent(A) -> Dictionary:
 		out["move"] = (Vector2(240, 142) - P.pos) * 0.05
 		return out
 	foes.sort_custom(func(a, b): return a.pos.distance_to(P.pos) < b.pos.distance_to(P.pos))
+	# The slice's Ward: raise it when a shot is about to land.
+	if kit.ward_charges > 0 and kit.ward_t <= 0.0:
+		for p in A.projs:
+			if p["team"] == 1 and p["pos"].distance_to(P.pos) < 28.0 and (P.pos - p["pos"]).dot(p["vel"]) > 0.0:
+				out["pressed"]["magick"] = true
+				out["held"]["magick"] = true
+				release.append("magick")
+				break
 	var near: Unit = foes[0]
 	var r: Unit = A.rival()
 	var focus: Unit = r if r and near.pos.distance_to(P.pos) > 50.0 else near

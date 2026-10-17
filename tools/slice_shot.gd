@@ -1,6 +1,7 @@
 extends SceneTree
 ## Screenshots of the slice's screens for review (needs a display, not --headless): the title,
-## a dawn, the day board, a scene, the Ledger, a death, the Long Night and the end card.
+## a dawn, the day board, a scene, the Ledger, a death, the Long Night, the end card, a dawn's
+## spellbook at the 2nd Ring and a patrol fight.
 ##
 ##   xvfb-run -a -s "-screen 0 1440x810x24" godot --rendering-driver opengl3 --resolution 1440x810 \
 ##       --fixed-fps 60 --script res://tools/slice_shot.gd -- --out DIR
@@ -36,7 +37,8 @@ func _process(_dt: float) -> bool:
 	if main == null or main.slice == null:
 		return false
 	slice = main.slice
-	slice.fight_resolver = func(id): return id != "tide"
+	if frames == 0:
+		slice.fight_resolver = func(id): return id != "tide"
 	frames += 1
 	match frames:
 		20:
@@ -97,5 +99,18 @@ func _process(_dt: float) -> bool:
 			slice.begin_day()
 		160:
 			_shot("12_end")
+			# A patrol in the fight view, at the 2nd Ring: four open slots, the Ward on C.
+			slice.keep_playing()
+			run.set_flag("ring1")
+			slice.growth.add_wells(24)
+			slice.dawn_slot = 1
+			slice.begin_day()
+		170:
+			_shot("13_dawn_spellbook")
+			slice.fight_resolver = Callable()
+			slice.play("patrol_fight")
+			slice.advance()
+		400:
+			_shot("14_fight")
 			quit(0)
 	return false

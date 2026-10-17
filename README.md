@@ -2,7 +2,7 @@
 
 The first end-to-end slice of the wizard game: **days 1 to 7 of Vellmar's looping month, and one Long Night**. You wake in a fire on the College stairs, spend each day choosing where to be, fight what comes, die (loop 1 always ends at the north door on day 7), and wake on day 1 again remembering everything. Knowledge stays; power resets. Get far enough and the Long Night with Wren shows you where the cipher notes come from. Godot 4.7, GDScript, web export.
 
-The design is the slice spec in the project's `design/slice/` (goals, core loops, day-by-day content, systems, tech plan); the wider design is in `design/gdd/` and the story in `design/story/`. Milestones so far: **M1 (Spine)**, where the whole flow runs, every day 1–7 scene and the Long Night are in as text, and fights launch from the board into the arena below; and **M2 (Mystery)**, with deductions on the Ledger's Questions tab and the Long Night's censer. The new progression and the art come in M3 and M4.
+The design is the slice spec in the project's `design/slice/` (goals, core loops, day-by-day content, systems, tech plan); the wider design is in `design/gdd/` and the story in `design/story/`. Milestones so far: **M1 (Spine)**, where the whole flow runs, every day 1–7 scene and the Long Night are in as text, and fights launch from the board into the arena below; **M2 (Mystery)**, with deductions on the Ledger's Questions tab and the Long Night's censer; and **M3 (Fights and growth)**, with wells, Rings, Practice that resets each loop and the Echo that brings it back fast, the dawn spellbook, the Ward, and a knowledge route for each big fight. The art and sound come in M4.
 
 ![The day board](docs/screens/slice_board.jpg)
 
@@ -13,14 +13,20 @@ The design is the slice spec in the project's `design/slice/` (goals, core loops
 - **The Ledger** (L) keeps every clue, person, question and insight across loops. Three questions are deductions: once their clues are in, pick an answer; the right one becomes an insight, a wrong one costs nothing. The death screen lists what you learnt that loop.
 - **The Long Night** (day 27, if you survived day 7 with Wren as a friend): a censer fills with each of three topics you tell Wren. Tell Wren how it ends and the month comes apart.
 - **The story** is plain text in `data/slice/story/*.story` (format in `scripts/game/story.gd`), checked by `tools/tests/story_lint.gd`. Ledger entries are in `data/slice/ledger.json`, places in `data/slice/places.json`, fights in `data/slice/encounters.json`.
+- **Growth** (`scripts/game/growth.gd`, numbers in `data/slice/progression.json`): kills, patrols and meditating give **wells** (+2 Vitality and +1 Aether each); the yard trial is the **1st Ring**, then 20, 40 and 70 wells the 2nd to 4th. Rings open spellbook slots (2, 4, then 6) and spell tiers (Controls at the 1st, Signatures at the 4th). Wells, the Ring and each spell's **Practice** reset when you wake; below the best you reached before, both regrow three times as fast (the **Echo**), and each loop that reached day 7 adds 10% **Fluency**. Meditating and training are once a day. You change the spellbook at dawn, from the Models you know (four at the start, more studied with Wren).
+- **Fights with a knowledge route:** the risen at the Mill can only be knocked down, but they won't cross the millrace once Aldous has told you; Silas duels to three clean hits and always opens with his lance; the tide at the north door is barely survivable even at the 4th Ring, so bar the door. **C** is the Ward cantrip in the slice: two charges, each stops one shot.
 - **State** is in two layers (`scripts/game/run.gd`): memory, kept across loops, and the loop, reset on waking. Saved at each dawn.
-- **Tests:** `tools/tests/route.gd` plays loop 1 to the north door and loop 2 through the Long Night to the end of the slice; `tools/tests/encounters.gd` fights every slice fight with the bot.
+- **Tests:** `tools/tests/route.gd` plays loop 1 to the north door and loop 2 through the Long Night to the end of the slice; `tools/tests/relearn.gd` checks that a third loop regains the 3rd Ring by day 3 (success criterion 6); `tools/tests/encounters.gd` fights every slice fight with the bot, as a fresh Apprentice and as a 4th Ring wizard.
 
 ![A scene in the archive](docs/screens/slice_scene.jpg)
 
+![Dawn: the spellbook at the 2nd Ring](docs/screens/slice_dawn.jpg)
+
 ## The fights
 
-The fights are the spellbook prototype below, started from the story with an encounter from `data/slice/encounters.json`. The old "Ambush at the Mill" fight and the test scenes are still reachable from the title card (Test scenes).
+The fights are the spellbook prototype below, started from the story with an encounter from `data/slice/encounters.json`. In the slice the fight borrows the loop's Practice and spellbook: sealed slots wait for a Ring, the top left shows your Ring and wells, and C is the Ward instead of a Magick. The old "Ambush at the Mill" fight and the test scenes are still reachable from the title card (Test scenes).
+
+![A patrol at the 2nd Ring: four open slots, two sealed, the Ward on C](docs/screens/slice_fight.jpg)
 
 ## Play it
 

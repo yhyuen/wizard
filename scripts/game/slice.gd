@@ -10,11 +10,15 @@ extends "res://scripts/ui/atlas.gd"
 signal screen_changed(screen: String)
 
 const Story := preload("res://scripts/game/story.gd")
+const Growth := preload("res://scripts/game/growth.gd")
+const SLOT_NAMES := ["1", "2", "3", "4", "5", "6"]
 const LEDGER_TABS := ["Questions", "Clues", "People", "Insights"]
 
 var main  # scripts/main.gd: runs the fights
 var run  # the Run autoload
 var story
+var growth  # scripts/game/growth.gd: wells, Rings, Practice, the spellbook
+var dawn_slot := 0  # the spellbook slot picked on the dawn card
 var places: Dictionary = {}
 var links: Array = []
 var encounters: Dictionary = {}
@@ -37,7 +41,8 @@ var opts: Array = []  # the choices on the page
 var uses_slot := true  # whether the pick that started this chain uses up the time of day
 var fight_id := ""
 
-## Tests set this to settle fights without playing them: func(encounter_id) -> bool (won).
+## Tests set this to settle fights without playing them: func(encounter_id) -> bool (won), or
+## -> {"won", "kills"}.
 var fight_resolver: Callable
 
 
@@ -47,6 +52,8 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_PASS
 	run = get_node("/root/Run")
 	story = Story.new(run)
+	growth = Growth.new(run, get_node("/root/Progression"))
+	story.ctx.growth = growth
 	story.load_all()
 	for e in story.errors:
 		push_error("story: " + str(e))
@@ -177,7 +184,9 @@ func _effect(op: String, arg: String) -> bool:
 		"learn":
 			run.learn(arg)
 		"set":
+			var r: int = growth.ring()
 			run.set_flag(arg)
+			_ring_toast(r)  # the yard trial sets "ring1"
 		"clear":
 			run.clear_flag(arg)
 		"model":
@@ -185,11 +194,19 @@ func _effect(op: String, arg: String) -> bool:
 		"trial":
 			run.learn("trial_" + arg)
 		"wells", "meditate":
-			run.lp["wells"] = int(run.lp.get("wells", 0)) + int(arg)
-			toast("Wells +%s" % arg)
+			if growth.use_today(op):
+				gain_wells(int(arg))
+			else:
+				toast("You've already meditated today. It doesn't come twice.")
 		"train":
-			run.lp["trained"] = int(run.lp.get("trained", 0)) + 1
-			toast("Practice +")
+			if growth.use_today(op):
+				var got: Dictionary = growth.train()
+				var parts: Array = []
+				for id in got:
+					parts.append("%s %d" % [growth.prog.spell(id)["name"], growth.level(id)])
+				toast("Practice: " + ", ".join(parts))
+			else:
+				toast("Your hands are done for today.")
 		"goto":
 			if lines.is_empty():
 				play(arg, true)
@@ -202,6 +219,20 @@ func _effect(op: String, arg: String) -> bool:
 		_:
 			push_warning("story effect not handled yet: " + op)
 	return false
+
+
+func gain_wells(n: int) -> void:
+	var r: int = growth.ring()
+	var got: int = growth.add_wells(n)
+	if got > 0:
+		toast("Wells +%d%s" % [got, "  (echo)" if got > n else ""])
+	_ring_toast(r)
+
+
+## Names a new Ring and the slots it opens.
+func _ring_toast(before: int) -> void:
+	if growth.ring() > before:
+		toast("The %s: %d spellbook slots" % [growth.ring_name(), growth.slots()])
 
 
 ## The button under the page when a blocking effect is waiting.
@@ -267,16 +298,24 @@ func _start_fight(id: String) -> void:
 	var enc: Dictionary = encounters[id].duplicate(true)
 	if enc.has("waived") and run.knows("trial_" + id.trim_suffix("_trial")):
 		enc["waves"] = enc["waived"]
+	if id == "mill_risen" and run.knows("millrace"):
+		enc["millrace"] = true
 	if fight_resolver.is_valid():
-		fight_done(bool(fight_resolver.call(id)))
+		var r = fight_resolver.call(id)  # won, or {"won", "kills"}
+		if r is Dictionary:
+			fight_done(bool(r["won"]), int(r.get("kills", 0)))
+		else:
+			fight_done(bool(r))
 		return
 	set_screen("fight")
 	main.start_slice_fight(enc)
 
 
 ## Called by main.gd when a fight started here is over.
-func fight_done(won: bool) -> void:
+func fight_done(won: bool, kills := 0) -> void:
 	set_screen("scene")
+	if kills > 0:
+		gain_wells(kills * int(growth.d["wells"]["kill"]))
 	var outs: Dictionary = cur.get("outcomes", {})
 	var key := "won" if won else "lost"
 	if outs.has(key):
@@ -290,6 +329,7 @@ func fight_done(won: bool) -> void:
 
 
 func end_loop(cause: String) -> void:
+	growth.loop_over()
 	run.end_loop(cause)
 	cur = {}
 	pending = {}
@@ -454,20 +494,88 @@ func _draw_title() -> void:
 
 func _draw_dawn() -> void:
 	_header()
-	var r := Rect2(250, 150, 460, 230)
+	var r := Rect2(130, 84, 700, 404)
 	panel(r)
-	title(r.position + Vector2(0, 52), "Day %d" % run.day(), 34, GOLD, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+	title(r.position + Vector2(0, 44), "Day %d" % run.day(), 32, GOLD, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 	var sub := "Dawn over Vellmar."
 	if run.day() == 1 and run.loop() == 1:
 		sub = "The first day."
 	elif run.day() == 1:
-		sub = "Day one again. You remember everything."
+		sub = "Day one again. You remember everything; your hands don't."
 	elif run.day() == 7:
 		sub = "The seventh day."
-	text(r.position + Vector2(0, 92), sub, 16, PAPER, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 	var left: int = 28 - run.day()
-	text(r.position + Vector2(0, 124), "%d days to the Eclipse" % left, 13, DIM, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-	button(Rect2(r.position.x + 150, r.end.y - 62, 160, 34), "Begin the day", start_day, 1, 15)
+	text(r.position + Vector2(0, 72), "%s  %d day%s to the Eclipse." % [sub, left, "" if left == 1 else "s"], 15, PAPER, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+	_draw_growth(Vector2(r.position.x + 40, r.position.y + 110))
+	_draw_book_editor(Vector2(r.position.x + 40, r.position.y + 168))
+	button(Rect2(r.position.x + r.size.x / 2.0 - 80, r.end.y - 48, 160, 34), "Begin the day", start_day, 0, 15)
+
+
+## Your Ring, wells, Vitality and Aether, and how fast you are relearning.
+func _draw_growth(at: Vector2) -> void:
+	var line := "%s  ·  %d wells  ·  Vitality %d  ·  Aether %d" % [growth.ring_name(), growth.wells(), int(growth.max_hp()), int(growth.max_aether())]
+	title(at, line, 15, HAIR)
+	var next := "The yard trial opens the 1st Ring." if growth.ring() == 0 else ""
+	if growth.wells_to_next() > 0:
+		next = "%d more wells for the %s." % [growth.wells_to_next(), growth.ring_name(growth.ring() + 1)]
+	var bits: Array = []
+	if growth.best_wells() > growth.wells():
+		bits.append("wells regrow ×%d up to %d" % [int(growth.d["echo_mult"]), growth.best_wells()])
+	if not growth.echo().is_empty():
+		bits.append("Practice regrows ×%d up to your best" % int(growth.d["echo_mult"]))
+	if growth.fluency() > 0.0:
+		bits.append("Fluency +%d%%" % roundi(growth.fluency() * 100.0))
+	if not bits.is_empty():
+		next += ("  " if next != "" else "") + "Echo: " + ", ".join(bits) + "."
+	text(at + Vector2(0, 24), next, 13, DIM)
+
+
+## The spellbook: pick a slot, then a Model you know. Slots open with each Ring; a spell's tier
+## needs a Ring too (controls the 1st, signatures the 4th).
+func _draw_book_editor(at: Vector2) -> void:
+	title(at, "Spellbook", 15, PAPER)
+	text(at + Vector2(96, 0), "pick a slot, then a spell", 12, DIM)
+	var book: Array = growth.book()
+	for i in 6:
+		var rr := Rect2(at + Vector2(i * 104, 14), Vector2(98, 46))
+		var open: bool = i < growth.slots()
+		var id: String = growth.slot_spell(i)
+		var border := Color(GOLD, 0.9) if open and i == dawn_slot else Color(HAIR, 0.45 if open else 0.15)
+		panel(rr, border)
+		if open:
+			var nm: String = growth.prog.spell(book[i])["name"] if id != "" else "(empty)"
+			text(rr.position + Vector2(0, 20), nm, 13, PAPER, HORIZONTAL_ALIGNMENT_CENTER, rr.size.x)
+			if id != "":
+				text(rr.position + Vector2(0, 38), "Practice %d" % growth.level(id), 11, DIM, HORIZONTAL_ALIGNMENT_CENTER, rr.size.x)
+			buttons.append({"r": rr, "act": _pick_slot.bind(i), "key": 0})
+		else:
+			text(rr.position + Vector2(0, 28), _slot_ring(i), 12, Color(PAPER, 0.35), HORIZONTAL_ALIGNMENT_CENTER, rr.size.x)
+	title(at + Vector2(0, 86), "Models you know", 15, PAPER)
+	var models: Array = growth.known_models()
+	for j in models.size():
+		var id: String = models[j]
+		var rr := Rect2(at + Vector2((j % 6) * 104, 98 + (j / 6) * 34), Vector2(98, 28))
+		var ok: bool = growth.can_cast(id)
+		var label: String = growth.prog.spell(id)["name"]
+		if not ok:
+			label += "  (%s)" % growth.ring_name(growth.tier_ring(id)).trim_suffix(" Ring")
+		button(rr, label, _put_model.bind(id), 0, 12, ok and dawn_slot < growth.slots())
+
+
+func _slot_ring(i: int) -> String:
+	var sl: Array = growth.d["slots"]
+	for r in sl.size():
+		if int(sl[r]) > i:
+			return growth.ring_name(r)
+	return ""
+
+
+func _pick_slot(i: int) -> void:
+	dawn_slot = i
+
+
+func _put_model(id: String) -> void:
+	growth.set_slot(dawn_slot, id)
 
 
 func _draw_board() -> void:
