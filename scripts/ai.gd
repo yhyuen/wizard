@@ -174,14 +174,15 @@ func _rival(u: Unit, dt: float) -> void:
 		"lance":
 			u.state_t -= dt
 			if u.state_t <= 0.0:
-				_rival_recover(u, 0.5)
+				# In a duel he stands admiring his lance for a moment: the opening to punish.
+				_rival_recover(u, float(A.encounter.get("lance_recover", 0.5)))
 
 
 func _rival_choose(u: Unit, to: Vector2) -> void:
 	var e: Dictionary = A.D["enemies"]["rival"]
 	var d = to.length()
 	var roll = A.rng.randf()
-	if u.cooldown("storm") <= 0.0 and roll < 0.3:
+	if u.cooldown("storm") <= 0.0 and roll < 0.3 and not (A.encounter.get("tell", false) and not u.flags.has("opened")):
 		var s: Dictionary = e["storm"]
 		var P: Unit = A.player
 		var lead: Vector2 = P.flags.get("move", Vector2.ZERO) * 0.7
@@ -192,7 +193,10 @@ func _rival_choose(u: Unit, to: Vector2) -> void:
 		u.cd["storm"] = float(s["cooldown"])
 		u.state_t = 0.9
 		return
-	if d < 165.0 and roll < 0.6 and u.cooldown("lance") <= 0.0:
+	# His tell: in a duel he always opens with Arc Lance from across the yard.
+	var opening: bool = A.encounter.get("tell", false) and not u.flags.has("opened")
+	u.flags["opened"] = true
+	if opening or (d < 165.0 and roll < 0.6 and u.cooldown("lance") <= 0.0):
 		var l: Dictionary = e["lance"]
 		var start = u.pos + Vector2(0, -6)
 		A.add_zone({"kind": "lance", "owner": u.id, "a": start, "b": start + to.normalized() * float(l["length"]),

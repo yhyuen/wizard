@@ -133,8 +133,10 @@ func start_fight(scene := "", enc := {}) -> void:
 
 
 ## A fight from the slice's story: `enc` is its entry in data/slice/encounters.json.
+## The slice lends the fight its Practice, spellbook and rules (scripts/game/growth.gd).
 func start_slice_fight(enc: Dictionary) -> void:
 	slice_fight = true
+	slice.growth.begin_fight()
 	start_fight("", enc)
 
 
@@ -317,7 +319,8 @@ func _on_fight_over(won: bool) -> void:
 		shrine_open = false
 		arena.paused = true
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-		slice.fight_done(won)
+		slice.growth.end_fight()
+		slice.fight_done(won, int(arena.stats["kills"]))
 		return
 	if testing:
 		hud.push_toast("Test over: %s" % ("won" if won else "fell"), PixelArt.GOLD)

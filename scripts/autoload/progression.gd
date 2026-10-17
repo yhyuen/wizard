@@ -20,6 +20,10 @@ var save_enabled := true  # tests turn saving off
 ## While the kit casts or previews a spell, Cadence scales it: {"id", "damage", "size", "count"}.
 ## stat() applies it to that spell's current-level damage, size and count tracks.
 var boost: Dictionary = {}
+## The vertical slice's rules while it lends its Practice and spellbook for a fight
+## (scripts/game/growth.gd): {"hp", "aether", "blinks", "open", "echo", "echo_mult", "fluency",
+## "revisions", "ward"}. Empty outside the slice, where the old Mill fight's rules apply.
+var rules: Dictionary = {}
 
 const SIZE_KEYS := ["radius", "size", "cone", "width"]
 const COUNT_KEYS := ["bounces", "strikes", "chains"]
@@ -128,6 +132,17 @@ func stone_cap() -> int:
 	return int(stat("avalanche", "cap"))
 
 
+## In the slice, Practice grows faster below the best this Model reached in an earlier loop (Echo)
+## and with each loop that reached day 7 (Fluency).
+func xp_mult(id: String) -> float:
+	if rules.is_empty():
+		return 1.0
+	var m := 1.0 + float(rules.get("fluency", 0.0))
+	if level(id) < int(rules.get("echo", {}).get(id, 1)):
+		m *= float(rules.get("echo_mult", 1.0))
+	return m
+
+
 ## Adds spell XP and levels the spell up (several levels if needed). Milestone levels queue a pick.
 func add_xp(id: String, amount: float) -> void:
 	if not p["spells"].has(id):
@@ -136,7 +151,7 @@ func add_xp(id: String, amount: float) -> void:
 	var old := int(s["level"])
 	if old >= max_level():
 		return
-	s["xp"] = float(s["xp"]) + amount
+	s["xp"] = float(s["xp"]) + amount * xp_mult(id)
 	while int(s["level"]) < max_level() and float(s["xp"]) >= xp_needed(int(s["level"])):
 		s["xp"] = float(s["xp"]) - xp_needed(int(s["level"]))
 		s["level"] = int(s["level"]) + 1
@@ -171,8 +186,15 @@ func _reach(id: String, lv: int) -> void:
 	milestone_ready.emit()
 
 
+## A milestone's options. In the slice, the one you chose in an earlier loop comes first.
 func milestone_options(entry: Dictionary) -> Array:
-	return spell(entry["spell"])["milestones"][str(entry["level"])]
+	var opts: Array = spell(entry["spell"])["milestones"][str(entry["level"])]
+	var before: String = rules.get("revisions", {}).get(entry["spell"], {}).get(str(entry["level"]), "")
+	if before == "":
+		return opts
+	var out: Array = opts.filter(func(m): return m["id"] == before)
+	out.append_array(opts.filter(func(m): return m["id"] != before))
+	return out
 
 
 ## Picks option `index` (0 or 1) for the oldest pending milestone.
@@ -252,14 +274,25 @@ func spellbook() -> Array:
 	return p["spellbook"]
 
 
-## The spheres in the spellbook, in slot order.
+## The spheres in the spellbook, in slot order (only the open slots, in the slice).
 func loadout() -> Array:
 	var out: Array = []
-	for id in spellbook():
-		var e: String = spell(id)["element"]
+	var book := spellbook()
+	for i in book.size():
+		if not slot_open(i):
+			continue
+		var e: String = spell(book[i])["element"]
 		if not out.has(e):
 			out.append(e)
+	if out.is_empty():
+		out.append(spell(book[0])["element"])
 	return out
+
+
+## In the slice a slot is closed until your Ring opens it, or while its spell's tier is too high.
+func slot_open(i: int) -> bool:
+	var open: Array = rules.get("open", [])
+	return open.is_empty() or (i < open.size() and bool(open[i]))
 
 
 func elements() -> Array:
@@ -334,6 +367,8 @@ func set_loadout(a: String, b: String) -> void:
 
 ## The first Magick whose two spheres are both in `spheres`, or "" if there is none.
 func magick_for(pair: Array) -> String:
+	if not rules.is_empty():
+		return ""  # no Magicks in the slice; C is the Ward
 	for id in data["magicks"]:
 		var mp: Array = data["magicks"][id]["pair"]
 		if pair.has(mp[0]) and pair.has(mp[1]):
@@ -402,6 +437,8 @@ func wizard_xp_needed(lv: int) -> float:
 
 
 func add_wizard_xp(amount: float) -> void:
+	if not rules.is_empty():
+		return  # the slice grows by wells and Rings instead
 	var old := wizard_level()
 	p["wizard_xp"] = float(p["wizard_xp"]) + amount
 	while float(p["wizard_xp"]) >= wizard_xp_needed(int(p["wizard_level"])):
@@ -413,13 +450,21 @@ func add_wizard_xp(amount: float) -> void:
 
 func max_hp(lv := -1) -> float:
 	if lv < 0:
+		if rules.has("hp"):
+			return float(rules["hp"])
 		lv = wizard_level()
 	var pr: Dictionary = data["progression"]
 	return float(pr["wizard_hp_base"]) + float(pr["wizard_hp_per_level"]) * (lv - 1)
 
 
+func max_aether() -> float:
+	return float(rules.get("aether", data["aether"]["max"]))
+
+
 func blink_charges(lv := -1) -> int:
 	if lv < 0:
+		if rules.has("blinks"):
+			return int(rules["blinks"])
 		lv = wizard_level()
 	var n := 1
 	for at in data["progression"]["blink_charge_levels"]:

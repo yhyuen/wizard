@@ -15,8 +15,9 @@ extends RefCounted
 ##   ? won -> scene_after_a_won_fight
 ##
 ## Conditions are Godot expressions over k(id) (remembered), f(id) (flag this loop), seen(id)
-## (scene played this loop), died(cause), count(prefix) (flags starting with prefix), and the
-## values loop, day, time and ring. A line, effect or outcome can start with [condition] to
+## (scene played this loop), died(cause), count(prefix) (flags starting with prefix), done(op)
+## (a once-a-day action such as "meditate" already done today), and the values loop, day, time
+## and ring. A line, effect or outcome can start with [condition] to
 ## happen only when it holds. `place` can list several places; `slot: free` means playing the
 ## scene doesn't use up the time of day.
 
@@ -34,6 +35,11 @@ var ctx := Ctx.new()
 class Ctx:
 	var run  # the Run autoload
 	var ring := 0
+	var growth  # scripts/game/growth.gd, when the slice has one: gives the real Ring
+
+	## A once-a-day action (meditate, train) already done today.
+	func done(op: String) -> bool:
+		return int(run.lp.get("done_" + op, 0)) == run.day()
 
 	func k(id: String) -> bool:
 		return run.knows(id)
@@ -196,7 +202,8 @@ func test(cond: String) -> bool:
 			push_error("story condition does not parse: %s (%s)" % [cond, e.get_error_text()])
 			return false
 		_exprs[cond] = e
-	var r = e.execute([ctx.run.loop(), ctx.run.day(), ctx.run.time_id(), ctx.ring], ctx)
+	var ring: int = ctx.growth.ring() if ctx.growth != null else ctx.ring
+	var r = e.execute([ctx.run.loop(), ctx.run.day(), ctx.run.time_id(), ring], ctx)
 	if e.has_execute_failed():
 		push_error("story condition failed: %s" % cond)
 		return false

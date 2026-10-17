@@ -17,7 +17,7 @@ Under the pillow there's a folded note. It is written in the College's old star 
 + learn own_star
 + learn pillow_note
 [k("cipher")] + learn pillow_note_read
-* Meditate for a while -> meditate_room
+* Meditate for a while [not done("meditate")] -> meditate_room
 * Leave
 
 === room_note_read
@@ -29,7 +29,7 @@ when: k("cipher") and k("pillow_note") and not k("pillow_note_read")
 You take the note from under the pillow and read it, slowly, symbol by symbol.
 "Don't say how it ends."
 + learn pillow_note_read
-* Meditate for a while -> meditate_room
+* Meditate for a while [not done("meditate")] -> meditate_room
 * Leave
 
 === room_idle
@@ -39,7 +39,7 @@ times: any
 repeat: true
 priority: -10
 Your room. The brass star on the desk, the note under the pillow.
-* Meditate for a while -> meditate_room
+* Meditate for a while [not done("meditate")] -> meditate_room
 * Leave
 
 === meditate_room
@@ -247,7 +247,7 @@ repeat: true
 priority: -10
 The yard: chalk circles, straw targets, a cracked practice wall.
 * Take the yard trial [not f("ring1")] -> yard_trial
-* Train -> yard_train
+* Train [not done("train")] -> yard_train
 * Leave
 
 === yard_trial
@@ -280,7 +280,7 @@ The Observatory door is burnt through. The scorch spreads outward from the insid
 Nobody has been in since the night of the light. The bolt is still drawn on this side.
 + learn burnt_door
 * Cast an Ember Bolt at the wall beside it [not k("scorch_match")] -> scorch_test
-* Meditate under the dome -> meditate_obs
+* Meditate under the dome [not done("meditate")] -> meditate_obs
 * Leave
 
 === scorch_test
@@ -296,7 +296,7 @@ times: any
 repeat: true
 priority: -10
 The Observatory's burnt door. Above it, the dome is open to the sky.
-* Meditate under the dome -> meditate_obs
+* Meditate under the dome [not done("meditate")] -> meditate_obs
 * Leave
 
 === meditate_obs

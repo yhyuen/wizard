@@ -199,8 +199,17 @@ func _draw_fight() -> void:
 			rows.append(e)
 	var pr := Rect2(10, 10, 214, 104 + rows.size() * 15)
 	_panel(pr)
-	_title(Vector2(20, 30), "The Wizard  ·  Lv %d" % Progression.wizard_level(), 13)
-	var wx: float = Progression.p["wizard_xp"] / Progression.wizard_xp_needed(Progression.wizard_level())
+	var wx: float
+	if main.slice_fight:
+		# The slice: your Ring and wells, with the way to the next Ring as the hairline.
+		var g = main.slice.growth
+		_title(Vector2(20, 30), "%s  ·  %d wells" % [g.ring_name(), g.wells()], 13)
+		var need: Array = g.d["ring_wells"]
+		var r: int = g.ring()
+		wx = 1.0 if r == 0 or r + 1 >= need.size() else float(g.wells() - int(need[r])) / float(int(need[r + 1]) - int(need[r]))
+	else:
+		_title(Vector2(20, 30), "The Wizard  ·  Lv %d" % Progression.wizard_level(), 13)
+		wx = Progression.p["wizard_xp"] / Progression.wizard_xp_needed(Progression.wizard_level())
 	draw_line(Vector2(20, 36), Vector2(214, 36), Color(HAIR, 0.15), 1.0)
 	draw_line(Vector2(20, 36), Vector2(20 + 194 * clampf(wx, 0, 1), 36), Color(HAIR, 0.6), 1.0)
 	_text(Vector2(20, 53), "Vitality", 11, Color(VITAL, 0.8))
@@ -224,7 +233,8 @@ func _draw_fight() -> void:
 	var mast: Array = []
 	for e in lo:
 		mast.append("%s %d" % [_glyph(e), Progression.mastery(e)])
-	_text(Vector2(118, 100), "Mastery  " + "  ".join(mast), 10, Color(HAIR, 0.7), HORIZONTAL_ALIGNMENT_RIGHT, 96)
+	if not main.slice_fight:  # the slice has no masteries
+		_text(Vector2(118, 100), "Mastery  " + "  ".join(mast), 10, Color(HAIR, 0.7), HORIZONTAL_ALIGNMENT_RIGHT, 96)
 	_draw_moons()
 	# Top right: the duelist.
 	var r: Unit = arena.rival()
@@ -275,6 +285,10 @@ func _draw_moons() -> void:
 	draw_rect(strip, Color(BG, 0.55))
 	draw_line(strip.position + Vector2(0, strip.size.y), strip.end, Color(HAIR, 0.3), 1.0)
 	var today := 0
+	var loop_n: int = Progression.loop()
+	if main.slice_fight:
+		today = main.slice.run.day() - 1
+		loop_n = main.slice.run.loop()
 	var r := 4.2
 	for i in LOOP_DAYS:
 		var c := Vector2(x0 + i * step, 21)
@@ -292,7 +306,7 @@ func _draw_moons() -> void:
 	draw_circle(ec, 5.5, Color(0, 0, 0))
 	var t: float = arena.fight_time
 	_title(Vector2(0, 48), "Loop %d   ·   Day %d of %d   ·   %d:%02d   ·   %d casts   ·   %d taken   ·   %d down" % [
-		Progression.loop(), today + 1, LOOP_DAYS, int(t) / 60, int(t) % 60, int(arena.stats["casts"]),
+		loop_n, today + 1, LOOP_DAYS, int(t) / 60, int(t) % 60, int(arena.stats["casts"]),
 		int(arena.stats["damage_taken"]), int(arena.stats["kills"])], 11, Color(HAIR, 0.85), HORIZONTAL_ALIGNMENT_CENTER, 960)
 
 
@@ -370,6 +384,13 @@ func _draw_book() -> void:
 
 func _draw_star_slot(c: Vector2, slot: String, id: String) -> void:
 	var kit = arena.kit
+	if id == "":
+		# A slot your Ring hasn't opened yet (the slice).
+		draw_circle(c, RING_R + 1.0, Color(0.03, 0.045, 0.1, 0.6))
+		draw_arc(c, RING_R, 0, TAU, 40, Color(HAIR, 0.2), 1.0, true)
+		_title(c + Vector2(-40, -RING_R - 8), main.controls.key(slot), 10, Color(HAIR, 0.35), HORIZONTAL_ALIGNMENT_CENTER, 80)
+		_text(c + Vector2(-50, RING_R + 15), "sealed", 11, Color(1, 1, 1, 0.3), HORIZONTAL_ALIGNMENT_CENTER, 100)
+		return
 	var s: Dictionary = Progression.spell(id)
 	var col: Color = kit.element_color(s["element"])
 	var ring := col
@@ -417,6 +438,9 @@ func _draw_star_slot(c: Vector2, slot: String, id: String) -> void:
 func _draw_magick(c: Vector2, slot: String, id: String) -> void:
 	var kit = arena.kit
 	var r := 20.0
+	if Progression.rules.has("ward"):
+		_draw_ward(c, r)
+		return
 	_title(c + Vector2(-50, -r - 8), "C  ·  Magick", 10, Color(HAIR, 0.85), HORIZONTAL_ALIGNMENT_CENTER, 100)
 	var border := Color(HAIR, 0.8)
 	if id == "":
@@ -450,6 +474,22 @@ func _draw_magick(c: Vector2, slot: String, id: String) -> void:
 		_text(c + Vector2(-80, r + 27), "%d aether" % int(cost), 9, AETHER if kit.aether >= cost else PixelArt.DANGER, HORIZONTAL_ALIGNMENT_CENTER, 160)
 	if kit.resonant_for(id):
 		_diamond(c, r + 6.0, Color(PixelArt.GOLD, 0.6), false)
+
+
+## The slice's cantrip on C: Ward, with its charges as stars.
+func _draw_ward(c: Vector2, r: float) -> void:
+	var kit = arena.kit
+	_title(c + Vector2(-50, -r - 8), "%s  ·  Ward" % main.controls.key("magick"), 10, Color(HAIR, 0.85), HORIZONTAL_ALIGNMENT_CENTER, 100)
+	var up: bool = kit.ward_t > 0.0
+	var border: Color = PixelArt.DANGER if kit.denied.has("magick") else (PixelArt.GOLD if up else Color(HAIR, 0.8 if kit.ward_charges > 0 else 0.3))
+	_diamond(c, r + 1.0, Color(0.03, 0.045, 0.1, 0.9))
+	_diamond(c, r, border, false)
+	if up:
+		_diamond(c, r - 4.0, Color(PixelArt.GOLD, 0.35))
+	var n := int(Progression.rules["ward"]["charges"])
+	for i in n:
+		star(c + Vector2((i - (n - 1) / 2.0) * 12.0, 0), 4.0, PixelArt.GOLD if i < kit.ward_charges else Color(PixelArt.GOLD, 0.18))
+	_text(c + Vector2(-80, r + 15), "stops one shot", 11, Color(1, 1, 1, 0.55), HORIZONTAL_ALIGNMENT_CENTER, 160)
 
 
 ## Hovering a star shows the spell's numbers and mutations, as the old cards did.

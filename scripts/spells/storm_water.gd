@@ -99,7 +99,7 @@ func add_rod(at: Vector2) -> void:
 
 
 func add_puddle(at: Vector2, r: float) -> void:
-	var puddles: Array = A.zones.filter(func(z): return z["kind"] == "puddle")
+	var puddles: Array = A.zones.filter(func(z): return z["kind"] == "puddle" and not z.get("millrace", false))
 	if puddles.size() >= int(A.D["field"]["puddle_cap"]):
 		A.zones.erase(puddles[0])
 	A.add_zone({"kind": "puddle", "pos": A.clamp_in(at), "r": r, "life": float(A.D["field"]["puddle_life"])})
