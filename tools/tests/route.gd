@@ -95,6 +95,7 @@ func _step() -> bool:
 				slice.choose(_pick(slice.opts))
 				_add_time(CHOICE_SECONDS)
 		"death":
+			_deduce()
 			var log: Dictionary = run.mem["log"][-1]
 			deaths.append({"loop": run.loop(), "day": run.day(), "cause": log["cause"], "learned": log["learned"].size()})
 			print("[route] loop %d ends on day %d (%s), learned %d" % [run.loop(), run.day(), log["cause"], log["learned"].size()])
@@ -109,6 +110,22 @@ func _step() -> bool:
 			failures.append("stuck on screen " + slice.screen)
 			return false
 	return true
+
+
+## At each death, work out every deduction that's ready: a wrong answer first (which must teach
+## nothing), then the right one (which must teach its insight).
+func _deduce() -> void:
+	for qid in slice.ledger:
+		if not slice.deduction_ready(qid):
+			continue
+		var q: Dictionary = slice.ledger[qid]
+		var wrong: int = (int(q["answer"]) + 1) % q["options"].size()
+		if slice.deduce(qid, wrong) or run.knows(q["insight"]):
+			failures.append("a wrong answer solved " + qid)
+		if not slice.deduce(qid, int(q["answer"])) or not run.knows(q["insight"]):
+			failures.append("the right answer did not solve " + qid)
+		print("[route] loop %d: worked out %s" % [run.loop(), q["title"]])
+		_add_time(20.0)
 
 
 func _pick(opts: Array) -> int:
@@ -128,7 +145,7 @@ func _report() -> void:
 	for need in ["cipher", "wren_sea", "noon_note", "warning_read", "mourner", "risen", "died_north_door"]:
 		if not run.knows(need):
 			failures.append("never learned " + need)
-	for need in ["the_bell", "long_night", "notes_are_ours", "kept_silence"]:
+	for need in ["the_bell", "long_night", "notes_are_ours", "kept_silence", "a_fire", "a_door", "a_notes"]:
 		if not run.knows(need):
 			failures.append("loop 2 never reached " + need)
 	if slice.screen != "end":
