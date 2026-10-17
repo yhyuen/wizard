@@ -59,6 +59,9 @@ func _process(_dt: float) -> bool:
 		70:
 			_shot("06_noon_note")
 			slice.choose(slice.opts.size() - 1)
+			run.learn("burnt_door")
+			run.learn("scorch_match")
+			slice.ledger_q = "q_door"
 			slice.ledger_open = true
 		80:
 			_shot("07_ledger")
@@ -83,7 +86,11 @@ func _process(_dt: float) -> bool:
 			slice.next_slot()
 		130:
 			slice.advance()
+		135:
+			slice.choose(0)
 		140:
+			slice.advance()
+		145:
 			_shot("11_long_night")
 		150:
 			run.learn("long_night")

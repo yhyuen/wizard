@@ -24,6 +24,8 @@ var death_texts: Dictionary = {}
 var screen := "title"  # title, dawn, board, scene, fight, death, end
 var ledger_open := false
 var ledger_tab := 0
+var ledger_q := ""  # the question picked in the Questions tab
+var ledger_note := ""  # feedback on a wrong deduction, shown in the Ledger
 var toasts: Array = []  # {"text", "t"}
 
 # The scene being played.
@@ -414,7 +416,8 @@ func _draw() -> void:
 	if ledger_open:
 		begin_buttons()
 		_draw_ledger()
-	_draw_toasts()
+	else:
+		_draw_toasts()
 	end_buttons()
 
 
@@ -517,12 +520,44 @@ func _draw_scene() -> void:
 			y = para(Vector2(r.position.x + 28, y), ln["text"], r.size.x - 56, 15, Color(PAPER, 0.85))
 		y += 6.0
 	y = maxf(y + 8.0, r.end.y - 44.0 * maxi(1, opts.size()) - 12.0) if pending.is_empty() else maxf(y + 8.0, r.end.y - 56.0)
+	if in_long_night():
+		_draw_censer(Vector2(818, 400))
 	if not pending.is_empty():
 		button(Rect2(r.position.x + 28, y, 200, 34), pending_label(), advance, 1, 15)
 		return
 	for i in opts.size():
 		button(Rect2(r.position.x + 28, y, r.size.x - 56, 34), opts[i]["text"], choose.bind(i), i + 1, 15)
 		y += 40.0
+
+
+func in_long_night() -> bool:
+	var id: String = cur.get("id", "")
+	return id == "long_night" or id.begins_with("ln_")
+
+
+## The Long Night's censer: it fills with each topic, and the night ends when it's full.
+func _draw_censer(c: Vector2) -> void:
+	var told: int = mini(story.ctx.count("topic_"), 3)
+	var t := Time.get_ticks_msec() / 1000.0
+	# Chains, bowl, lid.
+	for dx in [-14.0, 0.0, 14.0]:
+		draw_line(c + Vector2(0, -70), c + Vector2(dx, -18), Color(HAIR, 0.6), 1.0)
+	draw_colored_polygon(PackedVector2Array([c + Vector2(-22, -18), c + Vector2(22, -18), c + Vector2(14, 6), c + Vector2(-14, 6)]), Color("8a6a34"))
+	draw_arc(c + Vector2(0, -18), 22.0, PI, TAU, 16, Color("c8a050"), 2.0)
+	draw_rect(Rect2(c + Vector2(-8, 6), Vector2(16, 6)), Color("6a4e26"))
+	# Smoke: one plume per topic told, rising and curling.
+	for i in told:
+		for k in 6:
+			var f := fmod(t * 0.35 + k / 6.0 + i * 0.13, 1.0)
+			var p := c + Vector2(sin(f * 6.0 + i * 2.0) * (6.0 + f * 14.0), -26.0 - f * (60.0 + i * 18.0))
+			draw_circle(p, 3.0 + f * 7.0, Color(0.8, 0.82, 0.9, 0.22 * (1.0 - f)))
+	for i in 3:
+		var pc := c + Vector2(-16 + i * 16, 30)
+		if i < told:
+			star(pc, 5.0, HOURS)
+		else:
+			draw_arc(pc, 4.0, 0, TAU, 12, Color(HAIR, 0.5), 1.0)
+	text(Vector2(c.x - 80, c.y + 58), "The censer: %d of 3" % told, 12, DIM, HORIZONTAL_ALIGNMENT_CENTER, 160)
 
 
 func _draw_death() -> void:
@@ -588,18 +623,7 @@ func _draw_ledger() -> void:
 	var w := r.size.x - 56.0
 	match ledger_tab:
 		0:
-			for qid in entries_of("question"):
-				var q: Dictionary = ledger[qid]
-				var solved: bool = q.has("insight") and run.knows(q["insight"]) or q.has("closes") and run.knows(q["closes"])
-				text(Vector2(r.position.x + 28, y), q["title"], 15, PAPER if not solved else Color(GOLD, 0.9))
-				var known: Array = q.get("clues", []).filter(func(c): return run.knows(c))
-				var line := "%d clue%s" % [known.size(), "" if known.size() == 1 else "s"]
-				if solved:
-					line = "Answered: " + str(ledger.get(q.get("insight", q.get("closes", "")), {}).get("title", ""))
-				text(Vector2(r.position.x + 420, y), line, 12, DIM, HORIZONTAL_ALIGNMENT_LEFT, w - 400)
-				y += 22.0
-				if y > r.end.y - 30:
-					break
+			_draw_questions(r)
 		1, 2, 3:
 			var kinds: Array = [["clue"], ["person"], ["insight", "model"]][ledger_tab - 1]
 			var ids: Array = []
@@ -615,6 +639,96 @@ func _draw_ledger() -> void:
 	if run.known_ids().is_empty():
 		text(Vector2(r.position.x + 28, y), "Nothing yet.", 14, DIM)
 	button(Rect2(r.end.x - 120, r.end.y - 36, 100, 26), "Close  (L)", toggle_ledger, 0, 13)
+
+
+## The Questions tab: questions down the left; the one picked shows its clues on the right, and,
+## for a deduction whose clues are all in, the answers to choose from.
+func _draw_questions(r: Rect2) -> void:
+	var qs := entries_of("question")
+	if qs.is_empty():
+		return
+	if not ledger_q in qs:
+		ledger_q = qs[0]
+	var y := r.position.y + 76.0
+	var mouse := get_local_mouse_position()
+	for qid in qs:
+		var row := Rect2(r.position.x + 20, y - 17, 330, 24)
+		var on: bool = qid == ledger_q
+		if on or row.has_point(mouse):
+			draw_rect(row, Color(GOLD, 0.18 if on else 0.08))
+		var col := Color(GOLD, 0.95) if solved(qid) else PAPER
+		if deduction_ready(qid):
+			star(Vector2(row.position.x + 8, y - 5), 4.0, HOURS)
+		text(Vector2(row.position.x + 20, y), ledger[qid]["title"], 14, col, HORIZONTAL_ALIGNMENT_LEFT, 300)
+		buttons.append({"r": row, "act": _pick_question.bind(qid), "key": 0})
+		y += 26.0
+		if y > r.end.y - 20:
+			break
+	# The picked question.
+	var q: Dictionary = ledger[ledger_q]
+	var x := r.position.x + 372.0
+	var w := r.end.x - 28.0 - x
+	draw_line(Vector2(x - 12, r.position.y + 62), Vector2(x - 12, r.end.y - 48), Color(HAIR, 0.3), 1.0)
+	y = para(Vector2(x, r.position.y + 80), q["title"], w, 17, GOLD) + 4.0
+	var clues: Array = q.get("clues", [])
+	var missing := 0
+	for c in clues:
+		if run.knows(c):
+			star(Vector2(x + 4, y - 5), 3.5, GOLD)
+			y = para(Vector2(x + 16, y), ledger[c]["title"], w - 16, 13, PAPER, 1.2) + 2.0
+		else:
+			missing += 1
+	if missing > 0:
+		text(Vector2(x + 16, y), "%d more to find" % missing if not solved(ledger_q) else "", 12, DIM)
+		y += 18.0
+	y += 8.0
+	if solved(ledger_q):
+		var ans: Dictionary = ledger.get(q.get("insight", q.get("closes", "")), {})
+		text(Vector2(x, y), "Answered", 13, HOURS)
+		para(Vector2(x, y + 20), "%s. %s" % [ans.get("title", ""), ans.get("text", "")], w, 13, PAPER, 1.2)
+	elif deduction_ready(ledger_q):
+		text(Vector2(x, y), "You have enough to work it out:", 13, HOURS)
+		y += 12.0
+		if ledger_note != "":
+			y = para(Vector2(x, y + 8), ledger_note, w, 12, DANGER, 1.2)
+		var opts_q: Array = q["options"]
+		for i in opts_q.size():
+			button(Rect2(x, y, w, 28), opts_q[i], deduce.bind(ledger_q, i), 0, 13)
+			y += 32.0
+	elif q.has("options"):
+		text(Vector2(x, y), "Find more before you can work this out.", 12, DIM)
+	else:
+		text(Vector2(x, y), "Still open.", 12, DIM)
+
+
+func _pick_question(qid: String) -> void:
+	ledger_q = qid
+	ledger_note = ""
+
+
+func solved(qid: String) -> bool:
+	var q: Dictionary = ledger[qid]
+	return q.has("insight") and run.knows(q["insight"]) or q.has("closes") and run.knows(q["closes"])
+
+
+## A deduction whose needed clues are all known and which isn't answered yet.
+func deduction_ready(qid: String) -> bool:
+	var q: Dictionary = ledger[qid]
+	if not q.has("options") or solved(qid):
+		return false
+	return q.get("needs", []).all(func(c): return run.knows(c))
+
+
+## Picks answer `i` to deduction `qid`: the right one becomes an insight; a wrong one costs nothing.
+func deduce(qid: String, i: int) -> bool:
+	if not deduction_ready(qid):
+		return false
+	if i == int(ledger[qid]["answer"]):
+		run.learn(ledger[qid]["insight"])
+		ledger_note = ""
+		return true
+	ledger_note = "That doesn't fit everything you know. Nothing is lost; think again."
+	return false
 
 
 ## New Ledger entries and the like, in a column down the right-hand side.
