@@ -1,0 +1,17 @@
+{
+ "_doc": "Every slice fight (design/slice/content.md §4). waves run one after another (the next starts when the yard is clear); with survive > 0 they arrive on a timer instead and the fight is won by lasting that many seconds. lethal: losing ends the loop.",
+ "encounters": {
+  "patrol":     {"title": "Hollows in the mist", "lethal": true,
+                 "waves": [[{"kind": "hollow", "n": 4}], [{"kind": "hollow", "n": 3}, {"kind": "slinger", "n": 1}]]},
+  "yard_trial": {"title": "The yard trial", "lethal": false,
+                 "waves": [[{"kind": "hollow", "n": 3, "dummy": true}], [{"kind": "hollow", "n": 4}]],
+                 "waived": [[{"kind": "hollow", "n": 4}]]},
+  "mill_risen": {"title": "The dead at the Mill get up", "lethal": true, "survive": 60,
+                 "waves": [[{"kind": "inverted", "n": 2}], [{"kind": "inverted", "n": 2}, {"kind": "hollow", "n": 2}], [{"kind": "inverted", "n": 3}]]},
+  "silas_duel": {"title": "Practice duel: Silas Vane", "lethal": false,
+                 "waves": [[{"kind": "rival", "n": 1}]]},
+  "tide":       {"title": "The north door is open", "lethal": true, "survive": 90,
+                 "waves": [[{"kind": "hollow", "n": 6}], [{"kind": "hollow", "n": 6}, {"kind": "slinger", "n": 2}], [{"kind": "hollow", "n": 8}, {"kind": "slinger", "n": 2}],
+                           [{"kind": "hollow", "n": 8}, {"kind": "inverted", "n": 2}], [{"kind": "hollow", "n": 10}, {"kind": "slinger", "n": 3}]]}
+ }
+}

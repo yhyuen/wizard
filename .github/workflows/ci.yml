@@ -1,4 +1,5 @@
-# Every PR and push to main: unit checks, a bot playthrough of the whole fight, and a web build
+# Every PR and push to main: unit checks, the slice's story checks and route, the slice's fights,
+# a bot playthrough of the old Mill fight, and a web build
 # (uploaded as an artifact). Pushes to main also publish the web build to GitHub Pages.
 name: CI
 
@@ -52,6 +53,15 @@ jobs:
 
       - name: Unit checks
         run: tools/ci/godot.sh --script res://tools/tests/unit.gd
+
+      - name: Story checks (slice)
+        run: tools/ci/godot.sh --script res://tools/tests/story_lint.gd
+
+      - name: Route through the slice (loop 1 to the north door, loop 2 to the end)
+        run: tools/ci/godot.sh --script res://tools/tests/route.gd
+
+      - name: Slice fights
+        run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/encounters.gd
 
       - name: Bot playthrough (three loops)
         run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/fight.gd -- --loops 3 --seconds 240

@@ -1,6 +1,7 @@
 extends Node
-## Root: the arena seen through the 3D ink view (scripts/view/), the HUD on top at 960×540, and
-## the title, fight and Loop Ledger flow, plus the Orrery shrine menu. Input becomes an intent
+## Root: the arena seen through the 3D ink view (scripts/view/), the HUD on top at 960×540, the
+## vertical slice's game flow on top of that (scripts/game/slice.gd: title, board, scenes, Ledger),
+## and the fights, the Orrery shrine menu and the old Mill fight's Loop Ledger. Input becomes an intent
 ## dictionary each physics frame, so tests can drive the same code with a bot. With "enabled":
 ## false in data/visual.json the old pixel-art arena (480×270 scaled up ×2) comes back.
 
@@ -9,12 +10,15 @@ const Hud := preload("res://scripts/hud.gd")
 const View3D := preload("res://scripts/view/view3d.gd")
 const Marks := preload("res://scripts/view/marks.gd")
 const Controls := preload("res://scripts/controls.gd")
+const Slice := preload("res://scripts/game/slice.gd")
 
 var arena
 var hud
 var view  # the 3D view, or null for the flat pixel arena
 var container: SubViewportContainer
-var mode := "title"  # title, tests, fight, ledger
+var mode := "title"  # title, slice, tests, fight, ledger
+var slice  # scripts/game/slice.gd: the slice's title card, day board, scenes and Ledger
+var slice_fight := false  # the fight running was started from the slice
 ## Test scenes (T on the title card): jump straight into one part of the game. A test never
 ## touches the save: the progress is put back as it was when you leave the menu.
 const TEST_SCENES := [
@@ -58,6 +62,15 @@ func _ready() -> void:
 	Progression.wizard_leveled.connect(_on_wizard_leveled)
 	Progression.magick_learned.connect(_on_magick)
 	Progression.hint_learned.connect(_on_hint)
+	slice = Slice.new()
+	slice.main = self
+	add_child(slice)
+	slice.screen_changed.connect(_on_slice_screen)
+
+
+func _on_slice_screen(s: String) -> void:
+	if s != "fight" and mode in ["title", "slice"]:
+		mode = "title" if s == "title" else "slice"
 
 
 ## The arena draws its flat marks into an offscreen viewport (scaled up so lines stay fine),
@@ -104,10 +117,11 @@ func _build_flat() -> void:
 	vp.add_child(arena)
 
 
-func start_fight(scene := "") -> void:
+func start_fight(scene := "", enc := {}) -> void:
 	mode = "fight"
 	shrine_open = false
-	arena.start(scene)
+	slice.visible = false
+	arena.start(scene, enc)
 	arena.paused = false
 	controls.reset()
 	hud.reset()
@@ -116,6 +130,12 @@ func start_fight(scene := "") -> void:
 		_toast_controls()
 	if not bot.is_valid():
 		Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
+
+
+## A fight from the slice's story: `enc` is its entry in data/slice/encounters.json.
+func start_slice_fight(enc: Dictionary) -> void:
+	slice_fight = true
+	start_fight("", enc)
 
 
 ## Names the control scheme in a toast, replacing the last one so Tab presses do not stack.
@@ -135,8 +155,8 @@ func _physics_process(_dt: float) -> void:
 		"title":
 			if Input.is_action_just_pressed("tests") and not bot.is_valid():
 				open_tests()
-			elif Input.is_action_just_pressed("confirm") or Input.is_action_just_pressed("slot1") or bot.is_valid():
-				start_fight()
+			elif bot.is_valid():
+				start_fight()  # the fight bot (tools/tests/fight.gd) plays the old Mill fight
 		"tests":
 			if Input.is_action_just_pressed("cancel") or Input.is_action_just_pressed("tests"):
 				close_tests()
@@ -214,6 +234,7 @@ func open_tests() -> void:
 		_saved_p = Progression.p.duplicate(true)
 		Progression.save_enabled = false
 	mode = "tests"
+	slice.visible = false
 	shrine_open = false
 	arena.paused = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -227,6 +248,8 @@ func close_tests() -> void:
 		Progression.pending.clear()
 		Progression.save_enabled = not "--script" in OS.get_cmdline_args()
 	mode = "title"
+	arena.paused = true
+	slice.set_screen("title")
 
 
 ## Sets up what scene `i` needs (later loops, Rewind, an echo), then starts it.
@@ -288,6 +311,14 @@ func shrine_repick(id: String, lv: int, index: int) -> void:
 
 
 func _on_fight_over(won: bool) -> void:
+	if slice_fight:
+		slice_fight = false
+		mode = "slice"
+		shrine_open = false
+		arena.paused = true
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		slice.fight_done(won)
+		return
 	if testing:
 		hud.push_toast("Test over: %s" % ("won" if won else "fell"), PixelArt.GOLD)
 		open_tests()

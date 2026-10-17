@@ -1,8 +1,25 @@
-# Wizard: spellbook prototype
+# Wizard: vertical slice
 
-A small browser prototype of the wizard game. Magic comes from four of the planetary spheres, **Mars, Jupiter, Mercury and Luna** (they were Fire, Earth, Storm and Water). You carry a **spellbook** of any six spells from any sphere, pay for them in **Aether** (the mana), and **Cadence** rewards weaving different spells over spamming one. There are two Magicks (**Meteor** and **Conductor**), one fight (**Ambush at the Mill**), a moody night look with a star-atlas HUD, and progression you can see. Godot 4.7, GDScript, web export. The design is in the project's `design/magic-world-revisit.md` and `design/gdd/`.
+The first end-to-end slice of the wizard game: **days 1 to 7 of Vellmar's looping month, and one Long Night**. You wake in a fire on the College stairs, spend each day choosing where to be, fight what comes, die (loop 1 always ends at the north door on day 7), and wake on day 1 again remembering everything. Knowledge stays; power resets. Get far enough and the Long Night with Wren shows you where the cipher notes come from. Godot 4.7, GDScript, web export.
 
-![The Mill yard at night](docs/screens/night_waves.jpg)
+The design is the slice spec in the project's `design/slice/` (goals, core loops, day-by-day content, systems, tech plan); the wider design is in `design/gdd/` and the story in `design/story/`. This is milestone **M1 (Spine)**: the whole flow runs, every day 1–7 scene and the Long Night are in as text, and fights launch from the board into the arena below. The mystery board, the new progression and the art come in M2–M4.
+
+![The day board](docs/screens/slice_board.jpg)
+
+## The slice
+
+- **The day board.** Each day has five times: Morning, Noon, Afternoon, Dusk and Night. Pick a place on the star map for each; something happens there, or you can train, meditate or study. Some events happen wherever you are. Night is optional (Sleep ends the day); the city at night means Hollows.
+- **Scenes** are a few lines and a choice. Number keys pick, Space carries on.
+- **The Ledger** (L) keeps every clue, person, question and insight across loops. The death screen lists what you learnt that loop.
+- **The story** is plain text in `data/slice/story/*.story` (format in `scripts/game/story.gd`), checked by `tools/tests/story_lint.gd`. Ledger entries are in `data/slice/ledger.json`, places in `data/slice/places.json`, fights in `data/slice/encounters.json`.
+- **State** is in two layers (`scripts/game/run.gd`): memory, kept across loops, and the loop, reset on waking. Saved at each dawn.
+- **Tests:** `tools/tests/route.gd` plays loop 1 to the north door and loop 2 through the Long Night to the end of the slice; `tools/tests/encounters.gd` fights every slice fight with the bot.
+
+![A scene in the archive](docs/screens/slice_scene.jpg)
+
+## The fights
+
+The fights are the spellbook prototype below, started from the story with an encounter from `data/slice/encounters.json`. The old "Ambush at the Mill" fight and the test scenes are still reachable from the title card (Test scenes).
 
 ## Play it
 

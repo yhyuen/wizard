@@ -166,9 +166,8 @@ func _glyph(e: String) -> String:
 
 func _draw() -> void:
 	match main.mode:
-		"title":
-			_draw_title()
-			return
+		"title", "slice":
+			return  # the slice draws these (scripts/game/slice.gd)
 		"tests":
 			_draw_tests()
 			_draw_toasts()
