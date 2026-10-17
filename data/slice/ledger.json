@@ -25,6 +25,9 @@
   "warning_read":    {"kind": "clue", "title": "\"Not before the bell.\"", "text": "The chalk on the north door, read."},
   "tide":            {"kind": "clue", "title": "The voice at the north door", "text": "At dusk on day 7 Pell hears Wren outside the north door and opens it. It isn't Wren."},
   "died_north_door": {"kind": "insight", "title": "The north door killed me", "text": "At dusk on day 7 the dark came through the north door. I could bar it before then."},
+  "died_patrol":     {"kind": "insight", "title": "The Hollows in the street killed me", "text": "The night patrol is no place for an Apprentice. The yard trial and a few days of practice first, or slip away home."},
+  "died_mill":       {"kind": "insight", "title": "The risen at the Mill killed me", "text": "They can't be killed, only knocked down, and they keep getting up. Someone at the Mill might know what keeps them back."},
+  "died_alone":      {"kind": "insight", "title": "I faced the Eclipse alone", "text": "Surviving day 7 isn't enough. Someone has to sit up with me on the last night."},
   "the_bell":        {"kind": "insight", "title": "The bell", "text": "At the last hour of day 7 the College bell rings, and whatever is at the north door goes away."},
   "gate_letter":     {"kind": "clue", "title": "A letter in the College gate", "text": "Wedged in tight, in the star cipher."},
   "combination":     {"kind": "clue", "title": "Seven numbers", "text": "\"For the Gate, when it turns.\" What gate?"},
@@ -73,6 +76,8 @@
   "eclipse_alone": "The Eclipse came, and nobody sat up with you on the last night.",
   "long_night": "You told Wren how it ends. Wren wouldn't go, and the month came apart.",
   "eclipse_after_long_night": "The Long Night is over. The Eclipse comes, and the month begins again.",
+  "patrol": "The Hollows in the street were too many.",
+  "mill": "The risen kept getting up.",
   "fight": "You fell in a fight."
  }
 }

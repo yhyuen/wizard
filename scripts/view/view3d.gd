@@ -33,6 +33,7 @@ var _mood_override := ""
 var _figs := {}  # unit id -> {"node", "unit", "cast_t", "casts"}
 var spells  # Spells3D
 var _lights: Array[OmniLight3D] = []
+var low := false  # low graphics: no glow, no sun shadow, fewer spell lights (set_low)
 var _light_wants: Array = []
 var _shrine: Node3D
 var _shrine_rings: Array = []
@@ -606,13 +607,22 @@ func _sync_shrine() -> void:
 		want_light(_shrine.position + Vector3(0, 1.2, 0), PixelArt.GOLD, 1.2, 3.0)
 
 
+## Low graphics, for slow machines: drops the glow pass, the sun's shadow map and half the spell
+## lights, which together are most of what the browser renderer spends beyond the meshes.
+func set_low(on: bool) -> void:
+	low = on
+	_env.glow_enabled = not on
+	_sun.shadow_enabled = not on
+
+
 ## Spells light the night: the brightest few wants get a real light.
 func _place_lights() -> void:
 	var scale := lerpf(float(cfg["moods"]["night"]["lights"]), float(cfg["moods"]["duel"]["lights"]), _mood_k)
 	_light_wants.sort_custom(func(a, b): return a[2] > b[2])
+	var n := 2 if low else MAX_LIGHTS
 	for i in MAX_LIGHTS:
 		var l := _lights[i]
-		if i < _light_wants.size() and scale > 0.01:
+		if i < mini(n, _light_wants.size()) and scale > 0.01:
 			var w: Array = _light_wants[i]
 			l.visible = true
 			l.position = w[0]

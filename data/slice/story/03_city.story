@@ -126,6 +126,12 @@ In the ash heap by the wall, something moves. Then another. The dead are getting
 + learn risen
 + fight mill_risen
 ? won -> mill_survived
+? lost -> mill_death
+
+=== mill_death
+You knock them down, and they get up. You knock them down again, and they get up, closer.
++ learn died_mill
++ end_loop mill
 
 === mill_survived
 The risen back away west, still facing you, and are gone over the wall.
@@ -182,6 +188,12 @@ Hollows.
 === patrol_fight
 + fight patrol
 ? won -> patrol_won
+? lost -> patrol_death
+
+=== patrol_death
+They come out of the mist from every side at once, and keep coming.
++ learn died_patrol
++ end_loop patrol
 
 === patrol_won
 The Hollows fall still. Every one of them was someone, once.

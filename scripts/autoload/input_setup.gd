@@ -33,6 +33,7 @@ func _ready() -> void:
 	_keys("pick8", [KEY_8])
 	_keys("tests", [KEY_T])
 	_keys("mood", [KEY_F3])
+	_keys("graphics", [KEY_F4])
 	_keys("controls", [KEY_TAB])
 	# The League-style scheme (scripts/controls.gd): right-click moves, Q W E R D F cast.
 	_mouse("lol_move", MOUSE_BUTTON_RIGHT)

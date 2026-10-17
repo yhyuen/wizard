@@ -62,6 +62,8 @@ jobs:
 
       - name: Relearning (loop 3 regains the 3rd Ring by day 3)
         run: tools/ci/godot.sh --script res://tools/tests/relearn.gd
+      - name: Every death teaches (criterion 7)
+        run: tools/ci/godot.sh --script res://tools/tests/deaths.gd
 
       - name: Slice fights (fresh and strong, and the millrace)
         run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/encounters.gd
@@ -76,9 +78,12 @@ jobs:
 
       - name: Web export
         run: |
+          printf 'extends RefCounted\n## Written by CI before the web export.\nconst ID := "%s %s"\n' "${GITHUB_SHA::7}" "$(date -u +%F)" > scripts/game/build_id.gd
           mkdir -p export/web
           "$GODOT" --headless --path . --export-release "Web" export/web/index.html
           test -s export/web/index.wasm
+          # The story is plain text, not a resource: make sure the export filter packed it.
+          grep -q "=== fire_again" export/web/index.pck
 
       - uses: actions/upload-artifact@v4
         with:
