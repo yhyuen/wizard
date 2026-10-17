@@ -52,6 +52,10 @@ var clear_t := 0.0  # seconds the yard has been quiet between waves
 var fight_time := 0.0
 var sandbox: Array = []  # test scenes: the group that comes back each time the yard is clear
 var scene := ""  # the test scene this fight was started as ("" for the normal fight)
+## A slice fight (data/slice/encounters.json): its waves run one after another, or on a timer
+## when it has "survive" seconds. Empty for the old Mill fight and the test scenes.
+var encounter := {}
+var enc_wave := -1
 var stats := {"casts": 0, "damage_taken": 0.0, "kills": 0, "by_spell": {}}
 
 const ECHO_STEP := 0.1  # seconds between echo samples
@@ -88,8 +92,10 @@ func _ready() -> void:
 
 
 ## Starts the fight. `test_scene` jumps to one part of it, for testing (main.gd TEST_SCENES).
-func start(test_scene := "") -> void:
+func start(test_scene := "", enc := {}) -> void:
 	scene = test_scene
+	encounter = enc
+	enc_wave = -1
 	sandbox = []
 	units.clear()
 	projs.clear()
@@ -120,7 +126,8 @@ func start(test_scene := "") -> void:
 	player.hp_lag = player.hp
 	_add(player)
 	kit.reset()
-	_place_tome()
+	if encounter.is_empty():
+		_place_tome()
 	set_phase("intro")
 	_setup_scene()
 
@@ -214,6 +221,16 @@ func set_phase(p: String) -> void:
 	phase = p
 	phase_t = 0.0
 	match p:
+		"intro" when not encounter.is_empty():
+			banner.emit(str(encounter.get("title", "")))
+		"enc":
+			if survive_time() > 0.0:
+				# Every wave on a timer, spread over the time to survive.
+				var waves: Array = encounter["waves"]
+				for wi in waves.size():
+					_queue_wave(waves[wi], wi * survive_time() / (waves.size() + 0.5))
+			else:
+				_next_wave()
 		"intro":
 			banner.emit("Loop %d  ·  Day 3  ·  Ambush at the Mill" % Progression.loop())
 			toast.emit("G at the Orrery: change elements or re-pick mutations", PixelArt.GOLD)
@@ -238,9 +255,32 @@ func set_phase(p: String) -> void:
 			spawn_queue.append({"t": 0.8, "kind": "rival", "gate": 1})
 
 
+func survive_time() -> float:
+	return float(encounter.get("survive", 0.0))
+
+
+func _queue_wave(group: Array, at: float) -> void:
+	var i := 0
+	for g in group:
+		for k in int(g["n"]):
+			spawn_queue.append({"t": at + 0.4 + i * 0.45, "kind": g["kind"], "gate": i % 4, "dummy": g.get("dummy", false)})
+			i += 1
+
+
+func _next_wave() -> void:
+	enc_wave += 1
+	var waves: Array = encounter["waves"]
+	if enc_wave >= waves.size():
+		_end(true)
+		return
+	if enc_wave > 0:
+		banner.emit("More of them")
+	_queue_wave(waves[enc_wave], 0.0)
+
+
 func _flow(dt: float) -> void:
 	phase_t += dt
-	if phase in ["wave1", "wave2", "duel", "sandbox"]:
+	if phase in ["wave1", "wave2", "duel", "sandbox", "enc"]:
 		fight_time += dt
 	for s in spawn_queue.duplicate():
 		s["t"] -= dt
@@ -259,6 +299,15 @@ func _flow(dt: float) -> void:
 	else:
 		clear_t = 0.0
 	match phase:
+		"intro" when not encounter.is_empty():
+			if phase_t > 2.0:
+				set_phase("enc")
+		"enc":
+			if survive_time() > 0.0:
+				if phase_t >= survive_time():
+					_end(true)
+			elif cleared and phase_t > 1.0:
+				_next_wave()
 		"intro":
 			if phase_t > 3.0:
 				set_phase("wave1")
@@ -293,6 +342,12 @@ func _end(won: bool) -> void:
 	over_t = 1.6
 	if not echo_rec.is_empty():
 		Progression.set_echo(echo_rec, won)
+	if not encounter.is_empty():
+		banner.emit(("You survive" if survive_time() > 0.0 else "The fight is over") if won else "You fall")
+		if won:
+			for u in enemies():
+				kill(u)
+		return
 	if won:
 		banner.emit("The Hollows crumble with their master")
 		for u in enemies():
@@ -350,7 +405,7 @@ func _process(_dt: float) -> void:
 ## (where you fell, or where Silas fell) and walks your path in reverse to where it began. Where
 ## you cast, a shard flies back into its hand. It touches nothing; it is a clue, not a unit.
 func _echo(dt: float) -> void:
-	var fighting := phase in ["wave1", "wave2", "duel", "sandbox"]
+	var fighting := phase in ["wave1", "wave2", "duel", "sandbox", "enc"]
 	if fighting and not player.dead:
 		echo_rec_t += dt
 		while echo_rec_t >= ECHO_STEP:
