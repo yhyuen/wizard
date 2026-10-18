@@ -36,6 +36,7 @@ var _cam_at := Vector3.ZERO
 var _cam_ready := false
 var _cliffs: Array = []  # Rect2
 var _inside := ""
+var warm := 0  # frames left of the shader warm-up behind the title (prewarm)
 
 
 func setup_world(the_arena, vp: SubViewport, world, the_holder: Node2D) -> void:
@@ -383,6 +384,8 @@ func _process(delta: float) -> void:
 	_sync_people(delta)
 	_sync_echo(delta)
 	spells.sync(delta)
+	if warm > 0:
+		_warm_up()
 	_sync_props()
 	_sync_lamps()
 	_sync_town(delta)
@@ -391,6 +394,22 @@ func _process(delta: float) -> void:
 	_place_marks()
 	if marks != null:
 		marks.queue_redraw()
+
+
+## Draws the town for a few frames behind the opaque title, with every spell shape and all four
+## spell lights round the wizard, so the browser compiles the shaders while nobody is watching.
+## WebGL compiles each shader on its first draw, and the Fire would otherwise stall on dozens.
+func prewarm(frames := 3) -> void:
+	warm = frames
+
+
+func _warm_up() -> void:
+	warm -= 1
+	var at := to_world(arena.player.pos, 1.0)
+	spells.warm_up(at)
+	for i in MAX_LIGHTS:
+		var a := i * TAU / MAX_LIGHTS
+		want_light(at + Vector3(cos(a), 0.5, sin(a)) * 2.0, PixelArt.FIRE, 1.5, 6.0)
 
 
 ## The camera: close and steep behind the wizard, following all the way; it eases in while
@@ -636,7 +655,7 @@ func _scorch_mesh(s: Dictionary) -> MeshInstance3D:
 
 
 func _place_lights() -> void:
-	var scale := float(_mood.get("lights", 1.0))
+	var scale := 1.0 if warm > 0 else float(_mood.get("lights", 1.0))
 	_light_wants.sort_custom(func(a, b): return a[2] > b[2])
 	var n := 2 if low else MAX_LIGHTS
 	for i in MAX_LIGHTS:

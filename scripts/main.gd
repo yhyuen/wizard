@@ -63,6 +63,7 @@ func _ready() -> void:
 	slice.screen_changed.connect(_on_slice_screen)
 	arena.start_world(world.map, world, world.map.spots["room_in"])
 	arena.paused = true
+	view.prewarm()
 
 
 func _on_slice_screen(s: String) -> void:
@@ -181,7 +182,7 @@ func _toast_controls() -> void:
 
 
 func _process(dt: float) -> void:
-	_show_3d(mode in ["world", "fight", "cutscene"])
+	_show_3d(mode in ["world", "fight", "cutscene"] or (view != null and view.warm > 0))
 	if view == null or bot.is_valid():
 		return
 	if Input.is_action_just_pressed("graphics"):
