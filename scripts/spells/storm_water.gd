@@ -313,7 +313,7 @@ func _wave(w: Dictionary, dt: float) -> void:
 				w["hit"].append(u.id)
 				if A.hit(u, w["dmg"], int(s["impact"]), w["dir"], 30.0):
 					Progression.add_xp("undertow", float(s["xp_hit"]))
-	if w["left"] <= 0.0 or not A.BOUNDS.grow(4).has_point(w["pos"]):
+	if w["left"] <= 0.0 or not A.bounds.grow(4).has_point(w["pos"]) or (A.world != null and A.world.blocks_shot(w["pos"])):
 		waves.erase(w)
 		var r := float(A.D["field"]["puddle_radius"]) * (1.6 if Progression.has_mut("undertow", "big_puddle") else 1.0)
 		add_puddle(w["pos"] if w["puddle_at"] == Vector2.INF else w["puddle_at"], r)

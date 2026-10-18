@@ -1,0 +1,72 @@
+{
+ "_doc": "Who is where in Vellmar (design/open-world/world.md §3). schedule: a spot (data/world/map.json spots) for each time of day, or \"\" for off the map. overrides: the first that holds wins: days (\"4\", \"1-7\", \"2,3\"), times (comma list or any), when (a story condition), spot, and seek: walk up to the wizard and start talking (once a loop). from_day: not in town before that day. barks: lines said over the head now and then, the first few that hold are picked at random; each can have days, times and when. figure: the look in data/visual.json figures. reach: how close you must be to talk (sim px).",
+ "people": {
+  "wren": {"name": "Wren", "figure": "wren",
+   "schedule": {"morning": "wren_desk", "noon": "wren_desk", "afternoon": "wren_ladder", "dusk": "yard_bench", "night": ""},
+   "overrides": [{"days": "27", "times": "night", "spot": "bedside"}],
+   "barks": [
+    {"text": "Where did I put the Hours index..."}, {"text": "Mind the third shelf. It bites."},
+    {"times": "dusk", "text": "The stars are wrong tonight. Everyone says so."},
+    {"when": "f(\"wren_friend\")", "text": "There you are."}
+   ]},
+  "mira": {"name": "Mira", "figure": "mira",
+   "schedule": {"morning": "mira_market", "noon": "mira_market", "afternoon": "mira_door", "dusk": "lamp_round", "night": "mira_door"},
+   "barks": [
+    {"times": "morning,noon", "text": "Lamp oil's gone up again."},
+    {"times": "dusk", "text": "One more, then the next."}, {"times": "night", "text": "Go home, College. It's not safe after dark."}
+   ]},
+  "silas": {"name": "Silas", "figure": "silas", "from_day": 2,
+   "schedule": {"morning": "silas_yard", "noon": "silas_market", "afternoon": "silas_yard", "dusk": "silas_square", "night": ""},
+   "overrides": [{"days": "6", "times": "morning", "spot": "circle_e"}],
+   "barks": [
+    {"text": "Watch and learn."}, {"text": "Hm. The one from the stairs."},
+    {"when": "loop > 1", "text": "...Again."}
+   ]},
+  "aldous": {"name": "Aldous", "figure": "aldous",
+   "schedule": {"morning": "aldous_mill", "noon": "aldous_mill", "afternoon": "aldous_mill", "dusk": "aldous_mill", "night": ""},
+   "overrides": [
+    {"days": "4", "times": "morning", "spot": "aldous_market", "seek": "aldous_ask", "when": "not seen(\"aldous_ask\")"},
+    {"days": "6-28", "times": "morning,noon,afternoon", "when": "f(\"aldous_saved\")", "spot": "aldous_market"},
+    {"days": "6-28", "times": "any", "when": "seen(\"mill_risen\") and not f(\"aldous_saved\")", "spot": "aldous_yard"}
+   ],
+   "barks": [
+    {"days": "1-3", "text": "Flour and ash. Flour and ash."},
+    {"days": "4", "text": "College! Please, a word!"},
+    {"days": "5", "text": "It's this afternoon. It's always the afternoon."},
+    {"days": "6-28", "when": "f(\"aldous_saved\")", "text": "A drink for the robe! Two!"},
+    {"days": "6-28", "when": "seen(\"mill_risen\") and not f(\"aldous_saved\")", "text": "..."}
+   ]},
+  "pell": {"name": "Pell", "figure": "pell",
+   "schedule": {"morning": "pell_yard", "noon": "pell_yard", "afternoon": "pell_yard", "dusk": "pell_stairs", "night": ""},
+   "overrides": [{"days": "7", "times": "any", "spot": "north_in"}],
+   "barks": [
+    {"days": "1-6", "text": "I'm not scared of the dark. I'm scared of what's in it."},
+    {"days": "7", "text": "Can you hear that? Someone's out there."}
+   ]},
+  "porter": {"name": "The porter", "figure": "porter",
+   "schedule": {"morning": "porter", "noon": "porter", "afternoon": "porter", "dusk": "porter", "night": "porter"},
+   "barks": [{"text": "Gate's open. Mind the stairs."}, {"times": "night", "text": "Curfew, apprentice."}]},
+  "examiner": {"name": "The examiner", "figure": "examiner",
+   "schedule": {"morning": "examiner", "noon": "examiner", "afternoon": "examiner", "dusk": "", "night": ""},
+   "barks": [{"text": "Trial's open. If you've the nerve."}]},
+  "old_woman": {"name": "The old woman", "figure": "old_woman",
+   "schedule": {"morning": "old_woman", "noon": "old_woman", "afternoon": "old_woman", "dusk": "old_woman", "night": ""},
+   "barks": [{"text": "Candles, charms, good luck for the Eclipse."}, {"days": "3", "times": "noon", "text": "Never greet your own shadow."}]},
+  "pie_seller": {"name": "The pie-seller", "figure": "pie_seller",
+   "schedule": {"morning": "pie_seller", "noon": "pie_seller", "afternoon": "pie_seller", "dusk": "", "night": ""},
+   "barks": [{"text": "Pies! Hot pies!"}, {"days": "3", "text": "That dog in the square's gone mad, I swear it."}]},
+  "dog": {"name": "A stray dog", "figure": "dog", "reach": 22,
+   "schedule": {"morning": "dog_square", "noon": "dog_square", "afternoon": "dog_square", "dusk": "dog_square", "night": ""},
+   "barks": [{"text": "Wuff."}, {"days": "2,3", "times": "morning,noon", "text": "(whines at the corner)"}]},
+  "walker": {"name": "A veiled stranger", "figure": "walker", "talk_none": true,
+   "schedule": {"morning": "", "noon": "", "afternoon": "", "dusk": "", "night": ""},
+   "overrides": [{"days": "3", "times": "noon", "when": "not seen(\"mourner_chase\") and not seen(\"mourner_go\")", "spot": "walker_market", "mourner": true}]}
+ },
+ "_crowd_doc": "Townsfolk who wander the market and the square by day: how many at each time of day, and where they wander.",
+ "crowd": {"figures": ["townsfolk", "townsfolk2"], "count": {"morning": 6, "noon": 8, "afternoon": 6, "dusk": 3, "night": 0},
+  "areas": [[790, 940, 420, 220], [1500, 920, 260, 220]],
+  "barks": ["Did you hear about the fire on the College stairs?", "Hollows past the walls again last night.", "The Orrery's humming. Can you hear it?",
+   "Twenty-some days to the Eclipse.", "My cousin swears the dead walk at the Mill.", "Lamp oil, at that price?", "Mind yourself, College.",
+   "They say the Provost hasn't been seen since the light."]},
+ "lamp_round": ["lane_lamp_0", "lane_lamp_1", "lane_lamp_2", "lane_lamp_3", "lane_lamp_4"]
+}

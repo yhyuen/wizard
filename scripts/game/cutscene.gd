@@ -26,25 +26,28 @@ var walker: Unit
 var crowd: Array = []
 var embers: Array = []
 var done := false
+var O := Vector2.ZERO  # where the stage is: the scenes were laid out round (240, 150)
 
 
-func _init(arena, which: String) -> void:
+## `at` is where you lie when the scene starts (in the town, the College stairs).
+func _init(arena, which: String, at := Vector2(240, 150)) -> void:
 	A = arena
 	id = which
+	O = at - Vector2(240, 150)
 	you = A.player
-	walker = _figure("walker", Vector2(240, 100))
+	walker = _figure("walker", O + Vector2(240, 100))
 	if id == "fire":
-		you.pos = Vector2(240, 150)
+		you.pos = O + Vector2(240, 150)
 		for i in 15:
-			var p := Vector2(150 + i * 13.0, 96 + sin(i * 1.7) * 9.0)
+			var p := O + Vector2(150 + i * 13.0, 96 + sin(i * 1.7) * 9.0)
 			embers.append(A.add_zone({"kind": "ember", "pos": p, "life": 1.0e9}))
 		for i in 6:
 			embers.append(A.add_zone({"kind": "ember", "pos": you.pos + Vector2(-26 + i * 10.0, 6 + (i % 2) * 5), "life": 1.0e9}))
 	else:
-		you.pos = Vector2(240, 200)
-		walker.pos = Vector2(250, 120)
+		you.pos = O + Vector2(240, 200)
+		walker.pos = O + Vector2(250, 120)
 		for i in 9:
-			var u := _figure("townsfolk" if i % 2 == 0 else "townsfolk2", Vector2(60 + fmod(i * 97.0, 360.0), 70 + fmod(i * 61.0, 150.0)))
+			var u := _figure("townsfolk" if i % 2 == 0 else "townsfolk2", O + Vector2(60 + fmod(i * 97.0, 360.0), 70 + fmod(i * 61.0, 150.0)))
 			u.flags["goal"] = _wander_goal(i)
 			crowd.append(u)
 
@@ -97,7 +100,7 @@ func _fire() -> void:
 		you.flags["pose"] = _down(1.0)
 	elif t < 5.2:
 		var k := (t - 4.0) / 1.2
-		you.pos = Vector2(240, lerpf(150, 196, smoothstep(0.0, 1.0, k)))
+		you.pos = O + Vector2(240, lerpf(150, 196, smoothstep(0.0, 1.0, k)))
 		you.flags["pose"] = ["air", k * Figure.clip_len("air")]
 	else:
 		you.flags["pose"] = ["staff_idle", fmod(t, Figure.clip_len("staff_idle"))]
@@ -107,7 +110,7 @@ func _fire() -> void:
 	elif t < 3.4:
 		walker.flags["pose"] = _down(1.0 - (t - 1.6) / 1.8)
 	elif t < 5.4:
-		walker.pos = walker.pos.move_toward(Vector2(240, 118), 18.0 / 60.0)
+		walker.pos = walker.pos.move_toward(O + Vector2(240, 118), 18.0 / 60.0)
 		walker.flags["pose"] = ["cast", minf(1.0, (t - 3.4) / 1.4) * Figure.clip_len("cast") * 0.5]
 		if t >= 4.0 and not walker.flags.has("lifted"):
 			walker.flags["lifted"] = true
@@ -119,7 +122,7 @@ func _fire() -> void:
 			A.fx("ring", walker.pos + Vector2(5, -6), {"color": PixelArt.GOLD, "r": 5.0, "life": 0.8})
 	elif t < 9.6:
 		# Backwards: facing you, its feet carry it away, the run played in reverse.
-		walker.pos = walker.pos.move_toward(Vector2(240, 98), 10.0 / 60.0)
+		walker.pos = walker.pos.move_toward(O + Vector2(240, 98), 10.0 / 60.0)
 		walker.flags["pose"] = ["run", fposmod(-(t - 7.4) * 0.8, Figure.clip_len("run"))]
 	else:
 		walker.flags["pose"] = _down((t - 9.6) / 1.2)
@@ -133,7 +136,7 @@ func _mourner(dt: float) -> void:
 	you.flags["pose"] = ["staff_idle", fmod(t, Figure.clip_len("staff_idle"))]
 	walker.flags["face"] = you.pos - walker.pos
 	if t < 1.5:
-		walker.pos = walker.pos.move_toward(Vector2(240, 140), 20.0 * dt)
+		walker.pos = walker.pos.move_toward(O + Vector2(240, 140), 20.0 * dt)
 		walker.flags["pose"] = ["run", fmod(t * 0.6, Figure.clip_len("run"))]
 	elif t < 5.6:
 		# Stopped dead; the shoulders shake.
@@ -141,7 +144,7 @@ func _mourner(dt: float) -> void:
 		walker.flags["pose"] = ["hit", shake * Figure.clip_len("hit")] if t > 4.2 else ["stand", fmod(t, Figure.clip_len("stand"))]
 	else:
 		# Backing away faster than anyone could walk backwards, the run played in reverse.
-		walker.pos = walker.pos.move_toward(Vector2(250, 40), 34.0 * dt)
+		walker.pos = walker.pos.move_toward(O + Vector2(250, 40), 34.0 * dt)
 		walker.flags["pose"] = ["run", fposmod(-(t - 5.6) * 1.3, Figure.clip_len("run"))]
 	# The crowd walks forwards, about its business, and never notices.
 	for i in crowd.size():
@@ -156,4 +159,4 @@ func _mourner(dt: float) -> void:
 
 
 func _wander_goal(i: int) -> Vector2:
-	return Vector2(40 + fmod(i * 131.0, 400.0), 60 + fmod(i * 73.0, 170.0))
+	return O + Vector2(40 + fmod(i * 131.0, 400.0), 60 + fmod(i * 73.0, 170.0))
