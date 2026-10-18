@@ -414,6 +414,13 @@ func draw_field(c: CanvasItem) -> void:
 				A.draw_ellipse_px(z["pos"], z["r"], z["r"] * 0.6, Color(PixelArt.WATER, 0.6 * fade))
 				A.draw_ellipse_px(z["pos"], z["r"] - 2.0, z["r"] * 0.6 - 2.0, Color(PixelArt.WATER_DEEP, 0.5 * fade))
 				A.draw_ellipse_px(z["pos"] + Vector2(-z["r"] * 0.3, -1), z["r"] * 0.35, z["r"] * 0.15, Color(PixelArt.PAPER, 0.3 * fade))
+				if float(z.get("charge_t", 0.0)) > 0.0:
+					# charged by lightning (the open world): sparks crawl over the water
+					for i in 4:
+						var a: float = t * 9.0 + i * TAU / 4.0
+						var q: Vector2 = z["pos"] + Vector2(cos(a) * z["r"] * 0.7, sin(a) * z["r"] * 0.4)
+						c.draw_line(q, q + Vector2(3, -2).rotated(a), PixelArt.STORM, 1.0)
+					c.draw_arc(z["pos"], z["r"], 0, TAU, 24, Color(PixelArt.STORM, 0.6), 1.0, false)
 			"rod":
 				if A.view != null:
 					continue  # the 3D view stands it up

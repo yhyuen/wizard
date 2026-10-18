@@ -552,8 +552,11 @@ func _sync_lamps() -> void:
 	var at: Vector2 = arena.player.pos
 	var lit: Array = []
 	for i in W.lamps.size():
-		if W.lamps[i]["lit"]:
+		if W.lamp_on(W.lamps[i]):
 			lit.append(i)
+		if W.lamps[i]["flare_t"] > 0.0 and W.lamps[i]["pos"].distance_to(at) < 220.0:
+			# lightning in the iron: a cold white flash that fades
+			want_light(to_world(W.lamps[i]["pos"], 2.75), PixelArt.STORM, 1.6 * W.lamps[i]["flare_t"] / float(W.pd["flare_s"]), 7.0)
 	var key := str(lit)
 	if key != _lamp_key:
 		_lamp_key = key

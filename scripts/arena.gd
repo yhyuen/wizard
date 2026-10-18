@@ -642,6 +642,8 @@ func _update_unit(u: Unit, dt: float) -> void:
 	u.vel = u.vel.lerp(Vector2.ZERO, 1.0 - exp(-7.0 * dt))
 	if u == player and not leash.is_empty() and u.pos.distance_to(leash["at"]) > leash["r"]:
 		u.pos = leash["at"] + (u.pos - leash["at"]).normalized() * leash["r"]
+	if town != null and u.team == 1 and encounter.get("light_shy", true):
+		u.pos = town.out_of_light(u.kind, u.pos, u.radius)
 	var before := u.pos
 	u.pos = clamp_in(u.pos, u.radius)
 	if before != u.pos:
@@ -809,7 +811,8 @@ func ignite(u: Unit) -> void:
 	var dmg := Progression.stat("ember_bolt", "damage") * float(D["field"]["ignite_mult"]) * mult
 	fx("burst", u.pos + Vector2(0, -4), {"color": PixelArt.FIRE, "r": float(D["field"]["ignite_radius"]), "life": 0.35})
 	fx("burst", u.pos + Vector2(0, -4), {"color": PixelArt.FIRE_HOT, "r": 6.0, "life": 0.2})
-	hit(u, dmg, 2, Vector2.UP, 0.0)
+	if not hit(u, dmg, 2, Vector2.UP, 0.0):
+		return  # a risen that's down can't burn again yet (else a pile of them ignites each other forever)
 	Progression.add_xp("ember_bolt", float(Progression.spell("ember_bolt")["xp_ignite"]))
 	if Progression.has_mut("ember_bolt", "ember_ignite"):
 		add_ember(u.pos)

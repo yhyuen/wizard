@@ -128,6 +128,15 @@ priority: -10
 [k("mira")] Mira: That second lantern's still burning, if you're wondering. Leaning in, like it's listening.
 * Leave
 
+=== mira_thanks
+talk: mira
+priority: 8
+when: f("lit_lane") and not f("mira_thanked")
+Mira: Somebody lit my lane before I got round to it. That was you, wasn't it, College?
+Mira: Saved me the oil and the ladder. Thank you.
++ set mira_thanked
+* Leave
+
 === second_lantern
 use: second_lantern
 priority: 5

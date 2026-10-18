@@ -25,6 +25,7 @@ class Person:
 	var bark := ""
 	var bark_t := 0.0  # seconds the bark has been up
 	var bark_cool := 0.0
+	var flinch_t := 0.0  # seconds before this person flinches from a spell again
 	var mode := ""  # "", "seek", "mourner", "lamps", "wander"
 	var seek_scene := ""
 	var state := ""  # the mode's own step
@@ -39,6 +40,7 @@ var list: Array = []  # Person
 var by_id := {}
 var rng := RandomNumberGenerator.new()
 var _think := 0.0  # seconds to the next schedule check
+var _scold_t := 0.0  # seconds before the porter scolds fire again
 
 
 func _init(world) -> void:
@@ -194,7 +196,9 @@ func update(dt: float) -> void:
 		think()
 	var player: Vector2 = W.player_pos()
 	var speed := float(W.cfg["walk_speed"])
+	_scold_t = maxf(0.0, _scold_t - dt)
 	for p in list:
+		p.flinch_t = maxf(0.0, p.flinch_t - dt)
 		p.fade = move_toward(p.fade, 0.0 if p.on else 1.0, dt * 1.5)
 		p.moving = false
 		if not p.on:
@@ -331,6 +335,42 @@ func _barks(p: Person, dt: float, player: Vector2) -> void:
 	if not lines.is_empty():
 		p.bark = str(lines[rng.randi() % lines.size()])
 		p.bark_t = 0.0
+
+
+# --- reacting to magic (OW2) --------------------------------------------------------
+
+## A line over someone's head now, ahead of their usual barks.
+func say(p: Person, text: String) -> void:
+	p.bark = text
+	p.bark_t = 0.0
+	p.bark_cool = maxf(p.bark_cool, float(W.cfg["bark_life"]) + 1.0)
+
+
+## A spell went off at `at`: anyone close flinches back a step and complains.
+func flinch(at: Vector2) -> void:
+	var R: Dictionary = d["reactions"]
+	var r := float(R["flinch_r"])
+	for p in list:
+		if not p.on or p.talking or p.mode == "mourner" or p.flinch_t > 0.0 or p.pos.distance_to(at) > r:
+			continue
+		p.flinch_t = float(R["flinch_cool"])
+		var away: Vector2 = (p.pos - at).normalized() if p.pos.distance_to(at) > 0.1 else Vector2.DOWN
+		p.pos = W.map.collide(p.pos + away * float(R["flinch_step"]), 4.0)
+		p.face = -away
+		var lines: Array = R["flinch"] if p.crowd else p.def.get("flinch", R["flinch"])
+		say(p, str(lines[rng.randi() % lines.size()]))
+		W.events_log.append(["flinch", p.id])
+
+
+## Fire flying in the College at `at`: the porter, if near enough to see it, has words.
+func scold_fire(at: Vector2) -> void:
+	var p: Person = by_id.get("porter")
+	if p == null or not p.on or _scold_t > 0.0 or p.pos.distance_to(at) > float(W.cfg["bark_range"]):
+		return
+	_scold_t = float(d["reactions"]["scold_cool"])
+	p.face = W.player_pos() - p.pos
+	say(p, str(d["reactions"]["porter_fire"]))
+	W.events_log.append(["scold", "porter"])
 
 
 ## Everyone you could talk to: in town, not the crowd's nameless passers-by.
