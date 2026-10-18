@@ -103,6 +103,19 @@ func take(kind: String) -> Node3D:
 	return n
 
 
+## Every shape _make builds, for warm_up.
+const KINDS := ["halo", "gem", "orb", "fireball", "rock", "boulder", "shard", "cube", "stick", "ring", "flame",
+	"spikes", "rod", "tome", "whirl"]
+
+
+## Shows one of every shape round `at` this frame, so the browser compiles their shaders now
+## (behind the title) instead of in the middle of the first scene that casts them.
+func warm_up(at: Vector3) -> void:
+	for i in KINDS.size():
+		var a := i * TAU / KINDS.size()
+		take(KINDS[i]).position = at + Vector3(cos(a), 0.2 * (i % 3), sin(a)) * 1.5
+
+
 func _make(kind: String, i: int) -> Node3D:
 	match kind:
 		"halo":
