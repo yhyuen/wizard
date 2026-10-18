@@ -136,7 +136,7 @@ func height(x: float, z: float) -> float:
 ## on the road and the hill, grass on the slopes; chunked like the town.
 func _build_town_ground() -> void:
 	_ground = ShaderMaterial.new()
-	_ground.shader = Figure.SHADER
+	_ground.shader = Figure.SOLID
 	_ground.set_shader_parameter("use_vcol", true)
 	_ground.set_shader_parameter("rim", 0.0)
 	_ground.set_shader_parameter("facet", 0.0)
@@ -173,7 +173,7 @@ func _build_town_ground() -> void:
 				var mid: Vector3 = (t[0] + t[1] + t[2]) / 3.0
 				var kind := _kind_at(Vector2(mid.x / S, mid.z / S), mid.y)
 				var shade := rng.randf_range(0.94, 1.06)
-				for v in [t[0], t[2], t[1]]:
+				for v in t:  # clockwise from above, so the ground survives back-face culling
 					st.set_color(Color(shade, shade, shade))
 					st.set_uv(Vector2(kind, 0))
 					st.set_normal(_ground_normal(v.x, v.z))
@@ -355,7 +355,8 @@ func _apply_world_mood() -> void:
 		cols.append(Vector3(c.r, c.g, c.b))
 	_ground.set_shader_parameter("kind_cols", cols)
 	_overlay_mat.set_shader_parameter("boost", m["overlay"])
-	town.glow_mat.set_shader_parameter("glow", float(wc["town"].get("window_glow", 1.4)) * m["window"])
+	for gm in [town.glow_mat, town.glow_far]:
+		gm.set_shader_parameter("glow", float(wc["town"].get("window_glow", 1.4)) * m["window"])
 
 
 func deep() -> float:
@@ -416,6 +417,20 @@ func _follow_close(delta: float) -> void:
 		m.set_shader_parameter("cut", 1.0)
 		m.set_shader_parameter("cut_cam", camera.position)
 		m.set_shader_parameter("cut_at", chest)
+	town.cut_chunks(camera.position, chest, 2.5)
+
+
+## Low graphics also drops the town's bump and mottling (six texture reads a pixel).
+func set_low(on: bool) -> void:
+	super.set_low(on)
+	if town == null:
+		return
+	for m in [town.solid_mat, town.solid_far]:
+		if not m.has_meta("bump"):
+			m.set_meta("bump", m.get_shader_parameter("bump"))
+			m.set_meta("mottle", m.get_shader_parameter("mottle"))
+		m.set_shader_parameter("bump", 0.0 if on else m.get_meta("bump"))
+		m.set_shader_parameter("mottle", 0.0 if on else m.get_meta("mottle"))
 
 
 ## Moves the marks window to stay round the wizard, snapped so the marks don't shimmer.
