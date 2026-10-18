@@ -68,5 +68,12 @@
   "barks": ["Did you hear about the fire on the College stairs?", "Hollows past the walls again last night.", "The Orrery's humming. Can you hear it?",
    "Twenty-some days to the Eclipse.", "My cousin swears the dead walk at the Mill.", "Lamp oil, at that price?", "Mind yourself, College.",
    "They say the Provost hasn't been seen since the light."]},
+ "_reactions_doc": "How people answer magic cast near them (OW2, interactions.md §5): within flinch_r sim px of a spell they step back flinch_step and say a flinch line (a person's own \"flinch\" list if they have one), then not again for flinch_cool seconds. Fire in the College brings the porter's line if the porter can see you (bark_range), at most every scold_cool seconds. Lighting a lamp on Mira's lane before she does brings mira_thanks if she's near, and a thank-you scene when you next talk to her.",
+ "reactions": {
+  "flinch_r": 30, "flinch_step": 8, "flinch_cool": 3.0, "scold_cool": 10.0,
+  "flinch": ["Watch it!", "Mind where you point that!", "Not in the street, College!", "You nearly had my eyebrows.", "Saints. Warn a body first."],
+  "porter_fire": "Not in the College! Fire on the stairs is how all this started.",
+  "mira_thanks": "My lane's lit? That was you, College. Thank you."
+ },
  "lamp_round": ["lane_lamp_0", "lane_lamp_1", "lane_lamp_2", "lane_lamp_3", "lane_lamp_4"]
 }

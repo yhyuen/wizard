@@ -31,6 +31,8 @@ func _initialize() -> void:
 	var deaths: Dictionary = ld["deaths"]
 	var spells: Dictionary = _json("res://data/spells.json")
 	var flags_set := {}
+	for id in load("res://scripts/world/world.gd").FLAGS:
+		flags_set[id] = true  # set by the world itself
 	var conds: Array = []  # [condition, where]
 	for s in story.scenes.values():
 		var where := "%s:%d (%s)" % [s["file"], s["line"], s["id"]]

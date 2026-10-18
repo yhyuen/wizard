@@ -4,12 +4,18 @@ extends SceneTree
 ##
 ##   godot --headless --fixed-fps 60 --script res://tools/tests/world_magic.gd
 ##
-## An Ember Bolt lights a street lamp and sets a hay bale burning; Splash puts the bale out and
-## the lamp too; a Pebble shoves a crate; an Ember Bolt on the Observatory wall leaves the same
+## OW1: an Ember Bolt lights a street lamp and sets a hay bale burning; Splash puts the bale out
+## and the lamp too; a Pebble shoves a crate; an Ember Bolt on the Observatory wall leaves the same
 ## star as the burnt door and teaches the scorch test's clue.
+## OW2: Splash on the second lantern plays its scene; a Spark flares an iron lamp and charges a
+## puddle that then shocks a Hollow in it; Rewind mends the shoved crate; a Hollow won't step into
+## a lit lamp's pool; fire in the College makes the porter flinch and scold; lighting Mira's lane
+## gets her thanks; three crates against the north door hold it on day 7.
 
 const BOOK := ["ember_bolt", "pebble", "splash", "undertow", "pillar", "fling"]
+const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt", "pebble", "undertow"]
 const WAIT := 150  # frames a case may take
+const LIGHT_WAIT := 240  # the lamp-pool case watches a Hollow for this long
 
 var main
 var slice
@@ -39,6 +45,16 @@ func _initialize() -> void:
 		["Splash puts a lit lamp out", _lamp_douse_setup, func(): return not state["lamp"]["lit"]],
 		["a Pebble shoves a crate", _crate_setup, func(): return state["prop"]["pos"].distance_to(state["from"]) > 4.0],
 		["the scorch test teaches its clue", _scorch_setup, func(): return run.knows("scorch_match")],
+		["Splash on the second lantern plays its scene", _lantern_setup, func(): return run.seen("lantern_water")],
+		["a Spark flares an iron lamp", _flare_setup, func(): return state["lamp"]["flare_t"] > 0.0],
+		["a Spark charges a puddle, which shocks a Hollow", _puddle_setup, _shocked],
+		["Rewind mends the shoved crate", _rewind_setup, func(): return state["prop"]["pos"].distance_to(state["prop"]["home"]) < 1.0],
+		["a Hollow won't step into a lit lamp's pool", _light_setup, _kept_off],
+		["fire in the College: the porter flinches and scolds", _porter_setup,
+			func(): return _logged("flinch", "porter") and _logged("scold", "porter")],
+		["lighting Mira's lane gets her thanks", _lane_setup,
+			func(): return run.flag("lit_lane") and slice.story.talk_scene("mira") == "mira_thanks"],
+		["three crates against the north door hold it on day 7", _barricade_setup, func(): return run.seen("door_holds")],
 	]
 
 
@@ -63,7 +79,7 @@ func _process(_dt: float) -> bool:
 		passed.append(cases[i][0])
 		print("[magic] ok: " + cases[i][0])
 		return _next()
-	if t > WAIT:
+	if t > (LIGHT_WAIT + 20 if state.has("hollow_light") else WAIT):
 		failures.append(cases[i][0] + " (nothing happened)")
 		return _next()
 	return false
@@ -86,15 +102,39 @@ func _next() -> bool:
 
 ## A wizard who has every Model this test casts, with Aether to spare.
 func _strong() -> void:
-	var g = slice.growth
 	run.set_flag("ring1")
 	run.lp["wells"] = 60
-	for id in BOOK:
+	for id in BOOK + STORM_BOOK:
 		run.mem["known"]["model_" + id] = 1
-	run.lp["book"] = BOOK.duplicate()
-	g.refresh()
+	_book(BOOK)
+
+
+func _book(ids: Array) -> void:
+	run.lp["book"] = ids.duplicate()
+	slice.growth.refresh()
 	main.refresh_book()
 	main.refresh_player()
+
+
+func _logged(kind: String, what: String) -> bool:
+	return world.events_log.any(func(e): return e[0] == kind and e[1] == what)
+
+
+## A clear point in the city with no lamp near: where the puddle case stands.
+func _dark_spot() -> Vector2:
+	for id in world.map.spots:
+		var p: Vector2 = world.map.spots[id]
+		if world.map.solid_at(p, 20.0) or world.map.in_water(p, 20.0):
+			continue
+		if world.lamps.all(func(l): return l["pos"].distance_to(p) > 120.0) and world.map.place_at(p) in ["market", "square", "streets"]:
+			return p
+	return world.map.spots["market"]
+
+
+func _clear_enemies() -> void:
+	for u in main.arena.enemies():
+		u.dead = true
+		u.death_t = 0.0
 
 
 func _skip_scenes() -> void:
@@ -128,8 +168,8 @@ func _intent(A) -> Dictionary:
 	if cast.is_empty() or cast["slot"] == "":
 		return out
 	out["aim"] = cast["aim"]
-	if cast["f"] == 0 and A.kit.cast_t > 0.0:
-		return out  # the last spell is still being cast
+	if cast["f"] == 0 and (A.kit.cast_t > 0.0 or A.hitstop > 0.0):
+		return out  # the last spell is still being cast, or a hit froze the frame (input is lost then)
 	cast["f"] += 1
 	if cast["f"] == 2:
 		out["pressed"][cast["slot"]] = true
@@ -191,3 +231,109 @@ func _scorch_setup() -> void:
 	main.place_player(at)
 	main.arena.kit.aether = main.arena.kit.max_aether()
 	cast = {"slot": main.arena.kit.slot_of("ember_bolt"), "aim": centre, "f": 0}
+
+
+func _lantern_setup() -> void:
+	_cast_at(world.map.items["second_lantern"]["at"], "splash", 30.0)
+
+
+func _flare_setup() -> void:
+	_book(STORM_BOOK)
+	state["lamp"] = _street_lamp()
+	state["lamp"]["lit"] = false
+	_cast_at(state["lamp"]["pos"], "spark", 40.0)
+
+
+func _puddle_setup() -> void:
+	var at := _dark_spot()
+	state["at"] = at
+	main.arena.kit.sw.add_puddle(at, 14.0)
+	state["puddle"] = main.arena.zones.filter(func(z): return z["kind"] == "puddle")[-1]
+	_cast_at(at, "spark", 40.0)
+
+
+## Once the puddle is charged, a Hollow is put in it; it must take a shock.
+func _shocked() -> bool:
+	if float(state["puddle"].get("charge_t", 0.0)) > 0.0 and not state.has("hollow"):
+		state["hollow"] = main.arena.spawn("hollow", state["at"])
+		state["hollow"].stun = 5.0
+	if state.has("hollow") and _logged("shock", "hollow"):
+		_clear_enemies()
+		return true
+	return false
+
+
+func _rewind_setup() -> void:
+	for p in world.props:
+		if p["kind"] == "crate" and p["pos"].distance_to(p["home"]) > 4.0:
+			state["prop"] = p
+			break
+	if state["prop"]["pos"].distance_to(state["prop"]["home"]) < 4.0:
+		state["prop"]["pos"] += Vector2(20, 0)
+	state["prop"]["vel"] = Vector2.ZERO
+	root.get_node("Progression").p["loop"] = 2  # Rewind comes back with you from loop 2
+	_cast_at(state["prop"]["home"], "rewind", 70.0)
+
+
+func _light_setup() -> void:
+	_book(BOOK)
+	var l := _street_lamp()
+	world.light_lamp(l, "you")
+	state["hollow_light"] = true
+	state["lamp"] = l
+	state["min_d"] = INF
+	main.place_player(l["pos"] + Vector2(0, 6))
+	var at: Vector2 = l["pos"]
+	for k in 16:
+		var p: Vector2 = l["pos"] + Vector2.from_angle(k * TAU / 16.0) * 100.0
+		if not world.map.solid_at(p, 8.0) and not world.map.in_water(p, 8.0):
+			at = p
+			break
+	state["hollow"] = main.arena.spawn("hollow", at)
+	cast = {}
+
+
+## The Hollow comes at you but stops at the edge of the light.
+func _kept_off() -> bool:
+	var u = state["hollow"]
+	state["min_d"] = minf(state["min_d"], u.pos.distance_to(state["lamp"]["pos"]))
+	main.arena.player.hp = main.arena.player.max_hp
+	if t < LIGHT_WAIT:
+		return false
+	var r := float(world.pd["light_r"])
+	var ok: bool = state["min_d"] >= r - 0.5 and state["min_d"] < r + 30.0
+	print("[magic] the Hollow came within %.0f px of the lamp (pool %.0f)" % [state["min_d"], r])
+	_clear_enemies()
+	state.erase("hollow_light")
+	if not ok:
+		failures.append("the Hollow came within %.0f px of a lit lamp (pool %.0f), or never came" % [state["min_d"], r])
+	return true
+
+
+func _porter_setup() -> void:
+	var p = world.people.get_person("porter")
+	_cast_at(p.pos, "ember_bolt", 40.0)
+
+
+func _lane_setup() -> void:
+	for l in world.lamps:
+		if l["group"] == "lane":
+			state["lamp"] = l
+			break
+	state["lamp"]["lit"] = false
+	_cast_at(state["lamp"]["pos"], "ember_bolt")
+
+
+func _barricade_setup() -> void:
+	var b: Dictionary = world.pd["barricade"]
+	var at := Vector2(b["at"][0], b["at"][1])
+	var n := 0
+	for p in world.props:
+		if p["kind"] == "crate" and p["pos"].y < 300.0 and n < 3:
+			p["pos"] = at + Vector2(-20 + 20 * n, 0)
+			p["vel"] = Vector2.ZERO
+			n += 1
+	main.place_player(world.map.spots["north_in"] + Vector2(0, 40))
+	run.skip_to(7, 2)
+	world.clock = world.period_s() - 1.0  # dusk comes in a second
+	cast = {}

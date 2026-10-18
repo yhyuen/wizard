@@ -8,7 +8,7 @@ days: 7
 times: dusk
 force: true
 priority: 50
-when: not f("door_barred")
+when: not f("door_barred") and not f("door_barricaded")
 Dusk. A scream from the north side of the College. You run.
 Pell, a first-year, is at the north door with both hands on the bar.
 Pell: It's Wren! Wren's outside, can't you hear?
@@ -35,9 +35,10 @@ days: 7
 times: dusk
 force: true
 priority: 50
-when: f("door_barred")
+when: f("door_barred") or f("door_barricaded")
 + move north_in
 Dusk. Someone is hammering on the north door. Pell is there, dragging at your bench, crying.
+[f("door_barricaded") and not f("door_barred")] The crates you piled against it jump at every blow, and settle, and hold.
 Pell: It's Wren! Let them in!
 Wren's voice calls your name through the oak, then laughs in a way Wren never laughs.
 You hold Pell back. The hammering goes on, and on.

@@ -31,6 +31,11 @@ var scorches: Array = []  # {"pos", "dir"}: star-shaped burns on walls
 var fire_proj := {}
 var water_kinds := {}
 var events_log: Array = []  # what magic did, for tests: [kind, what]
+var pools: Array = []  # where a lit or flaring lamp's light keeps Hollows off, rebuilt each tick
+var light_shy := {}
+
+## Flags the world sets itself (not a story scene), for the story checks.
+const FLAGS := ["lit_lane", "door_barricaded"]
 
 
 func _init(the_run, the_story) -> void:
@@ -43,6 +48,8 @@ func _init(the_run, the_story) -> void:
 		fire_proj[k] = true
 	for k in pd["water_spells"]:
 		water_kinds[k] = true
+	for k in pd["light_shy"]:
+		light_shy[k] = true
 	map.movers = movers
 	people = People.new(self)
 	_build_lamps()
@@ -53,7 +60,8 @@ func _build_lamps() -> void:
 	lamps.clear()
 	var lane_i := 0
 	for l in map.d["lamps"]:
-		var lamp := {"pos": Vector2(l[0], l[1]), "group": str(l[2]), "lit": false, "by": ""}
+		var lamp := {"pos": Vector2(l[0], l[1]), "group": str(l[2]), "lit": false, "by": "", "flare_t": 0.0,
+			"iron": str(l[2]) in pd["iron_lamps"]}
 		if lamp["group"] == "lane":
 			lamp["id"] = "lane_lamp_%d" % lane_i
 			lane_i += 1
@@ -74,6 +82,7 @@ func reset_loop() -> void:
 	for l in lamps:
 		l["lit"] = false
 		l["by"] = ""
+		l["flare_t"] = 0.0
 	for b in braziers:
 		b["lit"] = false
 	map.doors["north_door"]["open"] = false
@@ -86,6 +95,7 @@ func reset_day() -> void:
 	for l in lamps:
 		l["lit"] = false
 		l["by"] = ""
+		l["flare_t"] = 0.0
 	for b in braziers:
 		b["lit"] = false
 	map.doors["north_door"]["open"] = false
@@ -136,6 +146,9 @@ func tick(dt: float) -> void:
 	_cache_movers()
 	_magic()
 	_lamps_by_time()
+	_lightning(dt)
+	_light_pools()
+	_barricade()
 	var now: String = map.place_at(player_pos())
 	if now != here:
 		here = now
@@ -158,11 +171,95 @@ func light_lamp(l: Dictionary, by: String) -> void:
 	l["lit"] = true
 	l["by"] = by
 	events_log.append(["lit", l.get("id", l["group"])])
+	if by == "you" and l["group"] == "lane" and not run.flag("lit_lane"):
+		# Mira's lane, lit before she got to it: she notices (and says so later, if not now).
+		run.set_flag("lit_lane")
+		var m = people.get_person("mira")
+		if m != null and m.on and m.pos.distance_to(player_pos()) < float(cfg["bark_range"]):
+			people.say(m, str(people.d["reactions"]["mira_thanks"]))
+
+
+## Whether a lamp gives light now: lit, or flaring from lightning.
+func lamp_on(l: Dictionary) -> bool:
+	return l["lit"] or l["flare_t"] > 0.0
 
 
 ## Lamps lit now near a point, for the light they give (and, in OW2, for keeping Hollows off).
 func lit_lamps_near(p: Vector2, r: float) -> Array:
-	return lamps.filter(func(l): return l["lit"] and l["pos"].distance_to(p) < r)
+	return lamps.filter(func(l): return lamp_on(l) and l["pos"].distance_to(p) < r)
+
+
+func _light_pools() -> void:
+	pools = []
+	for l in lamps:
+		if lamp_on(l):
+			pools.append(l["pos"])
+
+
+## Where a light-shy enemy at `p` may stand: pushed out to the edge of any lamp's pool it is in
+## (a lit street is a safe street at night). The arena asks this for every enemy it moves.
+func out_of_light(kind: String, p: Vector2, r: float) -> Vector2:
+	if pools.is_empty() or not light_shy.has(kind):
+		return p
+	var lr := float(pd["light_r"]) + r
+	for c in pools:
+		var to: Vector2 = p - c
+		if to.length_squared() < lr * lr:
+			p = c + (to.normalized() if to.length_squared() > 0.01 else Vector2.UP) * lr
+	return p
+
+
+## Lightning: flaring lamps fade back, and charged puddles shock whoever stands in them.
+func _lightning(dt: float) -> void:
+	for l in lamps:
+		if l["flare_t"] > 0.0:
+			l["flare_t"] = maxf(0.0, l["flare_t"] - dt)
+	for z in arena.zones:
+		if z["kind"] != "puddle" or float(z.get("charge_t", 0.0)) <= 0.0:
+			continue
+		z["charge_t"] -= dt
+		z["shock_t"] = float(z.get("shock_t", 0.0)) - dt
+		if z["shock_t"] > 0.0:
+			continue
+		z["shock_t"] = float(pd["shock_every"])
+		for u in arena.enemies():
+			if u.pos.distance_to(z["pos"]) < float(z["r"]):
+				arena.kit.sw.storm_hit(u, float(pd["shock_damage"]), 1, Vector2.ZERO, 0.0, "spark", 0.0)
+				arena.fx("zap", z["pos"], {"to": u.pos + Vector2(0, -4), "color": PixelArt.STORM, "life": 0.1, "_w": true})
+				events_log.append(["shock", u.kind])
+
+
+## Lightning along a segment: iron lamps it passes flare, puddles it touches take the charge.
+func _storm_line(a: Vector2, b: Vector2) -> void:
+	for l in lamps:
+		if l["iron"] and Geometry2D.get_closest_point_to_segment(l["pos"], a, b).distance_to(l["pos"]) < float(pd["lamp_reach"]):
+			l["flare_t"] = float(pd["flare_s"])
+			events_log.append(["flare", l.get("id", l["group"])])
+	for z in arena.zones:
+		if z["kind"] == "puddle" and not z.get("millrace", false) \
+				and Geometry2D.get_closest_point_to_segment(z["pos"], a, b).distance_to(z["pos"]) < float(z["r"]):
+			z["charge_t"] = float(pd["charge_s"])
+			events_log.append(["charged", "puddle"])
+
+
+## Three or more crates or barrels shoved against the inside of the north door hold it on day 7,
+## like the beam. Checked all the time (shove them away again and it no longer holds).
+func _barricade() -> void:
+	if run.day() != 7:
+		return
+	var b: Dictionary = pd["barricade"]
+	var at := Vector2(b["at"][0], b["at"][1])
+	var n := 0
+	for p in props:
+		if p["state"] != "ash" and p["kind"] in b["kinds"] and p["pos"].distance_to(at) < float(b["r"]):
+			n += 1
+	var held := n >= int(b["need"])
+	if held != run.flag("door_barricaded"):
+		if held:
+			run.set_flag("door_barricaded")
+			events_log.append(["barricade", "north_door"])
+		else:
+			run.clear_flag("door_barricaded")
 
 
 # --- props ----------------------------------------------------------------------------
@@ -267,6 +364,20 @@ func shove(p: Dictionary, dir: Vector2, power := 1.0) -> void:
 
 
 ## The prop nearest `at` within `r` (plus its own size), or {}.
+## Rewind on a prop: back to how it was this morning, unburnt and where it stood.
+func mend(p: Dictionary) -> bool:
+	if p["state"] == "" and p["pos"].distance_to(p["home"]) < 2.0:
+		return false
+	_put_out(p)
+	p["state"] = ""
+	p["burn_t"] = 0.0
+	p["pos"] = p["home"]
+	p["vel"] = Vector2.ZERO
+	p["spin"] = 0.0
+	events_log.append(["mended", p["kind"]])
+	return true
+
+
 func prop_at(at: Vector2, r := 0.0) -> Dictionary:
 	var best := {}
 	var bd := INF
@@ -285,11 +396,16 @@ func prop_at(at: Vector2, r := 0.0) -> Dictionary:
 ## Reads the arena's spells and answers: fire lights and burns, water puts out, force shoves.
 func _magic() -> void:
 	var reach := float(pd["lamp_reach"])
+	var exploring: bool = arena.phase == "explore"
 	for p in arena.projs.duplicate():
 		if p.get("team", 0) != 0 or p.get("ghost", false):
 			continue
 		var k: String = p["kind"]
 		var at: Vector2 = p["pos"]
+		if exploring:
+			people.flinch(at)
+			if fire_proj.has(k) and map.places.get(map.place_at(at), {}).get("district", "") == "college":
+				people.scold_fire(at)
 		if fire_proj.has(k):
 			var lit := false
 			for l in lamps:
@@ -314,12 +430,19 @@ func _magic() -> void:
 				shove(pr, p["vel"])
 				arena.projs.erase(p)
 				arena.fx("dust", at, {"r": 5.0, "life": 0.25})
-	# Splash: a spray cone, once, when it is cast.
+	# Splash: a spray cone, once, when it is cast. Lightning: along its line, once.
 	for f in arena.fxs:
-		if f["kind"] != "spray" or f.has("_w"):
+		if f.has("_w"):
 			continue
 		f["_w"] = true
-		_water_cone(f["pos"], f["dir"], float(f["cone"]), float(f["r"]))
+		if f["kind"] == "spray":
+			_water_cone(f["pos"], f["dir"], float(f["cone"]), float(f["r"]))
+			if exploring:
+				people.flinch(f["pos"] + f["dir"] * float(f["r"]) * 0.5)
+		elif f.has("to") and f["kind"] in pd["storm_zaps"]:
+			_storm_line(f["pos"], f["to"])
+			if exploring:
+				people.flinch(f["to"])
 	# Undertow: the wave douses and carries what it passes.
 	for w in arena.kit.sw.waves:
 		if w["delay"] > 0.0:
@@ -350,6 +473,10 @@ func _magic() -> void:
 				for b in braziers:
 					if b["pos"].distance_to(z["pos"]) < float(z["r"]) + 6.0:
 						b["lit"] = true
+			"rewind_form":
+				for pr in props:
+					if pr["home"].distance_to(z["pos"]) < float(pd["rewind_r"]) or pr["pos"].distance_to(z["pos"]) < float(pd["rewind_r"]):
+						mend(pr)
 			"puddle", "whirl":
 				if z.get("millrace", false):
 					continue

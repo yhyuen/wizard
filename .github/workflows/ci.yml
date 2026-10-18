@@ -69,7 +69,7 @@ jobs:
       - name: Fights in place (fresh and strong, and the millrace)
         run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/encounters.gd
 
-      - name: Magic meets the world (lamps, hay, crates, the scorch test)
+      - name: Magic meets the world (fire, water, force, lightning, Rewind, lamplight, people, the barricade)
         run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/world_magic.gd
 
       - name: The Fire cutscene (played, then skipped)
