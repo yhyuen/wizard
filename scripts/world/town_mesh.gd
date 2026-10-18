@@ -20,8 +20,11 @@ var cfg: Dictionary  # data/visual.json "world" "town"
 var pal: Dictionary
 var rng := RandomNumberGenerator.new()
 var _chunks := {}  # Vector2i -> {"solid": SurfaceTool, "glow": SurfaceTool, "n": int}
-var solid_mat: ShaderMaterial
+var solid_mat: ShaderMaterial  # chunks on the line of sight, which the cutaway can dissolve
 var glow_mat: ShaderMaterial  # every lit window: its glow follows the time of day
+var solid_far: ShaderMaterial  # the same, for every other chunk: no cutaway, so no `discard`
+var glow_far: ShaderMaterial
+var chunk_mis: Array = []  # [MeshInstance3D, near material, far material, centre, radius]
 var lit_mat: ShaderMaterial  # a lit lantern
 var dark_mat: ShaderMaterial  # an unlit lantern
 var pool_mat: ShaderMaterial
@@ -76,12 +79,16 @@ func c(k: String) -> Color:
 
 
 func _materials() -> void:
-	solid_mat = Figure.mat(Color.WHITE)
-	solid_mat.set_shader_parameter("vcol_albedo", true)
-	solid_mat.set_shader_parameter("facet", 1.0)
-	Figure.finish(solid_mat, "stone")
-	glow_mat = Figure.mat(Color.WHITE, float(cfg.get("window_glow", 1.4)))
-	glow_mat.set_shader_parameter("vcol_albedo", true)
+	solid_far = Figure.mat(Color.WHITE)
+	solid_far.set_shader_parameter("vcol_albedo", true)
+	solid_far.set_shader_parameter("facet", 1.0)
+	Figure.finish(solid_far, "stone")
+	glow_far = Figure.mat(Color.WHITE, float(cfg.get("window_glow", 1.4)))
+	glow_far.set_shader_parameter("vcol_albedo", true)
+	solid_mat = solid_far.duplicate()
+	solid_mat.shader = Figure.CUT
+	glow_mat = glow_far.duplicate()
+	glow_mat.shader = Figure.CUT
 	lit_mat = Figure.mat(c("window"), 2.2)
 	dark_mat = Figure.mat(Color("2a2a30"))
 	pool_mat = ShaderMaterial.new()
@@ -155,9 +162,24 @@ func _commit() -> void:
 	for k in _chunks:
 		var ch: Dictionary = _chunks[k]
 		if ch["ns"] > 0:
-			_mesh(ch["solid"].commit(), solid_mat, true)
+			_track(_mesh(ch["solid"].commit(), solid_far, true), solid_mat, solid_far)
 		if ch["ng"] > 0:
-			_mesh(ch["glow"].commit(), glow_mat, false)
+			_track(_mesh(ch["glow"].commit(), glow_far, false), glow_mat, glow_far)
+
+
+func _track(mi: MeshInstance3D, near: Material, far: Material) -> void:
+	var box: AABB = mi.mesh.get_aabb()
+	chunk_mis.append([mi, near, far, box.get_center(), box.size.length() * 0.5])
+
+
+## Gives the chunks the line of sight from `cam` to `at` passes near the cutaway material, and
+## every other chunk the cheaper one.
+func cut_chunks(cam: Vector3, at: Vector3, r: float) -> void:
+	for c in chunk_mis:
+		var near: bool = Geometry3D.get_closest_point_to_segment(c[3], cam, at).distance_to(c[3]) < c[4] + r
+		var want: Material = c[1] if near else c[2]
+		if c[0].material_override != want:
+			c[0].material_override = want
 
 
 func _mesh(m: Mesh, mat: Material, shadows: bool, parent: Node = null) -> MeshInstance3D:

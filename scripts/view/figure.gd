@@ -5,7 +5,9 @@ extends Node3D
 ## and this never changes it.
 
 const DIR := "res://assets/models/figures/"
-const SHADER := preload("res://scripts/view/lowpoly.gdshader")
+const SHADER := preload("res://scripts/view/lowpoly.gdshader")  # figures: can fade, two-sided
+const SOLID := preload("res://scripts/view/lowpoly_solid.gdshader")  # everything else
+const CUT := preload("res://scripts/view/lowpoly_cut.gdshader")  # town chunks on the line of sight
 const BLEND := 0.08
 
 static var _lib: AnimationLibrary
@@ -26,14 +28,19 @@ var _blend := 1.0
 var _base_scale := 1.0
 
 
-## A flat-shaded material for meshes made in code (hats, rocks, the shrine, spell shapes).
-## `glow` > 0 makes it emit its own colour.
-static func mat(col: Color, glow := 0.0) -> ShaderMaterial:
+## A flat-shaded material for meshes made in code (rocks, the shrine, spell shapes, the town).
+## `glow` > 0 makes it emit its own colour. It can't fade; a figure's own parts use fade_mat.
+static func mat(col: Color, glow := 0.0, shader: Shader = SOLID) -> ShaderMaterial:
 	var sm := ShaderMaterial.new()
-	sm.shader = SHADER
+	sm.shader = shader
 	sm.set_shader_parameter("albedo", col)
 	sm.set_shader_parameter("glow", glow)
 	return sm
+
+
+## A figure's material: two-sided, and it can fade out (dithered).
+static func fade_mat(col: Color, glow := 0.0) -> ShaderMaterial:
+	return mat(col, glow, SHADER)
 
 
 ## Give a material one of the named finishes (see SURFACES). Glowing shapes keep theirs.
@@ -82,7 +89,7 @@ static func style(n: Node, darken: float, remap := {}, tint := Color(0, 0, 0, 0)
 				col = Color(str(remap[hx]))
 			elif tint.a > 0.0:
 				col = col.lerp(Color(tint, 1.0), tint.a)
-			var sm := mat(col.darkened(darken))
+			var sm := fade_mat(col.darkened(darken))
 			sm.set_shader_parameter("facet", facet)
 			finish(sm, surf)
 			mi.set_surface_override_material(s, sm)
@@ -151,7 +158,7 @@ static func merge_style(n: Node, darken: float, remap: Dictionary, tint: Color, 
 		var am := ArrayMesh.new()
 		am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr, [], {}, fmt0 & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS)
 		mi.mesh = am
-		var sm := mat(Color.WHITE)
+		var sm := fade_mat(Color.WHITE)
 		sm.set_shader_parameter("vcol_albedo", true)
 		sm.set_shader_parameter("facet", facet)
 		finish(sm, "figure")
@@ -289,7 +296,7 @@ func _commit_parts() -> void:
 	for at in _parts:
 		var mi := MeshInstance3D.new()
 		mi.mesh = _parts[at].commit()
-		var m := mat(Color.WHITE)
+		var m := fade_mat(Color.WHITE)
 		m.set_shader_parameter("vcol_albedo", true)
 		m.set_shader_parameter("facet", _facet)
 		finish(m, "figure")
@@ -349,7 +356,7 @@ func _eyes(col: Color, z := 0.1, y := 0.08) -> void:
 	if skel == null:
 		return
 	var at := _bone_node("head")
-	var m := mat(col, 2.5)
+	var m := fade_mat(col, 2.5)
 	mats.append(m)  # so they fade out with the body
 	var sm := SphereMesh.new()
 	sm.radius = 0.024
@@ -392,7 +399,7 @@ func _staff_gem(col: Color) -> void:
 	sm.radial_segments = 5
 	sm.rings = 2
 	gem.mesh = sm
-	var gm := mat(col, 1.6)
+	var gm := fade_mat(col, 1.6)
 	mats.append(gm)
 	gem.material_override = gm
 	gem.position = rest.affine_inverse() * tip

@@ -69,7 +69,7 @@ static func rock(r: float, seed_v: int) -> ArrayMesh:
 static func _mi(mesh: Mesh, col: Color, glow := 0.0) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
-	mi.material_override = Figure.mat(col, glow)
+	mi.material_override = Figure.fade_mat(col, glow)  # two-sided: octa and tetra are wound by hand
 	if glow > 0.0:
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return mi

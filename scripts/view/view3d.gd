@@ -150,7 +150,7 @@ func _build_env() -> void:
 ## only re-draws the ground near it.
 func _build_ground() -> void:
 	_ground = ShaderMaterial.new()
-	_ground.shader = Figure.SHADER
+	_ground.shader = Figure.SOLID
 	_ground.set_shader_parameter("use_vcol", true)
 	_ground.set_shader_parameter("rim", 0.0)
 	_ground.set_shader_parameter("facet", float(g_facet()))
@@ -192,7 +192,7 @@ func _build_ground() -> void:
 				var mid: Vector3 = (t[0] + t[1] + t[2]) / 3.0
 				var kind := _ground_kind(mid)
 				var shade := rng.randf_range(1.0 - shade_var, 1.0 + shade_var)
-				for v in [t[0], t[2], t[1]]:
+				for v in t:  # clockwise from above, so the ground survives back-face culling
 					st.set_color(Color(shade, shade, shade))
 					st.set_uv(Vector2(kind, 0))
 					st.set_normal(_ground_normal(v.x, v.z))
