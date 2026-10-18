@@ -1,65 +1,52 @@
 extends Node
-## Root: the arena seen through the 3D ink view (scripts/view/), the HUD on top at 960×540, the
-## vertical slice's game flow on top of that (scripts/game/slice.gd: title, board, scenes, Ledger),
-## and the fights, the Orrery shrine menu and the old Mill fight's Loop Ledger. Input becomes an intent
-## dictionary each physics frame, so tests can drive the same code with a bot. With "enabled":
-## false in data/visual.json the old pixel-art arena (480×270 scaled up ×2) comes back.
+## Root of the open-world prototype (design/open-world/): the arena runs the whole town (the
+## wizard, spells, fights in place) seen through the 3D town view (scripts/world/world_view.gd),
+## the HUD on top at 960×540, and the game flow on top of that (scripts/game/slice.gd: title,
+## the dialogue panel, the map, the Ledger, death). Input becomes an intent dictionary each
+## physics frame, so tests can drive the same code with a bot.
 
 const Arena := preload("res://scripts/arena.gd")
 const Hud := preload("res://scripts/hud.gd")
-const View3D := preload("res://scripts/view/view3d.gd")
+const WorldView := preload("res://scripts/world/world_view.gd")
 const Marks := preload("res://scripts/view/marks.gd")
 const Controls := preload("res://scripts/controls.gd")
 const Slice := preload("res://scripts/game/slice.gd")
 
 var arena
 var hud
-var view  # the 3D view, or null for the flat pixel arena
-var marks_vp: SubViewport  # the arena's flat marks, drawn offscreen for the 3D view
+var view  # the 3D town; null only when a test builds the game without one
+var marks_vp: SubViewport  # the arena's flat marks round the wizard, drawn offscreen for the view
 ## The 3D view renders at most this many pixels across; a bigger window (or a high-DPI screen)
 ## gets the 3D scaled up instead of drawn at full size, while the 2D stays sharp.
 const MAX_3D_WIDTH := 1280.0
-## Below this many frames per second for SLOW_SECONDS of a fight, graphics drop to low on their
-## own (F4 switches back); low graphics also draw the 3D at 3/4 size.
+## Below this many frames per second for SLOW_SECONDS, graphics drop to low on their own (F4
+## switches back); low graphics also draw the 3D at 3/4 size.
 const SLOW_FPS := 40
 const SLOW_SECONDS := 4.0
 const SETTINGS := "user://settings.json"
 var gfx := "auto"  # "auto", "high" or "low", kept in SETTINGS
 var _slow_t := 0.0
-var container: SubViewportContainer
-var mode := "title"  # title, slice, tests, fight, ledger
-var slice  # scripts/game/slice.gd: the slice's title card, day board, scenes and Ledger
-var slice_fight := false  # the fight running was started from the slice
-## Test scenes (T on the title card): jump straight into one part of the game. A test never
-## touches the save: the progress is put back as it was when you leave the menu.
-const TEST_SCENES := [
-	{"id": "", "name": "Full fight", "text": "The normal run: both waves, then Silas"},
-	{"id": "wave1", "name": "Wave 1: Dust Hollows", "text": "Melee Hollows, straight away"},
-	{"id": "wave2", "name": "Wave 2: Slingers", "text": "Slingers and a Backward Slinger"},
-	{"id": "duel", "name": "Duel: Silas Vane", "text": "Straight to the Storm Rider"},
-	{"id": "backward", "name": "Backward Slingers", "text": "Stones that fly home, on repeat"},
-	{"id": "inversion", "name": "Loop 2: Rewind and the echo", "text": "Rewind on F and your backwards echo"},
-	{"id": "shrine", "name": "The Orrery", "text": "Shrine open, every spell unlocked"},
-	{"id": "dummies", "name": "Practice yard", "text": "Hollows that never strike back"},
-]
-var testing := false  # in a test scene, or its menu
-var _saved_p := {}  # the progress to put back after testing
+var mode := "title"  # title, world (walking the town), fight (a fight in place), cutscene, slice (death, end)
+var slice  # scripts/game/slice.gd
+var world  # scripts/world/world.gd (the slice's)
 var bot: Callable  # tests and the F2 autoplay set this: func(arena) -> intent
 var autoplay
-var wipe_armed := 0.0
-var shrine_open := false
 var controls  # scripts/controls.gd: classic or League-style; Tab switches, any time
-var told_controls := false  # the first fight names the scheme once
+var told_controls := false
+var input_cool := 0.0  # seconds after a panel closes in which a click doesn't also cast
+## Walking up to a person or thing to talk or use it once in reach (League right-click, or the
+## map): {"type", "id", "pos"}.
+var going_to := {}
 
 
 func _ready() -> void:
 	controls = Controls.new()
+	slice = Slice.new()
+	slice.setup(self)
+	world = slice.world
 	var vis = JSON.parse_string(FileAccess.get_file_as_string("res://data/visual.json"))
-	if vis is Dictionary and vis.get("enabled", true):
-		_build_3d(int(vis.get("overlay_scale", 3)))
-		_load_settings()
-	else:
-		_build_flat()
+	_build_3d(vis)
+	_load_settings()
 	hud = Hud.new()
 	hud.main = self
 	hud.arena = arena
@@ -71,25 +58,30 @@ func _ready() -> void:
 	arena.fight_over.connect(_on_fight_over)
 	Progression.spell_leveled.connect(_on_spell_leveled)
 	Progression.mutation_picked.connect(_on_mutation)
-	Progression.wizard_leveled.connect(_on_wizard_leveled)
-	Progression.magick_learned.connect(_on_magick)
-	Progression.hint_learned.connect(_on_hint)
-	slice = Slice.new()
 	slice.main = self
 	add_child(slice)
 	slice.screen_changed.connect(_on_slice_screen)
+	arena.start_world(world.map, world, world.map.spots["room_in"])
+	arena.paused = true
 
 
 func _on_slice_screen(s: String) -> void:
-	if s != "fight" and mode in ["title", "slice"]:
-		mode = "title" if s == "title" else "slice"
+	match s:
+		"title":
+			mode = "title"
+		"world":
+			if not mode in ["fight", "cutscene"]:
+				mode = "world"
+		_:
+			mode = "slice"
+	if mode != "world" and mode != "fight":
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
-## The arena draws its flat marks into an offscreen viewport (scaled up so lines stay fine),
-## which the 3D view lays on the ground under the figures.
-func _build_3d(over: int) -> void:
+## The arena draws its flat marks into an offscreen viewport, a window of the town round the
+## wizard, which the view lays on the ground under the figures.
+func _build_3d(_vis: Dictionary) -> void:
 	var vp := SubViewport.new()
-	vp.size = Vector2i(480 * over, 270 * over)
 	vp.transparent_bg = true
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	vp.handle_input_locally = false
@@ -97,11 +89,11 @@ func _build_3d(over: int) -> void:
 	add_child(vp)
 	marks_vp = vp
 	var holder := Node2D.new()
-	holder.scale = Vector2(over, over)
 	vp.add_child(holder)
 	arena = Arena.new()
-	view = View3D.new()
-	view.setup(arena, vp)
+	world.arena = arena
+	view = WorldView.new()
+	view.setup_world(arena, vp, world, holder)
 	arena.view = view
 	holder.add_child(arena)
 	add_child(view)
@@ -112,54 +104,74 @@ func _build_3d(over: int) -> void:
 	add_child(marks)
 
 
-func _build_flat() -> void:
-	container = SubViewportContainer.new()
-	container.stretch = true
-	container.stretch_shrink = 2
-	container.size = Vector2(960, 540)
-	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	container.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	add_child(container)
-	var vp := SubViewport.new()
-	vp.size = Vector2i(480, 270)
-	vp.snap_2d_transforms_to_pixel = true
-	vp.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
-	vp.handle_input_locally = false
-	container.add_child(vp)
-	arena = Arena.new()
-	vp.add_child(arena)
+# --- the town -----------------------------------------------------------------------------
 
-
-func start_fight(scene := "", enc := {}) -> void:
-	mode = "fight"
-	shrine_open = false
-	slice.visible = false
-	arena.start(scene, enc)
+## A new day, or a new loop: the wizard stands at `at` with nothing attacking.
+func enter_world(at: Vector2) -> void:
+	arena.start_world(world.map, world, at)
 	arena.paused = false
+	mode = "world"
 	controls.reset()
+	going_to = {}
 	hud.reset()
+	if view != null:
+		view.snap()
 	if not told_controls and not bot.is_valid():
 		told_controls = true
 		_toast_controls()
-	if not bot.is_valid():
-		Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 
 
-## A fight from the slice's story: `enc` is its entry in data/slice/encounters.json.
-## A short 3D scene from the story (scripts/game/cutscene.gd): "fire" or "mourner".
-func start_cutscene(id: String) -> void:
-	mode = "cutscene"
-	slice.visible = false
-	arena.start("cutscene:" + id)
+## Puts the wizard at `at` (a story's `+ move`, or a fight that pulls you somewhere).
+func place_player(at: Vector2) -> void:
+	arena.player.pos = at
+	controls.reset()
+	going_to = {}
+	if view != null:
+		view.snap()
+
+
+## After wells or a Ring change: Vitality and Aether follow the lent rules.
+func refresh_player() -> void:
+	var P: Unit = arena.player
+	if P == null:
+		return
+	var old := P.max_hp
+	P.max_hp = Progression.max_hp()
+	P.hp = minf(P.max_hp, P.hp + maxf(0.0, P.max_hp - old))
+
+
+## After the spellbook changes at your desk.
+func refresh_book() -> void:
+	arena.kit.reset_slots()
+
+
+## A fight from the story, where you stand (data/slice/encounters.json), its enemies from `spawns`.
+func start_world_fight(enc: Dictionary, spawns: Array) -> void:
+	mode = "fight"
+	controls.reset()
+	going_to = {}
+	arena.begin_encounter(enc, spawns)
 	arena.paused = false
-	hud.reset()
 
 
-## The slice lends the fight its Practice, spellbook and rules (scripts/game/growth.gd).
-func start_slice_fight(enc: Dictionary) -> void:
-	slice_fight = true
-	slice.growth.begin_fight()
-	start_fight("", enc)
+## A short scene in the town (the Fire on the College stairs, staged at `at`).
+func start_world_cutscene(id: String, at: Vector2) -> void:
+	mode = "cutscene"
+	controls.reset()
+	arena.play_cutscene(id, at)
+	arena.paused = false
+
+
+## Walks to `at` along the streets (the map), in either scheme.
+func walk_to(at: Vector2) -> void:
+	going_to = {}
+	controls.walk(arena, at)
+
+
+## Walks up to a person or thing, then talks or uses it.
+func go_to(target: Dictionary) -> void:
+	controls.walk(arena, target["pos"])
+	going_to = target
 
 
 ## Names the control scheme in a toast, replacing the last one so Tab presses do not stack.
@@ -169,14 +181,14 @@ func _toast_controls() -> void:
 
 
 func _process(dt: float) -> void:
-	_show_3d(not slice.visible)
+	_show_3d(mode in ["world", "fight", "cutscene"])
 	if view == null or bot.is_valid():
 		return
 	if Input.is_action_just_pressed("graphics"):
 		set_gfx("low" if not view.low else "high")
 		hud.push_toast("Graphics: %s  ·  F4 to switch" % ("low" if view.low else "high"), PixelArt.GOLD)
-	# Auto: a fight that keeps running slow switches to low graphics, once.
-	if gfx == "auto" and mode == "fight" and not view.low:
+	# Auto: a town that keeps running slow switches to low graphics, once.
+	if gfx == "auto" and mode in ["world", "fight"] and not view.low and not arena.paused:
 		_slow_t = _slow_t + dt if Engine.get_frames_per_second() < SLOW_FPS else 0.0
 		if _slow_t > SLOW_SECONDS:
 			view.set_low(true)
@@ -201,7 +213,7 @@ func _load_settings() -> void:
 		view.set_low(true)
 
 
-## The slice's screens cover the whole window, so the 3D world behind them is not drawn at all.
+## The death and end screens cover the whole window, so the town behind them is not drawn.
 func _show_3d(on: bool) -> void:
 	if view == null:
 		return
@@ -217,71 +229,41 @@ func _show_3d(on: bool) -> void:
 	marks_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS if on else SubViewport.UPDATE_DISABLED
 
 
-func _physics_process(_dt: float) -> void:
-	wipe_armed = maxf(0.0, wipe_armed - _dt)
-	# Tab switches the control scheme anywhere: the title card, mid-fight or the Ledger.
+func _physics_process(dt: float) -> void:
+	input_cool = maxf(0.0, input_cool - dt)
+	# Tab switches the control scheme anywhere.
 	if Input.is_action_just_pressed("controls") and not bot.is_valid():
 		controls.cycle()
 		if mode != "title":
 			_toast_controls()
+	var frozen: bool = mode == "slice" or mode == "title" or (mode == "world" and slice.busy())
+	if not Progression.pending.is_empty() and mode in ["world", "fight"]:
+		frozen = true
+		_pick_input()
+	arena.paused = frozen
+	if frozen:
+		return
 	match mode:
-		"title":
-			if Input.is_action_just_pressed("tests") and not bot.is_valid():
-				open_tests()
-			elif bot.is_valid():
-				start_fight()  # the fight bot (tools/tests/fight.gd) plays the old Mill fight
-		"tests":
-			if Input.is_action_just_pressed("cancel") or Input.is_action_just_pressed("tests"):
-				close_tests()
-			for i in TEST_SCENES.size():
-				if Input.is_action_just_pressed("pick%d" % (i + 1)):
-					run_test(i)
-					break
-		"fight":
-			_fight_input()
+		"world", "fight":
+			_town_input()
 		"cutscene":
 			if Input.is_action_just_pressed("confirm") or Input.is_action_just_pressed("cancel") or Input.is_action_just_pressed("blink"):
 				if arena.cutscene != null:
 					arena.cutscene.t = maxf(arena.cutscene.t, arena.cutscene.LENGTH[arena.cutscene.id])
-		"ledger":
-			if Input.is_action_just_pressed("confirm"):
-				Progression.next_loop()
-				start_fight()
-			elif Input.is_action_just_pressed("wipe"):
-				if wipe_armed > 0.0:
-					Progression.reset_all()
-					hud.push_toast("Save wiped. Loop 1 again.", PixelArt.DANGER)
-					wipe_armed = 0.0
-				else:
-					wipe_armed = 2.0
-					hud.push_toast("Press Delete again to wipe every loop and spell level.", PixelArt.DANGER)
 
 
-func _fight_input() -> void:
-	if testing and not shrine_open and Input.is_action_just_pressed("cancel"):
-		open_tests()
-		return
-	if shrine_open:
-		if Input.is_action_just_pressed("shrine") or Input.is_action_just_pressed("cancel") or not arena.shrine_ready():
-			close_shrine()
-		return
-	if Input.is_action_just_pressed("shrine") and not bot.is_valid():
-		if arena.shrine_ready():
-			open_shrine()
-		elif arena.phase in ["intro", "wave1", "wave2"]:
-			hud.push_toast("The Orrery answers only while the yard is quiet, and only up close.", PixelArt.GOLD)
-	if not Progression.pending.is_empty():
-		arena.paused = true
-		if Input.is_action_just_pressed("pick1"):
-			Progression.pick(0)
-		elif Input.is_action_just_pressed("pick2"):
-			Progression.pick(1)
-		elif bot.is_valid() and autoplay == null:
-			Progression.pick(arena.rng.randi() % 2)  # the test bot picks at random
-		if Progression.pending.is_empty():
-			arena.paused = false
-		return
-	if Input.is_action_just_pressed("autoplay"):
+## A milestone pick (1 or 2) while the town waits.
+func _pick_input() -> void:
+	if Input.is_action_just_pressed("pick1"):
+		Progression.pick(0)
+	elif Input.is_action_just_pressed("pick2"):
+		Progression.pick(1)
+	elif bot.is_valid() and autoplay == null:
+		Progression.pick(arena.rng.randi() % 2)  # the test bot picks at random
+
+
+func _town_input() -> void:
+	if Input.is_action_just_pressed("autoplay") and mode == "fight":
 		if autoplay == null:
 			autoplay = load("res://scripts/bot.gd").new()
 			bot = func(a): return autoplay.intent(a)
@@ -290,140 +272,53 @@ func _fight_input() -> void:
 			autoplay = null
 			bot = Callable()
 			hud.push_toast("Autoplay off", PixelArt.PAPER)
+	if autoplay != null and mode == "world":
+		autoplay = null  # autoplay only fights
+		bot = Callable()
 	if Input.is_action_just_pressed("practice"):
 		for id in Progression.data["spells"]:
 			Progression.set_level(id, Progression.level(id) + 1)
 		hud.push_toast("Practice: every spell +1 level", PixelArt.GOLD)
-	var mouse: Vector2 = view.to_sim(hud.get_local_mouse_position()) if view else hud.get_local_mouse_position() / 2.0
 	if bot.is_valid():
 		arena.intent = bot.call(arena)
 		arena.mouse = arena.intent.get("aim", arena.mouse)
 		return
+	var mouse: Vector2 = view.to_sim(hud.get_local_mouse_position())
 	arena.mouse = mouse
-	arena.intent = controls.intent(arena, mouse, get_physics_process_delta_time())
-
-
-# --- test scenes ------------------------------------------------------------------
-
-func open_tests() -> void:
-	if not testing:
-		testing = true
-		_saved_p = Progression.p.duplicate(true)
-		Progression.save_enabled = false
-	mode = "tests"
-	slice.visible = false
-	shrine_open = false
-	arena.paused = true
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-
-
-## Back to the title card, with the progress exactly as it was before testing.
-func close_tests() -> void:
-	if testing:
-		testing = false
-		Progression.p = _saved_p
-		Progression.pending.clear()
-		Progression.save_enabled = not "--script" in OS.get_cmdline_args()
-	mode = "title"
-	arena.paused = true
-	slice.set_screen("title")
-
-
-## Sets up what scene `i` needs (later loops, Rewind, an echo), then starts it.
-func run_test(i: int) -> void:
-	var t: Dictionary = TEST_SCENES[i]
-	Progression.p = _saved_p.duplicate(true)
-	Progression.pending.clear()
-	if t["id"] in ["inversion", "shrine"]:
-		if Progression.loop() < 2:
-			Progression.next_loop()  # Rewind comes back with you, into slot 6
-		if t["id"] == "inversion":
-			if not Progression.spellbook().has("rewind"):
-				Progression.set_spell(5, "rewind")
-			if Progression.echo_track().is_empty():
-				Progression.p["echo"] = {"loop": Progression.loop() - 1, "won": false, "track": _made_up_echo()}
-	start_fight(t["id"])
-	if t["id"] == "shrine":
-		open_shrine()
-
-
-## A last fight to replay when there is none yet: a slow loop round the yard, casting now and then.
-func _made_up_echo() -> Array:
-	var track: Array = []
-	for i in 600:
-		var a := i * 0.012
-		track.append_array([240.0 + cos(a) * 70.0, 142.0 + sin(a) * 45.0, cos(a + 1.5), sin(a + 1.5), 1 if i % 9 == 0 else 0])
-	return track
-
-
-# --- the Orrery shrine ----------------------------------------------------------
-
-## The only place to change elements or re-pick a milestone mutation (design doc §7).
-func open_shrine() -> void:
-	if not arena.shrine_ready():
-		return
-	shrine_open = true
-	arena.paused = true
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-
-
-func close_shrine() -> void:
-	shrine_open = false
-	arena.paused = false
-	arena.kit.reset_slots()
-	if not bot.is_valid():
-		Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
-
-
-## Puts spell `id` in spellbook slot `index` (0-5). A spell already in another slot swaps with it.
-func shrine_spell(index: int, id: String) -> void:
-	if Progression.spellbook()[index] == id:
-		return
-	Progression.set_spell(index, id)
-	hud.push_toast("%s: %s" % [controls.key(Hud.SLOTS[index]), Progression.spell(id)["name"]], PixelArt.GOLD)
-
-
-func shrine_repick(id: String, lv: int, index: int) -> void:
-	Progression.repick(id, lv, index)
+	# League: right-click a person or a thing walks up to it, then talks or uses it.
+	var clicked := {}
+	if mode == "world" and controls.league() and Input.is_action_just_pressed("lol_move"):
+		clicked = world.under(mouse)
+	var intent: Dictionary = controls.intent(arena, mouse, get_physics_process_delta_time())
+	if not clicked.is_empty():
+		go_to(clicked)
+		intent = controls.build(arena, mouse, {"held": {}, "pressed": {}, "released": {}})
+	if input_cool > 0.0:
+		for k in ["held", "pressed", "released"]:
+			intent[k] = {}
+	arena.intent = intent
+	if not going_to.is_empty() and mode == "world":
+		var reach := float(world.cfg["reach"])
+		var at: Vector2 = going_to["pos"]
+		if going_to["type"] == "person" and world.people.get_person(going_to["id"]) != null:
+			at = world.people.get_person(going_to["id"]).pos
+		if arena.player.pos.distance_to(at) < reach:
+			world.interact(going_to)
+			going_to = {}
+			controls.reset()
+		elif controls.route.is_empty() and controls.dest == null:
+			going_to = {}
 
 
 func _on_fight_over(won: bool) -> void:
-	if mode == "cutscene":
-		mode = "slice"
-		arena.paused = true
-		slice.cutscene_done()
-		return
-	if slice_fight:
-		slice_fight = false
-		mode = "slice"
-		shrine_open = false
-		arena.paused = true
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-		slice.growth.end_fight()
-		slice.fight_done(won, int(arena.stats["kills"]))
-		return
-	if testing:
-		hud.push_toast("Test over: %s" % ("won" if won else "fell"), PixelArt.GOLD)
-		open_tests()
-		return
-	var levels := {}
-	for id in Progression.data["spells"]:
-		levels[id] = Progression.level(id)
-	Progression.record({
-		"result": "won" if won else "fell",
-		"time": snappedf(arena.fight_time, 0.1),
-		"casts": int(arena.stats["casts"]),
-		"damage_taken": roundf(arena.stats["damage_taken"]),
-		"kills": int(arena.stats["kills"]),
-		"wizard_level": Progression.wizard_level(),
-		"spells": levels,
-		"elements": Progression.loadout().duplicate(),
-		"spellbook": Progression.spellbook().duplicate(),
-	})
-	mode = "ledger"
-	shrine_open = false
-	arena.paused = true
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	match mode:
+		"cutscene":
+			mode = "world"
+			slice.cutscene_done()
+		"fight":
+			mode = "world"
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+			slice.fight_done(won, int(arena.stats["kills"]))
 
 
 func _on_spell_leveled(id: String, old: int, new: int) -> void:
@@ -442,25 +337,3 @@ func _on_spell_leveled(id: String, old: int, new: int) -> void:
 
 func _on_mutation(id: String, mut: Dictionary) -> void:
 	hud.push_toast("%s mutates into %s: %s" % [Progression.spell(id)["name"], mut["name"], mut["text"]], PixelArt.GOLD)
-
-
-func _on_wizard_leveled(old: int, new: int) -> void:
-	var p: Unit = arena.player
-	if p and not p.dead:
-		var gain := Progression.max_hp(new) - Progression.max_hp(old)
-		p.max_hp = Progression.max_hp(new)
-		p.hp = minf(p.max_hp, p.hp + maxf(0.0, gain))
-		arena.kit.blink_charges = mini(arena.kit.blink_charges + Progression.blink_charges(new) - Progression.blink_charges(old), Progression.blink_charges(new))
-	var line := "Wizard level %d: max HP %d" % [new, Progression.max_hp(new)]
-	if Progression.blink_charges(new) != Progression.blink_charges(old):
-		line += ", blink charges %d" % Progression.blink_charges(new)
-	hud.push_toast(line, PixelArt.PAPER)
-
-
-func _on_magick(id: String) -> void:
-	hud.push_level(id, "Magick discovered: %s (C)" % Progression.data["magicks"][id]["name"], Progression.data["magicks"][id]["blurb"])
-
-
-func _on_hint(id: String) -> void:
-	var m: Dictionary = Progression.data["magicks"][id]
-	hud.push_level(id, "A tome on %s" % m["name"], m["hint"])

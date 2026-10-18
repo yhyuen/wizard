@@ -39,7 +39,16 @@
     "townsfolk2": {"model": "bandit", "scale": 0.96, "facet": 0.7, "tint": ["4e5662", 0.6]},
     "rival": {"model": "swordsman", "scale": 1.02, "facet": 0.7,
       "colors": {"7d8aa0": "3e5560", "c4cbd6": "8fe8ff", "3d4552": "2a2f33", "8c7a5a": "6b5a45"},
-      "hat": {"kind": "frontier", "color": "3a3029", "band": "8fe8ff"}}
+      "hat": {"kind": "frontier", "color": "3a3029", "band": "8fe8ff"}},
+    "wren": {"model": "elder", "scale": 0.96, "facet": 0.7, "colors": {"5e5a62": "5a4a6a", "8a8690": "c8a050", "3a3640": "4a3426", "3a3840": "2a2430"}},
+    "mira": {"model": "elder", "scale": 0.98, "facet": 0.7, "colors": {"5e5a62": "6a3a30", "8a8690": "d89a4a", "3a3640": "3a2a22", "3a3840": "2a2420"}, "hat": {"kind": "hood", "color": "4a3a34", "band": "d89a4a"}},
+    "silas": {"model": "swordsman", "scale": 1.02, "facet": 0.7, "colors": {"7d8aa0": "3e5560", "c4cbd6": "8fe8ff", "3d4552": "2a2f33", "8c7a5a": "6b5a45"}, "hat": {"kind": "frontier", "color": "3a3029", "band": "8fe8ff"}},
+    "aldous": {"model": "bandit", "scale": 1.1, "facet": 0.7, "tint": ["d8d2c4", 0.6]},
+    "pell": {"model": "elder", "scale": 0.88, "facet": 0.7, "colors": {"5e5a62": "34489a", "8a8690": "8a8690", "3a3640": "5a3a22", "3a3840": "22263a"}},
+    "porter": {"model": "bandit", "scale": 1.0, "facet": 0.7, "tint": ["5a4a3a", 0.6], "hat": {"kind": "frontier", "color": "2e2620", "band": "8a7a5a"}},
+    "examiner": {"model": "elder", "scale": 1.04, "facet": 0.7, "colors": {"5e5a62": "3a3a44", "8a8690": "b0b0b8", "3a3640": "2a2a30", "3a3840": "1a1a22"}, "hat": {"kind": "wizard", "color": "2a2a34", "band": "b0b0b8"}},
+    "old_woman": {"model": "elder", "scale": 0.86, "facet": 0.7, "tint": ["4e4038", 0.55], "hat": {"kind": "hood", "color": "3a302a", "band": "6a5a4a"}},
+    "pie_seller": {"model": "bandit", "scale": 0.98, "facet": 0.7, "tint": ["8a6a4a", 0.55]}
   },
 
   "_moods_doc": "Night for the waves; a deeper night when Silas arrives, so spells are nearly all the light. F3 flips the mood for review. lights scales spell lights; fog tints the mist.",
@@ -70,7 +79,7 @@
 
   "_town_doc": "The cobbled plaza and the edge of Vellmar round it (scripts/view/town.gd), all merged into a few meshes. Positions in metres from the yard's centre (x east, z south). houses: [x, z, width, depth, height, facing degrees] (the windowed front faces +z turned by facing); stalls: [x, z, facing, cloth]; trees: [x, z, scale]; props: [model, x, z, rotation, scale]; lamps: [x, z], each a glowing lantern with a faked pool of light.",
   "town": {
-    "palette": {"cobble": "8a8890", "cobble2": "6e6e76", "kerb": "a09ea4", "wall": "b0a490", "wall2": "9a8c78", "wall3": "8a8e96",
+    "palette": {"cobble": "64626a", "cobble2": "54545c", "kerb": "7a787e", "wall": "b0a490", "wall2": "9a8c78", "wall3": "8a8e96",
       "timber": "3e322c", "roof": "5e5054", "roof2": "4a5262", "roof3": "4e5850", "stone": "8a8a8e", "window": "ffb060",
       "dark_window": "1a1c24", "iron": "2a2a30", "brass": "c09a4a", "leaf": "3e5a3a", "leaf2": "4a6640", "cloth": "8a3038", "cloth2": "9a8450"},
     "cobble_m": 0.7, "gate_gap_m": 2.8, "window_glow": 1.4, "pool_m": 3.4, "pool_strength": 0.45, "lamp_color": "ffb060", "prop_darken": 0.0, "lamp_reach_m": 6.0, "lamp_bake": 4.0,
@@ -85,5 +94,37 @@
     "props": [["barrels", -10.4, -7.6, 20, 1.0], ["crates", 10.6, -7.5, -10, 1.0], ["cart", -11.0, 8.6, 70, 1.0],
       ["well", 11.0, 8.8, 0, 0.9], ["barrels", 13.9, -7.4, 60, 0.8], ["crates", -13.8, -7.3, 30, 0.8], ["rock_small", 4.0, 8.2, 20, 0.6]],
     "lamps": [[-13.2, -6.6], [13.2, -6.6], [-2.0, -6.6], [2.0, -6.6], [-13.2, -1.6], [-13.2, 2.4], [13.2, -1.6], [13.2, 2.4]]
+  },
+
+  "_world_doc": "The open world (scripts/world/world_view.gd): the close camera (offset from the wizard, metres), the window of the ground marks round the wizard (sim px, drawn at `scale`), people drawn within draw_m, a mood per time of day (lerped into the next over the last `blend` of each), the ground kinds and the town's palette (scripts/world/town_mesh.gd). window: how bright lit windows are; spell: how strongly spells light the ground (0..1). idle: the clip each person stands in.",
+  "world": {
+    "camera": {"offset": [0, 13.2, 8.8], "look_up": 0.8, "fov": 42, "follow_speed": 6.0, "talk_zoom": 0.82},
+    "marks": {"size": [720, 440], "scale": 2},
+    "draw_m": 26,
+    "cliff_m": 2.6,
+    "ground_cell_m": 1.5,
+    "blend": 0.25,
+    "fight_deepen": 0.35,
+    "moods": {
+      "morning": {"bg": "2a303c", "ambient": "7a86a0", "ambient_energy": 0.7, "sun": "c4cad8", "sun_energy": 0.55, "sun_rot": [-30, -60, 0], "fog": "3e4656", "ground": {"dirt": "3c3a3a", "grass": "3e4a3c", "hill": "4a4a4c", "path": "4e4e56"}, "glow": 0.7, "lights": 0.4, "overlay": 1.1, "fog_density": 0.012, "window": 0.25, "spell": 0.35},
+      "noon": {"bg": "3a4250", "ambient": "8690a6", "ambient_energy": 0.75, "sun": "d0d6e2", "sun_energy": 0.6, "sun_rot": [-62, -30, 0], "fog": "4a5262", "ground": {"dirt": "44403e", "grass": "465442", "hill": "525254", "path": "56565e"}, "glow": 0.6, "lights": 0.35, "overlay": 1.0, "fog_density": 0.008, "window": 0.1, "spell": 0.3},
+      "afternoon": {"bg": "3a3a44", "ambient": "8a8478", "ambient_energy": 0.72, "sun": "e0c8a0", "sun_energy": 0.7, "sun_rot": [-38, 20, 0], "fog": "4a463e", "ground": {"dirt": "46403a", "grass": "464e3a", "hill": "504c4a", "path": "545052"}, "glow": 0.7, "lights": 0.45, "overlay": 1.05, "fog_density": 0.009, "window": 0.25, "spell": 0.4},
+      "dusk": {"bg": "241a2e", "ambient": "7a6a8a", "ambient_energy": 0.7, "sun": "e88a5a", "sun_energy": 0.55, "sun_rot": [-14, 50, 0], "fog": "3a2a40", "ground": {"dirt": "2e2828", "grass": "2e3430", "hill": "3a3438", "path": "48424a"}, "glow": 1.0, "lights": 0.75, "overlay": 1.15, "fog_density": 0.01, "window": 0.8, "spell": 0.75},
+      "night": {"bg": "07090d", "ambient": "68708e", "ambient_energy": 0.7, "sun": "aab4d6", "sun_energy": 0.7, "sun_rot": [-55, -25, 0], "fog": "343a52", "ground": {"dirt": "26252a", "grass": "3a393e", "hill": "3a393e", "path": "434248"}, "glow": 1.2, "lights": 0.85, "overlay": 1.2, "fog_density": 0.008, "window": 1.0, "spell": 1.0}
+    },
+    "idle": {"wren": "write", "mira": "fold", "silas": "akimbo", "aldous": "fidget", "pell": "idle", "porter": "fold", "examiner": "clasp", "old_woman": "sweep", "pie_seller": "stir", "walker": "stand"},
+    "dog": {"body": "5a4a3a", "dark": "3a2e24", "scale": 1.0},
+    "town": {
+      "palette": {"cobble": "64626a", "cobble2": "54545c", "kerb": "7a787e", "wall": "b0a490", "wall2": "9a8c78", "wall3": "8a8e96", "timber": "3e322c", "roof": "5e5054", "roof2": "4a5262", "roof3": "4e5850", "stone": "8a8a8e", "window": "ffb060", "dark_window": "1a1c24", "iron": "2a2a30", "brass": "c09a4a", "leaf": "3e5a3a", "leaf2": "4a6640", "cloth": "8a3038", "cloth2": "9a8450", "rock": "5a585e", "rock2": "46444a", "wall_stone": "7a7670", "planks": "5a4636", "paper": "d8ccb0", "dome": "3e4656", "char": "1e1a18", "ember": "ff7a2a", "statue": "8a8a86", "ash": "5a5652", "water": "2a3a4e"},
+      "cobble_m": 0.7,
+      "gate_gap_m": 2.8,
+      "window_glow": 1.4,
+      "pool_m": 3.4,
+      "pool_strength": 0.45,
+      "lamp_color": "ffb060",
+      "prop_darken": 0.0,
+      "lamp_reach_m": 6.0,
+      "lamp_bake": 4.0
+    }
   }
 }

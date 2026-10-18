@@ -1,51 +1,56 @@
 extends SceneTree
-## Plays the slice's story the way a player would, through the same methods the buttons call:
+## Success criteria 5 and 6 (design/open-world/README.md §4): the story plays by walking.
 ##
-##   godot --headless --script res://tools/tests/route.gd
+##   godot --headless --fixed-fps 60 --script res://tools/tests/route.gd
 ##
-## Loop 1 explores days 1–7 like a first-time player and must die at the north door on day 7.
-## Loop 2 uses what loop 1 learnt: tells Wren the secret, bars the north door, reaches the Long
-## Night, realises where the notes come from, keeps silent, and must reach the end of the slice.
-## Fights are settled instantly (the fight bot tests them). Prints an estimate of each loop's
-## playing time from the lines read, the choices made and the fights fought.
+## A bot (tools/tests/walker.gd) walks the town with the clock running, talks to people where they
+## are and uses things. Loop 1 explores days 1–7 like a first-time player and must die at the
+## north door on day 7. Loop 2 uses what loop 1 learnt: tells Wren about the sea, bars the north
+## door, reaches the Long Night, keeps silent, and must reach the end. Fights are settled
+## instantly (tools/tests/encounters.gd plays them). Prints each loop's estimated playing time:
+## the walking itself, plus the lines read and the choices made.
 
+const Walker := preload("res://tools/tests/walker.gd")
 const FIGHT_SECONDS := 75.0
-const LINE_SECONDS := 3.5
-const CHOICE_SECONDS := 2.5
+const MAX_FRAMES := 400000
 
-## Where the bot goes each day: one place per time of day (Morning … Night), "" to sleep.
+## Goals for each time of day (Morning, Noon, Afternoon, Dusk, Night); a day not listed waits
+## out the day and sleeps.
 const PLAN_1 := {
-	1: ["archive", "room", "north_door", "lane", ""],
-	2: ["yard", "yard", "gate", "observatory", ""],
-	3: ["square", "market", "archive", "room", ""],
-	4: ["market", "archive", "north_door", "room", "market"],
-	5: ["yard", "gate", "mill", "lane", ""],
-	6: ["yard", "archive", "observatory", "lane", ""],
-	7: ["archive", "yard", "room", "room", ""],
+	1: [["use:desk", "use:bed", "talk:wren"], ["use:chalk", "use:gate_letter"], ["use:burnt_door", "use:shard"], ["talk:mira"], ["sleep"]],
+	2: [["talk:examiner", "talk:silas"], ["use:dog_corner", "use:targets"], ["talk:wren"], ["talk:aldous"], ["sleep"]],
+	3: [["talk:pell", "talk:porter"], ["go:market"], ["talk:old_woman", "talk:pie_seller"], ["spot:room_in"], ["sleep"]],
+	4: [["talk:aldous"], ["talk:wren"], ["use:chalk", "use:gate_letter"], ["use:bed"], ["sleep"]],
+	5: [["talk:examiner"], ["talk:wren"], ["go:mill"], ["spot:room_in"], ["sleep"]],
+	6: [["go:yard", "go:road"], ["use:burnt_door"], ["talk:wren"], ["spot:room_in"], ["sleep"]],
+	7: [["talk:wren"], ["go:yard"], ["wait"], [], []],
 }
 const PLAN_2 := {
-	1: ["archive", "room", "archive", "lane", ""],
-	2: ["yard", "yard", "gate", "observatory", ""],
-	3: ["archive", "market", "archive", "room", ""],
-	4: ["market", "archive", "room", "lane", ""],
-	5: ["yard", "archive", "mill", "lane", ""],
-	6: ["yard", "archive", "observatory", "lane", ""],
-	7: ["north_door", "yard", "room", "room", ""],
+	1: [["talk:wren", "use:shard"], ["use:gate_letter", "use:chalk"], ["use:bed"], ["talk:mira"], ["sleep"]],
+	2: [["talk:examiner"], ["talk:wren"], [], [], ["sleep"]],
+	3: [[], ["go:market"], [], ["spot:room_in"], ["sleep"]],
+	4: [["talk:aldous"], ["talk:wren"], [], [], ["sleep"]],
+	5: [[], [], ["go:mill"], ["spot:room_in"], ["sleep"]],
+	6: [["go:yard"], ["cast:burnt_door:ember_bolt"], [], [], ["sleep"]],
+	7: [["use:beam"], [], ["wait"], [], []],
 }
-## Choices the bot prefers, in order; otherwise it leaves or carries on.
-const PREFER := ["Tell Wren about the sea", "Ask Wren to read", "Watch the figure", "Ask what he's seen", "Ask about the light",
-	"Study the shard", "Let them go", "Cast an Ember Bolt", "Take the yard trial", "Fight them", "Ask about the Orrery",
-	"The north door", "Day four, noon", "The brass star", "Say nothing", "\"More than once.\"", "Study with Wren", "Luna: Splash",
-	"Mercury: Spark", "Luna: Undertow", "Mercury: Arc Lance"]
+const PREFER := ["Tell Wren about the sea", "\"More than once.\"", "Ask Wren to read", "Watch the figure", "Ask what he's seen",
+	"Ask about the light", "Study the shard", "Take the yard trial", "Fight them", "Ask about the Orrery", "The north door",
+	"Day four, noon", "The brass star", "Say nothing", "Study with Wren", "Luna: Splash", "Mercury: Spark", "Luna: Undertow",
+	"Mercury: Arc Lance", "Train"]
 
 var main
 var slice
 var run
-var steps := 0
+var bot
+var frames := 0
+var last_key := []
 var loop_secs := {}
+var loop_start := 0.0
 var deaths: Array = []
 var failures: Array = []
-var rings := {}  # loop -> the highest Ring seen at a dawn
+var fights := 0
+var done := false
 
 
 func _initialize() -> void:
@@ -54,69 +59,67 @@ func _initialize() -> void:
 	root.get_node("Progression").save_enabled = false
 	main = load("res://scenes/main.tscn").instantiate()
 	root.add_child.call_deferred(main)
-	_go.call_deferred()
 
 
-func _go() -> void:
-	slice = main.slice
-	slice.fight_resolver = func(id: String) -> Dictionary:
-		_add_time(FIGHT_SECONDS)
-		var won: bool = id != "tide"  # loop 1 can't survive the tide; loop 2 never opens the door
-		return {"won": won, "kills": _kills(id) if won else 0}
-	slice.new_month()
-	while steps < 4000:
-		steps += 1
-		if not _step():
-			break
-	_report()
-
-
-func _add_time(s: float) -> void:
-	loop_secs[run.loop()] = float(loop_secs.get(run.loop(), 0.0)) + s
-
-
-## One action. Returns false when the route is over.
-func _step() -> bool:
+func _process(dt: float) -> bool:
+	if done:
+		return true
+	frames += 1
+	if frames == 3:
+		slice = main.slice
+		bot = Walker.new(main)
+		bot.prefer = PREFER
+		slice.fight_resolver = func(id: String) -> Dictionary:
+			fights += 1
+			bot.play_s += FIGHT_SECONDS
+			var won: bool = id != "tide"  # loop 1 can't survive the tide; loop 2 never opens the door
+			return {"won": won, "kills": _kills(id) if won else 0}
+		slice.new_month()
+	if frames < 3:
+		return false
+	if frames > MAX_FRAMES:
+		failures.append("timed out on loop %d, day %d, %s" % [run.loop(), run.day(), run.time_name()])
+		return _report()
 	match slice.screen:
-		"dawn":
-			var r: int = slice.growth.ring()
-			if r > int(rings.get(run.loop(), -1)):
-				rings[run.loop()] = r
-				print("[route] loop %d, dawn of day %d: %s, %d wells" % [run.loop(), run.day(), slice.growth.ring_name(), slice.growth.wells()])
-			slice.start_day()
-		"board":
-			var plan: Dictionary = PLAN_1 if run.loop() == 1 else PLAN_2
-			var day_plan: Array = plan.get(run.day(), ["", "", "", "", ""])
-			var where: String = day_plan[run.time()]
-			if where == "":
-				slice.sleep()
-			else:
-				slice.pick_place(where)
-			_add_time(CHOICE_SECONDS)
-		"scene":
-			_add_time(slice.lines.size() * LINE_SECONDS * 0.5)
-			if not slice.pending.is_empty():
-				slice.advance()
-			else:
-				slice.choose(_pick(slice.opts))
-				_add_time(CHOICE_SECONDS)
 		"death":
-			_deduce()
-			print("[route] loop %d: %s with %d wells at the end" % [run.loop(), slice.growth.ring_name(), slice.growth.wells()])
-			var log: Dictionary = run.mem["log"][-1]
-			deaths.append({"loop": run.loop(), "day": run.day(), "cause": log["cause"], "learned": log["learned"].size()})
-			print("[route] loop %d ends on day %d (%s), learned %d" % [run.loop(), run.day(), log["cause"], log["learned"].size()])
+			_death()
 			if run.loop() >= 3:
 				failures.append("the route reached a third loop")
-				return false
+				return _report()
 			slice.wake()
 		"end":
-			print("[route] end of the slice reached at the start of loop %d" % run.loop())
-			return false
+			print("[route] the end of the Long Night reached in loop %d" % run.loop())
+			_loop_time()
+			return _report()
+		"world":
+			var key := [run.loop(), run.day(), run.time()]
+			if key != last_key:
+				last_key = key
+				var plan: Dictionary = PLAN_1 if run.loop() == 1 else PLAN_2
+				var day_plan: Array = plan.get(run.day(), [[], [], [], [], ["sleep"]])
+				bot.set_goals(day_plan[run.time()])
+				if run.time() == 0:
+					print("[route] loop %d, day %d: %s, %d wells" % [run.loop(), run.day(), slice.growth.ring_name(), slice.growth.wells()])
+			if bot.tick(1.0 / 60.0) == "idle":
+				slice.wait()
 		_:
 			failures.append("stuck on screen " + slice.screen)
-			return false
-	return true
+			return _report()
+	return false
+
+
+func _loop_time() -> void:
+	loop_secs[run.loop()] = bot.play_s - loop_start
+	loop_start = bot.play_s
+
+
+func _death() -> void:
+	_loop_time()
+	_deduce()
+	var log: Dictionary = run.mem["log"][-1]
+	deaths.append({"loop": run.loop(), "day": run.day(), "cause": log["cause"], "learned": log["learned"].size()})
+	print("[route] loop %d ends on day %d (%s), learned %d, %s with %d wells" % [run.loop(), run.day(), log["cause"],
+		log["learned"].size(), slice.growth.ring_name(), slice.growth.wells()])
 
 
 ## Everything killable in a won fight (the risen get up again; Silas walks off).
@@ -143,21 +146,11 @@ func _deduce() -> void:
 		if not slice.deduce(qid, int(q["answer"])) or not run.knows(q["insight"]):
 			failures.append("the right answer did not solve " + qid)
 		print("[route] loop %d: worked out %s" % [run.loop(), q["title"]])
-		_add_time(20.0)
+		bot.play_s += 20.0
 
 
-func _pick(opts: Array) -> int:
-	for want in PREFER:
-		for i in opts.size():
-			if want in str(opts[i]["text"]):
-				return i
-	for i in opts.size():
-		if str(opts[i]["text"]) in ["Leave", "Continue", "Get up", "Promise to come", "Just read", "Look away until it's over"]:
-			return i
-	return 0
-
-
-func _report() -> void:
+func _report() -> bool:
+	done = true
 	if deaths.size() < 1 or deaths[0]["cause"] != "north_door" or int(deaths[0]["day"]) != 7:
 		failures.append("loop 1 must end at the north door on day 7, got %s" % [str(deaths[0]) if deaths.size() > 0 else "no death"])
 	for need in ["cipher", "wren_sea", "noon_note", "warning_read", "mourner", "risen", "died_north_door"]:
@@ -167,28 +160,32 @@ func _report() -> void:
 		if not run.knows(need):
 			failures.append("loop 2 never reached " + need)
 	if slice.screen != "end":
-		failures.append("the slice never ended (screen %s, loop %d, day %d)" % [slice.screen, run.loop(), run.day()])
+		failures.append("the Long Night never ended (screen %s, loop %d, day %d)" % [slice.screen, run.loop(), run.day()])
 	for i in deaths.size():
 		if int(deaths[i]["learned"]) < 1:
 			failures.append("loop %d's death taught nothing" % deaths[i]["loop"])
+	for s in bot.stuck:
+		failures.append(s)
+	for m in bot.missed:
+		print("[route] note: the time of day ran out before " + m)
 	for l in loop_secs:
 		print("[route] loop %d: about %.1f minutes of play" % [l, loop_secs[l] / 60.0])
-	# Success criterion 5: loop 1 takes 8-15 minutes; a loop that reaches the Long Night, 25 at most.
+	# Criterion 6: loop 1 takes 10-25 minutes; the loop that reaches the Long Night, 30 at most.
 	var m1: float = float(loop_secs.get(1, 0.0)) / 60.0
 	var m2: float = float(loop_secs.get(2, 0.0)) / 60.0
-	if m1 < 8.0 or m1 > 15.0:
-		failures.append("loop 1 takes %.1f minutes, not 8 to 15" % m1)
-	if m2 > 25.0:
-		failures.append("the loop that reaches the Long Night takes %.1f minutes, more than 25" % m2)
-	print("[route] %d Ledger entries known, %d steps" % [run.known_ids().size(), steps])
-	# The playtest run summary must describe the run.
+	if m1 < 10.0 or m1 > 25.0:
+		failures.append("loop 1 takes %.1f minutes, not 10 to 25" % m1)
+	if m2 > 30.0:
+		failures.append("the loop that reaches the Long Night takes %.1f minutes, more than 30" % m2)
+	print("[route] %d Ledger entries known, %d fights, %d frames" % [run.known_ids().size(), fights, frames])
 	var summary: String = slice.run_summary()
 	print("[route] run summary:\n" + summary)
-	for want in ["Vellmar slice · build", "Loop 1 died on day 7", "long_night"]:
+	for want in ["Vellmar open world · build", "Loop 1 died on day 7", "long_night"]:
 		if not want in summary:
 			failures.append("the run summary has no \"%s\"" % want)
 	for f in failures:
 		print("[route] FAIL: " + f)
 	if failures.is_empty():
-		print("[route] the route plays through")
+		print("[route] the route plays through by walking")
 	quit(1 if not failures.is_empty() else 0)
+	return true

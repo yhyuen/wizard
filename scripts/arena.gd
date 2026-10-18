@@ -56,6 +56,10 @@ var scene := ""  # the test scene this fight was started as ("" for the normal f
 ## A slice fight (data/slice/encounters.json): its waves run one after another, or on a timer
 ## when it has "survive" seconds. Empty for the old Mill fight and the test scenes.
 var encounter := {}
+## In a fight in the town the mist closes round where it started: {"at", "r"} (sim px), or {}.
+## The arena's walls used to do this; without it you could kite a horde round the yard forever.
+var leash := {}
+const LEASH_R := 220.0
 var cutscene = null  # scripts/game/cutscene.gd when a short scene plays instead of a fight
 var enc_wave := -1
 var duel_hits := [0, 0]  # a duel to N hits ("hits"): [hits landed on the rival, hits taken]
@@ -72,6 +76,14 @@ var echo_last_i := -1
 
 var _tex := {}
 var view = null  # the 3D view (scripts/view/view3d.gd); when set, _draw only lays the flat marks
+## The open world (design/open-world/tech-plan.md §2): with a map the arena is the whole town.
+## `bounds` and `gates` replace the old yard's fence and its four gates, collision goes through
+## the map, and between fights the phase is "explore". `town` is scripts/world/world.gd, told of
+## shots that hit walls and ticked after every arena tick.
+var bounds := BOUNDS
+var gates: Array = GATES
+var world = null  # scripts/world/map.gd
+var town = null  # scripts/world/world.gd
 
 
 func _ready() -> void:
@@ -141,6 +153,89 @@ func start(test_scene := "", enc := {}) -> void:
 		_add_millrace()
 	set_phase("intro")
 	_setup_scene()
+
+
+## The open world: the wizard stands at `at` in the town, nothing is attacking, and the arena
+## waits in the "explore" phase for an encounter (begin_encounter) or a cutscene.
+func start_world(map, the_town, at: Vector2) -> void:
+	world = map
+	town = the_town
+	bounds = map.bounds
+	scene = ""
+	encounter = {}
+	enc_wave = -1
+	sandbox = []
+	cutscene = null
+	units.clear()
+	projs.clear()
+	zones.clear()
+	stones.clear()
+	fxs.clear()
+	ignite_queue.clear()
+	spawn_queue.clear()
+	over_t = -1.0
+	stats = {"casts": 0, "damage_taken": 0.0, "kills": 0, "by_spell": {}}
+	echo_rec = []
+	echo_play = []
+	echo = {}
+	player = Unit.new()
+	player.kind = "wizard"
+	player.team = 0
+	player.pos = at
+	player.radius = float(D["wizard"]["radius"])
+	player.speed = float(D["wizard"]["speed"])
+	player.max_hp = Progression.max_hp()
+	player.hp = player.max_hp
+	player.hp_lag = player.hp
+	_add(player)
+	kit.reset()
+	phase = "explore"
+	phase_t = 0.0
+	leash = {}
+
+
+## A slice fight where the wizard stands (data/slice/encounters.json): its enemies come from
+## `spawns` (sim points), and when it is over the town goes back to "explore".
+func begin_encounter(enc: Dictionary, spawns: Array) -> void:
+	encounter = enc
+	enc_wave = -1
+	gates = spawns if not spawns.is_empty() else GATES
+	leash = {"at": player.pos, "r": float(enc.get("leash", LEASH_R))} if world != null else {}
+	spawn_queue.clear()
+	over_t = -1.0
+	clear_t = 0.0
+	fight_time = 0.0
+	duel_hits = [0, 0]
+	duel_hit_t = [0.0, 0.0]
+	stats = {"casts": 0, "damage_taken": 0.0, "kills": 0, "by_spell": {}}
+	kit.ward_charges = int(Progression.rules.get("ward", {}).get("charges", 0))
+	set_phase("intro")
+
+
+## After a fight lost that doesn't kill (the yard trial, the duel): the wizard gets up, the
+## enemies go, and the town carries on.
+func resume_explore() -> void:
+	for u in enemies():
+		u.dead = true
+		u.death_t = 0.0
+	units = units.filter(func(u): return u.team == 0)
+	projs.clear()
+	spawn_queue.clear()
+	encounter = {}
+	player.dead = false
+	player.hp = maxf(player.hp, player.max_hp * 0.5)
+	player.reaction = ""
+	player.reaction_t = 0.0
+	phase = "explore"
+	leash = {}
+	over_t = -1.0
+
+
+## A short scene in the town (the Fire on the College stairs): `at` is where its stage is.
+func play_cutscene(id: String, at: Vector2) -> void:
+	cutscene = Cutscene.new(self, id, at)
+	phase = "cutscene"
+	over_t = -1.0
 
 
 func _setup_scene() -> void:
@@ -317,12 +412,14 @@ func _flow(dt: float) -> void:
 		s["t"] -= dt
 		if s["t"] <= 0.0:
 			spawn_queue.erase(s)
-			var g: Vector2 = GATES[int(s["gate"]) % GATES.size()]
+			var g: Vector2 = gates[int(s["gate"]) % gates.size()]
 			var u := spawn(s["kind"], g + Vector2(rng.randf_range(-6, 6), rng.randf_range(-6, 6)))
 			if s.get("dummy", false):
 				u.flags["dummy"] = true
 				u.speed *= 0.5
 	var cleared := spawn_queue.is_empty() and enemies().is_empty()
+	if phase == "explore":
+		return
 	if cleared and phase in ["wave1", "wave2", "sandbox"] and phase_t > 1.0:
 		if clear_t == 0.0:
 			toast.emit("The yard is quiet. The Orrery hums (G).", PixelArt.GOLD)
@@ -337,8 +434,10 @@ func _flow(dt: float) -> void:
 			if survive_time() > 0.0:
 				# A horde that never stops: one more every "trickle" seconds on top of the waves.
 				var tr := float(encounter.get("trickle", 0.0))
-				if tr > 0.0 and int((phase_t - dt) / tr) != int(phase_t / tr):
-					spawn_queue.append({"t": 0.0, "kind": "hollow", "gate": rng.randi() % GATES.size()})
+				# (Never past "max_alive" at once: the browser has to draw every one of them.)
+				var room: bool = enemies().size() < int(encounter.get("max_alive", 999))
+				if tr > 0.0 and room and int((phase_t - dt) / tr) != int(phase_t / tr):
+					spawn_queue.append({"t": 0.0, "kind": "hollow", "gate": rng.randi() % gates.size()})
 				if phase_t >= survive_time():
 					_end(true)
 			elif cleared and phase_t > 1.0:
@@ -366,8 +465,18 @@ func _flow(dt: float) -> void:
 	if over_t >= 0.0:
 		over_t -= dt
 		if over_t < 0.0:
-			fight_over.emit(phase == "won")
 			over_t = -2.0  # emitted
+			var won := phase == "won"
+			if world != null and won:
+				# The town carries on round you.
+				phase = "explore"
+				leash = {}
+				encounter = {}
+				cutscene = null
+				units = units.filter(func(u): return u.team != 2)
+				player.flags.erase("pose")
+				player.flags.erase("face")
+			fight_over.emit(won)
 
 
 func _end(won: bool) -> void:
@@ -409,6 +518,8 @@ func _physics_process(dt: float) -> void:
 			over_t = 0.4
 		_update_zones(dt)
 		_flow(dt)
+		if town != null:
+			town.tick(dt)
 		return
 	_flow(dt)
 	orbit_ang += dt * 3.0
@@ -423,6 +534,8 @@ func _physics_process(dt: float) -> void:
 			if not mr.is_empty():
 				var out: Vector2 = (u.pos - mr["pos"]).normalized()
 				u.pos = mr["pos"] + out * (float(mr["r"]) + u.radius)
+			if world != null and world.in_water(u.pos, u.radius):
+				u.pos = world.out_of_water(u.pos, u.radius + 0.5)  # Hollows never step into running water
 	duel_hit_t[0] = maxf(0.0, duel_hit_t[0] - dt)
 	duel_hit_t[1] = maxf(0.0, duel_hit_t[1] - dt)
 	_separate()
@@ -434,6 +547,10 @@ func _physics_process(dt: float) -> void:
 		ignite(ignite_queue.pop_front())
 		guard += 1
 	units = units.filter(func(u): return not (u.dead and u.death_t <= 0.0 and u != player))
+	if phase == "explore" and not player.dead:
+		player.hp = minf(player.max_hp, player.hp + player.max_hp * 0.05 * dt)
+	if town != null:
+		town.tick(dt)
 	hover = null
 	var best := 14.0
 	for u in enemies():
@@ -523,6 +640,8 @@ func _update_unit(u: Unit, dt: float) -> void:
 			u.pips = 0
 	u.pos += u.vel * dt
 	u.vel = u.vel.lerp(Vector2.ZERO, 1.0 - exp(-7.0 * dt))
+	if u == player and not leash.is_empty() and u.pos.distance_to(leash["at"]) > leash["r"]:
+		u.pos = leash["at"] + (u.pos - leash["at"]).normalized() * leash["r"]
 	var before := u.pos
 	u.pos = clamp_in(u.pos, u.radius)
 	if before != u.pos:
@@ -549,11 +668,15 @@ func move_speed(u: Unit) -> float:
 	var s := u.speed
 	if u.slow_t > 0.0:
 		s *= 1.0 - float(D["field"]["gravel_slow"])
+	if world != null and u == player and world.in_water(u.pos) and not world.on_bridge(u.pos):
+		s *= 0.55  # wading the millrace
 	return s
 
 
 func clamp_in(p: Vector2, r := 0.0) -> Vector2:
-	return Vector2(clampf(p.x, BOUNDS.position.x + r, BOUNDS.end.x - r), clampf(p.y, BOUNDS.position.y + r, BOUNDS.end.y - r))
+	if world != null:
+		return world.collide(p, r)
+	return Vector2(clampf(p.x, bounds.position.x + r, bounds.end.x - r), clampf(p.y, bounds.position.y + r, bounds.end.y - r))
 
 
 func _separate() -> void:
@@ -579,6 +702,10 @@ func _separate() -> void:
 ## tick (embers). Hit-stop and shake follow the share of the target's HP removed (§4.7).
 func hit(u: Unit, dmg: float, impact: int, dir: Vector2, knock := 0.0, quiet := false) -> bool:
 	if u.dead or u.iframes > 0.0:
+		return false
+	# A risen that is down stays down until it gets up: lingering fire can't knock it down again
+	# every frame meanwhile.
+	if u.stun > 0.0 and u.reaction == "knockdown" and u.kind in encounter.get("unkillable", []):
 		return false
 	if encounter.has("hits") and not quiet and dmg >= float(encounter.get("hit_min", 1.0)) and phase == "enc":
 		_duel_hit(u)
@@ -772,16 +899,23 @@ func _update_projs(dt: float) -> void:
 			var t := unit_by_id(p["home"])
 			if t and not t.dead:
 				p["vel"] = (t.pos + Vector2(0, -4) - p["pos"]).normalized() * p["vel"].length()
-		if not BOUNDS.grow(2).has_point(p["pos"]):
+		var walled: bool = world.blocks_shot(p["pos"]) if world != null else not bounds.grow(2).has_point(p["pos"])
+		if walled:
 			if int(p.get("wall_bounces", 0)) > 0:
 				p["wall_bounces"] -= 1
-				if p["pos"].x < BOUNDS.position.x or p["pos"].x > BOUNDS.end.x:
+				var prev: Vector2 = p["pos"] - p["vel"] * dt
+				var flip_x: bool = p["pos"].x < bounds.position.x or p["pos"].x > bounds.end.x
+				if world != null:
+					flip_x = world.blocks_shot(Vector2(p["pos"].x, prev.y))
+				if flip_x:
 					p["vel"].x *= -1.0
 				else:
 					p["vel"].y *= -1.0
-				p["pos"] = clamp_in(p["pos"])
+				p["pos"] = prev
 				fx("dust", p["pos"], {"r": 4.0, "life": 0.2})
 			else:
+				if town != null:
+					town.on_wall(p)
 				fx("dust", p["pos"], {"r": 3.0, "life": 0.2})
 				projs.erase(p)
 				continue
@@ -947,7 +1081,7 @@ func _update_stones(dt: float) -> void:
 				kit.fe.stone_sweep(s)
 				if s["state"] == "recall" and s["pos"].distance_to(player.pos) < 12.0:
 					s["state"] = "orbit"
-				elif s["state"] == "flung" and (s["dist"] >= s["range"] or not BOUNDS.has_point(s["pos"])):
+				elif s["state"] == "flung" and (s["dist"] >= s["range"] or not bounds.has_point(s["pos"]) or (world != null and world.blocks_shot(s["pos"]))):
 					s["pos"] = clamp_in(s["pos"], 3.0)
 					s["state"] = "return" if Progression.has_mut("fling", "return_orbit") else "ground"
 					_ground_tip()
@@ -1036,6 +1170,9 @@ func _draw() -> void:
 ## With the 3D view, only the flat telegraphs: they become the ground's decal, and the view
 ## draws figures, stones, projectiles, effects and anything standing up.
 func _draw_marks() -> void:
+	if not leash.is_empty():
+		draw_arc(leash["at"], leash["r"], 0, TAU, 72, Color(0.75, 0.8, 0.95, 0.22), 6.0, false)
+		draw_arc(leash["at"], leash["r"] - 5.0, 0, TAU, 72, Color(0.75, 0.8, 0.95, 0.12), 3.0, false)
 	if shrine_ready():
 		draw_arc(shrine_pos() + Vector2(0, -6), float(D["shrine"]["reach"]), 0, TAU, 32, Color(PixelArt.GOLD, 0.35), 1.0, false)
 	for z in zones:

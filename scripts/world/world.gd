@@ -1,0 +1,472 @@
+extends RefCounted
+## Vellmar in play (design/open-world/): the clock, the people, the items, the lamps and props,
+## and what magic does to them. The arena (scripts/arena.gd) still runs the wizard, the spells and
+## the fights; this reads its spells each tick and answers with the world's reactions: fire lights
+## lamps and sets hay and crates burning, water puts them out, force shoves crates and barrels, and
+## an Ember Bolt on the Observatory wall leaves the same star as the burnt door.
+##
+## The world never plays a scene itself. It asks the game (scripts/game/slice.gd) through
+## `requests`: {"t": "talk", "id"} / {"t": "use", "id"} / {"t": "arrive", "place"} /
+## {"t": "scene", "id"} / {"t": "cast", "item", "element"} / {"t": "period"}.
+
+const Map := preload("res://scripts/world/map.gd")
+const People := preload("res://scripts/world/people.gd")
+
+var map
+var people
+var arena
+var run  # the Run autoload
+var story
+var cfg: Dictionary  # data/world/world.json
+var pd: Dictionary  # data/world/props.json
+var requests: Array = []
+var busy: Callable  # func() -> bool: the game is showing a scene or a menu
+
+var clock := 0.0  # seconds into this time of day
+var here := ""  # the place the wizard is in
+var lamps: Array = []  # {"pos", "group", "lit", "by"}
+var braziers: Array = []  # {"pos", "lit"}
+var props: Array = []  # {"kind", "pos", "vel", "rot", "home", "state" ("", "burning", "ash"), "burn_t", "embers"}
+var scorches: Array = []  # {"pos", "dir"}: star-shaped burns on walls
+var fire_proj := {}
+var water_kinds := {}
+var events_log: Array = []  # what magic did, for tests: [kind, what]
+
+
+func _init(the_run, the_story) -> void:
+	run = the_run
+	story = the_story
+	map = Map.new()
+	cfg = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/world.json"))
+	pd = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/props.json"))
+	for k in pd["fire_spells"]:
+		fire_proj[k] = true
+	for k in pd["water_spells"]:
+		water_kinds[k] = true
+	map.movers = movers
+	people = People.new(self)
+	_build_lamps()
+	reset_loop()
+
+
+func _build_lamps() -> void:
+	lamps.clear()
+	var lane_i := 0
+	for l in map.d["lamps"]:
+		var lamp := {"pos": Vector2(l[0], l[1]), "group": str(l[2]), "lit": false, "by": ""}
+		if lamp["group"] == "lane":
+			lamp["id"] = "lane_lamp_%d" % lane_i
+			lane_i += 1
+		lamps.append(lamp)
+	braziers.clear()
+	for b in map.d.get("braziers", []):
+		braziers.append({"pos": Vector2(b[0], b[1]), "lit": false})
+
+
+## Waking on day 1: everything the last loop burnt, shoved or took is back where it was.
+func reset_loop() -> void:
+	props.clear()
+	for p in map.d["props"]:
+		props.append({"kind": str(p[0]), "pos": Vector2(p[1], p[2]), "home": Vector2(p[1], p[2]), "vel": Vector2.ZERO,
+			"rot": float(p[3]), "spin": 0.0, "state": "", "burn_t": 0.0, "embers": []})
+	scorches.clear()
+	events_log.clear()
+	for l in lamps:
+		l["lit"] = false
+		l["by"] = ""
+	for b in braziers:
+		b["lit"] = false
+	map.doors["north_door"]["open"] = false
+	_cache_movers()
+
+
+## A new day (dawn): the lamps are out, people go to their morning spots.
+func reset_day() -> void:
+	clock = 0.0
+	for l in lamps:
+		l["lit"] = false
+		l["by"] = ""
+	for b in braziers:
+		b["lit"] = false
+	map.doors["north_door"]["open"] = false
+	people.reset_day()
+	here = map.place_at(player_pos())
+
+
+func player_pos() -> Vector2:
+	if arena == null or arena.player == null:
+		return map.spots["room_in"]
+	return arena.player.pos
+
+
+func request(r: Dictionary) -> void:
+	for q in requests:
+		if q == r:
+			return
+	requests.append(r)
+
+
+## Whether something may start a conversation now (nothing else is showing or waiting).
+func can_start() -> bool:
+	return requests.is_empty() and not (busy.is_valid() and busy.call()) and arena != null and arena.phase == "explore"
+
+
+func period_s() -> float:
+	return float(cfg["period_s"])
+
+
+## How much of this time of day is left, 1 .. 0.
+func period_left() -> float:
+	return clampf(1.0 - clock / period_s(), 0.0, 1.0)
+
+
+# --- every tick (called by the arena after its own) ----------------------------------
+
+func tick(dt: float) -> void:
+	if arena == null:
+		return
+	var exploring: bool = arena.phase == "explore"
+	if exploring and not (busy.is_valid() and busy.call()):
+		clock += dt
+		if clock >= period_s():
+			clock = period_s()
+			request({"t": "period"})
+	people.update(dt)
+	_props(dt)
+	_cache_movers()
+	_magic()
+	_lamps_by_time()
+	var now: String = map.place_at(player_pos())
+	if now != here:
+		here = now
+		if exploring:
+			request({"t": "arrive", "place": now})
+
+
+## The College and the main streets come on at dusk; the lane waits for Mira.
+func _lamps_by_time() -> void:
+	var t: int = run.time()
+	for l in lamps:
+		if t >= 3 and l["group"] in ["college", "street"] and not l["lit"] and l["by"] != "doused":
+			l["lit"] = true
+			l["by"] = "town"
+
+
+func light_lamp(l: Dictionary, by: String) -> void:
+	if l["lit"]:
+		return
+	l["lit"] = true
+	l["by"] = by
+	events_log.append(["lit", l.get("id", l["group"])])
+
+
+## Lamps lit now near a point, for the light they give (and, in OW2, for keeping Hollows off).
+func lit_lamps_near(p: Vector2, r: float) -> Array:
+	return lamps.filter(func(l): return l["lit"] and l["pos"].distance_to(p) < r)
+
+
+# --- props ----------------------------------------------------------------------------
+
+func prop_def(kind: String) -> Dictionary:
+	return pd["kinds"].get(kind, {})
+
+
+## Solid props for the collision of everything that walks, rebuilt once a tick (collision asks
+## for it twice per unit per frame, and a horde at the north door is dozens of units).
+var _movers: Array = []
+
+
+func movers() -> Array:
+	return _movers
+
+
+func _cache_movers() -> void:
+	_movers = []
+	for p in props:
+		if p["state"] != "ash":
+			_movers.append([p["pos"], float(prop_def(p["kind"])["r"])])
+
+
+func _props(dt: float) -> void:
+	var sh: Dictionary = pd["shove"]
+	for p in props:
+		var def := prop_def(p["kind"])
+		if p["vel"].length() > 1.0:
+			var r := float(def["r"])
+			var want: Vector2 = p["pos"] + p["vel"] * dt
+			# Out of walls and houses (not out of the other props: they get knocked on instead).
+			var saved: Callable = map.movers
+			map.movers = Callable()
+			var got: Vector2 = map.collide(want, r)
+			map.movers = saved
+			if got.distance_to(want) > 0.5:
+				p["vel"] *= 0.3
+			p["pos"] = got
+			for q in props:
+				if q != p and q["state"] != "ash" and q["pos"].distance_to(p["pos"]) < r + float(prop_def(q["kind"])["r"]):
+					var push: Vector2 = (q["pos"] - p["pos"]).normalized()
+					q["vel"] += push * p["vel"].length() * 0.5
+					p["vel"] *= 0.5
+					q["pos"] = p["pos"] + push * (r + float(prop_def(q["kind"])["r"]) + 0.5)
+			var fr := float(sh["roll_friction"]) if def.get("roll", false) else float(sh["friction"])
+			p["vel"] *= exp(-fr * dt)
+			p["spin"] += p["vel"].length() * dt * 0.08
+			for e in p["embers"]:
+				e["pos"] = p["pos"] + e["off"]
+		if p["state"] == "burning":
+			p["burn_t"] -= dt
+			for q in props:
+				if q != p and q["state"] == "" and float(prop_def(q["kind"]).get("burns", 0)) > 0.0 \
+						and q["pos"].distance_to(p["pos"]) < float(def.get("spread", 0)):
+					ignite(q)
+			if p["burn_t"] <= 0.0:
+				_put_out(p)
+				p["state"] = "ash"
+				events_log.append(["ash", p["kind"]])
+
+
+func ignite(p: Dictionary) -> bool:
+	var def := prop_def(p["kind"])
+	if p["state"] != "" or float(def.get("burns", 0)) <= 0.0:
+		return false
+	p["state"] = "burning"
+	p["burn_t"] = float(def["burns"])
+	var r := float(def["r"])
+	for i in 3:
+		var off := Vector2.from_angle(i * TAU / 3.0 + 0.4) * r * 0.45
+		var z: Dictionary = arena.add_zone({"kind": "ember", "pos": p["pos"] + off, "life": 1.0e9, "world": true})
+		z["off"] = off
+		p["embers"].append(z)
+	events_log.append(["burn", p["kind"]])
+	return true
+
+
+func _put_out(p: Dictionary) -> void:
+	for z in p["embers"]:
+		arena.zones.erase(z)
+	p["embers"].clear()
+
+
+func douse(p: Dictionary) -> bool:
+	if p["state"] != "burning":
+		return false
+	_put_out(p)
+	p["state"] = ""
+	p["burn_t"] = 0.0
+	events_log.append(["doused", p["kind"]])
+	return true
+
+
+func shove(p: Dictionary, dir: Vector2, power := 1.0) -> void:
+	var def := prop_def(p["kind"])
+	var mass := float(def.get("mass", 0))
+	if mass <= 0.0 or p["state"] == "ash":
+		return
+	p["vel"] += dir.normalized() * float(pd["shove"]["speed"]) * power / mass
+	events_log.append(["shoved", p["kind"]])
+
+
+## The prop nearest `at` within `r` (plus its own size), or {}.
+func prop_at(at: Vector2, r := 0.0) -> Dictionary:
+	var best := {}
+	var bd := INF
+	for p in props:
+		if p["state"] == "ash":
+			continue
+		var d: float = p["pos"].distance_to(at) - float(prop_def(p["kind"])["r"])
+		if d < r and d < bd:
+			bd = d
+			best = p
+	return best
+
+
+# --- magic on the world ------------------------------------------------------------------
+
+## Reads the arena's spells and answers: fire lights and burns, water puts out, force shoves.
+func _magic() -> void:
+	var reach := float(pd["lamp_reach"])
+	for p in arena.projs.duplicate():
+		if p.get("team", 0) != 0 or p.get("ghost", false):
+			continue
+		var k: String = p["kind"]
+		var at: Vector2 = p["pos"]
+		if fire_proj.has(k):
+			var lit := false
+			for l in lamps:
+				if not l["lit"] and l["pos"].distance_to(at) < reach:
+					light_lamp(l, "you")
+					lit = true
+			for b in braziers:
+				if not b["lit"] and b["pos"].distance_to(at) < reach:
+					b["lit"] = true
+					lit = true
+					events_log.append(["lit", "brazier"])
+			var pr := prop_at(at, float(p["r"]))
+			if not pr.is_empty():
+				ignite(pr)
+				lit = true
+			if lit:
+				arena.projs.erase(p)
+				arena.fx("burst", at, {"color": PixelArt.FIRE, "r": 7.0, "life": 0.3})
+		elif k == "pebble":
+			var pr := prop_at(at, float(p["r"]))
+			if not pr.is_empty():
+				shove(pr, p["vel"])
+				arena.projs.erase(p)
+				arena.fx("dust", at, {"r": 5.0, "life": 0.25})
+	# Splash: a spray cone, once, when it is cast.
+	for f in arena.fxs:
+		if f["kind"] != "spray" or f.has("_w"):
+			continue
+		f["_w"] = true
+		_water_cone(f["pos"], f["dir"], float(f["cone"]), float(f["r"]))
+	# Undertow: the wave douses and carries what it passes.
+	for w in arena.kit.sw.waves:
+		if w["delay"] > 0.0:
+			continue
+		var n: Vector2 = w["dir"].orthogonal()
+		for pr in props:
+			var to: Vector2 = pr["pos"] - w["pos"]
+			if absf(to.dot(w["dir"])) < 10.0 + float(prop_def(pr["kind"])["r"]) and absf(to.dot(n)) < float(w["w"]) * 0.5 + 6.0:
+				douse(pr)
+				if pr["vel"].length() < 60.0:
+					shove(pr, w["dir"], 0.35)
+		for l in lamps:
+			if l["lit"] and l["pos"].distance_to(w["pos"]) < float(w["w"]) * 0.5 + 6.0:
+				_douse_lamp(l)
+	# Pillar's column of fire, puddles and whirlpools: once each.
+	for z in arena.zones:
+		if z.has("_w"):
+			continue
+		z["_w"] = true
+		match z["kind"]:
+			"column":
+				for pr in props:
+					if pr["pos"].distance_to(z["pos"]) < float(z["r"]) + float(prop_def(pr["kind"])["r"]):
+						ignite(pr)
+				for l in lamps:
+					if l["pos"].distance_to(z["pos"]) < float(z["r"]) + 6.0:
+						light_lamp(l, "you")
+				for b in braziers:
+					if b["pos"].distance_to(z["pos"]) < float(z["r"]) + 6.0:
+						b["lit"] = true
+			"puddle", "whirl":
+				if z.get("millrace", false):
+					continue
+				for pr in props:
+					if pr["pos"].distance_to(z["pos"]) < float(z["r"]) + float(prop_def(pr["kind"])["r"]):
+						douse(pr)
+	# Lodestones flung into props knock them on.
+	for s in arena.stones:
+		if s["state"] != "flung":
+			continue
+		var pr := prop_at(s["pos"], 3.0)
+		if not pr.is_empty() and not s["hit"].has(pr["home"]):
+			s["hit"].append(pr["home"])
+			shove(pr, s["vel"], 0.8)
+
+
+func _water_cone(at: Vector2, dir: Vector2, cone: float, r: float) -> void:
+	var inside := func(p: Vector2, pad: float) -> bool:
+		var to := p - at
+		return to.length() <= r + pad and absf(dir.angle_to(to)) <= cone * 0.5 + 0.2
+	for pr in props:
+		if inside.call(pr["pos"], float(prop_def(pr["kind"])["r"])):
+			douse(pr)
+			if prop_def(pr["kind"]).get("roll", false):
+				shove(pr, pr["pos"] - at, 0.25)
+	for l in lamps:
+		if l["lit"] and inside.call(l["pos"], 4.0):
+			_douse_lamp(l)
+	for b in braziers:
+		if b["lit"] and inside.call(b["pos"], 4.0):
+			b["lit"] = false
+			events_log.append(["doused", "brazier"])
+	var lantern: Dictionary = map.items.get("second_lantern", {})
+	if not lantern.is_empty() and inside.call(lantern["at"], 6.0):
+		request({"t": "cast", "item": "second_lantern", "element": "water"})
+
+
+func _douse_lamp(l: Dictionary) -> void:
+	l["lit"] = false
+	l["by"] = "doused"
+	events_log.append(["doused", l.get("id", l["group"])])
+
+
+## The arena calls this when one of your shots hits a wall: fire leaves a star-shaped scorch,
+## and on the Observatory it is the same star as the burnt door (the scorch test, R5).
+func on_wall(p: Dictionary) -> void:
+	if p.get("team", 0) != 0 or not fire_proj.has(p["kind"]):
+		return
+	var at: Vector2 = p["pos"] - p["vel"].normalized() * 3.0
+	scorches.append({"pos": at, "dir": p["vel"].normalized(), "obs": map.circle_kind_at(at, 8.0) == "observatory"})
+	if scorches.size() > 24:
+		scorches.pop_front()
+	if map.circle_kind_at(at, 8.0) == "observatory":
+		events_log.append(["scorch", "observatory"])
+		request({"t": "cast", "item": "burnt_door", "element": "fire"})
+
+
+# --- what the wizard can reach ---------------------------------------------------------
+
+func item_visible(id: String) -> bool:
+	return not run.lp.get("taken", {}).has(id)
+
+
+## The person or item the wizard would talk to or use with G: the nearest in reach, or {}.
+## {"type": "person" or "item", "id", "pos", "name", "verb"}
+func reachable() -> Dictionary:
+	var at := player_pos()
+	var best := {}
+	var bd := INF
+	for p in people.talkable():
+		var reach := float(p.def.get("reach", cfg["reach"]))
+		var d: float = p.pos.distance_to(at)
+		if d < reach and d < bd:
+			bd = d
+			best = {"type": "person", "id": p.id, "pos": p.pos, "name": p.name, "verb": "Talk to"}
+	for id in map.items:
+		if not item_visible(id):
+			continue
+		var it: Dictionary = map.items[id]
+		var d: float = it["at"].distance_to(at)
+		if d < float(it.get("reach", cfg["reach"])) and d < bd:
+			bd = d
+			best = {"type": "item", "id": id, "pos": it["at"], "name": it["name"], "verb": it["verb"]}
+	return best
+
+
+## The person or item under a sim point (the mouse), within `r`, or {}.
+func under(at: Vector2, r := 14.0) -> Dictionary:
+	for p in people.talkable():
+		if p.pos.distance_to(at) < r:
+			return {"type": "person", "id": p.id, "pos": p.pos, "name": p.name, "verb": "Talk to"}
+	for id in map.items:
+		if item_visible(id) and map.items[id]["at"].distance_to(at) < r:
+			var it: Dictionary = map.items[id]
+			return {"type": "item", "id": id, "pos": it["at"], "name": it["name"], "verb": it["verb"]}
+	return {}
+
+
+func interact(target: Dictionary) -> void:
+	if target.is_empty():
+		return
+	if target["type"] == "person":
+		request({"t": "talk", "id": target["id"]})
+	else:
+		request({"t": "use", "id": target["id"]})
+
+
+## Turns the person to face the wizard while they talk (and back to their day afterwards).
+func set_talking(id: String, on: bool) -> void:
+	var p = people.get_person(id)
+	if p != null:
+		p.talking = on
+		p.path = PackedVector2Array()
+		if not on:
+			p.spot = "-"  # walk back to wherever the time of day says
+
+
+## Whether anything is attacking the wizard (then Z won't wait).
+func threatened() -> bool:
+	return arena != null and (arena.phase != "explore" or not arena.enemies().is_empty())

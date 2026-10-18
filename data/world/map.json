@@ -1,0 +1,119 @@
+{
+ "_doc": "Vellmar as one walkable map (design/open-world/world.md). Positions are sim pixels (18 px is about 1 m), x east, y south. blocks: solid houses [x, y, w, h, height px]; cliffs: the hill the College stands on, solid [x, y, w, h]; walls: [x, y, w, h, height]; buildings: enterable, a rect with a door gap ({side, from, to} along that wall) whose roof lifts while you're inside; circles: solid round things [x, y, r, height, kind]; water: running water [x, y, w, h], which Hollows never step into (bridges are water too, but don't slow you); places: where you are (first match wins); nav: the street graph people walk; spots: named points; lamps: [x, y, group] (college and street come on at dusk, lane is Mira's round, broken only lights by fire); props: [kind, x, y, rotation degrees]; items: things to look at or use; spawns: where each fight's enemies come from: points, and/or a ring [near, far] of ring_n points round you (8 unless given); you: where you are moved; open: a door it opens.",
+ "bounds": [0, 0, 2400, 1600],
+ "cliffs": [[0, 0, 520, 828], [1480, 0, 920, 828]],
+ "walls": [
+  [520, 200, 560, 16, 80], [1120, 200, 360, 16, 80], [520, 804, 440, 16, 80], [1040, 804, 440, 16, 80],
+  [520, 200, 16, 620, 80], [1464, 200, 16, 620, 80],
+  [144, 828, 16, 772, 70], [144, 1584, 1972, 16, 70],
+  [2100, 828, 16, 152, 70], [2100, 1080, 16, 520, 70]
+ ],
+ "doors": {"north_door": [1080, 200, 40, 16]},
+ "buildings": {
+  "archive": {"rect": [560, 230, 300, 190], "door": {"side": "south", "from": 690, "to": 730}, "height": 110, "wall": "wall", "roof": "roof2"},
+  "room": {"rect": [1300, 520, 160, 160], "door": {"side": "west", "from": 580, "to": 620}, "height": 90, "wall": "wall2", "roof": "roof"}
+ },
+ "blocks": [
+  [860, 730, 80, 66, 70],
+  [560, 840, 190, 150, 100], [770, 840, 170, 70, 90], [1060, 840, 170, 70, 110], [1250, 840, 220, 150, 100],
+  [1250, 1110, 300, 230, 105], [760, 1190, 480, 200, 95], [570, 1110, 180, 280, 100], [1720, 1180, 360, 180, 100],
+  [1800, 840, 290, 130, 110], [1250, 1350, 300, 200, 90], [1840, 1380, 250, 190, 100], [1490, 832, 290, 58, 90],
+  [1790, 1090, 300, 80, 95], [570, 1400, 670, 175, 90], [1700, 1380, 120, 100, 90], [250, 930, 140, 110, 110],
+  [160, 832, 230, 60, 90], [160, 1360, 230, 215, 90], [450, 1360, 110, 215, 90], [1720, 1490, 110, 85, 90]
+ ],
+ "mira_house": [1700, 1380, 120, 100],
+ "mill_house": [250, 930, 140, 110],
+ "circles": [
+  [1300, 330, 72, 160, "observatory"], [1630, 1030, 16, 14, "well"], [1560, 965, 11, 50, "statue"],
+  [230, 1220, 18, 10, "ash"]
+ ],
+ "stalls": [[880, 958, 0, "cloth"], [1120, 958, 0, "cloth2"], [800, 1000, 90, "cloth"], [1200, 1000, -90, "cloth2"]],
+ "water": [[400, 828, 40, 772]],
+ "bridges": [[396, 1062, 48, 36]],
+ "stairs": [940, 708, 120, 92],
+ "places": {
+  "room":        {"name": "Your room",          "district": "college", "rect": [1300, 520, 160, 160]},
+  "archive":     {"name": "The archive",        "district": "college", "rect": [560, 230, 300, 190]},
+  "observatory": {"name": "The Observatory",    "district": "college", "circle": [1300, 340, 125]},
+  "north_door":  {"name": "The north door",     "district": "college", "rect": [1010, 110, 180, 190]},
+  "stairs":      {"name": "The College stairs", "district": "college", "rect": [940, 705, 120, 85]},
+  "gate":        {"name": "The College gate",   "district": "college", "rect": [880, 790, 240, 70]},
+  "yard":        {"name": "The yard",           "district": "college", "rect": [536, 420, 928, 384]},
+  "college":     {"name": "The College of Hours", "district": "college", "rect": [536, 216, 928, 588]},
+  "hill":        {"name": "The north hill",     "district": "outside", "rect": [520, 0, 960, 200]},
+  "market":      {"name": "Lantern Market",     "district": "city", "rect": [760, 900, 480, 290]},
+  "square":      {"name": "The square",         "district": "city", "rect": [1480, 895, 300, 270]},
+  "lane":        {"name": "Lamplighter's Lane", "district": "city", "rect": [1550, 1160, 160, 400]},
+  "mill":        {"name": "The Mill",           "district": "city", "rect": [160, 830, 400, 530]},
+  "road":        {"name": "The plateau road",   "district": "outside", "rect": [2116, 828, 284, 772]},
+  "streets":     {"name": "The streets of Vellmar", "district": "city", "rect": [144, 820, 1972, 780]}
+ },
+ "nav": {
+  "nodes": {
+   "archive_in": [710, 360], "archive_door": [710, 446], "yard_nw": [700, 520], "yard_c": [950, 580], "yard_ne": [1200, 520],
+   "dorm_door": [1276, 600], "room_in": [1370, 600], "obs": [1300, 436], "north_in": [1100, 262], "stairs": [1000, 745],
+   "gate": [1000, 830], "main": [1000, 890], "market_c": [1000, 1050], "market_w": [780, 1050], "west_st": [660, 1050],
+   "mill_e": [520, 1080], "bridge_e": [452, 1080], "bridge_w": [386, 1080], "mill_c": [320, 1090], "market_e": [1240, 1050],
+   "east_st": [1360, 1050], "square_w": [1500, 1030], "square_c": [1630, 1090], "square_n": [1650, 940],
+   "lane_top": [1630, 1190], "lane_mid": [1630, 1320], "lane_bot": [1630, 1450], "mira_door": [1680, 1440],
+   "east2": [1940, 1030], "east_gate": [2108, 1030], "road": [2250, 1030]
+  },
+  "edges": [
+   ["archive_in", "archive_door"], ["archive_door", "yard_nw"], ["yard_nw", "yard_c"], ["yard_c", "yard_ne"], ["yard_ne", "dorm_door"],
+   ["dorm_door", "room_in"], ["yard_ne", "obs"], ["yard_c", "north_in"], ["yard_c", "stairs"], ["stairs", "gate"], ["gate", "main"],
+   ["main", "market_c"], ["market_c", "market_w"], ["market_w", "west_st"], ["west_st", "mill_e"], ["mill_e", "bridge_e"],
+   ["bridge_e", "bridge_w"], ["bridge_w", "mill_c"], ["market_c", "market_e"], ["market_e", "east_st"], ["east_st", "square_w"],
+   ["square_w", "square_c"], ["square_c", "square_n"], ["square_w", "square_n"], ["square_c", "lane_top"], ["lane_top", "lane_mid"],
+   ["lane_mid", "lane_bot"], ["lane_bot", "mira_door"], ["square_c", "east2"], ["east2", "east_gate"], ["east_gate", "road"],
+   ["obs", "yard_ne"]
+  ]
+ },
+ "spots": {
+  "room_in": [1372, 600], "bedside": [1405, 575], "stairs": [1000, 760], "wren_desk": [800, 300], "wren_ladder": [610, 262],
+  "yard_bench": [900, 650], "yard_c": [950, 580], "circle_w": [930, 600], "circle_e": [1110, 600], "examiner": [800, 545],
+  "pell_yard": [690, 640], "pell_stairs": [1060, 752], "north_in": [1100, 300], "porter": [915, 712],
+  "mira_market": [1060, 1010], "mira_door": [1678, 1452], "silas_yard": [1150, 520], "silas_market": [950, 1120],
+  "silas_square": [1680, 1110], "aldous_mill": [322, 1068], "aldous_yard": [300, 1180], "aldous_market": [1010, 1070],
+  "old_woman": [880, 992], "pie_seller": [1120, 992], "dog_square": [1690, 1010], "walker_market": [1150, 1030],
+  "market_c": [1000, 1050], "square_c": [1630, 1100], "mill_east": [520, 1100], "road": [2250, 1030], "gate_out": [1000, 860],
+  "fire_you": [1000, 770], "fire_walker": [1000, 735]
+ },
+ "lamps": [
+  [640, 470, "college"], [1240, 470, "college"], [640, 690, "college"], [1240, 690, "college"], [928, 742, "college"], [1072, 742, "college"],
+  [676, 440, "college"], [1286, 556, "college"], [1060, 232, "college"], [1140, 232, "college"], [1225, 425, "college"],
+  [946, 880, "street"], [782, 940, "street"], [1218, 940, "street"], [782, 1172, "street"], [1218, 1172, "street"],
+  [1300, 1096, "street"], [1430, 1006, "street"], [1500, 912, "street"], [1764, 1150, "street"], [1900, 986, "street"], [2080, 1074, "street"],
+  [1568, 1200, "lane"], [1692, 1262, "lane"], [1568, 1322, "lane"], [1692, 1370, "lane"], [1568, 1462, "lane"],
+  [700, 1008, "broken"], [580, 1094, "broken"], [520, 942, "broken"], [300, 1300, "broken"], [470, 1250, "broken"]
+ ],
+ "braziers": [[900, 474], [1100, 474]],
+ "props": [
+  ["hay", 806, 1102, 10], ["hay", 1206, 1116, 60], ["crate", 880, 1152, 0], ["crate", 906, 1150, 20], ["crate", 1150, 962, 5],
+  ["barrel", 1182, 1150, 0], ["barrel", 1204, 1134, 0], ["barrel", 790, 960, 0], ["cart", 1098, 1150, 20],
+  ["hay", 300, 1150, 30], ["hay", 340, 1250, 70], ["hay", 500, 1300, 0], ["crate", 478, 1002, 10], ["crate", 500, 1022, 40],
+  ["barrel", 360, 1062, 0], ["barrel", 512, 1200, 0],
+  ["crate", 1180, 244, 0], ["crate", 1208, 252, 15], ["crate", 1022, 250, 30]
+ ],
+ "items": {
+  "desk":           {"name": "Your desk", "at": [1432, 650], "verb": "Use", "reach": 26},
+  "bed":            {"name": "Your bed", "at": [1420, 552], "verb": "Use", "reach": 28},
+  "noon_note":      {"name": "A note on Wren's desk", "at": [770, 286], "verb": "Look", "reach": 26},
+  "shard":          {"name": "The hanging shard", "at": [640, 300], "verb": "Look", "reach": 30, "height": 1.6},
+  "targets":        {"name": "Straw targets", "at": [760, 494], "verb": "Train", "reach": 30},
+  "burnt_door":     {"name": "The Observatory door", "at": [1300, 404], "verb": "Look", "reach": 30},
+  "chalk":          {"name": "The north door", "at": [1100, 226], "verb": "Look", "reach": 34},
+  "beam":           {"name": "A heavy beam", "at": [1148, 236], "verb": "Look", "reach": 26},
+  "gate_letter":    {"name": "Something in the gate", "at": [1036, 818], "verb": "Look", "reach": 26},
+  "second_lantern": {"name": "Mira's lanterns", "at": [1696, 1450], "verb": "Look", "reach": 30, "height": 1.8},
+  "dog_corner":     {"name": "An empty corner", "at": [1758, 914], "verb": "Look", "reach": 30},
+  "ash_heap":       {"name": "The ash heap", "at": [230, 1220], "verb": "Look", "reach": 34}
+ },
+ "scorch_wall": [1300, 330, 90],
+ "spawns": {
+  "patrol":      {"ring": [150, 200]},
+  "yard_trial":  {"points": [[700, 500], [800, 480], [1200, 520], [1180, 640], [720, 640]]},
+  "silas_duel":  {"points": [[1120, 600]], "you": [880, 600]},
+  "mill_risen":  {"points": [[220, 1190], [256, 1236], [200, 1250], [246, 1170], [190, 1210]]},
+  "tide":        {"points": [[1100, 150], [1070, 120], [1130, 120]], "ring": [80, 115], "ring_n": 6, "you": [1100, 330], "open": "north_door"}
+ }
+}

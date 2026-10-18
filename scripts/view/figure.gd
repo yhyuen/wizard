@@ -91,8 +91,79 @@ static func style(n: Node, darken: float, remap := {}, tint := Color(0, 0, 0, 0)
 		style(c, darken, remap, tint, out, facet, surf)
 
 
+## Every surface of a model's mesh merged into one, coloured per vertex (the same colours
+## style() gives each surface): a figure then costs one draw, and one shadow draw, instead of one
+## per colour, which is most of what a crowd costs in the browser renderer. A mesh that can't be
+## merged (mixed formats) is styled surface by surface.
+static func merge_style(n: Node, darken: float, remap: Dictionary, tint: Color, out: Array, facet: float) -> void:
+	if n is MeshInstance3D and (n as MeshInstance3D).mesh != null:
+		var mi := n as MeshInstance3D
+		var src: Mesh = mi.mesh
+		var fmt0: int = src.surface_get_format(0) if src.get_surface_count() > 0 else 0
+		var ok := src.get_surface_count() > 1
+		for sf in src.get_surface_count():
+			var f: int = src.surface_get_format(sf)
+			if (f & Mesh.ARRAY_FORMAT_BONES) != (fmt0 & Mesh.ARRAY_FORMAT_BONES) or (f & Mesh.ARRAY_FORMAT_INDEX) == 0 \
+					or src.surface_get_primitive_type(sf) != Mesh.PRIMITIVE_TRIANGLES:
+				ok = false
+		if not ok:
+			style(n, darken, remap, tint, out, facet, "figure")
+			return
+		var verts := PackedVector3Array()
+		var norms := PackedVector3Array()
+		var cols := PackedColorArray()
+		var idx := PackedInt32Array()
+		var bones = null
+		var weights := PackedFloat32Array()
+		for sf in src.get_surface_count():
+			var a := src.surface_get_arrays(sf)
+			var srcm := src.surface_get_material(sf) as BaseMaterial3D
+			var col: Color = srcm.albedo_color if srcm != null else Color.GRAY
+			var hx := col.to_html(false)
+			if remap.has(hx):
+				col = Color(str(remap[hx]))
+			elif tint.a > 0.0:
+				col = col.lerp(Color(tint, 1.0), tint.a)
+			col = col.darkened(darken).srgb_to_linear()
+			var base := verts.size()
+			var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+			verts.append_array(v)
+			norms.append_array(a[Mesh.ARRAY_NORMAL])
+			for i in v.size():
+				cols.append(col)
+			for i in (a[Mesh.ARRAY_INDEX] as PackedInt32Array):
+				idx.append(i + base)
+			if a[Mesh.ARRAY_BONES] != null:
+				if bones == null:
+					bones = a[Mesh.ARRAY_BONES].duplicate()
+				else:
+					bones.append_array(a[Mesh.ARRAY_BONES])
+				weights.append_array(a[Mesh.ARRAY_WEIGHTS])
+		var arr := []
+		arr.resize(Mesh.ARRAY_MAX)
+		arr[Mesh.ARRAY_VERTEX] = verts
+		arr[Mesh.ARRAY_NORMAL] = norms
+		arr[Mesh.ARRAY_COLOR] = cols
+		arr[Mesh.ARRAY_INDEX] = idx
+		if bones != null:
+			arr[Mesh.ARRAY_BONES] = bones
+			arr[Mesh.ARRAY_WEIGHTS] = weights
+		var am := ArrayMesh.new()
+		am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr, [], {}, fmt0 & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS)
+		mi.mesh = am
+		var sm := mat(Color.WHITE)
+		sm.set_shader_parameter("vcol_albedo", true)
+		sm.set_shader_parameter("facet", facet)
+		finish(sm, "figure")
+		mi.material_override = sm
+		out.append(sm)
+	for c in n.get_children():
+		merge_style(c, darken, remap, tint, out, facet)
+
+
 var _facet := 1.0
 var gem: MeshInstance3D  # the staff's gem, lit by the view in the caster's element colour
+var _parts := {}  # bone attachment -> SurfaceTool: hats and mantles, merged per bone
 
 
 ## `def` comes from data/visual.json "figures": model, scale, colors, tint, hat, eyes, weapon,
@@ -107,7 +178,7 @@ func build(def: Dictionary, darken: float) -> void:
 		tint = Color(str(def["tint"][0]), float(def["tint"][1]))
 	_facet = float(def.get("facet", 1.0))
 	var out: Array = []
-	style(model, darken, def.get("colors", {}), tint, out, _facet, "figure")
+	merge_style(model, darken, def.get("colors", {}), tint, out, _facet)
 	for m in out:
 		mats.append(m)
 	for n in model.find_children("*", "Skeleton3D", true, false):
@@ -120,6 +191,7 @@ func build(def: Dictionary, darken: float) -> void:
 			wn.visible = w == weapon
 	if def.has("hat"):
 		_hat(def["hat"])
+		_commit_parts()
 	var hooded: bool = def.has("hat") and str(def["hat"]["kind"]) == "hood"
 	if def.has("eyes"):
 		_eyes(Color(str(def["eyes"])), 0.19 if hooded else 0.1, 0.06 if hooded else 0.08)
@@ -192,16 +264,39 @@ func _bone_node(bone: String) -> Node3D:
 
 
 func _part(at: Node3D, mesh: Mesh, col: Color, pos: Vector3, rot := Vector3.ZERO) -> void:
-	var mi := MeshInstance3D.new()
-	mi.mesh = mesh
-	var m := mat(col)
-	m.set_shader_parameter("facet", _facet)
-	finish(m, "figure")
-	mats.append(m)
-	mi.material_override = m
-	mi.position = pos
-	mi.rotation_degrees = rot
-	at.add_child(mi)
+	if not _parts.has(at):
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		_parts[at] = st
+	var st: SurfaceTool = _parts[at]
+	var xf := Transform3D(Basis.from_euler(rot * PI / 180.0), pos)
+	var nb := xf.basis.inverse().transposed()
+	var lin := col.srgb_to_linear()
+	var a := mesh.surface_get_arrays(0)
+	var verts: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+	var norms: PackedVector3Array = a[Mesh.ARRAY_NORMAL]
+	var idx = a[Mesh.ARRAY_INDEX]
+	var n: int = idx.size() if idx != null else verts.size()
+	for k in n:
+		var v: int = idx[k] if idx != null else k
+		st.set_color(lin)
+		st.set_normal((nb * norms[v]).normalized())
+		st.add_vertex(xf * verts[v])
+
+
+## Each bone's parts as one mesh.
+func _commit_parts() -> void:
+	for at in _parts:
+		var mi := MeshInstance3D.new()
+		mi.mesh = _parts[at].commit()
+		var m := mat(Color.WHITE)
+		m.set_shader_parameter("vcol_albedo", true)
+		m.set_shader_parameter("facet", _facet)
+		finish(m, "figure")
+		mats.append(m)
+		mi.material_override = m
+		at.add_child(mi)
+	_parts.clear()
 
 
 static func _cyl(top: float, bottom: float, h: float, segs := 7) -> CylinderMesh:
@@ -256,18 +351,20 @@ func _eyes(col: Color, z := 0.1, y := 0.08) -> void:
 	var at := _bone_node("head")
 	var m := mat(col, 2.5)
 	mats.append(m)  # so they fade out with the body
+	var sm := SphereMesh.new()
+	sm.radius = 0.024
+	sm.height = 0.048
+	sm.radial_segments = 6
+	sm.rings = 3
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for sx in [-1.0, 1.0]:
-		var mi := MeshInstance3D.new()
-		var sm := SphereMesh.new()
-		sm.radius = 0.024
-		sm.height = 0.048
-		sm.radial_segments = 6
-		sm.rings = 3
-		mi.mesh = sm
-		mi.material_override = m
-		mi.position = Vector3(0.04 * sx, y, z)
-		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		at.add_child(mi)
+		st.append_from(sm, 0, Transform3D(Basis(), Vector3(0.04 * sx, y, z)))
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	at.add_child(mi)
 
 
 ## A faceted gem on the far end of the staff, riding the grip bone. The end is found from the

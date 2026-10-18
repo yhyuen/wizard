@@ -1,11 +1,9 @@
 # Day 7 (trace R4: the north door and the bell), the weeks that pass in the slice only, and the
-# Long Night on day 27 (design/slice/content.md §5).
+# Long Night on day 27 (design/slice/content.md §5). These happen wherever you are.
 
 # --- day 7 ---------------------------------------------------------------------
 
 === tide
-backdrop: north_door
-place: anywhere
 days: 7
 times: dusk
 force: true
@@ -33,13 +31,12 @@ Somehow you are still standing. The dark draws back from the doorway, waiting.
 + set held_the_tide
 
 === door_holds
-backdrop: north_door
-place: anywhere
 days: 7
 times: dusk
 force: true
 priority: 50
 when: f("door_barred")
++ move north_in
 Dusk. Someone is hammering on the north door. Pell is there, dragging at your bench, crying.
 Pell: It's Wren! Let them in!
 Wren's voice calls your name through the oak, then laughs in a way Wren never laughs.
@@ -47,7 +44,6 @@ You hold Pell back. The hammering goes on, and on.
 + set holding_door
 
 === the_bell
-place: anywhere
 days: 7
 times: night
 force: true
@@ -78,11 +74,11 @@ In the full game this is a fight. In the slice, the month ends here.
 # --- the Long Night ------------------------------------------------------------
 
 === long_night
-place: anywhere
 days: 27
 times: night
 force: true
 priority: 50
++ move room_in
 Day twenty-seven, the night before the Eclipse.
 Wren sits on the end of your bed with a lamp, a pen, and a stack of clean paper.
 Wren: Tell me everything. Everything you've found. I'll write it down properly.

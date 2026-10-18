@@ -25,6 +25,9 @@ var save_enabled := true
 var dest = null  # Vector2 the wizard is walking to, or null
 var target: Unit = null  # the enemy being attacked, or null
 var order := {}  # the last right-click, for the ground marker: {"at", "t", "attack"}
+## In the open world a walk follows the streets: the points still to reach (scripts/world/map.gd
+## path). The map's click-to-walk and walking up to a person use it in either scheme.
+var route := PackedVector2Array()
 
 
 func _init() -> void:
@@ -67,6 +70,28 @@ func reset() -> void:
 	dest = null
 	target = null
 	order = {}
+	route = PackedVector2Array()
+
+
+## Walks to `to`: along the streets in the open world, straight across the yard otherwise.
+func walk(A, to: Vector2) -> void:
+	target = null
+	dest = to
+	if A.world != null and not A.world.clear_line(A.player.pos, to, A.player.radius):
+		route = A.world.path(A.player.pos, to, A.player.radius)
+	else:
+		route = PackedVector2Array([to])
+
+
+## The step toward the next point of the route, or zero when it is done.
+func _follow(A) -> Vector2:
+	var P: Unit = A.player
+	while not route.is_empty() and P.pos.distance_to(route[0]) <= (ARRIVE if route.size() == 1 else 6.0):
+		route.remove_at(0)
+	if route.is_empty():
+		dest = null
+		return Vector2.ZERO
+	return (route[0] - P.pos).normalized()
 
 
 ## The intent for this physics frame, read from the real keyboard and mouse.
@@ -96,7 +121,12 @@ func intent(A, mouse: Vector2, dt: float) -> Dictionary:
 ## The intent from already-read input `raw` (the tests call this directly).
 func build(A, mouse: Vector2, raw: Dictionary, dt := 0.0) -> Dictionary:
 	if not league():
-		return {"move": raw.get("move", Vector2.ZERO), "aim": mouse,
+		var mv: Vector2 = raw.get("move", Vector2.ZERO)
+		if mv.length() > 0.1:
+			route = PackedVector2Array()  # the keys take over from a walk
+		elif not route.is_empty():
+			mv = _follow(A)
+		return {"move": mv, "aim": mouse,
 			"held": raw["held"], "pressed": raw["pressed"], "released": raw["released"]}
 	var P: Unit = A.player
 	var held: Dictionary = raw["held"].duplicate()
@@ -110,6 +140,7 @@ func build(A, mouse: Vector2, raw: Dictionary, dt := 0.0) -> Dictionary:
 	if raw.get("stop", false):
 		dest = null
 		target = null
+		route = PackedVector2Array()
 	if raw.get("move_click", false):
 		var h: Unit = A.hover
 		if h != null and not h.dead:
@@ -117,11 +148,13 @@ func build(A, mouse: Vector2, raw: Dictionary, dt := 0.0) -> Dictionary:
 			dest = null
 			order = {"at": h.pos, "t": 0.0, "attack": true}
 		else:
-			target = null
-			dest = A.clamp_in(mouse, P.radius)
+			walk(A, A.clamp_in(mouse, P.radius))
 			order = {"at": dest, "t": 0.0, "attack": false}
 	elif raw.get("move_held", false) and target == null:
-		dest = A.clamp_in(mouse, P.radius)
+		var to: Vector2 = A.clamp_in(mouse, P.radius)
+		if A.world == null or A.world.clear_line(P.pos, to, P.radius):
+			dest = to
+			route = PackedVector2Array([to])
 	if target != null and (target.dead or not A.units.has(target)):
 		target = null
 	# Smart cast: a non-Bolt spell casts the frame its key goes down, with no telegraph.
@@ -144,6 +177,8 @@ func build(A, mouse: Vector2, raw: Dictionary, dt := 0.0) -> Dictionary:
 		elif not casting:
 			held[bolt] = true
 			aim = target.pos
+	elif not route.is_empty():
+		move = _follow(A)
 	elif dest != null:
 		var to: Vector2 = dest - P.pos
 		if to.length() <= ARRIVE:
@@ -155,6 +190,7 @@ func build(A, mouse: Vector2, raw: Dictionary, dt := 0.0) -> Dictionary:
 		move = Vector2.ZERO
 		dest = null
 		target = null
+		route = PackedVector2Array()
 	return {"move": move, "aim": aim, "held": held, "pressed": pressed, "released": released}
 
 

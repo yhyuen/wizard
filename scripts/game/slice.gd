@@ -1,59 +1,63 @@
 extends "res://scripts/ui/atlas.gd"
-## The vertical slice's game flow (design/slice/tech-plan.md §3): the title card, each dawn, the
-## day board, story scenes, fights (handed to the arena through main.gd), the death screen, the
-## Ledger and the end of the slice. Story content lives in data/slice/story/*.story and is run by
-## scripts/game/story.gd; what you remember and what resets are in the Run autoload.
+## The game flow of the open-world prototype (design/open-world/): the title card, the town
+## itself (with the dialogue panel, the map, the spellbook and the Ledger over it), the death
+## screen and the end of the slice. The town lives in scripts/world/ and asks for scenes through
+## world.requests; this plays them with the story engine (scripts/game/story.gd) and the
+## slice's story re-homed to people, items and places (data/world/story/*.story). What you
+## remember and what resets are in the Run autoload, as in the slice.
 ##
-## Everything a player can do here is also a method (pick_place, choose, advance...), so the route
-## bot in tools/tests/route.gd plays the same code.
+## Everything a player can do here is also a method (talk, use, choose, advance...), so the
+## route bot in tools/tests/route.gd plays the same code.
 
 signal screen_changed(screen: String)
 
 const Story := preload("res://scripts/game/story.gd")
 const Growth := preload("res://scripts/game/growth.gd")
+const World := preload("res://scripts/world/world.gd")
 const BuildId := preload("res://scripts/game/build_id.gd")
 ## Where playtesters send their notes (design/slice/README.md §5, M5).
 const FEEDBACK_URL := "https://claude.ai/artifact/HryjwPHEs8S6swcQYFam6c"
-const Backdrop := preload("res://scripts/ui/backdrop.gd")
-## First-loop hints (onboarding), one per screen, shown until you leave that screen once.
+## First-loop hints (onboarding), shown until they're done once.
 const HINTS := {
-	"dawn": "Each dawn you can change your spellbook. Higher Rings open more slots.",
-	"board": "Pick where to be for this time of day. Gold notes mark events you know are coming. Night is optional; Sleep ends the day.",
-	"scene": "Number keys or a click pick a choice; Space carries on. L opens the Ledger at any time.",
+	"walk": "Walk the town. G talks to people and uses things when you're close. M opens the map, Z waits for the next time of day.",
+	"talk": "Number keys or a click pick a choice; Space carries on. L opens the Ledger at any time.",
 	"death": "Death resets your power, never what you know. Everything in the Ledger comes with you.",
 }
-const SLOT_NAMES := ["1", "2", "3", "4", "5", "6"]
 const LEDGER_TABS := ["Questions", "Clues", "People", "Insights"]
+## The Ledger entry that means you know a person well enough to find them on the map.
+const MAX_BARKS := 2  # speech bubbles shown at once
+const KNOWN_PEOPLE := {"wren": "wren", "silas": "silas", "aldous": "aldous", "mira": "mira"}
 
-var main  # scripts/main.gd: runs the fights
+var main  # scripts/main.gd: the arena, the 3D view, input
 var run  # the Run autoload
 var story
 var growth  # scripts/game/growth.gd: wells, Rings, Practice, the spellbook
-var dawn_slot := 0  # the spellbook slot picked on the dawn card
-var backdrop := Backdrop.new()
-var here := ""  # the place picked on the board, for the backdrop of what plays there
-var scene_t := 0.0  # seconds on this screen, for the backdrops' slow movement
-var fps_t := 0.0  # time since the last frame-rate sample in a fight
-var places: Dictionary = {}
-var links: Array = []
+var world  # scripts/world/world.gd
 var encounters: Dictionary = {}
 var ledger: Dictionary = {}  # data/slice/ledger.json "entries"
 var death_texts: Dictionary = {}
 
-var screen := "title"  # title, dawn, board, scene, fight, death, end
-var ledger_open := false
+var screen := "title"  # title, world, death, end
+var overlay := ""  # over the town: "", "map", "book", "ledger"
 var ledger_tab := 0
 var ledger_q := ""  # the question picked in the Questions tab
 var ledger_note := ""  # feedback on a wrong deduction, shown in the Ledger
 var toasts: Array = []  # {"text", "t"}
+var book_slot := 0  # the spellbook slot picked
+var scene_t := 0.0
+var dawn_t := 99.0  # seconds since you woke: the "Day N" card fades
+var place_t := 99.0  # seconds since you walked into a new place: its name fades
+var _place := ""
+var fps_t := 0.0
 
 # The scene being played.
 var cur: Dictionary = {}
 var idx := 0
-var lines: Array = []  # [{"who", "text"}] shown on the page
+var lines: Array = []  # [{"who", "text"}] in the dialogue panel
 var pending := {}  # a blocking effect waiting for the player: {"op", "arg"}
-var opts: Array = []  # the choices on the page
-var uses_slot := true  # whether the pick that started this chain uses up the time of day
+var opts: Array = []  # the choices
+var talking := ""  # the person spoken to
+var after: Array = []  # what happens when the scene closes: "sleep", "book"
 var fight_id := ""
 
 ## Tests set this to settle fights without playing them: func(encounter_id) -> bool (won), or
@@ -61,132 +65,240 @@ var fight_id := ""
 var fight_resolver: Callable
 
 
-func _ready() -> void:
-	super._ready()
-	process_mode = Node.PROCESS_MODE_ALWAYS
-	mouse_filter = Control.MOUSE_FILTER_PASS
-	run = get_node("/root/Run")
+## Before the town is built: the run, the story and the town's state, for main.gd's view.
+func setup(the_main) -> void:
+	main = the_main
+	run = main.get_node("/root/Run")
 	story = Story.new(run)
-	growth = Growth.new(run, get_node("/root/Progression"))
+	growth = Growth.new(run, main.get_node("/root/Progression"))
 	story.ctx.growth = growth
 	story.load_all()
 	for e in story.errors:
 		push_error("story: " + str(e))
-	var pd = JSON.parse_string(FileAccess.get_file_as_string("res://data/slice/places.json"))
-	places = pd["places"]
-	links = pd["links"]
 	encounters = JSON.parse_string(FileAccess.get_file_as_string("res://data/slice/encounters.json"))["encounters"]
 	var ld = JSON.parse_string(FileAccess.get_file_as_string("res://data/slice/ledger.json"))
 	ledger = ld["entries"]
 	death_texts = ld["deaths"]
+	world = World.new(run, story)
+	world.busy = busy
 	run.learned.connect(_on_learned)
 
 
+func _ready() -> void:
+	super._ready()
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	mouse_filter = Control.MOUSE_FILTER_PASS
+
+
 func set_screen(s: String) -> void:
-	if s in ["board", "death", "end"]:
-		toasts.clear()  # those screens show what was learnt in their own way
-	if s == "dawn" and screen != "dawn":
-		Sfx.play("chime")
+	if s in ["death", "end"]:
+		toasts.clear()
 	if s != screen:
 		scene_t = 0.0
-		if hint_for(screen) != "":
-			run.mem["hints"][screen] = true  # seen once is enough
-	Sfx.ambience(s in ["board", "scene", "dawn"])
+	Sfx.ambience(s == "world")
 	screen = s
-	visible = s != "fight"
+	overlay = ""
 	screen_changed.emit(s)
 
 
-# --- flow ------------------------------------------------------------------------
+## Whether the town should stand still: a scene, a menu or another screen is showing.
+func busy() -> bool:
+	return screen != "world" or not cur.is_empty() or overlay != ""
+
+
+## Whether a scene is open in the panel now (not waiting behind a fight or a cutscene).
+func in_dialogue() -> bool:
+	return screen == "world" and not cur.is_empty() and main.mode == "world"
+
+
+# --- the month, the loop, the day ---------------------------------------------------------
 
 func new_month() -> void:
 	run.wipe()
 	run.save()
+	world.reset_loop()
 	begin_day()
 
 
 func continue_month() -> void:
 	run.load_save()
+	world.reset_loop()
 	begin_day()
 
 
-## The start of a day: the end-of-slice card if it is due, otherwise the dawn card.
+## Dawn: you wake in your room (the save is made here), unless the slice's end card is due.
 func begin_day() -> void:
-	here = "room"  # you wake in your room
-	run.lp["time"] = 0
-	run.save()
+	growth.end_fight()
 	if run.knows("long_night") and not run.mem.get("slice_end_shown", false):
 		set_screen("end")
 		return
-	set_screen("dawn")
+	run.lp["time"] = 0
+	run.save()
+	growth.begin_fight()  # you can cast anywhere, so the day's Practice is lent all day
+	cur = {}
+	main.enter_world(world.map.spots["room_in"])
+	world.reset_day()
+	set_screen("world")
+	dawn_t = 0.0
+	Sfx.play("chime")
+	_start_period()
 
 
-## From the dawn card into the day.
-func start_day() -> void:
-	run.lp["dawn_done"] = true
-	next_slot()
-
-
-## The board for this time of day, unless something happens wherever you are.
-func next_slot() -> void:
+## A new time of day: a forced event if one is due, else whatever happens where you stand.
+func _start_period() -> void:
 	var f: String = story.forced()
 	if f != "":
-		uses_slot = cur_slot_used(f)
 		play(f)
 		return
-	set_screen("board")
+	world.request({"t": "arrive", "place": world.here})
 
 
-func cur_slot_used(id: String) -> bool:
-	return story.scenes[id].get("slot", "") != "free"
-
-
-## Go to a place on the board.
-func pick_place(id: String) -> void:
-	if screen != "board":
+## The time of day ran out (or you waited): on to the next, or to sleep after Night.
+func next_period() -> void:
+	if not run.advance_time():
+		toast("You fall asleep where you stand.")
+		end_day()
 		return
-	var ev: String = story.event_at(id)
-	if ev == "":
-		ev = places[id]["idle"]
-	uses_slot = cur_slot_used(ev)
-	here = id
-	Sfx.play("step")
-	play(ev)
+	world.clock = 0.0
+	Sfx.play("chime")
+	toast(run.time_name())
+	_start_period()
 
 
-## Skip the rest of the day.
-func sleep() -> void:
-	if screen != "board":
+## Z: wait for the next time of day.
+func wait() -> void:
+	if screen != "world" or busy() or main.mode != "world":
 		return
-	end_day()
+	if world.threatened():
+		toast("Not with something hunting you.")
+		return
+	world.request({"t": "period"})
 
 
 func end_day() -> void:
+	cur = {}
 	if run.day() >= run.LAST_DAY:
 		end_loop("eclipse_alone")
 		return
+	growth.end_fight()
 	run.next_day()
 	begin_day()
 
 
-## Plays scene `id` from its first step. `append` keeps the lines already on the page.
+func end_loop(cause: String) -> void:
+	Sfx.play("death")
+	growth.end_fight()
+	growth.loop_over()
+	run.end_loop(cause)
+	cur = {}
+	pending = {}
+	after = []
+	_stop_talking()
+	set_screen("death")
+
+
+## From the death screen: wake on day 1 of the next loop, everything in town as it was.
+func wake() -> void:
+	if screen != "death":
+		return
+	run.wake()
+	world.reset_loop()
+	begin_day()
+
+
+## From the end-of-slice card: keep playing loops.
+func keep_playing() -> void:
+	run.mem["slice_end_shown"] = true
+	run.save()
+	begin_day()
+
+
+# --- what the town asks for -------------------------------------------------------------------
+
+func _process(dt: float) -> void:
+	scene_t += dt
+	dawn_t += dt
+	place_t += dt
+	_track_play(dt)
+	for t in toasts.duplicate():
+		t["t"] += dt
+		if t["t"] > 4.0:
+			toasts.erase(t)
+	if screen == "world":
+		if world.here != _place:
+			_place = world.here
+			place_t = 0.0
+		if not busy() and main.mode == "world":
+			handle_requests()
+	queue_redraw()
+
+
+## Plays what the town asked for, one request at a time.
+func handle_requests() -> void:
+	while not world.requests.is_empty() and not busy() and main.mode == "world":
+		var r: Dictionary = world.requests.pop_front()
+		match r["t"]:
+			"period":
+				next_period()
+			"talk":
+				talk(r["id"], str(r.get("scene", "")))
+			"use":
+				use(r["id"])
+			"arrive":
+				var s: String = story.arrive_scene(str(r["place"]))
+				if s != "":
+					play(s)
+			"scene":
+				if not run.seen(r["id"]):
+					play(r["id"])
+			"cast":
+				var s: String = story.cast_scene(r["item"], r["element"])
+				if s != "":
+					play(s)
+
+
+## Talks to person `id`: their scene for now (or `scene`, when they came to you).
+func talk(id: String, scene := "") -> void:
+	if scene == "" or run.seen(scene):
+		scene = story.talk_scene(id)
+	if scene == "":
+		return
+	talking = id
+	world.set_talking(id, true)
+	if main.view != null:
+		main.view.talk_to = id
+	play(scene)
+
+
+func use(id: String) -> void:
+	var s: String = story.use_scene(id)
+	if s != "":
+		play(s)
+
+
+func _stop_talking() -> void:
+	if talking != "":
+		world.set_talking(talking, false)
+		talking = ""
+	if main != null and main.view != null:
+		main.view.talk_to = ""
+
+
+# --- scenes -------------------------------------------------------------------------------
+
+## Plays scene `id` from its first step. `append` keeps the lines already in the panel.
 func play(id: String, append := false) -> void:
 	if not story.scenes.has(id):
 		push_error("no scene " + id)
-		finish_pick()
 		return
 	cur = story.scenes[id]
-	if cur.get("backdrop", "") != "":
-		here = cur["backdrop"]
-	elif cur.get("places", []).size() == 1 and places.has(cur["places"][0]):
-		here = cur["places"][0]
 	idx = 0
 	pending = {}
 	opts = []
 	if not append:
 		lines = []
 	run.mark_seen(id)
-	set_screen("scene")
+	scene_t = 0.0
 	_run_steps()
 
 
@@ -204,6 +316,9 @@ func _run_steps() -> void:
 			return
 	opts = story.choices(cur)
 	if opts.is_empty():
+		if lines.is_empty():
+			finish_scene()  # nothing to read (the spellbook from the desk)
+			return
 		opts = [{"text": "Continue", "target": ""}]
 
 
@@ -222,15 +337,15 @@ func _effect(op: String, arg: String) -> bool:
 			run.clear_flag(arg)
 		"model":
 			run.learn("model_" + arg)
+			growth.refresh()
 		"trial":
 			run.learn("trial_" + arg)
 		"sound":
 			Sfx.play(arg)
 		"cutscene":
-			if fight_resolver.is_valid() or main == null:
+			if fight_resolver.is_valid() or main == null or main.view == null:
 				return false  # tests skip the pictures
-			set_screen("fight")
-			main.start_cutscene(arg)
+			main.start_world_cutscene(arg, world.map.spots.get("fire_you", world.player_pos()))
 			return true
 		"wells", "meditate":
 			if growth.use_today(op):
@@ -246,6 +361,16 @@ func _effect(op: String, arg: String) -> bool:
 				toast("Practice: " + ", ".join(parts))
 			else:
 				toast("Your hands are done for today.")
+		"move":
+			main.place_player(world.map.spots[arg])
+		"take":
+			if not run.lp.has("taken"):
+				run.lp["taken"] = {}
+			run.lp["taken"][arg] = true
+		"sleep", "book":
+			after.append(op)
+		"today":
+			run.lp["done_" + arg] = run.day()
 		"goto":
 			if lines.is_empty():
 				play(arg, true)
@@ -268,13 +393,16 @@ func gain_wells(n: int) -> void:
 	_ring_toast(r)
 
 
-## Names a new Ring and the slots it opens.
+## Names a new Ring and the slots it opens; the day's lent rules follow.
 func _ring_toast(before: int) -> void:
+	growth.refresh()
+	if main != null:
+		main.refresh_player()
 	if growth.ring() > before:
 		toast("The %s: %d spellbook slots" % [growth.ring_name(), growth.slots()])
 
 
-## The button under the page when a blocking effect is waiting.
+## The button under the panel when a blocking effect is waiting.
 func pending_label() -> String:
 	match pending.get("op", ""):
 		"fight":
@@ -286,7 +414,7 @@ func pending_label() -> String:
 
 ## Space, Enter or the single button: carry on past a blocking effect.
 func advance() -> void:
-	if screen != "scene":
+	if not in_dialogue() and not (fight_resolver.is_valid() and not cur.is_empty()):
 		return
 	if not pending.is_empty():
 		Sfx.play("page")
@@ -305,42 +433,59 @@ func advance() -> void:
 				var t := 0
 				if parts.size() > 1:
 					t = maxi(0, run.TIMES.find(parts[1]))
-				run.skip_to(int(parts[0]), t)
-				run.save()
-				next_slot()
+				_skip_to(int(parts[0]), t)
 		return
 	if opts.size() == 1:
 		choose(0)
 
 
 func choose(i: int) -> void:
-	if screen != "scene" or not pending.is_empty() or i < 0 or i >= opts.size():
+	if cur.is_empty() or not pending.is_empty() or i < 0 or i >= opts.size():
 		return
 	var c: Dictionary = opts[i]
 	Sfx.play("page")
 	if c.get("target", "") != "":
 		play(c["target"])
 	else:
-		finish_pick()
+		finish_scene()
 
 
-## The scene chain is over: use up the time of day (unless it was free) and move on.
-func finish_pick() -> void:
+## The scene chain is over: the town carries on.
+func finish_scene() -> void:
 	cur = {}
-	if uses_slot and not run.advance_time():
+	lines = []
+	opts = []
+	_stop_talking()
+	if main != null:
+		main.input_cool = 0.25  # the click that closed the panel doesn't also cast
+	var a := after
+	after = []
+	if "sleep" in a:
 		end_day()
-		return
-	uses_slot = true
-	next_slot()
+	elif "book" in a:
+		overlay = "book"
 
+
+## The weeks that pass in the slice: on to day `d` at time `t`, where something is waiting.
+func _skip_to(d: int, t: int) -> void:
+	cur = {}
+	lines = []
+	growth.end_fight()
+	run.skip_to(d, t)
+	run.save()
+	growth.begin_fight()
+	world.reset_day()
+	dawn_t = 0.0
+	_start_period()
+
+
+# --- fights in place ---------------------------------------------------------------------
 
 func _start_fight(id: String) -> void:
 	fight_id = id
 	var enc: Dictionary = encounters[id].duplicate(true)
 	if enc.has("waived") and run.knows("trial_" + id.trim_suffix("_trial")):
 		enc["waves"] = enc["waived"]
-	if id == "mill_risen" and run.knows("millrace"):
-		enc["millrace"] = true
 	if fight_resolver.is_valid():
 		var r = fight_resolver.call(id)  # won, or {"won", "kills"}
 		if r is Dictionary:
@@ -348,55 +493,100 @@ func _start_fight(id: String) -> void:
 		else:
 			fight_done(bool(r))
 		return
-	set_screen("fight")
-	main.start_slice_fight(enc)
+	main.start_world_fight(enc, spawns_for(id))
+
+
+## Where encounter `id` comes from (data/world/map.json "spawns"): fixed points, and/or a ring of
+## mist round you ("ring": [near, far], "ring_n" points, 8 unless given). It can also move you (the tide pulls you to the north door) and open a door.
+func spawns_for(id: String) -> Array:
+	var rule: Dictionary = world.map.d["spawns"].get(id, {})
+	if rule.has("you") and main != null:
+		main.place_player(Vector2(rule["you"][0], rule["you"][1]))
+	if rule.has("open"):
+		world.map.doors[str(rule["open"])]["open"] = true
+	var out: Array = []
+	for p in rule.get("points", []):
+		out.append(Vector2(p[0], p[1]))
+	if rule.has("ring"):
+		var at: Vector2 = world.player_pos()
+		var rng := RandomNumberGenerator.new()
+		rng.seed = run.day() * 31 + run.loop()
+		var tries := 0
+		var want: int = out.size() + int(rule.get("ring_n", 8))
+		while out.size() < want and tries < 200:
+			tries += 1
+			var q: Vector2 = at + Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(rule["ring"][0], rule["ring"][1])
+			if world.map.bounds.grow(-20).has_point(q) and not world.map.solid_at(q, 8.0) and not world.map.in_water(q, 6.0):
+				out.append(q)
+	return out
 
 
 ## Called by main.gd when a cutscene is over: the scene carries on from where it stopped.
 func cutscene_done() -> void:
-	set_screen("scene")
 	_run_steps()
 
 
 ## Called by main.gd when a fight started here is over.
 func fight_done(won: bool, kills := 0) -> void:
-	set_screen("scene")
 	if kills > 0:
 		gain_wells(kills * int(growth.d["wells"]["kill"]))
+	var lethal := bool(encounters[fight_id].get("lethal", true))
+	if not won and not lethal and main != null and not fight_resolver.is_valid():
+		main.arena.resume_explore()
 	var outs: Dictionary = cur.get("outcomes", {})
 	var key := "won" if won else "lost"
 	if outs.has(key):
 		play(outs[key])
 		return
-	if not won and bool(encounters[fight_id].get("lethal", true)):
+	if not won and lethal:
 		lines = []
 		end_loop("fight:" + fight_id)
 		return
 	_run_steps()
 
 
-func end_loop(cause: String) -> void:
-	Sfx.play("death")
-	growth.loop_over()
-	run.end_loop(cause)
-	cur = {}
-	pending = {}
-	set_screen("death")
+# --- the spellbook (from your desk) ---------------------------------------------------------
+
+func _pick_slot(i: int) -> void:
+	book_slot = i
 
 
-## From the death screen: wake on day 1 of the next loop.
-func wake() -> void:
-	if screen != "death":
-		return
-	run.wake()
-	begin_day()
+func _put_model(id: String) -> void:
+	if growth.set_slot(book_slot, id):
+		growth.refresh()
+		main.refresh_book()
 
 
-## From the end-of-slice card: keep playing loops.
-func keep_playing() -> void:
-	run.mem["slice_end_shown"] = true
-	run.save()
-	set_screen("dawn")
+func _slot_ring(i: int) -> String:
+	var sl: Array = growth.d["slots"]
+	for r in sl.size():
+		if int(sl[r]) > i:
+			return growth.ring_name(r)
+	return ""
+
+
+# --- the map ---------------------------------------------------------------------------------
+
+## The map's frame on screen, and the scale from the town's sim pixels to it.
+const MAP_RECT := Rect2(40, 70, 880, 420)
+
+
+func map_xf() -> Array:
+	var b: Rect2 = world.map.bounds
+	var k := minf(MAP_RECT.size.x / b.size.x, (MAP_RECT.size.y - 30) / b.size.y)
+	var off := MAP_RECT.position + Vector2((MAP_RECT.size.x - b.size.x * k) * 0.5, 24)
+	return [off, k]
+
+
+func to_map(p: Vector2) -> Vector2:
+	var xf := map_xf()
+	return xf[0] + p * float(xf[1])
+
+
+## Click a place on the map to walk there along the streets.
+func map_walk(place: String) -> void:
+	overlay = ""
+	main.walk_to(world.map.place_centre(place))
 
 
 # --- the Ledger --------------------------------------------------------------------
@@ -429,31 +619,23 @@ func toast(s: String) -> void:
 
 
 func toggle_ledger() -> void:
-	if screen in ["board", "scene", "dawn", "death"]:
-		ledger_open = not ledger_open
+	if screen in ["world", "death"]:
+		overlay = "" if overlay == "ledger" else "ledger"
 
 
-# --- input -------------------------------------------------------------------------
-
-func _process(dt: float) -> void:
-	scene_t += dt
-	_track_play(dt)
-	for t in toasts.duplicate():
-		t["t"] += dt
-		if t["t"] > 4.0:
-			toasts.erase(t)
-	if visible:
-		queue_redraw()
+func toggle_map() -> void:
+	if screen == "world" and cur.is_empty():
+		overlay = "" if overlay == "map" else "map"
 
 
 # --- playtest ------------------------------------------------------------------------
 
-## Counts real time played and, once a second in a fight, the frame rate, for the run summary.
+## Counts real time played and, once a second in town, the frame rate, for the run summary.
 func _track_play(dt: float) -> void:
 	if screen == "title" or main == null or main.bot.is_valid() or fight_resolver.is_valid():
 		return
 	run.mem["play_s"] = float(run.mem.get("play_s", 0.0)) + dt
-	if screen != "fight":
+	if screen != "world":
 		return
 	fps_t += dt
 	if fps_t >= 1.0:
@@ -467,7 +649,7 @@ func _track_play(dt: float) -> void:
 
 ## A plain-text report of this month for the feedback form.
 func run_summary() -> String:
-	var out: Array = ["Vellmar slice · build %s · %s" % [BuildId.ID, OS.get_name()]]
+	var out: Array = ["Vellmar open world · build %s · %s" % [BuildId.ID, OS.get_name()]]
 	out.append("Played %d min · loop %d, day %d, %s · %s, %d wells" % [roundi(float(run.mem.get("play_s", 0.0)) / 60.0),
 		run.loop(), run.day(), run.time_name().to_lower(), growth.ring_name(), growth.wells()])
 	var known: Array = run.known_ids().filter(func(id): return ledger.has(id) and ledger[id]["kind"] != "trial")
@@ -486,7 +668,7 @@ func run_summary() -> String:
 		out.append("Loop %d died on day %d, %s: %s (%d learned)" % [d["loop"], d["day"], str(d["time"]).to_lower(), d["cause"], d["learned"].size()])
 	var f: Dictionary = run.mem.get("fps", {})
 	if int(f.get("n", 0)) > 0:
-		out.append("Fights: %d fps on average, %d at worst · graphics %s%s" % [roundi(float(f["sum"]) / int(f["n"])), int(f["min"]),
+		out.append("In town: %d fps on average, %d at worst · graphics %s%s" % [roundi(float(f["sum"]) / int(f["n"])), int(f["min"]),
 			main.gfx, " (now low)" if main.view != null and main.view.low and main.gfx == "auto" else ""])
 	return "\n".join(out)
 
@@ -507,30 +689,38 @@ func _draw_playtest_buttons(summary := true) -> void:
 		button(Rect2(626, 16, 170, 26), "Copy run summary", copy_summary, 0, 13)
 	button(Rect2(806, 16, 134, 26), "Feedback form", open_feedback, 0, 13)
 
-
 func _unhandled_input(ev: InputEvent) -> void:
-	if not visible or main == null or main.bot.is_valid():
+	if main == null or main.bot.is_valid():
 		return
-	if ev is InputEventKey and ev.pressed and not ev.echo:
-		var k: int = ev.physical_keycode
-		if k == KEY_L:
-			toggle_ledger()
-		elif k == KEY_M:
-			Sfx.muted = not Sfx.muted
-			Sfx.ambience(not Sfx.muted and screen in ["board", "scene", "dawn"])
-			toast("Sound off (M)" if Sfx.muted else "Sound on (M)")
-		elif ledger_open and k == KEY_ESCAPE:
-			ledger_open = false
-		elif ledger_open and k >= KEY_1 and k <= KEY_4:
-			ledger_tab = k - KEY_1
-		elif k >= KEY_1 and k <= KEY_9:
-			press_key(k - KEY_0)
-		elif k == KEY_SPACE or k == KEY_ENTER or k == KEY_KP_ENTER:
+	if not (ev is InputEventKey and ev.pressed and not ev.echo):
+		return
+	var k: int = ev.physical_keycode
+	var dlg := in_dialogue()
+	if k == KEY_L:
+		toggle_ledger()
+	elif k == KEY_F8:
+		Sfx.muted = not Sfx.muted
+		Sfx.ambience(not Sfx.muted and screen == "world")
+		toast("Sound off (F8)" if Sfx.muted else "Sound on (F8)")
+	elif k == KEY_M and screen == "world":
+		toggle_map()
+	elif k == KEY_ESCAPE and overlay != "":
+		overlay = ""
+	elif overlay == "ledger" and k >= KEY_1 and k <= KEY_4:
+		ledger_tab = k - KEY_1
+	elif (dlg or overlay == "book") and k >= KEY_1 and k <= KEY_9:
+		press_key(k - KEY_0)
+	elif k == KEY_G and screen == "world" and not dlg and overlay == "" and main.mode == "world":
+		world.interact(world.reachable())
+	elif k == KEY_Z and screen == "world" and not dlg and overlay == "":
+		wait()
+	elif k == KEY_SPACE or k == KEY_ENTER or k == KEY_KP_ENTER:
+		if dlg:
+			advance()
+		elif overlay == "book":
+			overlay = ""
+		else:
 			match screen:
-				"scene":
-					advance()
-				"dawn":
-					start_day()
 				"death":
 					wake()
 				"end":
@@ -540,9 +730,11 @@ func _unhandled_input(ev: InputEvent) -> void:
 						continue_month()
 					else:
 						new_month()
-		else:
-			return
-		get_viewport().set_input_as_handled()
+				_:
+					return
+	else:
+		return
+	get_viewport().set_input_as_handled()
 
 
 func _gui_input(ev: InputEvent) -> void:
@@ -554,31 +746,37 @@ func _gui_input(ev: InputEvent) -> void:
 # --- drawing -------------------------------------------------------------------------
 
 func _draw() -> void:
+	begin_text(screen == "world" and overlay == "")  # the map, book and Ledger cover the town
 	begin_buttons()
-	draw_rect(Rect2(0, 0, 960, 540), NIGHT)
 	match screen:
 		"title":
+			draw_rect(Rect2(0, 0, 960, 540), NIGHT)
 			_draw_title()
-		"dawn":
-			_draw_dawn()
-		"board":
-			_draw_board()
-		"scene":
-			_draw_scene()
+		"world":
+			if main.mode in ["world", "fight"]:
+				_draw_world()
 		"death":
+			draw_rect(Rect2(0, 0, 960, 540), NIGHT)
 			_draw_death()
 		"end":
+			draw_rect(Rect2(0, 0, 960, 540), NIGHT)
 			_draw_end()
-	if ledger_open:
-		begin_buttons()
-		_draw_ledger()
-	else:
-		_draw_hint()
+	match overlay:
+		"ledger":
+			begin_buttons()
+			_draw_ledger()
+		"map":
+			begin_buttons()
+			_draw_map()
+		"book":
+			begin_buttons()
+			_draw_book()
+	if overlay != "ledger":
 		_draw_toasts()
 	end_buttons()
 
 
-## This screen's first-loop hint, or "" once it has been seen.
+## A first-loop hint, or "" once it has been done.
 func hint_for(s: String) -> String:
 	if not HINTS.has(s) or run.loop() > 1 and s != "death":
 		return ""
@@ -587,78 +785,267 @@ func hint_for(s: String) -> String:
 	return "" if run.mem["hints"].has(s) else HINTS[s]
 
 
-func _draw_hint() -> void:
-	var h := hint_for(screen)
-	if h == "":
-		return
-	var rows: Array = wrap_text(h, 560.0, 13)
-	var r := Rect2(190, 502 - (rows.size() - 1) * 17, 580, 14 + rows.size() * 17)
-	if screen == "scene":
-		r.position = Vector2(700, 300)
-		r.size.x = 236
-		rows = wrap_text(h, 200.0, 13)
-		r.size.y = 14 + rows.size() * 17
-	draw_rect(r, Color(0.02, 0.03, 0.07, 0.94))
+func _draw_hint(h: String, r: Rect2) -> void:
+	var rows: Array = wrap_text(h, r.size.x - 28, 13)
+	r.size.y = 14 + rows.size() * 17
+	draw_rect(r, Color(0.02, 0.03, 0.07, 0.9))
 	draw_rect(r, Color(HOURS, 0.6), false, 1.0)
 	for i in rows.size():
 		text(r.position + Vector2(14, 20 + i * 17), rows[i], 13, Color(HOURS, 0.95))
 
 
-func _header() -> void:
-	moons(Vector2(480, 26), run.day())
-	title(Vector2(24, 60), "Loop %d  ·  Day %d" % [run.loop(), run.day()], 18, GOLD)
-	if screen in ["board", "scene"]:
-		var x := 960.0 - 24.0
-		for i in range(run.TIME_NAMES.size() - 1, -1, -1):
-			var n: String = run.TIME_NAMES[i]
-			var w := text_w(n, 13) + 16.0
-			x -= w
-			var col: Color = GOLD if i == run.time() else Color(PAPER, 0.35 if i < run.time() else 0.7)
-			text(Vector2(x, 60), n, 13, col)
-	button(Rect2(24, 500, 120, 28), "Ledger  (L)", toggle_ledger, 0, 13)
-
-
 func _draw_title() -> void:
 	title(Vector2(0, 150), "Wizard", 58, HAIR, HORIZONTAL_ALIGNMENT_CENTER, 960)
-	text(Vector2(0, 186), "The last month of Vellmar  ·  vertical slice: days 1 to 7 and the Long Night", 16, PAPER, HORIZONTAL_ALIGNMENT_CENTER, 960)
+	text(Vector2(0, 186), "The last month of Vellmar  ·  open-world prototype: days 1 to 7 and the Long Night", 16, PAPER, HORIZONTAL_ALIGNMENT_CENTER, 960)
+	text(Vector2(0, 210), "Walk the town, talk to people where they stand, and let your magic touch the world.", 13, DIM, HORIZONTAL_ALIGNMENT_CENTER, 960)
 	var y := 250.0
-	if run.has_save() and run.loop() >= 1 and not run.known_ids().is_empty():
+	if run.has_save() and not run.known_ids().is_empty():
 		button(Rect2(370, y, 220, 34), "Continue  (loop %d, day %d)" % [run.loop(), run.day()], continue_month, 1, 15)
 		y += 44.0
 		button(Rect2(370, y, 220, 34), "Begin a new month", new_month, 2, 15)
 	else:
 		button(Rect2(370, y, 220, 34), "Begin", new_month, 1, 15)
-	y += 44.0
-	button(Rect2(370, y, 220, 34), "Test scenes", func(): main.open_tests(), 3, 15)
 	_draw_playtest_buttons(run.has_save() and not run.known_ids().is_empty())
 	var ctl = main.controls
 	var g: String = {"auto": "auto", "high": "high", "low": "low"}.get(main.gfx, "auto")
-	text(Vector2(0, 470), "Tab  ·  Fight controls: %s        F4  ·  Graphics: %s" % [ctl.NAMES[ctl.scheme], g], 15, GOLD, HORIZONTAL_ALIGNMENT_CENTER, 960)
-	text(Vector2(0, 494), "Pick places on the board with the mouse. Number keys pick choices, Space carries on, L opens the Ledger.", 13, DIM, HORIZONTAL_ALIGNMENT_CENTER, 960)
+	text(Vector2(0, 446), "Tab  ·  Controls: %s        F4  ·  Graphics: %s" % [ctl.NAMES[ctl.scheme], g], 15, GOLD, HORIZONTAL_ALIGNMENT_CENTER, 960)
+	var walk := "Right-click to walk and to talk" if ctl.league() else "WASD to walk"
+	text(Vector2(0, 472), "%s  ·  G talks and uses  ·  M map  ·  Z wait  ·  L Ledger  ·  F8 sound" % walk, 13, DIM, HORIZONTAL_ALIGNMENT_CENTER, 960)
 
 
-func _draw_dawn() -> void:
-	backdrop.paint(self, "room", 0, run.day(), scene_t)
-	_header()
-	var r := Rect2(130, 84, 700, 404)
+## The town's own layer: the day card, the place you walked into, what people say as you pass,
+## what G would do, and the dialogue panel.
+func _draw_world() -> void:
+	var view = main.view
+	if view == null:
+		return
+	var dlg := in_dialogue()
+	# People's barks over their heads.
+	# The nearest few only, and never over the HUD or each other, so a crowd stays readable.
+	if not dlg and main.mode == "world":
+		var near: Array = world.people.list.filter(func(p): return p.bark != "" and p.on and p.fade <= 0.5)
+		var me: Vector2 = world.player_pos()
+		near.sort_custom(func(a, b): return a.pos.distance_squared_to(me) < b.pos.distance_squared_to(me))
+		var taken: Array = [Rect2(0, 0, 960, 90), Rect2(0, 0, 236, 150), Rect2(220, 405, 740, 135)]
+		if overlay == "" and hint_for("walk") != "":
+			taken.append(Rect2(250, 322, 460, 50))  # the walk hint, drawn below
+		var shown := 0
+		for p in near:
+			if shown >= MAX_BARKS:
+				break
+			var at: Vector2 = view.to_screen(p.pos, 2.5)
+			var a := clampf(float(world.cfg["bark_life"]) - p.bark_t, 0.0, 1.0) * clampf(p.bark_t * 5.0, 0.0, 1.0)
+			var r := _bubble_rect(at, p.bark, p.name if not p.crowd else "")
+			if taken.any(func(t): return t.intersects(r.grow(4.0))):
+				continue
+			taken.append(r)
+			shown += 1
+			_bubble(r, p.bark, a, p.name if not p.crowd else "")
+	# What G would do.
+	var target: Dictionary = world.reachable() if not dlg and overlay == "" and main.mode == "world" else {}
+	if not target.is_empty():
+		var h := 2.2 if target["type"] == "person" else float(world.map.items[target["id"]].get("height", 1.1))
+		var at: Vector2 = view.to_screen(target["pos"], h)
+		var label := "G  ·  %s %s" % [target["verb"], target["name"]] if target["type"] == "person" else "G  ·  %s: %s" % [target["verb"], target["name"]]
+		var w := text_w(label, 13) + 20.0
+		var r := Rect2(at + Vector2(-w * 0.5, -30), Vector2(w, 22))
+		draw_rect(r, Color(BG, 0.85))
+		draw_rect(r, Color(GOLD, 0.6), false, 1.0)
+		text(r.position + Vector2(10, 16), label, 13, GOLD)
+	# The day card at dawn, and the name of each place you walk into.
+	var card_s := float(world.cfg["dawn_card_s"])
+	if dawn_t < card_s:
+		var a := clampf(card_s - dawn_t, 0.0, 1.0) * clampf(dawn_t * 3.0, 0.0, 1.0)
+		var left: int = 28 - run.day()
+		var sub := "Dawn over Vellmar."
+		if run.day() == 1 and run.loop() == 1:
+			sub = "The first day."
+		elif run.day() == 1:
+			sub = "Day one again. You remember everything; your hands don't."
+		elif run.time() == 4:
+			sub = "Night."
+		title(Vector2(0, 170), "Day %d" % run.day(), 40, Color(GOLD, a), HORIZONTAL_ALIGNMENT_CENTER, 960)
+		text(Vector2(0, 200), "%s  %d day%s to the Eclipse." % [sub, left, "" if left == 1 else "s"], 15, Color(PAPER, a), HORIZONTAL_ALIGNMENT_CENTER, 960)
+	elif place_t < 3.0 and _place != "" and not dlg and main.mode == "world":
+		var a := clampf(3.0 - place_t, 0.0, 1.0) * clampf(place_t * 3.0, 0.0, 1.0)
+		title(Vector2(0, 130), world.map.place_name(_place), 20, Color(HAIR, a * 0.9), HORIZONTAL_ALIGNMENT_CENTER, 960)
+	if dlg:
+		_draw_dialogue()
+	elif main.mode == "world" and overlay == "":
+		var h := hint_for("walk")
+		if h != "":
+			_draw_hint(h, Rect2(250, 322, 460, 0))  # under the wizard, clear of the place name
+			if scene_t > 12.0 or world.clock > 20.0:
+				run.mem["hints"]["walk"] = true
+
+
+## A speech bubble over a head: a line someone says as you pass.
+func _bubble_rect(at: Vector2, s: String, who := "") -> Rect2:
+	var rows: Array = wrap_text(s, 220.0, 12)
+	var w := 0.0
+	for row in rows:
+		w = maxf(w, text_w(row, 12))
+	w += 18.0
+	var h := 8.0 + rows.size() * 15.0 + (14.0 if who != "" else 0.0)
+	var r := Rect2(at + Vector2(-w * 0.5, -h - 8), Vector2(w, h))
+	r.position.x = clampf(r.position.x, 8, 952 - w)
+	return r
+
+
+func _bubble(r: Rect2, s: String, a: float, who := "") -> void:
+	var rows: Array = wrap_text(s, 220.0, 12)
+	draw_rect(r, Color(BG, 0.8 * a))
+	draw_rect(r, Color(HAIR, 0.35 * a), false, 1.0)
+	var y := r.position.y + 14
+	if who != "":
+		text(Vector2(r.position.x + 9, y), who, 11, Color(GOLD, a))
+		y += 14
+	for row in rows:
+		text(Vector2(r.position.x + 9, y), row, 12, Color(PAPER, a))
+		y += 15
+
+
+## The dialogue panel at the bottom of the screen, over the live town.
+func _draw_dialogue() -> void:
+	var r := Rect2(130, 318, 700, 212)
 	panel(r)
-	title(r.position + Vector2(0, 44), "Day %d" % run.day(), 32, GOLD, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-	var sub := "Dawn over Vellmar."
-	if run.day() == 1 and run.loop() == 1:
-		sub = "The first day."
-	elif run.day() == 1:
-		sub = "Day one again. You remember everything; your hands don't."
-	elif run.day() == 7:
-		sub = "The seventh day."
-	var left: int = 28 - run.day()
-	text(r.position + Vector2(0, 72), "%s  %d day%s to the Eclipse." % [sub, left, "" if left == 1 else "s"], 15, PAPER, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-	_draw_growth(Vector2(r.position.x + 40, r.position.y + 110))
-	_draw_book_editor(Vector2(r.position.x + 40, r.position.y + 168))
-	button(Rect2(r.position.x + r.size.x / 2.0 - 80, r.end.y - 48, 160, 34), "Begin the day", start_day, 0, 15)
+	var who: String = world.people.get_person(talking).name if talking != "" and world.people.get_person(talking) != null else world.map.place_name(world.here)
+	title(r.position + Vector2(24, 26), who, 15, Color(HAIR, 0.85))
+	var nopt := maxi(1, opts.size()) if pending.is_empty() else 1
+	var bottom := r.end.y - 12.0 - 34.0 * nopt
+	# The newest lines that fit above the choices.
+	var shown: Array = []
+	var room := bottom - (r.position.y + 50.0)
+	for i in range(lines.size() - 1, -1, -1):
+		var ln: Dictionary = lines[i]
+		var hgt := float(wrap_text(ln["text"], r.size.x - (150.0 if ln["who"] != "" else 48.0), 14).size()) * 18.5 + 5.0
+		if room - hgt < 0.0 and not shown.is_empty():
+			break
+		room -= hgt
+		shown.push_front(ln)
+	var y := r.position.y + 50.0
+	for ln in shown:
+		if ln["who"] != "":
+			text(Vector2(r.position.x + 24, y), ln["who"], 13, GOLD)
+			y = para(Vector2(r.position.x + 110, y), ln["text"], r.size.x - 134, 14, PAPER) + 5.0
+		else:
+			y = para(Vector2(r.position.x + 24, y), ln["text"], r.size.x - 48, 14, Color(PAPER, 0.85)) + 5.0
+	if in_long_night():
+		_draw_censer(Vector2(880, 400))
+	if not pending.is_empty():
+		button(Rect2(r.position.x + 24, r.end.y - 44, 200, 30), pending_label(), advance, 1, 14)
+		return
+	y = bottom
+	for i in opts.size():
+		button(Rect2(r.position.x + 24, y, r.size.x - 48, 30), opts[i]["text"], choose.bind(i), i + 1, 14)
+		y += 34.0
+	var h := hint_for("talk")
+	if h != "":
+		_draw_hint(h, Rect2(r.position.x + 120, r.position.y - 60, 460, 0))
+		if scene_t > 6.0:
+			run.mem["hints"]["talk"] = true
 
 
-## Your Ring, wells, Vitality and Aether, and how fast you are relearning.
-func _draw_growth(at: Vector2) -> void:
+func in_long_night() -> bool:
+	var id: String = cur.get("id", "")
+	return id == "long_night" or id.begins_with("ln_")
+
+
+## The Long Night's censer: it fills with each topic, and the night ends when it's full.
+func _draw_censer(c: Vector2) -> void:
+	var told: int = mini(story.ctx.count("topic_"), 3)
+	var t := Time.get_ticks_msec() / 1000.0
+	for dx in [-14.0, 0.0, 14.0]:
+		draw_line(c + Vector2(0, -70), c + Vector2(dx, -18), Color(HAIR, 0.6), 1.0)
+	draw_colored_polygon(PackedVector2Array([c + Vector2(-22, -18), c + Vector2(22, -18), c + Vector2(14, 6), c + Vector2(-14, 6)]), Color("8a6a34"))
+	draw_arc(c + Vector2(0, -18), 22.0, PI, TAU, 16, Color("c8a050"), 2.0)
+	draw_rect(Rect2(c + Vector2(-8, 6), Vector2(16, 6)), Color("6a4e26"))
+	for i in told:
+		for k in 6:
+			var f := fmod(t * 0.35 + k / 6.0 + i * 0.13, 1.0)
+			var p := c + Vector2(sin(f * 6.0 + i * 2.0) * (6.0 + f * 14.0), -26.0 - f * (60.0 + i * 18.0))
+			draw_circle(p, 3.0 + f * 7.0, Color(0.8, 0.82, 0.9, 0.22 * (1.0 - f)))
+	for i in 3:
+		var pc := c + Vector2(-16 + i * 16, 30)
+		if i < told:
+			star(pc, 5.0, HOURS)
+		else:
+			draw_arc(pc, 4.0, 0, TAU, 12, Color(HAIR, 0.5), 1.0)
+	text(Vector2(c.x - 70, c.y + 58), "The censer: %d of 3" % told, 12, DIM, HORIZONTAL_ALIGNMENT_CENTER, 140)
+
+
+## The map (M): the town in Star Atlas lines, its places, you, the people you know, and the
+## events you know are coming today. Click a place to walk there.
+func _draw_map() -> void:
+	draw_rect(Rect2(0, 0, 960, 540), Color(0, 0, 0, 0.72))
+	draw_rect(MAP_RECT, NIGHT)
+	panel(MAP_RECT, Color(GOLD, 0.6))
+	title(MAP_RECT.position + Vector2(20, 22), "Vellmar  ·  Day %d, %s" % [run.day(), run.time_name().to_lower()], 15, GOLD)
+	var xf := map_xf()
+	var k := float(xf[1])
+	var m = world.map
+	var rect := func(r: Rect2) -> Rect2: return Rect2(to_map(r.position), r.size * k)
+	for c in m.d.get("cliffs", []):
+		draw_rect(rect.call(Rect2(c[0], c[1], c[2], c[3])), Color(HAIR, 0.04))
+	for b in m.d["blocks"]:
+		draw_rect(rect.call(Rect2(b[0], b[1], b[2], b[3])), Color(PAPER, 0.08))
+	for id in m.buildings:
+		draw_rect(rect.call(m.buildings[id]["rect"]), Color(PAPER, 0.14))
+	for w in m.d["walls"]:
+		draw_rect(rect.call(Rect2(w[0], w[1], w[2], w[3])), Color(HAIR, 0.5))
+	for w: Rect2 in m.water:
+		draw_rect(rect.call(w), Color(0.4, 0.6, 0.9, 0.45))
+	for c in m.circles:
+		draw_circle(to_map(c[0]), float(c[1]) * k, Color(PAPER, 0.12))
+	var mouse := get_local_mouse_position()
+	var events: Array = story.known_events()
+	for id in m.places:
+		if id in ["streets", "college"]:
+			continue
+		var c: Vector2 = to_map(m.place_centre(id))
+		var hot := c.distance_to(mouse) < 26.0
+		star(c, 6.0 if hot else 4.0, GOLD if hot else Color(PAPER, 0.85))
+		text(c + Vector2(-70, 18), m.place_name(id), 12, GOLD if hot else PAPER, HORIZONTAL_ALIGNMENT_CENTER, 140)
+		var ky := c.y + 32
+		for e in events:
+			if id in str(e["where"]).split(", ") or _where_place(e["where"]) == id:
+				text(Vector2(c.x - 80, ky), "%s: %s" % [str(e["time"]).capitalize(), e["title"]], 11, HOURS, HORIZONTAL_ALIGNMENT_CENTER, 160)
+				ky += 13
+		buttons.append({"r": Rect2(c - Vector2(30, 14), Vector2(60, 40)), "act": map_walk.bind(id), "key": 0})
+	for p in world.people.list:
+		var known_as: String = KNOWN_PEOPLE.get(p.id, "")
+		if p.on and known_as != "" and run.knows(known_as):
+			var c := to_map(p.pos)
+			draw_circle(c, 3.0, HOURS)
+			text(c + Vector2(5, 4), p.name, 10, Color(HOURS, 0.9))
+	var you := to_map(world.player_pos())
+	draw_circle(you, 4.5, Color(0.5, 0.75, 1.0))
+	draw_arc(you, 7.5, 0, TAU, 16, Color(0.5, 0.75, 1.0, 0.6), 1.0)
+	if not main.controls.route.is_empty():
+		var prev := you
+		for q in main.controls.route:
+			draw_line(prev, to_map(q), Color(0.5, 0.75, 1.0, 0.5), 1.0)
+			prev = to_map(q)
+	text(Vector2(MAP_RECT.position.x, MAP_RECT.end.y - 10), "Click a place to walk there  ·  M or Esc closes", 12, DIM, HORIZONTAL_ALIGNMENT_CENTER, MAP_RECT.size.x)
+
+
+## Which place an event's person or item belongs to, for the map.
+func _where_place(where: String) -> String:
+	if world.map.items.has(where):
+		return world.map.place_at(world.map.items[where]["at"])
+	var p = world.people.get_person(where)
+	return world.map.place_at(p.pos) if p != null else ""
+
+
+## The spellbook, opened from your desk: pick a slot, then a Model you know. Slots open with
+## each Ring; a spell's tier needs a Ring too (controls the 1st, signatures the 4th).
+func _draw_book() -> void:
+	draw_rect(Rect2(0, 0, 960, 540), Color(0, 0, 0, 0.6))
+	var r := Rect2(130, 84, 700, 380)
+	draw_rect(r, NIGHT)
+	panel(r, Color(GOLD, 0.6))
+	title(r.position + Vector2(40, 40), "Your spellbook", 22, GOLD)
+	var at := Vector2(r.position.x + 40, r.position.y + 70)
 	var line := "%s  ·  %d wells  ·  Vitality %d  ·  Aether %d" % [growth.ring_name(), growth.wells(), int(growth.max_hp()), int(growth.max_aether())]
 	title(at, line, 15, HAIR)
 	var next := "The yard trial opens the 1st Ring." if growth.ring() == 0 else ""
@@ -674,11 +1061,7 @@ func _draw_growth(at: Vector2) -> void:
 	if not bits.is_empty():
 		next += ("  " if next != "" else "") + "Echo: " + ", ".join(bits) + "."
 	text(at + Vector2(0, 24), next, 13, DIM)
-
-
-## The spellbook: pick a slot, then a Model you know. Slots open with each Ring; a spell's tier
-## needs a Ring too (controls the 1st, signatures the 4th).
-func _draw_book_editor(at: Vector2) -> void:
+	at += Vector2(0, 58)
 	title(at, "Spellbook", 15, PAPER)
 	text(at + Vector2(96, 0), "pick a slot, then a spell", 12, DIM)
 	var book: Array = growth.book()
@@ -686,14 +1069,14 @@ func _draw_book_editor(at: Vector2) -> void:
 		var rr := Rect2(at + Vector2(i * 104, 14), Vector2(98, 46))
 		var open: bool = i < growth.slots()
 		var id: String = growth.slot_spell(i)
-		var border := Color(GOLD, 0.9) if open and i == dawn_slot else Color(HAIR, 0.45 if open else 0.15)
+		var border := Color(GOLD, 0.9) if open and i == book_slot else Color(HAIR, 0.45 if open else 0.15)
 		panel(rr, border)
 		if open:
 			var nm: String = growth.prog.spell(book[i])["name"] if id != "" else "(empty)"
 			text(rr.position + Vector2(0, 20), nm, 13, PAPER, HORIZONTAL_ALIGNMENT_CENTER, rr.size.x)
 			if id != "":
 				text(rr.position + Vector2(0, 38), "Practice %d" % growth.level(id), 11, DIM, HORIZONTAL_ALIGNMENT_CENTER, rr.size.x)
-			buttons.append({"r": rr, "act": _pick_slot.bind(i), "key": 0})
+			buttons.append({"r": rr, "act": _pick_slot.bind(i), "key": i + 1})
 		else:
 			text(rr.position + Vector2(0, 28), _slot_ring(i), 12, Color(PAPER, 0.35), HORIZONTAL_ALIGNMENT_CENTER, rr.size.x)
 	title(at + Vector2(0, 86), "Models you know", 15, PAPER)
@@ -705,149 +1088,8 @@ func _draw_book_editor(at: Vector2) -> void:
 		var label: String = growth.prog.spell(id)["name"]
 		if not ok:
 			label += "  (%s)" % growth.ring_name(growth.tier_ring(id)).trim_suffix(" Ring")
-		button(rr, label, _put_model.bind(id), 0, 12, ok and dawn_slot < growth.slots())
-
-
-func _slot_ring(i: int) -> String:
-	var sl: Array = growth.d["slots"]
-	for r in sl.size():
-		if int(sl[r]) > i:
-			return growth.ring_name(r)
-	return ""
-
-
-func _pick_slot(i: int) -> void:
-	dawn_slot = i
-
-
-func _put_model(id: String) -> void:
-	growth.set_slot(dawn_slot, id)
-
-
-func _draw_board() -> void:
-	_header()
-	var map := Rect2(24, 76, 912, 412)
-	panel(map, Color(HAIR, 0.35))
-	_draw_atlas(map)
-	title(Vector2(120, 300), "The College of Hours", 13, Color(HAIR, 0.5))
-	title(Vector2(560, 420), "Vellmar", 13, Color(HAIR, 0.5))
-	title(Vector2(770, 112), "The plateau", 13, Color(HAIR, 0.5))
-	for l in links:
-		var a: Array = places[l[0]]["pos"]
-		var b: Array = places[l[1]]["pos"]
-		draw_line(Vector2(a[0], a[1]), Vector2(b[0], b[1]), Color(HAIR, 0.22), 1.0)
-	var mouse := get_local_mouse_position()
-	for id in places:
-		var p: Dictionary = places[id]
-		var c := Vector2(p["pos"][0], p["pos"][1])
-		var r := Rect2(c - Vector2(60, 14), Vector2(120, 40))
-		var hot := r.has_point(mouse)
-		star(c, 7.0 if hot else 5.0, GOLD if hot else Color(PAPER, 0.85))
-		text(Vector2(c.x - 70, c.y + 22), p["name"], 13, GOLD if hot else PAPER, HORIZONTAL_ALIGNMENT_CENTER, 140)
-		var known: Array = story.known_today(id)
-		var ky := c.y + 38
-		for k in known:
-			text(Vector2(c.x - 80, ky), "%s: %s" % [str(k["time"]).capitalize(), k["title"]], 11, HOURS, HORIZONTAL_ALIGNMENT_CENTER, 160)
-			ky += 14
-		buttons.append({"r": r, "act": pick_place.bind(id), "key": 0})
-	text(Vector2(0, 474), "Where will you be at %s?" % run.time_name().to_lower(), 15, PAPER, HORIZONTAL_ALIGNMENT_CENTER, 960)
-	if run.time() >= 3:
-		button(Rect2(816, 500, 120, 28), "Sleep", sleep, 0, 13)
-
-
-## The place a scene is set in: its own place if it has one, else where you went.
-func scene_place() -> String:
-	if in_long_night():
-		return "room"
-	return here
-
-
-## The board as a star atlas: a field of faint stars, the graticule of a celestial chart, and a
-## soft glow over each district.
-func _draw_atlas(map: Rect2) -> void:
-	for i in 160:
-		var p := map.position + Vector2(fmod(i * 211.7, map.size.x), fmod(i * 97.3 + i * i * 0.13, map.size.y))
-		var a := 0.12 + fmod(i * 0.071, 0.25)
-		draw_circle(p, 0.7 + fmod(i * 0.37, 0.9), Color(PAPER, a * (0.75 + 0.25 * sin(scene_t * 0.8 + i))))
-	var pole := Vector2(480, 900)
-	for k in 7:
-		draw_arc(pole, 420.0 + k * 70.0, -PI * 0.78, -PI * 0.22, 64, Color(HAIR, 0.06), 1.0, true)
-	for k in 9:
-		var a := -PI * 0.75 + k * PI * 0.0625
-		var from := pole + Vector2.from_angle(a) * 420.0
-		var to := pole + Vector2.from_angle(a) * 900.0
-		draw_line(from, to, Color(HAIR, 0.05), 1.0)
-	for g in [[Vector2(250, 190), 190.0, HAIR], [Vector2(620, 320), 200.0, HOURS], [Vector2(830, 170), 120.0, PAPER]]:
-		for i in 6:
-			draw_circle(g[0], g[1] * (1.0 - i / 6.0), Color(g[2], 0.012))
-	var t: int = run.time()
-	# The hour: a small dial, the sun's or moon's position for this time of day.
-	var dc := Vector2(map.end.x - 46, map.end.y - 40)
-	draw_arc(dc, 22.0, PI, TAU, 24, Color(HAIR, 0.4), 1.0, true)
-	var ang := PI + PI * t / 4.0
-	var body := dc + Vector2.from_angle(ang) * 22.0
-	draw_circle(body, 4.0, HOURS if t < 4 else PAPER)
-
-
-func _draw_scene() -> void:
-	backdrop.paint(self, scene_place(), run.time(), run.day(), scene_t)
-	_header()
-	var r := Rect2(40, 90, 640, 400)
-	panel(r)
-	var place_name := ""
-	if places.has(scene_place()):
-		place_name = places[scene_place()]["name"]
-	if place_name != "":
-		title(r.position + Vector2(28, 34), place_name, 16, Color(HAIR, 0.8))
-	var y := r.position.y + 70.0
-	var shown := lines.slice(maxi(0, lines.size() - 9))
-	for ln in shown:
-		var who: String = ln["who"]
-		if who != "":
-			text(Vector2(r.position.x + 28, y), who, 14, GOLD)
-			y = para(Vector2(r.position.x + 110, y), ln["text"], r.size.x - 140, 15, PAPER)
-		else:
-			y = para(Vector2(r.position.x + 28, y), ln["text"], r.size.x - 56, 15, Color(PAPER, 0.85))
-		y += 6.0
-	y = maxf(y + 8.0, r.end.y - 44.0 * maxi(1, opts.size()) - 12.0) if pending.is_empty() else maxf(y + 8.0, r.end.y - 56.0)
-	if in_long_night():
-		_draw_censer(Vector2(818, 400))
-	if not pending.is_empty():
-		button(Rect2(r.position.x + 28, y, 200, 34), pending_label(), advance, 1, 15)
-		return
-	for i in opts.size():
-		button(Rect2(r.position.x + 28, y, r.size.x - 56, 34), opts[i]["text"], choose.bind(i), i + 1, 15)
-		y += 40.0
-
-
-func in_long_night() -> bool:
-	var id: String = cur.get("id", "")
-	return id == "long_night" or id.begins_with("ln_")
-
-
-## The Long Night's censer: it fills with each topic, and the night ends when it's full.
-func _draw_censer(c: Vector2) -> void:
-	var told: int = mini(story.ctx.count("topic_"), 3)
-	var t := Time.get_ticks_msec() / 1000.0
-	# Chains, bowl, lid.
-	for dx in [-14.0, 0.0, 14.0]:
-		draw_line(c + Vector2(0, -70), c + Vector2(dx, -18), Color(HAIR, 0.6), 1.0)
-	draw_colored_polygon(PackedVector2Array([c + Vector2(-22, -18), c + Vector2(22, -18), c + Vector2(14, 6), c + Vector2(-14, 6)]), Color("8a6a34"))
-	draw_arc(c + Vector2(0, -18), 22.0, PI, TAU, 16, Color("c8a050"), 2.0)
-	draw_rect(Rect2(c + Vector2(-8, 6), Vector2(16, 6)), Color("6a4e26"))
-	# Smoke: one plume per topic told, rising and curling.
-	for i in told:
-		for k in 6:
-			var f := fmod(t * 0.35 + k / 6.0 + i * 0.13, 1.0)
-			var p := c + Vector2(sin(f * 6.0 + i * 2.0) * (6.0 + f * 14.0), -26.0 - f * (60.0 + i * 18.0))
-			draw_circle(p, 3.0 + f * 7.0, Color(0.8, 0.82, 0.9, 0.22 * (1.0 - f)))
-	for i in 3:
-		var pc := c + Vector2(-16 + i * 16, 30)
-		if i < told:
-			star(pc, 5.0, HOURS)
-		else:
-			draw_arc(pc, 4.0, 0, TAU, 12, Color(HAIR, 0.5), 1.0)
-	text(Vector2(c.x - 80, c.y + 58), "The censer: %d of 3" % told, 12, DIM, HORIZONTAL_ALIGNMENT_CENTER, 160)
+		button(rr, label, _put_model.bind(id), 0, 12, ok and book_slot < growth.slots())
+	button(Rect2(r.position.x + r.size.x / 2.0 - 80, r.end.y - 48, 160, 32), "Close  (Space)", func(): overlay = "", 0, 14)
 
 
 func _draw_death() -> void:

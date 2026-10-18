@@ -1,35 +1,36 @@
-# Wizard: vertical slice
+# Wizard: open-world prototype
 
-The first end-to-end slice of the wizard game: **days 1 to 7 of Vellmar's looping month, and one Long Night**. You wake in a fire on the College stairs, spend each day choosing where to be, fight what comes, die (loop 1 always ends at the north door on day 7), and wake on day 1 again remembering everything. Knowledge stays; power resets. Get far enough and the Long Night with Wren shows you where the cipher notes come from. Godot 4.7, GDScript, web export.
+**Days 1 to 7 of Vellmar's looping month, and one Long Night, in a town you walk.** You wake in a fire on the College stairs, then walk the streets with the clock running: people keep their own schedules, you talk to them where they stand, pick up and use things, and your spells touch the town (fire lights lamps and burns hay, water douses them, force shoves crates). Fights happen where you are. Loop 1 always ends at the north door on day 7, and you wake on day 1 remembering everything. Knowledge stays; power resets. Godot 4.7, GDScript, web export.
 
-The design is the slice spec in the project's `design/slice/` (goals, core loops, day-by-day content, systems, tech plan); the wider design is in `design/gdd/` and the story in `design/story/`. Milestones so far: **M1 (Spine)**, where the whole flow runs, every day 1–7 scene and the Long Night are in as text, and fights launch from the board into the arena below; **M2 (Mystery)**, with deductions on the Ledger's Questions tab and the Long Night's censer; and **M3 (Fights and growth)**, with wells, Rings, Practice that resets each loop and the Echo that brings it back fast, the dawn spellbook, the Ward, and a knowledge route for each big fight; and **M4 (Look and feel)**, with a painted night backdrop for every place, the Star Atlas board, sound, first-visit hints, and the Fire and the Mourner as short 3D scenes where time runs backwards; and **M5 (Playtest)**, with a run summary and a feedback form for playtesters, and checks for the last two automated success criteria.
+The design is the open-world spec in the project's `design/open-world/` (README: goals and criteria; `world.md`: the town, people and schedules; `interactions.md`: talking, items and magic in the world; `tech-plan.md`). It remakes the earlier vertical slice (`design/slice/`, milestones M1 to M5), keeping its story, Ledger, growth and fights. This is milestone **OW1**: the whole of days 1–7 and the Long Night playable by walking.
 
-![The day board](docs/screens/slice_board.jpg)
+![Talking to Wren in the archive](docs/screens/world_wren.jpg)
 
-## The slice
+## Playing
 
-- **The day board.** Each day has five times: Morning, Noon, Afternoon, Dusk and Night. Pick a place on the star map for each; something happens there, or you can train, meditate or study. Some events happen wherever you are. Night is optional (Sleep ends the day); the city at night means Hollows.
-- **Scenes** are a few lines and a choice. Number keys pick, Space carries on.
-- **The Ledger** (L) keeps every clue, person, question and insight across loops. Three questions are deductions: once their clues are in, pick an answer; the right one becomes an insight, a wrong one costs nothing. The death screen lists what you learnt that loop.
-- **The Long Night** (day 27, if you survived day 7 with Wren as a friend): a censer fills with each of three topics you tell Wren. Tell Wren how it ends and the month comes apart.
-- **The story** is plain text in `data/slice/story/*.story` (format in `scripts/game/story.gd`), checked by `tools/tests/story_lint.gd`. Ledger entries are in `data/slice/ledger.json`, places in `data/slice/places.json`, fights in `data/slice/encounters.json`.
-- **Growth** (`scripts/game/growth.gd`, numbers in `data/slice/progression.json`): kills, patrols and meditating give **wells** (+2 Vitality and +1 Aether each); the yard trial is the **1st Ring**, then 20, 40 and 70 wells the 2nd to 4th. Rings open spellbook slots (2, 4, then 6) and spell tiers (Controls at the 1st, Signatures at the 4th). Wells, the Ring and each spell's **Practice** reset when you wake; below the best you reached before, both regrow three times as fast (the **Echo**), and each loop that reached day 7 adds 10% **Fluency**. Meditating and training are once a day. You change the spellbook at dawn, from the Models you know (four at the start, more studied with Wren).
-- **Fights with a knowledge route:** the risen at the Mill can only be knocked down, but they won't cross the millrace once Aldous has told you; Silas duels to three clean hits and always opens with his lance; the tide at the north door is barely survivable even at the 4th Ring, so bar the door. **C** is the Ward cantrip in the slice: two charges, each stops one shot.
-- **State** is in two layers (`scripts/game/run.gd`): memory, kept across loops, and the loop, reset on waking. Saved at each dawn.
-- **Look and sound (M4):** each place has a backdrop painted in code (`scripts/ui/backdrop.gd`) whose sky follows the time of day and the moon's phase; a scene names its place with a `backdrop:` header. The sounds are synthesised by `tools/sfx/make_sfx.py` (needs numpy) into `assets/sfx/` and played by the `Sfx` autoload; **M** mutes. A one-line hint shows the first time you see each screen. The Fire (day 1) and the Mourner (Lantern Market) play as short scenes in the fight view (`scripts/game/cutscene.gd`, started from the story with `+ cutscene fire`); **Space** skips. They use the fight yard as their stage for now, not the College stairs.
-- **Playtesting (M5):** the title, death and end screens have **Copy run summary** (loops, deaths, Ledger progress, minutes played and the frame rate in fights, plus the build) and **Feedback form**, which opens the playtest questions at https://claude.ai/artifact/HryjwPHEs8S6swcQYFam6c. CI stamps the build with its commit before the web export (`scripts/game/build_id.gd`).
-- **Speed in the browser:** the 3D world is not drawn while a story screen covers it, the 3D renders at most 1280 pixels across (high-DPI screens get it scaled up, the 2D stays sharp), and a slow frame runs at most three rule ticks. **F4** switches graphics between high and low (no glow, no sun shadow, fewer spell lights, 3D at 3/4 size); on "auto", a fight that stays under 40 fps for four seconds drops to low by itself.
-- **Tests:** `tools/tests/route.gd` plays loop 1 to the north door and loop 2 through the Long Night to the end of the slice; `tools/tests/relearn.gd` checks that a third loop regains the 3rd Ring by day 3 (success criterion 6); `tools/tests/encounters.gd` fights every slice fight with the bot, as a fresh Apprentice and as a 4th Ring wizard; `tools/tests/cutscenes.gd` plays both reverse scenes through the story, once skipped; `tools/tests/deaths.gd` checks that the first death of each kind teaches a Ledger entry (criterion 7), and `encounters.gd` also times each fight's frames (criterion 8). The route test also checks success criterion 5 (loop 1 takes 8 to 15 minutes of play).
+- **Walk** with WASD (or League's click to move; **Tab** switches schemes). The camera is close and steep over the wizard; the town is lit by the moon, its lamps and your spells.
+- **G** talks to the nearest person or uses the nearest item; their name shows when you're close. Scenes are a few lines and a choice: number keys pick, Space carries on. People say passing lines (barks) as you walk by.
+- **The clock.** Each day runs Morning, Noon, Afternoon, Dusk and Night while you walk; people move between spots as it does. Sleep in your room to end the day. **M** opens a map of the town with what you know; click a place to walk there.
+- **Magic in the world.** Ember Bolt lights a lamp or sets hay burning, Splash puts both out, a Pebble shoves a crate. Some things answer one element (an Ember Bolt on the Observatory wall teaches the scorch test).
+- **Fights in place.** The patrol, the yard trial, the risen at the Mill, Silas and the tide at the north door start where you stand. A ring of mist holds you near where the fight began. Each has a knowledge route: the risen won't cross the millrace once Aldous has told you, Silas always opens with his lance, and the tide is barely survivable, so bar the door. **C** is the Ward: two charges, each stops one shot.
+- **The Ledger** (L) keeps every clue, person, question and insight across loops; three questions are deductions. The death screen lists what you learnt that loop.
+- **The Long Night** (day 27, if you survived day 7 with Wren as a friend): a censer fills with each of three topics you tell Wren.
+- **Growth** (`scripts/game/growth.gd`, numbers in `data/slice/progression.json`): kills, patrols and meditating give wells; Rings open spellbook slots and spell tiers; everything resets when you wake but regrows faster (the Echo).
+- **F4** switches graphics between high and low; **F8** mutes. The title, death and end screens have **Copy run summary** and **Feedback form** for playtesters.
 
-![A scene in the archive](docs/screens/slice_scene.jpg)
+## Where things are
 
-![Dawn: the spellbook](docs/screens/slice_dawn.jpg)
+- **The town:** `data/world/map.json` (streets, houses, places, the street graph, spots, lamps, props, items, fight spawns), `data/world/people.json` (figures, schedules, barks), `data/world/props.json`. `scripts/world/map.gd` handles collision and paths, `scripts/world/world.gd` the town's state each tick (clock, people, props, lamps, magic reactions), `scripts/world/town_mesh.gd` and `world_view.gd` draw it.
+- **The story** is plain text in `data/world/story/*.story` (format in `scripts/game/story.gd`): scenes hang on a person (`talk:`), an item (`use:`, `cast:`) or a place (`arrive:`). Ledger entries are in `data/slice/ledger.json`, fights in `data/slice/encounters.json`.
+- **The HUD** (`scripts/hud.gd`) draws its shapes as one triangle batch (`scripts/ui/tris.gd`) with the moons and spellbook cached, which keeps the browser's draw calls down.
 
-![The Fire, backwards: the walker returns to the flames](docs/screens/slice_fire.jpg)
+## Checks
+
+`tools/tests/route.gd` walks a bot (`tools/tests/walker.gd`) through loop 1 to the north door and loop 2 through the Long Night, with the clock running; `story_lint.gd` checks every scene, person, item and spot; `relearn.gd` checks a third loop regains the 3rd Ring by day 3; `deaths.gd` that each first death teaches something; `encounters.gd` fights every fight in its place, fresh and strong, and times the frames (8 ms p95); `world_magic.gd` casts real spells at lamps, hay and crates; `cutscenes.gd` plays and skips the Fire. `tools/world_shot.gd` (needs a display) takes review screenshots and prints draw calls and lights at each.
 
 ## The fights
 
-The fights are the spellbook prototype below, started from the story with an encounter from `data/slice/encounters.json`. In the slice the fight borrows the loop's Practice and spellbook: sealed slots wait for a Ring, the top left shows your Ring and wells, and C is the Ward instead of a Magick. The old "Ambush at the Mill" fight and the test scenes are still reachable from the title card (Test scenes).
+The fights are the spellbook prototype below, started from the story with an encounter from `data/slice/encounters.json`. A fight borrows the loop's Practice and spellbook: sealed slots wait for a Ring, the top left shows your Ring and wells, and C is the Ward instead of a Magick. It starts where you stand in the town; enemies come from doors and a ring around you, and a ring of mist (`leash`) holds you near where it began.
 
 ![A patrol at the 2nd Ring: four open slots, two sealed, the Ward on C](docs/screens/slice_fight.jpg)
 
@@ -87,22 +88,6 @@ A Magick is on C whenever spells of both its spheres are in the book. Other pair
 
 ![Silas arrives](docs/screens/night_duel.jpg)
 
-## The fight
-
-Two waves of Dust Hollows (melee, red wedge telegraphs) and Hollow Slingers (red aim lines), then a duel with **Silas Vane, the Storm Rider**: a Spark skill shot, an Arc Lance line, Storm Call circles, and a blink out of your Pillars. At half HP he calls more Hollows. Win or fall, the **Loop Ledger** records the run and you wake again in the next loop.
-
-## Test scenes
-
-Press **T** on the title card to open the test menu, then press 1–8 or click a scene to jump straight in: the full fight, wave 1, wave 2, the duel with Silas, Backward Slingers on repeat, loop 2 with Rewind and your echo, the Orrery with every spell unlocked, or a practice yard of Hollows that never strike back. Esc in a scene goes back to the menu, and Esc in the menu goes back to the title card. Testing never touches your save: when you leave the menu, your progress is put back exactly as it was.
-
-## The inversion test (time running backwards)
-
-A test of the story pitch where someone lives the month backwards (the project's `design/story/storyline-options.md`, option A): can inverted things read clearly in a fight?
-
-- **The Backward Slinger** (wave 2, every loop) rises from the dead (its death played backwards), faces you, walks backwards and plays its throw in reverse. When you kill it, it fades out standing. Its red aim line starts at a spot *behind you*, marked by an amber circle that fills in; the stone appears there and flies home into its hand, through you. Step off the line.
-- **Rewind** (Hours ♄, from loop 2; it lands in slot 6 the first time). Hold to see its path: the shard forms where you aim, then flies back into your hand through everything between, hitting each enemy once and dragging it toward you. Chevrons on the telegraph point home. Form it *behind* a target.
-- **Your echo.** From loop 2, an amber copy of you walks your last fight backwards: it starts where that fight ended and retraces your path to where it began, and where you cast, a shard flies back into its hand. It touches nothing; it is a clue.
-
 ## What to look for (the "readable" part)
 
 - **Level-ups are visible.** A spell levels from its own hits. You get a toast with the stat change ("Speed 209 › 218"), the spell's star flashes, and for the next few casts a dashed ghost shows the *old* size: an old-speed ghost bolt that the new one outruns, the old Pillar radius, the old Fling cone.
@@ -124,9 +109,9 @@ A test of the story pitch where someone lives the month backwards (the project's
 
 The art direction is locked in the GDD (`design/gdd/06-presentation-and-tech.md`, 6.3 and 6.6), picked by Harold from rated mockups on 2026-10-16: a **moody night** world and a **Star Atlas** interface.
 
-- **The world at night.** The Mill yard is a cobbled plaza at the edge of Vellmar after dark, after the "Moody night" mockup: moonlight, a cool ambient, a low mist, a stone kerb open at the four gates, two-storey timber houses with lit windows on three sides, market stalls, trees and clutter in the streets, and lamp posts whose light pools on the cobbles and walls. The wizard's staff gem carries a small warm light, so the player never vanishes, and the spells are the main light: Ember Bolt lights the ground as it flies. When Silas steps through the gate the night deepens and the spells glow harder. A dark vignette (a gradient drawn over the 3D, `"vignette"` in `data/visual.json`) and a muted grade (`"adjust"`) leave colour to the spheres, gold and the red of telegraphs. The camera sits far enough back to see the whole plaza and the houses round it.
+- **The world at night.** Vellmar is cobbled streets after the "Moody night" mockup: moonlight (a dimmer grey daylight in the day's earlier times), a cool ambient, a low mist, two-storey timber houses with lit windows, market stalls, trees and clutter in the streets, and lamp posts whose light pools on the cobbles and walls. The wizard's staff gem carries a small warm light, so the player never vanishes, and the spells are the main light: Ember Bolt lights the ground as it flies. When Silas steps through the gate the night deepens and the spells glow harder. A dark vignette (a gradient drawn over the 3D, `"vignette"` in `data/visual.json`) and a muted grade (`"adjust"`) leave colour to the spheres, gold and the red of telegraphs. Walls between the camera and the wizard are cut away with a dither.
 - **Models and materials.** Faceted low-poly shapes with matte materials: `scripts/view/lowpoly.gdshader` adds a faint bump from a shared noise normal map projected from the world axes and some albedo mottling; specular is kept almost off. The finishes (figure, prop, stone, metal, ground) are in `"surfaces"` in `data/visual.json`.
-- **Kept cheap for the browser.** Everything that stands still (cobbles, kerb, houses, stalls, trees, props, lamps) is merged into three meshes with the colour in the vertices (`scripts/view/town.gd`). The lamps are not real lights: their warmth is baked into the vertex colours near them, and their pools are additive glows (`pool.gdshader`). Only the spells get real lights (at most four), the moon's shadow is a single pass, and the fonts are distance fields, so text never re-rasterises mid-fight. `tools/perf.gd` prints draw calls while the bot plays.
+- **Kept cheap for the browser.** Everything that stands still (cobbles, kerb, houses, stalls, trees, props, lamps) is merged into three meshes with the colour in the vertices (`scripts/view/town.gd`). The lamps are not real lights: their warmth is baked into the vertex colours near them, and their pools are additive glows (`pool.gdshader`). Only the spells get real lights (at most four), the moon's shadow is a single pass, and the fonts are distance fields, so text never re-rasterises mid-fight. `tools/world_shot.gd` prints draw calls and lights at each screenshot.
 - **The interface.** Navy glass panels with gold hairlines, Cormorant Garamond and Cormorant SC (OFL, `assets/fonts/`), and the planets' glyphs (Noto Sans Symbols, subset). The spellbook is a constellation of six star rings in each sphere's colour, with the key and level above, the name and Aether cost below, a gold arc for the level's progress, a dark sweep for the cooldown and a gold halo when the cast will be Resonant; hover a star for the spell's numbers. The Magick is the gold diamond on the right. Vitality and Aether are fine lines top left; Cadence is four stars by the reticle; top centre, the loop's 28 days are moon phases ending in the Eclipse's black sun (the prototype's fight is always the first day). The duelist's plate is top right.
 - **Spells** are still solid geometry, not particles: Ember Bolt is a comet (League of Legends' Brand Q as the reference) with a white-hot core and flame tongues streaming back, stones are rocks, Storm shots are crystals, lightning is a chain of thin prisms, and impacts throw shards that shrink away. Round the hot ones a soft halo (`halo.gdshader`) glows into the bloom.
 
@@ -138,7 +123,7 @@ The figures are Wuxia's models for now (the elder under a wide pointed hat as th
 
 ## Not in this prototype
 
-Frost and Time, Magicks for the other pairs, relics and Focus, the town and the 28-day calendar, audio, and Silas as a full Storm kit (he only uses three of its moves). Three mutations differ from the design doc because the prototype has nothing for them to act on: Arc Lance's *Full charge pierces walls* is **Overcharge** (full charge deals double, the yard has no walls), Splash's *Spray heals ally echoes* is **Spillway** (Splash leaves a puddle, there are no echoes), and Maelstrom's *Combines with any Magick* counts everything in the whirlpool as wet for Conductor. All numbers are starting values in `data/spells.json`.
+Frost and Time, Magicks for the other pairs, relics and Focus, days 8 to 28, interiors beyond your room and the archive, and Silas as a full Storm kit (he only uses three of its moves). Three mutations differ from the design doc because the prototype has nothing for them to act on: Arc Lance's *Full charge pierces walls* is **Overcharge** (full charge deals double, the yard has no walls), Splash's *Spray heals ally echoes* is **Spillway** (Splash leaves a puddle, there are no echoes), and Maelstrom's *Combines with any Magick* counts everything in the whirlpool as wet for Conductor. All numbers are starting values in `data/spells.json`.
 
 ## Files
 
@@ -162,12 +147,9 @@ Frost and Time, Magicks for the other pairs, relics and Focus, the town and the 
 | `assets/models/` | Figures, the clip library and props, from the Wuxia game |
 | `scripts/pixel_art.gd` | The palette, and the pixel sprites the flat fallback still draws |
 | `scripts/bot.gd` | The bot used by the fight test and F2 autoplay |
-| `tools/shots.gd` | Screenshots of the fight for review (needs a display; see its header) |
-| `tools/perf.gd` | Draw calls and frame rate while the bot plays (needs a display) |
-| `tools/look_shot.gd` | One still of the yard without the HUD, for tuning the look |
-| `tools/menus_shot.gd` | Screenshots of the title, the Orrery, the milestone picker and the Ledger |
+| `tools/world_shot.gd` | Screenshots across the town and the day, with draw calls and lights (needs a display; see its header) |
 | `assets/fonts/` | Cormorant Garamond, Cormorant SC and a Noto Sans Symbols subset for the planets' glyphs (SIL Open Font License, texts alongside) |
-| `tools/tests/` | `unit.gd` (progression rules) and `fight.gd` (the bot plays loop 1 as Fire + Earth, swaps to Storm + Water at the Orrery, and plays loop 2) |
+| `tools/tests/` | The checks CI runs (see Tests above and `.github/workflows/ci.yml`) |
 
 Progress saves to `user://progress.json` (in the browser, the site's IndexedDB). Delete twice on the Ledger screen wipes it.
 
@@ -175,8 +157,8 @@ Progress saves to `user://progress.json` (in the browser, the site's IndexedDB).
 
 ```
 godot --headless --script res://tools/tests/unit.gd
-godot --headless --fixed-fps 60 --script res://tools/tests/fight.gd -- --loops 3
-godot --headless --fixed-fps 60 --script res://tools/tests/scenes.gd
+godot --headless --fixed-fps 60 --script res://tools/tests/route.gd
+godot --headless --fixed-fps 60 --script res://tools/tests/world_magic.gd
 ```
 
-CI runs both on every PR (via `tools/ci/godot.sh`, which also fails on script errors) and builds the web export.
+CI runs every check on every PR (via `tools/ci/godot.sh`, which also fails on script errors) and builds the web export.

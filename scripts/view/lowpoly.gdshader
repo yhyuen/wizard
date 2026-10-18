@@ -31,6 +31,12 @@ uniform vec4 flash_color : source_color = vec4(1.0);
 uniform float flash = 0.0;
 uniform float darken = 0.0;
 uniform float fade = 0.0;            // 0 = solid, 1 = gone (dithered, so it stays opaque)
+// The open world's cutaway: walls and roofs between the camera and the wizard dissolve in a
+// dithered cylinder round the line of sight, so the close camera never loses you behind a house.
+uniform float cut = 0.0;             // 0 off .. 1 on
+uniform vec3 cut_cam = vec3(0.0);    // the camera, in world space
+uniform vec3 cut_at = vec3(0.0);     // the wizard's chest, in world space
+uniform float cut_r = 1.8;           // metres round the line of sight
 
 varying vec3 wpos;
 varying vec3 wnrm;
@@ -81,6 +87,18 @@ void fragment() {
 	EMISSION = c * glow + flash_color.rgb * flash;
 	if (fade > 0.0 && bayer4(FRAGCOORD.xy) < fade) {
 		discard;
+	}
+	if (cut > 0.0 && wpos.y > 0.35) {
+		vec3 ray = cut_at - cut_cam;
+		float len = length(ray);
+		float t = dot(wpos - cut_cam, ray) / (len * len);
+		if (t > 0.0 && t < 1.0 - 0.6 / len) {
+			float d = length(wpos - (cut_cam + ray * t));
+			float k = cut * (1.0 - smoothstep(cut_r * 0.55, cut_r, d)) * smoothstep(0.0, 0.25, 1.0 - t);
+			if (bayer4(FRAGCOORD.xy) < k) {
+				discard;
+			}
+		}
 	}
 }
 

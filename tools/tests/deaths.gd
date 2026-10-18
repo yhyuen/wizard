@@ -1,5 +1,5 @@
 extends SceneTree
-## Success criterion 7 (design/slice/README.md §4), every death teaches:
+## Success criterion 7 (design/open-world/README.md §4, as the slice), every death teaches:
 ##
 ##   godot --headless --script res://tools/tests/deaths.gd
 ##
@@ -55,7 +55,7 @@ func _die(cause: String, scene: String) -> void:
 	var before: Array = run.known_ids()
 	slice.play(scene)
 	var n := 0
-	while slice.screen == "scene" and n < 50:
+	while slice.screen == "world" and not slice.cur.is_empty() and n < 50:
 		n += 1
 		if not slice.pending.is_empty():
 			slice.advance()

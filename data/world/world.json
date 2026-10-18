@@ -1,0 +1,14 @@
+{
+ "_doc": "The open world's rules (design/open-world/interactions.md). period_s: seconds of walking per time of day (the clock stops while you talk, read, look at the map or fight). reach: how close (sim px) you must be to talk or use. walk_speed: people's walking pace. bark_range: how close you must be to hear a bark; bark_every: seconds between a person's barks [min, max]; bark_life: seconds a bark stays up. regen: Vitality per second out of fights, as a share of the most. draw_m: people further than this many metres are not drawn. mourner: the veiled stranger in the market on day 3 at noon: flee_at (sim px) is how close you must come before they back away, speed is how fast (faster than you), chase_s how long you must keep after them, wait_s how long they stay if you keep away.",
+ "period_s": 40,
+ "reach": 30,
+ "walk_speed": 40,
+ "bark_range": 170,
+ "bark_every": [7, 15],
+ "bark_life": 3.4,
+ "regen": 0.05,
+ "draw_m": 32,
+ "seek_range": 240,
+ "mourner": {"flee_at": 120, "speed": 100, "chase_s": 2.2, "wait_s": 14, "exit": [1380, 1050]},
+ "dawn_card_s": 3.5
+}

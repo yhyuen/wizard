@@ -1,0 +1,15 @@
+{
+ "_doc": "Things in Vellmar that spells can change (design/open-world/interactions.md §5). r: radius in sim px (it blocks walking); h: height in metres; mass: how far a shove sends it (lighter goes further); roll: keeps rolling (barrels); burns: seconds a fire lasts before it leaves ash; spread: sim px within which a fire catches other burnable things. Lamps and braziers are lit by fire and put out by water. A burning prop hurts enemies standing in it (dps).",
+ "kinds": {
+  "hay":    {"r": 11, "h": 0.9, "mass": 0, "burns": 12.0, "spread": 34, "dps": 10},
+  "crate":  {"r": 9, "h": 0.8, "mass": 1.0, "burns": 14.0, "spread": 26, "dps": 8},
+  "barrel": {"r": 8, "h": 0.9, "mass": 0.7, "roll": true, "burns": 0, "spread": 0, "dps": 0},
+  "cart":   {"r": 16, "h": 1.2, "mass": 2.5, "burns": 18.0, "spread": 30, "dps": 8}
+ },
+ "shove": {"speed": 260, "friction": 4.0, "roll_friction": 1.2},
+ "fire_spells": ["ember", "pyro", "pillar", "column"],
+ "water_spells": ["splash", "undertow", "puddle", "whirl"],
+ "force_spells": ["pebble", "stone", "undertow"],
+ "lamp_reach": 14,
+ "scorch_life": 1.0e9
+}

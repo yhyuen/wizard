@@ -21,11 +21,19 @@ extends RefCounted
 ## happen only when it holds. `place` can list several places; `slot: free` means playing the
 ## scene doesn't use up the time of day. `backdrop: north_door` paints that place behind a scene
 ## that has no place of its own (and the scenes it leads to).
+##
+## The open world (design/open-world/tech-plan.md §3) adds what starts a scene: `talk: wren`
+## (talking to that person), `use: noon_note` (using that item), `arrive: market` (walking into
+## that place, or any of several), and `cast: fire` with `use:` (that element hitting the item).
+## Such scenes play on any day and at any time unless they say otherwise. New effects: `move
+## <spot>`, `take <item>`, `sleep` (end the day), `book` (open the spellbook) and `today <op>`
+## (mark a once-a-day thing done, for done(op)).
 
-const DIR := "res://data/slice/story/"
-const HEADER_KEYS := ["place", "days", "times", "when", "force", "priority", "repeat", "known", "title", "slot", "backdrop"]
+const DIR := "res://data/world/story/"
+const HEADER_KEYS := ["place", "days", "times", "when", "force", "priority", "repeat", "known", "title", "slot", "backdrop",
+	"talk", "use", "arrive", "cast"]
 const EFFECTS := ["learn", "set", "clear", "fight", "wells", "train", "meditate", "study", "goto", "end_loop",
-	"skip_to", "slice_end", "model", "trial", "sound", "cutscene"]
+	"skip_to", "slice_end", "model", "trial", "sound", "cutscene", "move", "take", "sleep", "book", "today"]
 
 var scenes := {}  # id -> scene dictionary
 var errors: Array = []  # parse errors, for the linter
@@ -93,7 +101,7 @@ func parse(text: String, file := "") -> void:
 				errors.append("%s:%d: scene %s is defined twice" % [file, n, id])
 			cur = {"id": id, "file": file, "line": n, "steps": [], "choices": [], "outcomes": {},
 				"days": [], "times": [], "place": "", "places": [], "slot": "", "when": "", "force": false, "priority": 0,
-				"repeat": false, "known": "", "title": "", "backdrop": ""}
+				"repeat": false, "known": "", "title": "", "backdrop": "", "talk": "", "use": "", "arrive": "", "arrives": [], "cast": ""}
 			scenes[id] = cur
 			continue
 		if cur.is_empty():
@@ -135,25 +143,15 @@ func parse(text: String, file := "") -> void:
 func _header(cur: Dictionary, key: String, val: String, file: String, n: int) -> void:
 	match key:
 		"days":
-			for part in val.split(","):
-				part = part.strip_edges()
-				if "-" in part:
-					var ab := part.split("-")
-					for d in range(int(ab[0]), int(ab[1]) + 1):
-						cur["days"].append(d)
-				elif part.is_valid_int():
-					cur["days"].append(int(part))
-				else:
-					errors.append("%s:%d: bad day '%s'" % [file, n, part])
+			var bad: Array = []
+			cur["days"].append_array(parse_days(val, bad))
+			for b in bad:
+				errors.append("%s:%d: bad day '%s'" % [file, n, b])
 		"times":
-			for part in val.split(","):
-				part = part.strip_edges()
-				if part == "any":
-					cur["times"] = Array(preload("res://scripts/game/run.gd").TIMES)
-				elif part in preload("res://scripts/game/run.gd").TIMES:
-					cur["times"].append(part)
-				else:
-					errors.append("%s:%d: bad time '%s'" % [file, n, part])
+			var bad: Array = []
+			cur["times"].append_array(parse_times(val, bad))
+			for b in bad:
+				errors.append("%s:%d: bad time '%s'" % [file, n, b])
 		"force", "repeat":
 			cur[key] = val == "true"
 		"priority":
@@ -162,8 +160,43 @@ func _header(cur: Dictionary, key: String, val: String, file: String, n: int) ->
 			cur["place"] = val
 			for part in val.split(","):
 				cur["places"].append(part.strip_edges())
+		"arrive":
+			cur["arrive"] = val
+			for part in val.split(","):
+				cur["arrives"].append(part.strip_edges())
 		_:
 			cur[key] = val
+
+
+## "4", "1-7" or "2,3" -> the days. Anything that doesn't parse goes into `bad`.
+static func parse_days(val: String, bad: Array = []) -> Array:
+	var out: Array = []
+	for part in val.split(","):
+		part = part.strip_edges()
+		if "-" in part:
+			var ab := part.split("-")
+			for d in range(int(ab[0]), int(ab[1]) + 1):
+				out.append(d)
+		elif part.is_valid_int():
+			out.append(int(part))
+		else:
+			bad.append(part)
+	return out
+
+
+## "morning, noon", or "any" -> the times of day.
+static func parse_times(val: String, bad: Array = []) -> Array:
+	var all: Array = Array(preload("res://scripts/game/run.gd").TIMES)
+	var out: Array = []
+	for part in val.split(","):
+		part = part.strip_edges()
+		if part == "any":
+			return all.duplicate()
+		elif part in all:
+			out.append(part)
+		else:
+			bad.append(part)
+	return out
 
 
 func _choice(body: String, n: int) -> Dictionary:
@@ -254,6 +287,65 @@ func known_today(place: String) -> Array:
 		if ctx.run.seen(s["id"]) or not test(s["known"]):
 			continue
 		out.append({"id": s["id"], "time": s["times"][0] if s["times"].size() > 0 else "", "title": s["title"]})
+	return out
+
+
+# --- the open world --------------------------------------------------------------
+
+## Whether a talk, use or arrive scene can play now: its days and times (any, when it names
+## none), its condition, and not yet this loop unless it repeats.
+func eligible_any(s: Dictionary) -> bool:
+	if not s["days"].is_empty() and not ctx.run.day() in s["days"]:
+		return false
+	if not s["times"].is_empty() and not ctx.run.time_id() in s["times"]:
+		return false
+	if not s["repeat"] and ctx.run.seen(s["id"]):
+		return false
+	return test(s["when"])
+
+
+func _best(key: String, val: String, extra := "") -> String:
+	var best := ""
+	var best_p := -999999
+	for s in scenes.values():
+		var match_: bool = val in s["arrives"] if key == "arrive" else s[key] == val
+		if not match_ or s["cast"] != extra or not eligible_any(s):
+			continue
+		if int(s["priority"]) > best_p:
+			best = s["id"]
+			best_p = int(s["priority"])
+	return best
+
+
+## The conversation with `person` now, or "".
+func talk_scene(person: String) -> String:
+	return _best("talk", person)
+
+
+## What using `item` plays now, or "".
+func use_scene(item: String) -> String:
+	return _best("use", item)
+
+
+## What walking into `place` plays now, or "".
+func arrive_scene(place: String) -> String:
+	return _best("arrive", place)
+
+
+## What `element` hitting `item` plays now, or "".
+func cast_scene(item: String, element: String) -> String:
+	return _best("use", item, element)
+
+
+## Events today whose `known` condition holds, for the map: [{"id", "time", "title", "where"}].
+## `where` is the place, person or item the event belongs to.
+func known_events() -> Array:
+	var out: Array = []
+	for s in scenes.values():
+		if s["known"].is_empty() or not ctx.run.day() in s["days"] or ctx.run.seen(s["id"]) or not test(s["known"]):
+			continue
+		var where: String = s["arrive"] if s["arrive"] != "" else (s["talk"] if s["talk"] != "" else s["use"])
+		out.append({"id": s["id"], "time": s["times"][0] if s["times"].size() > 0 else "", "title": s["title"], "where": where})
 	return out
 
 
