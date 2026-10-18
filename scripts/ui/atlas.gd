@@ -14,12 +14,18 @@ const NIGHT := Color(0.02, 0.03, 0.07)
 
 var font: Font
 var font_sc: Font
+## While `batch_text` is on, text goes into one child canvas item above everything this node draws,
+## so the browser draws it in a few batches (turn it off where a panel must cover earlier text).
+var batch_text := false
+var _text_ci: RID
 var buttons: Array = []  # {"r": Rect2, "act": Callable, "key": int} rebuilt every draw
 var _drawn_buttons: Array = []
 
 
 func _ready() -> void:
 	size = Vector2(960, 540)
+	_text_ci = RenderingServer.canvas_item_create()
+	RenderingServer.canvas_item_set_parent(_text_ci, get_canvas_item())
 	var glyphs: FontFile = load("res://assets/fonts/NotoSansSymbols-Planets.ttf")
 	font = _font("res://assets/fonts/CormorantGaramond-SemiBold.ttf", glyphs)
 	font_sc = _font("res://assets/fonts/CormorantSC-SemiBold.ttf", glyphs)
@@ -39,8 +45,20 @@ func px(sz: int) -> int:
 
 func text(pos: Vector2, s: String, sz := 14, col := PAPER, align := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0, f: Font = null) -> void:
 	var fo: Font = font if f == null else f
-	draw_string(fo, pos + Vector2(0, 1), s, align, width, px(sz), Color(0, 0, 0, 0.75 * col.a))
-	draw_string(fo, pos, s, align, width, px(sz), col)
+	var ci := _text_ci if batch_text else get_canvas_item()
+	fo.draw_string(ci, pos + Vector2(0, 1), s, align, width, px(sz), Color(0, 0, 0, 0.75 * col.a))
+	fo.draw_string(ci, pos, s, align, width, px(sz), col)
+
+
+## Call at the start of _draw: empties the text layer and sets whether this frame batches text.
+func begin_text(batch: bool) -> void:
+	RenderingServer.canvas_item_clear(_text_ci)
+	batch_text = batch
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE and _text_ci.is_valid():
+		RenderingServer.free_rid(_text_ci)
 
 
 func title(pos: Vector2, s: String, sz := 14, col := HAIR, align := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0) -> void:

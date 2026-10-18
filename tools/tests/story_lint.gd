@@ -1,10 +1,11 @@
 extends SceneTree
-## Checks the slice's story scripts (data/slice/story/) against the rest of the slice's data:
+## Checks the story scripts (data/world/story/) against the town and the rest of the data:
 ##
 ##   godot --headless --script res://tools/tests/story_lint.gd
 ##
-## Every scene parses; every jump, Ledger id, Model, encounter, place, death cause, flag and
-## condition it names exists; and the events for the traces days 1–7 need (R0–R4) are there.
+## Every scene parses; every person, item, place, spot, jump, Ledger id, Model, encounter, death
+## cause, flag and condition it names exists; every person and item answers when you talk to it or
+## use it; and the events for the traces days 1–7 need (R0–R4) are there.
 ## Exits non-zero on any problem.
 
 const Story := preload("res://scripts/game/story.gd")
@@ -20,7 +21,10 @@ func _initialize() -> void:
 	var story = Story.new(run)
 	story.load_all()
 	problems.append_array(story.errors)
-	var places: Dictionary = _json("res://data/slice/places.json")["places"]
+	var map: Dictionary = _json("res://data/world/map.json")
+	var places: Dictionary = map["places"]
+	var items: Dictionary = map["items"]
+	var people: Dictionary = _json("res://data/world/people.json")["people"]
 	var encounters: Dictionary = _json("res://data/slice/encounters.json")["encounters"]
 	var ld: Dictionary = _json("res://data/slice/ledger.json")
 	var ledger: Dictionary = ld["entries"]
@@ -30,11 +34,15 @@ func _initialize() -> void:
 	var conds: Array = []  # [condition, where]
 	for s in story.scenes.values():
 		var where := "%s:%d (%s)" % [s["file"], s["line"], s["id"]]
-		for p in s["places"]:
-			if p != "anywhere" and not places.has(p):
+		for p in s["arrives"]:
+			if not places.has(p):
 				problems.append("%s: unknown place %s" % [where, p])
-		if not s["places"].is_empty() and (s["days"].is_empty() or s["times"].is_empty()):
-			problems.append("%s: an event needs days and times" % where)
+		if s["talk"] != "" and not people.has(s["talk"]):
+			problems.append("%s: nobody called %s in data/world/people.json" % [where, s["talk"]])
+		if s["use"] != "" and not items.has(s["use"]):
+			problems.append("%s: no item %s in data/world/map.json" % [where, s["use"]])
+		if s["cast"] != "" and not s["cast"] in ["fire", "water", "earth", "storm"]:
+			problems.append("%s: cast must be an element, not %s" % [where, s["cast"]])
 		for key in ["when", "known"]:
 			if s[key] != "":
 				conds.append([s[key], where])
@@ -64,6 +72,14 @@ func _initialize() -> void:
 				"fight":
 					if not encounters.has(arg):
 						problems.append("%s: no encounter %s" % [where, arg])
+					if not map["spawns"].has(arg):
+						problems.append("%s: encounter %s has no spawns in data/world/map.json" % [where, arg])
+				"move":
+					if not map["spots"].has(arg):
+						problems.append("%s: no spot %s in data/world/map.json" % [where, arg])
+				"take":
+					if not items.has(arg):
+						problems.append("%s: no item %s to take" % [where, arg])
 				"end_loop":
 					if not deaths.has(arg):
 						problems.append("%s: no death text for %s" % [where, arg])
@@ -108,10 +124,14 @@ func _initialize() -> void:
 				problems.append("%s: seen(\"%s\") is not a scene" % [pair[1], id])
 			elif fn == "died" and not deaths.has(id):
 				problems.append("%s: died(\"%s\") is not a death cause" % [pair[1], id])
-	# Places, encounters and the Ledger's own references.
-	for id in places:
-		if not story.scenes.has(places[id]["idle"]):
-			problems.append("place %s: idle scene %s is missing" % [id, places[id]["idle"]])
+	# Everyone you can walk up to says something, and every item does something, on any day.
+	for id in people:
+		if id != "walker" and not story.scenes.values().any(func(sc): return sc["talk"] == id and sc["days"].is_empty() and sc["when"] == ""):
+			problems.append("person %s: no fallback talk scene (no days, no when)" % id)
+	for id in items:
+		if not story.scenes.values().any(func(sc): return sc["use"] == id and sc["cast"] == ""):
+			problems.append("item %s: no use scene" % id)
+	# Encounters and the Ledger's own references.
 	for id in encounters:
 		for wave in encounters[id]["waves"] + encounters[id].get("waived", []):
 			for g in wave:

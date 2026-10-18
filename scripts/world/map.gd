@@ -135,7 +135,14 @@ func _cell(k: Vector2i) -> Dictionary:
 	return _grid[k]
 
 
+const _NONE := {"r": [], "c": []}
+
+
 func _near(p: Vector2, r: float) -> Dictionary:
+	# Most queries fall inside one cell: its own lists, without building new ones.
+	var lo := Vector2i(floori((p.x - r) / CELL), floori((p.y - r) / CELL))
+	if lo == Vector2i(floori((p.x + r) / CELL), floori((p.y + r) / CELL)):
+		return _grid.get(lo, _NONE)
 	var rs := {}
 	var cs := {}
 	for cell in _cells(Rect2(p - Vector2(r, r), Vector2(r, r) * 2.0)):
@@ -348,6 +355,13 @@ func path(a: Vector2, b: Vector2, r := 4.0) -> PackedVector2Array:
 	while cur != "" and prev.has(cur):
 		chain.push_front(cur)
 		cur = prev[cur]
+	# Cut the corners: no stepping back to a node behind you when the next one is in sight (a
+	# walk that re-plans as it goes would otherwise turn round at every re-plan), and no last
+	# detour once the end is in sight.
+	while chain.size() >= 2 and clear_line(a, nodes[chain[1]], r):
+		chain.pop_front()
+	while chain.size() >= 2 and clear_line(nodes[chain[-2]], b, r):
+		chain.pop_back()
 	for id in chain:
 		out.append(nodes[id])
 	out.append(b)

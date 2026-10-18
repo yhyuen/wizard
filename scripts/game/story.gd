@@ -24,15 +24,16 @@ extends RefCounted
 ##
 ## The open world (design/open-world/tech-plan.md §3) adds what starts a scene: `talk: wren`
 ## (talking to that person), `use: noon_note` (using that item), `arrive: market` (walking into
-## that place), and `cast: fire` with `use:` (that element hitting the item). Such scenes play
-## on any day and at any time unless they say otherwise. New effects: `move <spot>`, `take
-## <item>`, `sleep` and `book` (open the spellbook).
+## that place, or any of several), and `cast: fire` with `use:` (that element hitting the item).
+## Such scenes play on any day and at any time unless they say otherwise. New effects: `move
+## <spot>`, `take <item>`, `sleep` (end the day), `book` (open the spellbook) and `today <op>`
+## (mark a once-a-day thing done, for done(op)).
 
 const DIR := "res://data/world/story/"
 const HEADER_KEYS := ["place", "days", "times", "when", "force", "priority", "repeat", "known", "title", "slot", "backdrop",
 	"talk", "use", "arrive", "cast"]
 const EFFECTS := ["learn", "set", "clear", "fight", "wells", "train", "meditate", "study", "goto", "end_loop",
-	"skip_to", "slice_end", "model", "trial", "sound", "cutscene", "move", "take", "sleep", "book"]
+	"skip_to", "slice_end", "model", "trial", "sound", "cutscene", "move", "take", "sleep", "book", "today"]
 
 var scenes := {}  # id -> scene dictionary
 var errors: Array = []  # parse errors, for the linter
@@ -100,7 +101,7 @@ func parse(text: String, file := "") -> void:
 				errors.append("%s:%d: scene %s is defined twice" % [file, n, id])
 			cur = {"id": id, "file": file, "line": n, "steps": [], "choices": [], "outcomes": {},
 				"days": [], "times": [], "place": "", "places": [], "slot": "", "when": "", "force": false, "priority": 0,
-				"repeat": false, "known": "", "title": "", "backdrop": "", "talk": "", "use": "", "arrive": "", "cast": ""}
+				"repeat": false, "known": "", "title": "", "backdrop": "", "talk": "", "use": "", "arrive": "", "arrives": [], "cast": ""}
 			scenes[id] = cur
 			continue
 		if cur.is_empty():
@@ -159,6 +160,10 @@ func _header(cur: Dictionary, key: String, val: String, file: String, n: int) ->
 			cur["place"] = val
 			for part in val.split(","):
 				cur["places"].append(part.strip_edges())
+		"arrive":
+			cur["arrive"] = val
+			for part in val.split(","):
+				cur["arrives"].append(part.strip_edges())
 		_:
 			cur[key] = val
 
@@ -303,7 +308,8 @@ func _best(key: String, val: String, extra := "") -> String:
 	var best := ""
 	var best_p := -999999
 	for s in scenes.values():
-		if s[key] != val or s["cast"] != extra or not eligible_any(s):
+		var match_: bool = val in s["arrives"] if key == "arrive" else s[key] == val
+		if not match_ or s["cast"] != extra or not eligible_any(s):
 			continue
 		if int(s["priority"]) > best_p:
 			best = s["id"]

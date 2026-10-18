@@ -1,20 +1,18 @@
 # The city: Lantern Market, the square, Lamplighter's Lane, the Mill and the plateau road, plus
-# night patrols. Traces R2, R3, R6, O1, O2, O5 (design/slice/content.md).
+# night patrols. Traces R2, R3, R6, O1, O2, O5 (design/slice/content.md), now in the streets.
 
 # --- Lantern Market ------------------------------------------------------------
 
 === mourner
-place: market
+arrive: market
 days: 3
 times: noon
 priority: 20
-+ cutscene mourner
 Lantern Market at noon: fish and brass, and steam rising from the pie stalls.
 Across the crowd, someone in a grey veil has stopped dead and is looking straight at you.
 They are weeping. Not loudly. The way people weep at a graveside.
 + learn mourner
-* Go after them -> mourner_chase
-* Let them go -> mourner_go
+(Go after them, or let them go.)
 
 === mourner_chase
 You push through the crowd. They back away, still facing you, never turning round.
@@ -29,11 +27,11 @@ For a moment the noise of the market seems very far away.
 + set mourner_let_go
 
 === aldous_ask
-place: market
+talk: aldous
 days: 4
 times: morning
 priority: 20
-A big man in a flour-white coat is catching at every robe that passes.
+A big man in a flour-white coat catches at your sleeve.
 Aldous: You're College? Please. I'm foreman at the Mill. The dead we burned last week won't stay down.
 Aldous: Tomorrow afternoon, it'll be. It's always the afternoon. Will you come?
 + learn aldous
@@ -47,73 +45,115 @@ Aldous: They walk wrong. Backwards, like a cart rolling uphill.
 Aldous: And they won't cross the millrace. I've watched them stop dead at the water.
 + learn millrace
 
-=== market_idle
-place: market
-days: 1-28
-times: morning, noon, afternoon, dusk
+=== aldous
+talk: aldous
 repeat: true
 priority: -10
-The market hums. You catch scraps of talk between the stalls.
-[day <= 2] Talk is all about the fire on the College stairs, and the Hollows seen beyond the walls at night.
-[day == 3] A pie-seller swears the dog in the square has gone mad.
-[day == 4] People say the Mill foreman has been begging for help all morning.
-[day == 5] They say there's trouble at the Mill this afternoon. Nobody is going near it.
-[day == 6 and f("aldous_saved")] The foreman from the Mill is buying drinks for anyone in a College robe.
-[day == 6 and not f("aldous_saved")] They found the Mill foreman this morning, walking the yard. He doesn't answer to his name any more.
-[day == 7] A novice from the College is telling anyone who'll listen that he hears voices at the north door.
-[day > 7] The market is quieter every day.
+[day >= 6 and f("aldous_saved")] Aldous: Drinks are on me, College. Anything you like.
+[day >= 6 and seen("mill_risen") and not f("aldous_saved")] He is standing in the Mill yard, looking at nothing. He doesn't answer to his name any more.
+[not seen("mill_risen")] Aldous: Flour in everything. Even the bread.
+[seen("aldous_ask") and not seen("mill_risen")] Aldous: Day five. The afternoon. You'll come?
+* Ask what he's seen [seen("aldous_ask") and not k("millrace") and not seen("mill_risen")] -> aldous_tip
+* Leave
+
+=== old_woman
+talk: old_woman
+repeat: true
+The old woman at the stall leans in to tell you what everyone is saying.
+[day <= 2] Woman: All about the fire on the College stairs. And the Hollows seen beyond the walls at night.
+[day == 3] Woman: The pie-seller swears the dog in the square has gone mad.
+[day == 4] Woman: The Mill foreman's been begging for help all morning. Big man. Flour on him.
+[day == 5] Woman: Trouble at the Mill this afternoon, they say. Nobody's going near it.
+[day == 6 and f("aldous_saved")] Woman: The Mill foreman's buying drinks for anyone in a College robe.
+[day == 6 and not f("aldous_saved")] Woman: They found the Mill foreman this morning, walking the yard. He doesn't answer to his name.
+[day == 7] Woman: A novice up at the College hears voices at the north door. Tell him to stop listening.
+[day > 7] Woman: Quieter every day. Folk are leaving.
+[seen("mourner_chase")] Woman: And you. Never greet your own shadow.
+* Leave
+
+=== pie_seller
+talk: pie_seller
+repeat: true
+The pie-seller wipes her hands on her apron.
+"Pie? No? That dog in the square won't go near the well corner. Nor will I, now."
 * Leave
 
 # --- the square ----------------------------------------------------------------
 
 === dog_corner
-place: square
+use: dog_corner
 days: 2-3
 times: morning, noon
 priority: 10
-A stray dog is nosing round the square. It goes everywhere except one corner by the well, where it stops, whines and backs away.
+The stray dog goes everywhere in the square except this corner by the well, where it stops, whines and backs away.
 There's nothing in the corner. You look twice.
 + learn dog_corner
 * Leave
 
-=== square_idle
-place: square
-days: 1-28
-times: morning, noon, afternoon, dusk
+=== dog_corner_idle
+use: dog_corner
 repeat: true
 priority: -10
-The square: a dry well, a statue of some forgotten Provost, pigeons.
+An empty corner by the well. Nothing there.
+* Leave
+
+=== dog
+talk: dog
+repeat: true
+The dog sniffs your hand, then your boots, then decides you're all right.
+[day >= 2 and day <= 3] It keeps glancing at the corner by the well, and won't go near it.
 * Leave
 
 # --- Lamplighter's Lane ---------------------------------------------------------
 
 === mira_meet
-place: lane
+talk: mira
 days: 1-7
 times: dusk
 priority: 10
-Lamplighter's Lane at dusk. A woman on a ladder is lighting the lamps one by one.
+when: not k("mira")
+Mira is working down Lamplighter's Lane with her pole, lighting the lamps one by one.
 Mira: Evening, College. Mind the ladder.
-Two lanterns hang at her door: hers, and another with the same mark scratched in the brass. The second one's flame leans inward, as if something were drawing it in.
-Mira: That? It's been there since the morning after the light. Same mark as mine, but it isn't mine. It won't go out.
+Mira: Two lanterns at my door, if you're wondering. Mine, and one with the same mark scratched in the brass. Since the morning after the light. It isn't mine, and it won't go out.
 + learn mira
 + learn second_lantern
 * Leave
 
-=== lane_idle
-place: lane
-days: 1-28
-times: morning, noon, afternoon, dusk
+=== mira
+talk: mira
 repeat: true
 priority: -10
-Lamplighter's Lane. At one door hang two lanterns, and one of them burns inward, even by day.
+[time == "dusk"] Mira: Can't stop. Lamps don't light themselves.
+[time != "dusk"] Mira: Oil's dear this month. Everything's dear this month.
+[k("mira")] Mira: That second lantern's still burning, if you're wondering. Leaning in, like it's listening.
+* Leave
+
+=== second_lantern
+use: second_lantern
+priority: 5
+Two lanterns hang at Mira's door: hers, and another with the same mark scratched in the brass.
+The second one's flame leans inward, as if something were drawing it in.
 + learn second_lantern
+* Leave
+
+=== lantern_water
+use: second_lantern
+cast: water
+priority: 5
+The water hisses on the glass. The flame leans further in and burns on, as if the water had never been there.
++ learn second_lantern
+
+=== lantern_idle
+use: second_lantern
+repeat: true
+priority: -10
+Mira's two lanterns. One burns inward, even by day.
 * Leave
 
 # --- the Mill ------------------------------------------------------------------
 
 === mill_risen
-place: mill
+arrive: mill
 days: 5
 times: afternoon
 priority: 20
@@ -140,19 +180,17 @@ One of them caught Aldous's arm on the way. The cut closed as the claw passed ba
 + set aldous_saved
 + wells 8
 
-=== mill_idle
-place: mill
-days: 1-28
-times: morning, noon, afternoon, dusk
+=== ash_heap
+use: ash_heap
 repeat: true
-priority: -10
-The Mill wheel turns slowly in the millrace. The ash heap by the wall is very still.
+The ash heap by the Mill wall: what's left of last week's dead. It is very still.
+[k("risen")] You know now that it won't stay that way.
 * Leave
 
 # --- the plateau road ---------------------------------------------------------------
 
 === footprints
-place: road
+arrive: road
 days: 6
 times: morning
 priority: 10
@@ -162,28 +200,20 @@ They lead back toward the city.
 + learn footprints
 * Leave
 
-=== road_idle
-place: road
-days: 1-28
-times: morning, noon, afternoon, dusk
-repeat: true
-priority: -10
-The plateau road runs east under an enormous sky. Vellmar's towers stand at your back.
-* Leave
-
 # --- night patrols -----------------------------------------------------------------
 
 === patrol
-place: market, square, lane, mill, road, gate
-days: 1-28
+arrive: market, square, lane, mill, road
 times: night
 repeat: true
 priority: -5
+when: not done("patrol")
++ today patrol
 The streets are empty after dark. Then they aren't.
 Shapes in the mist, shuffling, wearing the clothes of people you might have known.
 Hollows.
 * Fight them -> patrol_fight
-* Slip away home
+* Slip away
 
 === patrol_fight
 + fight patrol

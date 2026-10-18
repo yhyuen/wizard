@@ -35,6 +35,11 @@ func _ready() -> void:
 	_keys("mood", [KEY_F3])
 	_keys("graphics", [KEY_F4])
 	_keys("controls", [KEY_TAB])
+	# The open world (design/open-world/interactions.md §1).
+	_keys("interact", [KEY_G])
+	_keys("map", [KEY_M])
+	_keys("wait", [KEY_Z])
+	_keys("mute", [KEY_F8])
 	# The League-style scheme (scripts/controls.gd): right-click moves, Q W E R D F cast.
 	_mouse("lol_move", MOUSE_BUTTON_RIGHT)
 	_keys("lol_stop", [KEY_S])

@@ -3,11 +3,12 @@ extends SceneTree
 ##
 ##   godot --headless --fixed-fps 60 --script res://tools/tests/cutscenes.gd
 ##
-## Each one is played through the story as in the game: it must switch to the fight view with
-## the walker on the field, end on its own within its length, and hand back to the same story
-## scene. The Mourner is then played again and skipped, which must also hand back.
+## Each one is played through the story as in the game, staged in the town: it must put the
+## walker on the field, end on its own within its length, and hand back to the same story scene.
+## It is then played again and skipped, which must also hand back. (The Mourner is no longer a
+## reverse scene: in the open world they stand in the market and you chase them or not.)
 
-const PLAN := [["fire", "fire", false], ["mourner", "mourner", false], ["mourner", "mourner", true]]
+const PLAN := [["fire", "fire", false], ["fire", "fire", true]]
 
 var main
 var slice
@@ -45,9 +46,9 @@ func _process(_dt: float) -> bool:
 		if cut[2] and frames == 60:
 			main.arena.cutscene.t = main.arena.cutscene.LENGTH[cut[1]]  # what Space does
 	var limit := 90 if cut[2] else int(main.arena.Cutscene.LENGTH[cut[1]] * 60.0) + 120
-	if main.mode == "slice" and saw_cut:
-		print("[cutscenes] %s%s: back to the story after %.1f s, on screen %s" % [cut[1], " (skipped)" if cut[2] else "", frames / 60.0, slice.screen])
-		if slice.screen != "scene":
+	if main.mode == "world" and saw_cut:
+		print("[cutscenes] %s%s: back to the story after %.1f s, in scene %s" % [cut[1], " (skipped)" if cut[2] else "", frames / 60.0, slice.cur.get("id", "none")])
+		if slice.cur.get("id", "") != cut[0]:
 			fails.append("%s did not hand back to the story scene" % cut[1])
 		if not saw_walker:
 			fails.append("%s never put the walker on the field" % cut[1])

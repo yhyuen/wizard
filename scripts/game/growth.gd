@@ -162,6 +162,8 @@ func slot_spell(i: int) -> String:
 # --- Practice, Echo and Fluency ---------------------------------------------------------
 
 func practice() -> Dictionary:
+	if lent:
+		return prog.p["spells"]  # lent out for the day: Progression has the live levels
 	if not run.lp.has("practice"):
 		var p := {}
 		for id in prog.data["spells"]:
@@ -195,7 +197,8 @@ func rules() -> Dictionary:
 		"revisions": run.mem.get("revisions", {}).duplicate(true), "ward": d["ward"]}
 
 
-## Lends Progression this loop's Practice, spellbook and rules (for a fight, or training).
+## Lends Progression this loop's Practice, spellbook and rules (for a fight, training, or in
+## the open world the whole day, since you can cast anywhere).
 func begin_fight() -> void:
 	if lent:
 		return
@@ -213,6 +216,14 @@ func begin_fight() -> void:
 	prog.p = p
 	prog.pending.clear()
 	prog.rules = rules()
+
+
+## While lent (the open world lends it for the whole day): the spellbook and the rules again,
+## after a slot, a Ring or the wells change.
+func refresh() -> void:
+	if lent:
+		prog.p["spellbook"] = book().duplicate()
+		prog.rules = rules()
 
 
 ## Takes the Practice back; the Echo and the revision choices remember it.
@@ -251,10 +262,12 @@ func train() -> Dictionary:
 		var id := slot_spell(i)
 		if id != "":
 			before[id] = level(id)
+	var was_lent := lent
 	begin_fight()
 	for id in before:
 		prog.add_xp(id, float(d["train_share"]) * prog.xp_needed(prog.level(id)))
-	end_fight()
+	if not was_lent:
+		end_fight()
 	var out := {}
 	for id in before:
 		out[id] = level(id) - int(before[id])

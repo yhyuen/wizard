@@ -77,6 +77,7 @@ func reset_loop() -> void:
 	for b in braziers:
 		b["lit"] = false
 	map.doors["north_door"]["open"] = false
+	_cache_movers()
 
 
 ## A new day (dawn): the lamps are out, people go to their morning spots.
@@ -132,6 +133,7 @@ func tick(dt: float) -> void:
 			request({"t": "period"})
 	people.update(dt)
 	_props(dt)
+	_cache_movers()
 	_magic()
 	_lamps_by_time()
 	var now: String = map.place_at(player_pos())
@@ -169,13 +171,20 @@ func prop_def(kind: String) -> Dictionary:
 	return pd["kinds"].get(kind, {})
 
 
-## Solid props for the collision of everything that walks.
+## Solid props for the collision of everything that walks, rebuilt once a tick (collision asks
+## for it twice per unit per frame, and a horde at the north door is dozens of units).
+var _movers: Array = []
+
+
 func movers() -> Array:
-	var out: Array = []
+	return _movers
+
+
+func _cache_movers() -> void:
+	_movers = []
 	for p in props:
 		if p["state"] != "ash":
-			out.append([p["pos"], float(prop_def(p["kind"])["r"])])
-	return out
+			_movers.append([p["pos"], float(prop_def(p["kind"])["r"])])
 
 
 func _props(dt: float) -> void:

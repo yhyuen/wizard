@@ -115,6 +115,7 @@ func _run() -> void:
 	ok(P.has_hint("conductor"), "hints carry over loops")
 	_controls(P)
 	_growth(P)
+	_world()
 	print("[unit] %d check(s), %d failed" % [checks, fails])
 	quit(1 if fails > 0 else 0)
 
@@ -229,3 +230,67 @@ func _controls(P) -> void:
 	A.kit.sw = null
 	A.free()
 	P.reset_all()
+
+
+## The open world (design/open-world/tech-plan.md §6): collision, the north door, every spot and
+## item reachable by walking the street graph from your room, schedules naming real spots, and
+## the clock.
+func _world() -> void:
+	const Map := preload("res://scripts/world/map.gd")
+	const World := preload("res://scripts/world/world.gd")
+	const Story := preload("res://scripts/game/story.gd")
+	var m = Map.new()
+	var block: Array = m.d["blocks"][0]
+	var inside := Vector2(block[0] + block[2] * 0.5, block[1] + block[3] * 0.5)
+	ok(not m.solid_at(m.collide(inside, 7.0), 6.9), "collision pushes a walker out of a house")
+	var door: Rect2 = m.doors["north_door"]["rect"]
+	ok(m.solid_at(door.get_center()), "the north door is shut at first")
+	m.doors["north_door"]["open"] = true
+	ok(not m.solid_at(door.get_center()), "an open north door lets you through")
+	m.doors["north_door"]["open"] = false
+	var pd: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/props.json"))
+	var props: Array = []
+	for pr in m.d["props"]:
+		props.append([Vector2(pr[1], pr[2]), float(pd["kinds"][pr[0]]["r"])])
+	m.movers = func(): return props
+	var reach := 30.0
+	var targets := {}
+	for id in m.spots:
+		targets["spot " + id] = m.spots[id]
+	for id in m.items:
+		targets["item " + id] = m.items[id]["at"]
+		reach = maxf(reach, float(m.items[id].get("reach", 30)))
+	var far: Array = []
+	for name in targets:
+		var b: Vector2 = targets[name]
+		var p: Vector2 = m.spots["room_in"]
+		var route := Array(m.path(p, b, 7.0))
+		for i in 6000:
+			while not route.is_empty() and p.distance_to(route[0]) < (8.0 if route.size() > 1 else 4.0):
+				route.pop_front()
+			if route.is_empty():
+				break
+			p = m.collide(p + (route[0] - p).normalized() * 2.0, 7.0)
+		if p.distance_to(b) > reach:
+			far.append("%s (%.0f px short)" % [name, p.distance_to(b)])
+	ok(far.is_empty(), "every spot and item can be walked to from your room: " + ", ".join(far))
+	var people: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/people.json"))["people"]
+	var bad: Array = []
+	for id in people:
+		for t in people[id].get("schedule", {}):
+			var sp: String = people[id]["schedule"][t]
+			if sp != "" and not m.spots.has(sp) and sp != "lamp_round":  # lamp_round: Mira lights the lane
+				bad.append("%s %s: %s" % [id, t, sp])
+		for o in people[id].get("overrides", []):
+			if not m.spots.has(str(o["spot"])):
+				bad.append("%s override: %s" % [id, o["spot"]])
+	ok(bad.is_empty(), "every schedule names a spot on the map: " + ", ".join(bad))
+	var run = root.get_node("Run")
+	run.save_enabled = false
+	run.new_run()
+	var story = Story.new(run)
+	story.load_all()
+	var w = World.new(run, story)
+	ok(w.period_s() > 0.0 and is_equal_approx(w.period_left(), 1.0), "a time of day starts full")
+	w.clock = w.period_s() * 0.5
+	ok(is_equal_approx(w.period_left(), 0.5), "the clock runs down the time of day")

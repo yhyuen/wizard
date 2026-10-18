@@ -1,5 +1,5 @@
-# Every PR and push to main: unit checks, the slice's story checks and route, the slice's fights,
-# a bot playthrough of the old Mill fight, and a web build
+# Every PR and push to main: unit checks, the town's story checks, a bot walking the route through
+# the town, the fights in place, magic meeting the world, and a web build
 # (uploaded as an artifact). Pushes to main also publish the web build to GitHub Pages.
 name: CI
 
@@ -54,26 +54,25 @@ jobs:
       - name: Unit checks
         run: tools/ci/godot.sh --script res://tools/tests/unit.gd
 
-      - name: Story checks (slice)
+      - name: Story checks (every person, item and spot)
         run: tools/ci/godot.sh --script res://tools/tests/story_lint.gd
 
-      - name: Route through the slice (loop 1 to the north door, loop 2 to the end)
-        run: tools/ci/godot.sh --script res://tools/tests/route.gd
+      - name: Walking the route (loop 1 to the north door, loop 2 to the end)
+        run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/route.gd
 
       - name: Relearning (loop 3 regains the 3rd Ring by day 3)
-        run: tools/ci/godot.sh --script res://tools/tests/relearn.gd
+        run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/relearn.gd
+
       - name: Every death teaches (criterion 7)
         run: tools/ci/godot.sh --script res://tools/tests/deaths.gd
 
-      - name: Slice fights (fresh and strong, and the millrace)
+      - name: Fights in place (fresh and strong, and the millrace)
         run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/encounters.gd
 
-      - name: Bot playthrough (three loops)
-        run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/fight.gd -- --loops 3 --seconds 240
+      - name: Magic meets the world (lamps, hay, crates, the scorch test)
+        run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/world_magic.gd
 
-      - name: Test scenes
-        run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/scenes.gd
-      - name: Test the story's reverse scenes
+      - name: The Fire cutscene (played, then skipped)
         run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/cutscenes.gd
 
       - name: Web export

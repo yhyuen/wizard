@@ -14,6 +14,19 @@ var last_pebbles := 0
 var kit  # the wizard's kit, so presses can wait for Aether instead of Overdrawing
 
 
+var home := Vector2.INF  # in the open world, where the fight started: the bot stays near it
+
+
+## The point the bot drifts back to between dodges: the old arena's middle, or where it stood when
+## the fight in the town began.
+func _home(A) -> Vector2:
+	if A.world == null:
+		return Vector2(240, 140)
+	if home == Vector2.INF:
+		home = A.player.pos
+	return home
+
+
 func intent(A) -> Dictionary:
 	t += 1.0 / 60.0
 	pebble_t -= 1.0 / 60.0
@@ -32,7 +45,8 @@ func intent(A) -> Dictionary:
 			out["held"][s] = true
 	var foes: Array = A.enemies()
 	if foes.is_empty():
-		out["move"] = (Vector2(240, 142) - P.pos) * 0.05
+		if A.world == null:
+			out["move"] = (Vector2(240, 142) - P.pos) * 0.05  # the old arena's middle
 		return out
 	foes.sort_custom(func(a, b): return a.pos.distance_to(P.pos) < b.pos.distance_to(P.pos))
 	# The slice's Ward: raise it when a shot is about to land.
@@ -57,7 +71,7 @@ func intent(A) -> Dictionary:
 	elif to.length() > (65.0 if short else 120.0):
 		mv += to.normalized() * 0.6
 	mv += to.orthogonal().normalized() * 0.5 * (1.0 if int(t / 3.0) % 2 == 0 else -1.0)
-	mv += (Vector2(240, 140) - P.pos) * 0.004
+	mv += (_home(A) - P.pos) * 0.004
 	var danger := false
 	for z in A.zones:
 		var c := Vector2.ZERO

@@ -28,7 +28,8 @@ var pool_mat: ShaderMaterial
 var water_mat: ShaderMaterial
 ## Built for the view to drive: {id: Node3D}
 var roofs := {}  # building id -> [MeshInstance3D] hidden while you're inside
-var lanterns: Array = []  # one per map lamp: {"glass": MeshInstance3D, "pool": MeshInstance3D}
+var lanterns: Array = []  # one per map lamp: where its post stands (Vector3)
+var lantern_mi := {}  # "lit", "dark", "pools" -> MeshInstance3D
 var brazier_fires: Array = []  # MeshInstance3D per brazier
 var north_door: Node3D
 var wheel: Node3D
@@ -67,6 +68,7 @@ func build(the_view, the_map, config: Dictionary) -> void:
 	_trees()
 	_interiors()
 	_commit()
+	_lantern_nodes()
 
 
 func c(k: String) -> Color:
@@ -210,7 +212,7 @@ func _hill() -> void:
 
 ## A stone wall with a coping and merlons along its top.
 func _wall(r: Rect2, h_px: float) -> void:
-	var h := h_px * view.S
+	var h: float = h_px * view.S
 	_rect_box(r, h, c("wall_stone"))
 	_rect_box(r.grow(2.0), 0.18, c("stone"), h)
 	var horiz := r.size.x > r.size.y
@@ -249,7 +251,7 @@ func _block(r: Rect2, h_px: float, seed_i: int) -> void:
 			var w := minf(rng.randf_range(58, 96), r.end.x - x)
 			if r.end.x - (x + w) < 40.0:
 				w = r.end.x - x
-			var hh := (h_px + rng.randf_range(-14, 18)) * view.S
+			var hh: float = (h_px + rng.randf_range(-14, 18)) * view.S
 			_house(Rect2(x, ry, w, rh), hh, c(walls[rng.randi() % 3]), c(roofs_k[rng.randi() % 3]))
 			x += w
 
@@ -285,7 +287,7 @@ func _house(r: Rect2, h: float, wall: Color, roof: Color, st: SurfaceTool = null
 	# Side windows on the ends, so a street seen at an angle isn't blind.
 	for side in [-1.0, 1.0]:
 		if rng.randf() < 0.6:
-			var sx := (a.x if side < 0 else b.x) + side * 0.03
+			var sx: float = (a.x if side < 0 else b.x) + side * 0.03
 			var lit := rng.randf() < 0.6
 			_box(Vector3(0.06, 0.7, 0.5), Vector3(sx, 0.6 + (h - 0.6) * 0.7, cz), c("window") if lit else c("dark_window"), 0.0, lit and st == null, st)
 	# Roof: ridge along the longer side; a chimney.
@@ -306,7 +308,7 @@ func _house(r: Rect2, h: float, wall: Color, roof: Color, st: SurfaceTool = null
 ## The archive and your dormitory: walls with a doorway; the roof and the front (south) walls
 ## are their own meshes, hidden while you're inside.
 func _building(id: String, bd: Dictionary) -> void:
-	var h := float(bd["height"]) * view.S
+	var h: float = float(bd["height"]) * view.S
 	var rect: Rect2 = bd["rect"]
 	var wall := c(str(bd.get("wall", "wall")))
 	var lift := Node3D.new()
@@ -522,35 +524,52 @@ func _north_door() -> void:
 	, solid_mat, north_door)
 
 
-## A lamp post: the post is merged; the lantern and its pool of light are separate, so each can
-## be lit and put out.
+## A lamp post: the post is merged with the town; the lanterns and their pools of light are
+## merged too, into one mesh of lit lanterns, one of dark ones and one of pools, rebuilt when a
+## lamp is lit or put out (set_lit), so the whole town's lamps cost three draws.
 func _lamp(at: Vector2) -> void:
 	var p: Vector3 = view.to_world(at)
 	_add(_cyl(0.06, 0.08, 2.6, 5), Transform3D(Basis(), p + Vector3(0, 1.3, 0)), c("iron"))
 	_add(_cyl(0.0, 0.28, 0.28, 4), Transform3D(Basis(), p + Vector3(0, 3.08, 0)), c("iron"))
-	var glass := MeshInstance3D.new()
+	lanterns.append(p)
+
+
+func _lantern_nodes() -> void:
+	for k in ["lit", "dark", "pools"]:
+		var mi := MeshInstance3D.new()
+		mi.material_override = {"lit": lit_mat, "dark": dark_mat, "pools": pool_mat}[k]
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(mi)
+		lantern_mi[k] = mi
+	set_lit([])
+
+
+## Shows the lamps at these indices (into map.json "lamps") lit, and every other one dark.
+func set_lit(lit: Array) -> void:
+	var on := {}
+	for i in lit:
+		on[i] = true
+	var sts := {}
+	for k in ["lit", "dark", "pools"]:
+		sts[k] = SurfaceTool.new()
+		sts[k].begin(Mesh.PRIMITIVE_TRIANGLES)
 	var bm := BoxMesh.new()
 	bm.size = Vector3(0.32, 0.38, 0.32)
-	glass.mesh = bm
-	glass.material_override = dark_mat
-	glass.position = p + Vector3(0, 2.75, 0)
-	glass.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(glass)
-	var pool := _pool_quad(p, float(cfg.get("pool_m", 3.4)), Color(str(cfg.get("lamp_color", "ffb060"))))
-	pool.visible = false
-	lanterns.append({"glass": glass, "pool": pool})
-
-
-func _pool_quad(p: Vector3, r: float, col: Color) -> MeshInstance3D:
-	return _own(func(st):
-		var y := 0.07
-		var q := [Vector3(-r, y, -r), Vector3(r, y, -r), Vector3(r, y, r), Vector3(-r, y, r)]
-		var uv := [Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)]
-		for k in [0, 1, 2, 0, 2, 3]:
-			st.set_color(col)
-			st.set_uv(uv[k])
-			st.add_vertex(p + q[k])
-	, pool_mat, null, false)
+	var r := float(cfg.get("pool_m", 3.4))
+	var col := Color(str(cfg.get("lamp_color", "ffb060")))
+	var q := [Vector3(-r, 0.07, -r), Vector3(r, 0.07, -r), Vector3(r, 0.07, r), Vector3(-r, 0.07, r)]
+	var uv := [Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)]
+	for i in lanterns.size():
+		var p: Vector3 = lanterns[i]
+		sts["lit" if on.has(i) else "dark"].append_from(bm, 0, Transform3D(Basis(), p + Vector3(0, 2.75, 0)))
+		if on.has(i):
+			for k in [0, 1, 2, 0, 2, 3]:
+				sts["pools"].set_color(col)
+				sts["pools"].set_uv(uv[k])
+				sts["pools"].add_vertex(p + q[k])
+	for k in sts:
+		var has: bool = (k == "dark" and lit.size() < lanterns.size()) or (k != "dark" and not lit.is_empty())
+		lantern_mi[k].mesh = sts[k].commit() if has else null
 
 
 ## A brazier in the yard: an iron bowl on legs, with a fire that shows when it's lit.

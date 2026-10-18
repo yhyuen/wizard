@@ -1,5 +1,5 @@
 {
- "_doc": "Vellmar as one walkable map (design/open-world/world.md). Positions are sim pixels (18 px is about 1 m), x east, y south. blocks: solid houses [x, y, w, h, height px]; cliffs: the hill the College stands on, solid [x, y, w, h]; walls: [x, y, w, h, height]; buildings: enterable, a rect with a door gap ({side, from, to} along that wall) whose roof lifts while you're inside; circles: solid round things [x, y, r, height, kind]; water: running water [x, y, w, h], which Hollows never step into (bridges are water too, but don't slow you); places: where you are (first match wins); nav: the street graph people walk; spots: named points; lamps: [x, y, group] (college and street come on at dusk, lane is Mira's round, broken only lights by fire); props: [kind, x, y, rotation degrees]; items: things to look at or use; spawns: where each fight's enemies come from.",
+ "_doc": "Vellmar as one walkable map (design/open-world/world.md). Positions are sim pixels (18 px is about 1 m), x east, y south. blocks: solid houses [x, y, w, h, height px]; cliffs: the hill the College stands on, solid [x, y, w, h]; walls: [x, y, w, h, height]; buildings: enterable, a rect with a door gap ({side, from, to} along that wall) whose roof lifts while you're inside; circles: solid round things [x, y, r, height, kind]; water: running water [x, y, w, h], which Hollows never step into (bridges are water too, but don't slow you); places: where you are (first match wins); nav: the street graph people walk; spots: named points; lamps: [x, y, group] (college and street come on at dusk, lane is Mira's round, broken only lights by fire); props: [kind, x, y, rotation degrees]; items: things to look at or use; spawns: where each fight's enemies come from: points, and/or a ring [near, far] of ring_n points round you (8 unless given); you: where you are moved; open: a door it opens.",
  "bounds": [0, 0, 2400, 1600],
  "cliffs": [[0, 0, 520, 828], [1480, 0, 920, 828]],
  "walls": [
@@ -27,7 +27,7 @@
   [1300, 330, 72, 160, "observatory"], [1630, 1030, 16, 14, "well"], [1560, 965, 11, 50, "statue"],
   [230, 1220, 18, 10, "ash"]
  ],
- "stalls": [[880, 958, 0, "cloth"], [1120, 958, 0, "cloth2"], [792, 1060, 90, "cloth"], [1208, 1060, -90, "cloth2"]],
+ "stalls": [[880, 958, 0, "cloth"], [1120, 958, 0, "cloth2"], [800, 1000, 90, "cloth"], [1200, 1000, -90, "cloth2"]],
  "water": [[400, 828, 40, 772]],
  "bridges": [[396, 1062, 48, 36]],
  "stairs": [940, 708, 120, 92],
@@ -114,6 +114,6 @@
   "yard_trial":  {"points": [[700, 500], [800, 480], [1200, 520], [1180, 640], [720, 640]]},
   "silas_duel":  {"points": [[1120, 600]], "you": [880, 600]},
   "mill_risen":  {"points": [[220, 1190], [256, 1236], [200, 1250], [246, 1170], [190, 1210]]},
-  "tide":        {"points": [[1100, 120], [1070, 90], [1130, 140], [1060, 150], [1140, 100]], "you": [1100, 330], "open": "north_door"}
+  "tide":        {"points": [[1100, 150], [1070, 120], [1130, 120]], "ring": [80, 115], "ring_n": 6, "you": [1100, 330], "open": "north_door"}
  }
 }

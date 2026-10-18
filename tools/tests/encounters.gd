@@ -1,9 +1,11 @@
 extends SceneTree
-## Plays every slice fight in data/slice/encounters.json with the autoplay bot, headless:
+## Plays every fight in data/slice/encounters.json with the autoplay bot, headless, in the open
+## world where the story starts it (the market at night, the yard, the Mill, the north door):
 ##
 ##   godot --headless --fixed-fps 60 --script res://tools/tests/encounters.gd
 ##
-## Each fight is started the way the slice starts it (the slice lends the fight its growth) and
+## Each fight is started the way the game starts it (in place, with its spawns from
+## data/world/map.json, and the day's growth lent to the fight) and
 ## must end within its time limit; a fight with "survive" must last at least that long. Fights are
 ## played as a fresh loop-1 Apprentice and as a "strong" wizard (4th Ring, Practice 10), and the
 ## Mill once more with Aldous's millrace tip. Some results are required, because the design rests
@@ -18,6 +20,8 @@ extends SceneTree
 
 const LIMIT := 180 * 60
 const FRAME_BUDGET := 8.0  # ms
+## Where the wizard stands when each fight starts (a spot in data/world/map.json).
+const AT := {"patrol": "market_c", "yard_trial": "yard_c", "silas_duel": "yard_c", "mill_risen": "mill_east", "tide": "north_in"}
 const REQUIRE := {"yard_trial fresh": true, "mill_risen fresh+millrace": true, "tide fresh": false}
 
 var main
@@ -43,6 +47,10 @@ func _initialize() -> void:
 		for id in encounters:
 			cases.append({"id": id, "profile": profile, "millrace": false})
 	cases.insert(encounters.keys().find("mill_risen") + 1, {"id": "mill_risen", "profile": "fresh", "millrace": true})
+	# -- --only tide: just that encounter's cases (for tuning).
+	var args := OS.get_cmdline_user_args()
+	if args.size() >= 2 and args[0] == "--only":
+		cases = cases.filter(func(c): return c["id"] == args[1])
 	main = load("res://scenes/main.tscn").instantiate()
 	root.add_child.call_deferred(main)
 
@@ -124,7 +132,14 @@ func _next() -> void:
 	if c["millrace"]:
 		enc["millrace"] = true
 	bot = load("res://scripts/bot.gd").new()
-	main.slice.fight_id = c["id"]
-	main.slice.cur = {"outcomes": {"won": "patrol_won", "lost": "trial_lost"}}
-	main.start_slice_fight(enc)
+	var slice = main.slice
+	slice.growth.end_fight()
+	slice.growth.begin_fight()
+	slice.world.reset_loop()
+	slice.world.reset_day()
+	slice.set_screen("world")
+	main.enter_world(slice.world.map.spots[AT[c["id"]]])
+	slice.fight_id = c["id"]
+	slice.cur = {"outcomes": {"won": "pell", "lost": "pell"}}  # a harmless scene after each fight
+	main.start_world_fight(enc, slice.spawns_for(c["id"]))
 	main.bot = func(a): return bot.intent(a)
