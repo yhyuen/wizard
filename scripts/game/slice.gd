@@ -382,10 +382,11 @@ func _effect(op: String, arg: String) -> bool:
 			run.learn("trial_" + arg)
 		"sound":
 			Sfx.play(arg)
-		"cutscene":
+		"cutscene", "play_path":
 			if fight_resolver.is_valid() or main == null or main.view == null:
 				return false  # tests skip the pictures
-			main.start_world_cutscene(arg, world.map.spots.get("fire_you", world.player_pos()))
+			var cid := ("path:" + arg) if op == "play_path" else arg
+			main.start_world_cutscene(cid, world.map.spots.get("fire_you", world.player_pos()))
 			return true
 		"wells", "meditate":
 			if growth.use_today(op):

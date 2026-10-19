@@ -277,7 +277,7 @@ func _physics_process(dt: float) -> void:
 		"cutscene":
 			if Input.is_action_just_pressed("confirm") or Input.is_action_just_pressed("cancel") or Input.is_action_just_pressed("blink"):
 				if arena.cutscene != null:
-					arena.cutscene.t = maxf(arena.cutscene.t, arena.cutscene.LENGTH[arena.cutscene.id])
+					arena.cutscene.t = maxf(arena.cutscene.t, arena.cutscene.length)
 
 
 ## A milestone pick (1 or 2) while the town waits.

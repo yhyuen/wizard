@@ -535,6 +535,11 @@ func _magic() -> void:
 				for pr in props:
 					if pr["home"].distance_to(z["pos"]) < float(pd["rewind_r"]) or pr["pos"].distance_to(z["pos"]) < float(pd["rewind_r"]):
 						mend(pr)
+				# The Hours on a thing in the ruin: the great clock's replay, the stair mended.
+				for iid in map.items:
+					if map.items[iid]["at"].distance_to(z["pos"]) < float(pd["rewind_r"]) + 10.0 and item_visible(iid):
+						request({"t": "cast", "item": iid, "element": "hours"})
+						break
 			"puddle", "whirl":
 				if z.get("millrace", false):
 					continue

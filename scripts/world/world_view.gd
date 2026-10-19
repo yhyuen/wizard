@@ -477,6 +477,8 @@ func _follow_close(delta: float) -> void:
 	if who != null:
 		target = target.lerp(Vector3(who.pos.x * S, 0, who.pos.y * S), 0.5)
 		off *= float(c["talk_zoom"])
+	elif arena.cutscene != null and arena.cutscene.look != Vector2.INF:
+		target = to_world(arena.cutscene.look)  # a recorded path: frame you and the figure
 	if not _cam_ready:
 		_cam_at = target
 		_cam_ready = true

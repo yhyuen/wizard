@@ -272,6 +272,13 @@ func _world() -> void:
 	var open9: bool = not h.solid_at(bd.get_center())
 	h.set_day_doors(10)
 	ok(open9 and h.solid_at(bd.get_center()), "the burnt door stands open on day 9 and is whole on day 10")
+	var cs: Rect2 = h.doors["collapsed_stair"]["rect"]
+	var choked: bool = h.solid_at(cs.get_center())
+	h.doors["collapsed_stair"]["open"] = true
+	var up: PackedVector2Array = h.path(h.spots["hall_north"], h.spots["cistern_c"], 7.0)
+	ok(choked and not h.solid_at(cs.get_center()) and Array(up).all(func(q): return absf(q.x - 1100.0) < 80.0),
+		"the collapsed stair is choked until the Hours mend it, then it is the way north to the cistern")
+	h.doors["collapsed_stair"]["open"] = false
 	var via: PackedVector2Array = h.path(h.spots["hall_c"], h.spots["ante_c"], 7.0)
 	ok(Array(via).any(func(q): return q.x < 700.0), "a sealed rune door sends the path the long way round")
 	var m = loaded["camp"]

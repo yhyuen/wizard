@@ -145,42 +145,61 @@ func _process(_dt: float) -> bool:
 		800:
 			_shot("17_halls_map")
 			slice.overlay = ""
+			main.place_player(W.map.spots["hall_s"] if W.map.spots.has("hall_s") else Vector2(1100, 1620))
+			main.start_world_cutscene("path:sighting", main.arena.player.pos)
+		900:
+			_shot("17a_sighting_still")
+		990:
+			_shot("17b_sighting_backwards")
+		1060:
+			main.mode = "world"
+			main.arena.cutscene = null
+			main.arena.phase = "explore"
+			main.arena.units = main.arena.units.filter(func(u): return u.team != 2)
+			main.place_player(W.map.items["great_clock"]["at"] + Vector2(-40, 0))
+			main.start_world_cutscene("path:provost_eclipse", main.arena.player.pos)
+		1260:
+			_shot("17c_provost_replay")
+			main.mode = "world"
+			main.arena.cutscene = null
+			main.arena.phase = "explore"
+			main.arena.units = main.arena.units.filter(func(u): return u.team != 2)
 			main.place_player(W.map.spots["hall_c"] + Vector2(-260, -40))
 			slice._start_fight("hall_fight")
-		1000:
+		1400:
 			_shot("18_crack_glow")
-		1130:
+		1530:
 			_shot("19_hall_embers")
 			_end_fight()
 			_go(W.map.spots["refectory_c"], 2, 0)
-		1170:
+		1570:
 			_shot("20_refectory")
 			_go(W.map.spots["gallery_c"], 2, 0)
-		1210:
+		1610:
 			_shot("21_gallery_dark")
 			_go(W.map.spots["passage_c"] + Vector2(0, 60), 2, 0)
-		1250:
+		1650:
 			_shot("22_bell_passage")
 			_go(W.map.spots["ante_s"] + Vector2(0, -60), 2, 0)
-		1290:
+		1690:
 			_shot("23_burnt_door")
 			_go(W.map.spots["cistern_c"] + Vector2(120, 40), 2, 0)
-		1330:
+		1730:
 			_shot("24_cistern_sluice")
 			_go(W.map.spots["kiln_s"], 2, 0)
 			slice._start_fight("warden")
-		1640:
+		2040:
 			main.arena.player.hp = main.arena.player.max_hp
 			_shot("25_warden_rings")
 			var w = main.arena.enemies().filter(func(u): return u.kind == "warden")
 			if not w.is_empty():
 				w[0].hp = w[0].max_hp * 0.5
-		1840:
+		2240:
 			main.arena.player.hp = main.arena.player.max_hp
 			_shot("26_warden_vents")
 			_end_fight()
 			slice.end_loop("first_playable_end")
-		1860:
+		2260:
 			_shot("27_end_card")
 			var f := FileAccess.open(out.path_join("stats.txt"), FileAccess.WRITE)
 			f.store_string("\n".join(stats) + "\n")

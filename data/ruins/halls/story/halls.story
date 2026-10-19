@@ -14,6 +14,14 @@ A small Orrery shrine stands by the wall, its rings still turning, as if nothing
 The stair you came down is at your back, if you want the daylight.
 * Go on
 
+=== sighting
+arrive: entrance_hall
+priority: 30
+You come up into the entrance hall, and stop.
++ play_path sighting
++ learn figure_ahead
++ goto entrance_hall
+
 === entrance_hall
 arrive: entrance_hall
 repeat: true
@@ -68,8 +76,36 @@ You climb toward the grey light, and by the time you reach the camp the day is g
 === collapsed_stair
 use: collapsed_stair
 repeat: true
-The stair north is choked with fallen stone, from floor to vault.
+[not f("stair_mended")] The stair north is choked with fallen stone, from floor to vault.
+[not f("stair_mended")] Fresh chalk on the rubble: a circle cut through by a line. Somebody marked this fall. The stair was brought down on purpose.
+[not f("stair_mended")] + learn stair_cult
+[not f("stair_mended") and k("hours_stirs")] The stones still remember where they stood. A Rewind might put them back.
+[f("stair_mended")] The stair north stands whole again, the chalk circle with it, as if it had never fallen.
 * Leave
+
+=== stair_mend
+use: collapsed_stair
+cast: hours
+repeat: true
+when: not f("stair_mended")
+The Rewind takes hold of the fall. Stone by stone the stair climbs back into its place, until the way north to the cistern stands open.
++ open collapsed_stair
++ set stair_mended
++ learn stair_mend
+
+=== great_clock
+use: great_clock
+repeat: true
+The College's great clock, fallen from its tower into the hall. Its hands stopped at the hour of the Eclipse.
+[k("hours_stirs") and not k("provost_crossed")] The Hours tick under your ribs as you look at it. A Rewind would turn its hands back.
+* Leave
+
+=== clock_replay
+use: great_clock
+cast: hours
+repeat: true
++ play_path provost_eclipse
++ learn provost_crossed
 
 # --- the long way ----------------------------------------------------------------------------
 
@@ -110,6 +146,15 @@ Embers keep out of lamplight, like the Hollows do. Fire would light those lamps.
 They catch you in the dark between the dead lamps. Not one of them came near the lamp you fell against.
 + learn ember_light
 + end_loop fight:gallery_fight
+
+=== wren_chalk
+use: wren_chalk
+repeat: true
+A mark in chalk on the gallery wall, small and neat: a row of star signs and an arrow.
+[k("wren_cipher")] The College's old star cipher, Wren's hobby. It reads: the sealed door. The arrow points east, back toward the entrance hall.
+[not k("wren_cipher")] A cipher of some kind. Someone in the camp might know it.
++ learn wren_chalk
+* Leave
 
 # --- the short way ---------------------------------------------------------------------------
 

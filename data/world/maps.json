@@ -1,9 +1,9 @@
 {
- "_doc": "Every walkable map (design/ruins/tech-plan.md §1). path: its map.json; kit: which builders draw it (town: the camp's houses, stalls and lamps; ruin: broken walls, rubble, pillars, pits, cracks); name: shown on the loading card; story: its folder of .story files (the camp's is data/world/story/); mood: a fixed mood from data/visual.json world.moods (none: the camp's time of day); palette: colours over the town palette for this layer; fog_density: the mist, thicker in the ruin; clock: whether the time of day runs here.",
+ "_doc": "Every walkable map (design/ruins/tech-plan.md §1). path: its map.json; kit: which builders draw it (town: the camp's houses, stalls and lamps; ruin: broken walls, rubble, pillars, pits, cracks); name: shown on the loading card; story: its folder of .story files (the camp's is data/world/story/); mood: a fixed mood from data/visual.json world.moods (none: the camp's time of day); palette: colours over the town palette for this layer; fog_density: the mist, thicker in the ruin; clock: whether the time of day runs here; paths: its recorded paths (scripts/game/cutscene.gd).",
  "start": "camp",
  "maps": {
   "camp": {"path": "res://data/world/map.json", "kit": "town", "name": "The survivors' camp", "story": "res://data/world/story/", "clock": true},
-  "halls": {"path": "res://data/ruins/halls/map.json", "kit": "ruin", "name": "The College halls", "story": "res://data/ruins/halls/story/",
+  "halls": {"path": "res://data/ruins/halls/map.json", "kit": "ruin", "name": "The College halls", "story": "res://data/ruins/halls/story/", "paths": "res://data/ruins/halls/paths.json",
    "mood": "ruin", "clock": false,
    "palette": {"wall_stone": "6a6670", "stone": "7a7880", "rock": "4e4c54", "rock2": "3c3a42"}}
  }

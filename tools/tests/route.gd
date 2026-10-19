@@ -8,16 +8,20 @@ extends SceneTree
 ## which costs the day: it sleeps and wakes on day 2. Then it goes down again and takes the long
 ## route (entrance hall, refectory, lecture gallery, antechamber) to the Kiln Warden, which kills
 ## it (fights are settled by fight_resolver: the rooms are won, the Warden is lost on loop 1).
-## Loop 2 wakes to its own scene with the Hours stirring, reads the dwarves' crate (H4), opens the
-## rune door, takes the short route through the bell passage, beats the Warden and reaches the end
-## card at the Archive stair. From where the routes part (leaving the entrance hall) to the Kiln
+## Loop 2 wakes to its own scene with the Hours stirring and puts Rewind in its spellbook. Day 1
+## it reads the dwarves' crate (H4), goes down, turns the great clock back with Rewind (H1), mends
+## the collapsed stair with it (H5), walks through to the cistern and turns the sluice, and climbs
+## out. Day 2 it opens the rune door, takes the short route through the bell passage, beats the
+## Warden and reaches the end card at the Archive stair. Loop 1 also sees the sighting and the
+## burnt door, and reads Wren's chalk mark in the gallery. From where the routes part (leaving the entrance hall) to the Kiln
 ## hall, the short way must take under half the long way's play time, counting each fight at about
 ## the time the encounter test's fresh Apprentice takes to win it (FIGHT_S). Every loading card
 ## must rebuild the view and warm its shaders behind it.
 
 const Walker := preload("res://tools/tests/walker.gd")
 const MAX_FRAMES := 150000
-const LONG := ["go:entrance_hall", "use:rune_door", "go:refectory", "go:gallery", "go:antechamber", "go:kiln_hall"]
+const LONG := ["go:entrance_hall", "use:rune_door", "go:refectory", "go:gallery", "use:wren_chalk", "go:antechamber",
+	"use:burnt_door", "go:kiln_hall"]
 const SHORT := ["go:entrance_hall", "use:rune_door", "go:bell_passage", "go:antechamber", "go:kiln_hall"]
 
 ## Goals for each time of day (Morning, Noon, Afternoon, Dusk, Night); in the halls the clock
@@ -28,7 +32,9 @@ const PLAN_1 := {
 	2: [["exit:north_stair"] + LONG, [], [], [], []],
 }
 const PLAN_2 := {
-	1: [["use:dwarf_crate", "talk:captain", "exit:north_stair"] + SHORT + ["use:archive_stair>Sit on the bottom step"], [], [], [], []],
+	1: [["use:dwarf_crate", "talk:captain", "exit:north_stair", "go:entrance_hall", "use:great_clock", "cast:great_clock:rewind", "use:collapsed_stair",
+		"cast:collapsed_stair:rewind", "go:cistern", "use:sluice>Turn the wheel", "use:stair_back>Climb out"], [], [], [], ["sleep"]],
+	2: [["exit:north_stair"] + SHORT + ["use:archive_stair>Sit on the bottom step"], [], [], [], []],
 }
 const PREFER := ["Go down", "Face it", "\"Which way did it go?\"", "Train", "Meditate"]
 ## Seconds of play each fight takes (tools/tests/encounters.gd, fresh, rounded).
@@ -96,6 +102,14 @@ func _process(_dt: float) -> bool:
 				var plan: Dictionary = PLAN_1 if run.loop() == 1 else PLAN_2
 				if run.loop() == 1 and run.day() == 2 and run.time() == 0 and surfaced == "":
 					surfaced = "%s/%s" % [slice.world.map_id, main.view.built_for]
+				if run.loop() == 2 and run.day() == 1 and run.time() == 0 and slice.growth.prog.spellbook()[1] != "rewind":
+					# what a player does at the cot once the Hours stir: Rewind into the second slot
+					var book: Array = slice.growth.prog.spellbook().duplicate()
+					book[book.find("rewind") if book.has("rewind") else 1] = book[1]
+					book[1] = "rewind"
+					run.lp["book"] = book
+					slice.growth.refresh()
+					main.refresh_book()
 				if not plan.has(run.day()):
 					failures.append("loop %d got to day %d without ending" % [run.loop(), run.day()])
 					return _report()
@@ -124,8 +138,9 @@ func _watch_loading() -> void:
 		if main.view.built_for != id:
 			failures.append("the view shows %s after the card, the world is on %s" % [main.view.built_for, id])
 		print("[route] the loading card lifted on %s (%s)" % [slice.world.map_def()["name"], slice.world.map.place_name(slice.world.here)])
-		if id == "halls" and run.day() >= (2 if run.loop() == 1 else 1):
-			down_at = bot.play_s
+		if id == "halls" and run.day() == 2:
+			down_at = bot.play_s  # the descent that goes to the Warden
+			fork_at = -1.0
 	was_loading = loading
 
 
@@ -145,11 +160,14 @@ func _watch_route() -> void:
 func _report() -> bool:
 	done = true
 	for need in ["orrery_light", "carried_out", "wren_cipher", "captain", "the_halls", "rune_shape", "rune_ashlar", "rune_opened",
-			"crack_order", "short_route", "warden_water", "hours_stirs", "trial_warden"]:
+			"crack_order", "short_route", "warden_water", "hours_stirs", "trial_warden", "figure_ahead", "wren_chalk",
+			"burnt_far_side", "provost_crossed", "stair_cult", "stair_mend", "sluice_flood"]:
 		if not run.knows(need):
 			failures.append("never learned " + need)
 	var log: Array = run.mem["log"]
 	var causes: Array = log.map(func(l): return l["cause"])
+	if not run.mem["log"].is_empty() and int(run.mem["log"][-1]["day"]) != 2:
+		failures.append("loop 2 should reach the end card on day 2 (the stair and the sluice took day 1)")
 	if causes != ["fight:warden", "first_playable_end"]:
 		failures.append("loop 1 must die to the Warden and loop 2 reach the end card, got %s" % str(causes))
 	if surfaced != "camp/camp":

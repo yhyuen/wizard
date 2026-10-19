@@ -1,0 +1,19 @@
+{
+ "_doc": "Recorded paths in the halls (design/ruins/tech-plan.md §6), played by `+ play_path <id>` as a cutscene. keys: [seconds, x, y] in sim px, as the figure walked them; reverse: play the recording backwards (it faces where it walked, so it backs away); face: you (it watches you the whole time); hold: seconds the scene stays after the last key; ghost: drawn in the Hours' light (a replay of the past); captions: [seconds, text].",
+ "paths": {
+  "sighting": {
+   "figure": "walker", "reverse": true, "face": "you", "hold": 0.6,
+   "keys": [[0.0, 1100, 1150], [0.6, 1100, 1200], [2.4, 1100, 1420], [4.4, 1100, 1420]],
+   "captions": [[0.0, "Someone is standing in the hall, facing you."], [1.4, "Veiled. Perfectly still."],
+    [2.2, "Then it goes backwards, faster than anyone could run, and never turns round."],
+    [3.8, "Through the fallen stair, as if the stone weren't there."]]
+  },
+  "provost_eclipse": {
+   "figure": "provost", "ghost": true, "hold": 1.2,
+   "keys": [[0.0, 1100, 1680], [1.5, 1100, 1600], [5.5, 1100, 1180], [6.0, 1100, 1150]],
+   "captions": [[0.0, "The clock's hands run back to the Eclipse, and the hall fills with its light."],
+    [1.6, "A man in the Provost's robes crosses the hall in a hurry."],
+    [3.6, "He doesn't look round. He is going up, toward the Orrery."], [5.6, "The stair was whole then."]]
+  }
+ }
+}
