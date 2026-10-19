@@ -1,9 +1,10 @@
 extends Node
-## Root of the open-world prototype (design/open-world/): the arena runs the whole town (the
-## wizard, spells, fights in place) seen through the 3D town view (scripts/world/world_view.gd),
-## the HUD on top at 960×540, and the game flow on top of that (scripts/game/slice.gd: title,
-## the dialogue panel, the map, the Ledger, death). Input becomes an intent dictionary each
-## physics frame, so tests can drive the same code with a bot.
+## Root of the ruins game (design/ruins/, on the open-world prototype): the arena runs the map
+## you're on (the wizard, spells, fights in place) seen through the 3D view
+## (scripts/world/world_view.gd), the HUD on top at 960×540, and the game flow on top of that
+## (scripts/game/slice.gd: title, the dialogue panel, the map, the Ledger, the loading card,
+## death). Input becomes an intent dictionary each physics frame, so tests can drive the same
+## code with a bot.
 
 const Arena := preload("res://scripts/arena.gd")
 const Hud := preload("res://scripts/hud.gd")
@@ -26,7 +27,7 @@ const SLOW_SECONDS := 4.0
 const SETTINGS := "user://settings.json"
 var gfx := "auto"  # "auto", "high" or "low", kept in SETTINGS
 var _slow_t := 0.0
-var mode := "title"  # title, world (walking the town), fight (a fight in place), cutscene, slice (death, end)
+var mode := "title"  # title, world (walking a map), fight (a fight in place), cutscene, slice (loading, death)
 var slice  # scripts/game/slice.gd
 var world  # scripts/world/world.gd (the slice's)
 var bot: Callable  # tests and the F2 autoplay set this: func(arena) -> intent
@@ -61,7 +62,7 @@ func _ready() -> void:
 	slice.main = self
 	add_child(slice)
 	slice.screen_changed.connect(_on_slice_screen)
-	arena.start_world(world.map, world, world.map.spots["room_in"])
+	arena.start_world(world.map, world, world.map.spots["cot"])
 	arena.paused = true
 	view.prewarm()
 
@@ -107,8 +108,12 @@ func _build_3d(_vis: Dictionary) -> void:
 
 # --- the town -----------------------------------------------------------------------------
 
-## A new day, or a new loop: the wizard stands at `at` with nothing attacking.
+## A new day, or a new loop: the wizard stands at `at` with nothing attacking. Waking after a
+## death in the ruin rebuilds the camp's 3D first.
 func enter_world(at: Vector2) -> void:
+	if view != null and view.built_for != world.map_id:
+		view.rebuild()
+		view.prewarm()
 	arena.start_world(world.map, world, at)
 	arena.paused = false
 	mode = "world"
@@ -120,6 +125,28 @@ func enter_world(at: Vector2) -> void:
 	if not told_controls and not bot.is_valid():
 		told_controls = true
 		_toast_controls()
+
+
+## Onto the map the world just went to, behind the loading card (slice.gd go_map): the arena
+## takes the new map, the view builds it and warms its shaders, and the wizard stands at `at`.
+func change_map(at: Vector2) -> void:
+	arena.start_world(world.map, world, at)
+	arena.paused = true
+	controls.reset()
+	going_to = {}
+	if view != null:
+		view.rebuild()
+		view.snap()
+		view.prewarm()
+
+
+## The loading card is gone: walking again.
+func resume_world() -> void:
+	mode = "world"
+	controls.reset()
+	hud.reset()
+	if view != null:
+		view.snap()
 
 
 ## Puts the wizard at `at` (a story's `+ move`, or a fight that pulls you somewhere).

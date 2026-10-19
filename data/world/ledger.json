@@ -1,0 +1,117 @@
+{
+ "_doc": "The Ledger for the ruins game (design/ruins/content.md §6): every entry the story can teach (kind clue, insight, person, model, trial or question) and the death screen's line for each way a loop ends. A question opens when anything in `opens` is learned and lists the `clues` that bear on it; R2 adds its answers.",
+ "entries": {
+  "orrery_light": {
+   "kind": "clue",
+   "title": "The light in the Orrery",
+   "text": "The last thing I remember: the great rings turning wrong, Wren a step ahead of me on the gallery, and a light with no colour."
+  },
+  "carried_out": {
+   "kind": "clue",
+   "title": "Carried out",
+   "text": "Mira saw a veiled figure leave me at the east gate before dawn. It carried me like I weighed nothing, then walked back the way it came."
+  },
+  "backward_prints": {
+   "kind": "clue",
+   "title": "Prints at the east gate",
+   "text": "Scuffed prints in the ash at the east gate, coming out. The heels are where the toes should be."
+  },
+  "wren_cipher": {
+   "kind": "clue",
+   "title": "Wren's hobby",
+   "text": "Pell says the College's old star cipher was Wren's hobby. Wren wrote notes to people in it."
+  },
+  "mill_cellars": {
+   "kind": "clue",
+   "title": "The Mill cellars",
+   "text": "Aldous says things came up out of the Mill cellars the night the Orrery fell."
+  },
+  "rune_ashlar": {
+   "kind": "clue",
+   "title": "The rune Ashlar",
+   "text": "The dwarves stamp their tools with Ashlar, the rune of the stone that holds. Their doors answer to it."
+  },
+  "rune_shape": {
+   "kind": "clue",
+   "title": "A rune on a sealed door",
+   "text": "A door in the College halls, sealed with a dwarf rune. I know its shape now."
+  },
+  "the_halls": {
+   "kind": "clue",
+   "title": "The College halls",
+   "text": "Under the north stair, the College halls go on in the dark. The blast went down as well as up."
+  },
+  "second_blast": {
+   "kind": "clue",
+   "title": "The second blast",
+   "text": "At the Eclipse the Orrery's heart woke again, and this time it took everything."
+  },
+  "shrine_release": {
+   "kind": "insight",
+   "title": "The shrines answer",
+   "text": "An Orrery shrine in the ruin will let a loop go if I ask it. I wake on the cot, the morning after."
+  },
+  "hours_stirs": {
+   "kind": "insight",
+   "title": "The Hours stir",
+   "text": "Something came back with me: the Hours, the College's own Sphere. Rewind, the first of its Models, is mine to put in my spellbook."
+  },
+  "died_patrol": {
+   "kind": "insight",
+   "title": "The Hollows in the ruins killed me",
+   "text": "At night the Hollows walk the College ruins. Too many to fight in the dark."
+  },
+  "mira": {
+   "kind": "person",
+   "title": "Mira",
+   "text": "The lamplighter. Lights the lane at dusk, and saw who brought me in."
+  },
+  "aldous": {
+   "kind": "person",
+   "title": "Aldous",
+   "text": "The miller. Bakes what bread there is, and won't go near his own cellar."
+  },
+  "pell": {"kind": "person", "title": "Pell", "text": "Eager to help with anything. Knew the College, or says so."},
+  "captain": {
+   "kind": "person",
+   "title": "The watch captain",
+   "text": "Holds the cordon at the College gate. Nobody goes down, except that I do."
+  },
+  "model_rewind": {
+   "kind": "model",
+   "title": "Rewind (Hours)",
+   "text": "Learnt from the hanging shard. Step back to where you stood a moment ago."
+  },
+  "model_splash": {"kind": "model", "title": "Splash (Luna)", "text": "Studied with Wren in the archive."},
+  "model_spark": {"kind": "model", "title": "Spark (Mercury)", "text": "Studied with Wren in the archive."},
+  "model_undertow": {"kind": "model", "title": "Undertow (Luna)", "text": "Studied with Wren in the archive."},
+  "model_arc_lance": {"kind": "model", "title": "Arc Lance (Mercury)", "text": "Studied with Wren in the archive."},
+  "q_wren": {
+   "kind": "question",
+   "title": "Where is Wren?",
+   "text": "Wren was ahead of me in the Orrery when the light came.",
+   "opens": ["orrery_light"],
+   "clues": ["orrery_light", "the_halls"]
+  },
+  "q_carried": {
+   "kind": "question",
+   "title": "Who carried you out?",
+   "text": "Someone brought me out of the ruin and left me at the east gate.",
+   "opens": ["carried_out"],
+   "clues": ["carried_out", "backward_prints"]
+  },
+  "q_rune": {
+   "kind": "question",
+   "title": "What opens the rune door?",
+   "text": "A door in the halls is sealed with a dwarf rune.",
+   "opens": ["rune_shape"],
+   "clues": ["rune_shape", "rune_ashlar"]
+  }
+ },
+ "deaths": {
+  "patrol": "The Hollows in the ruins were too many.",
+  "eclipse": "The Eclipse came, and the Orrery's heart woke a second time.",
+  "shrine": "You let the loop go at the shrine.",
+  "fight": "You fell in a fight."
+ }
+}

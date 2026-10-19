@@ -1,15 +1,17 @@
 extends SceneTree
-## Checks the story scripts (data/world/story/) against the town and the rest of the data:
+## Checks the story scripts (each map's story folder, data/world/maps.json) against their maps
+## and the rest of the data:
 ##
 ##   godot --headless --script res://tools/tests/story_lint.gd
 ##
-## Every scene parses; every person, item, place, spot, jump, Ledger id, Model, encounter, death
-## cause, flag and condition it names exists; every person and item answers when you talk to it or
-## use it; and the events for the traces days 1–7 need (R0–R4) are there.
+## Every scene parses; every person, item, place, spot, exit, jump, Ledger id, Model, encounter,
+## death cause, flag and condition it names exists on its own map; every person and every item on
+## every map answers when you talk to it or use it; and the first playable's beats are there (C1:
+## Mira says who carried you out; H4: the dwarves' crate names the rune).
 ## Exits non-zero on any problem.
 
 const Story := preload("res://scripts/game/story.gd")
-const TRACE_SCENES := {"R0": ["sit_with_wren"], "R1": ["fire"], "R2": ["mourner"], "R3": ["mill_risen"], "R4": ["tide", "bar_door"]}
+const BEATS := {"C1 (who carried you out)": "carried_out", "H4 (the rune on the crate)": "rune_ashlar"}
 
 var problems: Array = []
 
@@ -21,14 +23,21 @@ func _initialize() -> void:
 	var story = Story.new(run)
 	story.load_all()
 	problems.append_array(story.errors)
-	var map: Dictionary = _json("res://data/world/map.json")
-	var places: Dictionary = map["places"]
-	var items: Dictionary = map["items"]
+	var reg: Dictionary = _json("res://data/world/maps.json")
+	var maps := {}  # map id -> its map.json
+	var map_of_dir := {}  # story folder -> map id
+	for mid in reg["maps"]:
+		maps[mid] = _json(str(reg["maps"][mid]["path"]))
+		map_of_dir[str(reg["maps"][mid]["story"]).trim_suffix("/")] = mid
 	var people: Dictionary = _json("res://data/world/people.json")["people"]
-	var encounters: Dictionary = _json("res://data/slice/encounters.json")["encounters"]
-	var ld: Dictionary = _json("res://data/slice/ledger.json")
+	var encounters: Dictionary = _json("res://data/world/encounters.json")["encounters"]
+	var ld: Dictionary = _json("res://data/world/ledger.json")
 	var ledger: Dictionary = ld["entries"]
 	var deaths: Dictionary = ld["deaths"]
+	for mid in maps:
+		for ex in maps[mid].get("exits", []):
+			if not maps.has(ex["to"]) or not maps[ex["to"]]["spots"].has(ex["at"]):
+				problems.append("map %s: exit %s leads to %s %s, which isn't there" % [mid, ex["id"], ex["to"], ex["at"]])
 	var spells: Dictionary = _json("res://data/spells.json")
 	var flags_set := {}
 	for id in load("res://scripts/world/world.gd").FLAGS:
@@ -36,13 +45,23 @@ func _initialize() -> void:
 	var conds: Array = []  # [condition, where]
 	for s in story.scenes.values():
 		var where := "%s:%d (%s)" % [s["file"], s["line"], s["id"]]
+		var mid: String = map_of_dir.get(str(s["file"]).get_base_dir(), "")
+		if mid == "":
+			problems.append("%s: not in any map's story folder" % where)
+			continue
+		var map: Dictionary = maps[mid]
+		var places: Dictionary = map["places"]
+		var items: Dictionary = map["items"]
+		var exits := {}
+		for ex in map.get("exits", []):
+			exits[ex["id"]] = ex
 		for p in s["arrives"]:
 			if not places.has(p):
 				problems.append("%s: unknown place %s" % [where, p])
 		if s["talk"] != "" and not people.has(s["talk"]):
 			problems.append("%s: nobody called %s in data/world/people.json" % [where, s["talk"]])
-		if s["use"] != "" and not items.has(s["use"]):
-			problems.append("%s: no item %s in data/world/map.json" % [where, s["use"]])
+		if s["use"] != "" and not items.has(s["use"]) and not exits.has(s["use"]):
+			problems.append("%s: no item or exit %s on the map %s" % [where, s["use"], mid])
 		if s["cast"] != "" and not s["cast"] in ["fire", "water", "earth", "storm"]:
 			problems.append("%s: cast must be an element, not %s" % [where, s["cast"]])
 		for key in ["when", "known"]:
@@ -74,26 +93,28 @@ func _initialize() -> void:
 				"fight":
 					if not encounters.has(arg):
 						problems.append("%s: no encounter %s" % [where, arg])
-					if not map["spawns"].has(arg):
-						problems.append("%s: encounter %s has no spawns in data/world/map.json" % [where, arg])
+					if not map.get("spawns", {}).has(arg):
+						problems.append("%s: encounter %s has no spawns on the map %s" % [where, arg, mid])
 				"move":
 					if not map["spots"].has(arg):
-						problems.append("%s: no spot %s in data/world/map.json" % [where, arg])
+						problems.append("%s: no spot %s on the map %s" % [where, arg, mid])
+				"go":
+					var parts := arg.split(" ")
+					if parts.size() == 1 and not exits.has(arg):
+						problems.append("%s: go %s is not an exit of the map %s" % [where, arg, mid])
+					elif parts.size() == 2 and not (maps.has(parts[0]) and maps[parts[0]]["spots"].has(parts[1])):
+						problems.append("%s: go %s names no spot on a map" % [where, arg])
+					elif parts.size() > 2:
+						problems.append("%s: go takes an exit, or a map and a spot" % where)
 				"take":
 					if not items.has(arg):
 						problems.append("%s: no item %s to take" % [where, arg])
 				"end_loop":
 					if not deaths.has(arg):
 						problems.append("%s: no death text for %s" % [where, arg])
-				"cutscene":
-					if not arg in ["fire", "mourner"]:
-						problems.append("%s: no cutscene '%s' (scripts/game/cutscene.gd)" % [where, arg])
 				"sound":
 					if not FileAccess.file_exists("res://assets/sfx/%s.wav" % arg):
 						problems.append("%s: no sound assets/sfx/%s.wav" % [where, arg])
-				"skip_to":
-					if not str(arg.split(" ")[0]).is_valid_int():
-						problems.append("%s: skip_to needs a day" % where)
 		for c in s["choices"]:
 			if c["target"] != "" and not story.scenes.has(c["target"]):
 				problems.append("%s: choice '%s' goes to missing scene %s" % [where, c["text"], c["target"]])
@@ -130,9 +151,10 @@ func _initialize() -> void:
 	for id in people:
 		if id != "walker" and not story.scenes.values().any(func(sc): return sc["talk"] == id and sc["days"].is_empty() and sc["when"] == ""):
 			problems.append("person %s: no fallback talk scene (no days, no when)" % id)
-	for id in items:
-		if not story.scenes.values().any(func(sc): return sc["use"] == id and sc["cast"] == ""):
-			problems.append("item %s: no use scene" % id)
+	for mid in maps:
+		for id in maps[mid]["items"]:
+			if not story.scenes.values().any(func(sc): return sc["use"] == id and sc["cast"] == ""):
+				problems.append("map %s, item %s: no use scene" % [mid, id])
 	# Encounters and the Ledger's own references.
 	for id in encounters:
 		for wave in encounters[id]["waves"] + encounters[id].get("waived", []):
@@ -150,13 +172,11 @@ func _initialize() -> void:
 				problems.append("ledger %s: %s names unknown entry %s" % [id, key, q[key]])
 		if q.has("options") and not (int(q.get("answer", -1)) >= 0 and int(q["answer"]) < q["options"].size()):
 			problems.append("ledger %s: answer is not one of the options" % id)
-	# The traces days 1–7 need.
-	for t in TRACE_SCENES:
-		for sid in TRACE_SCENES[t]:
-			if not story.scenes.has(sid):
-				problems.append("trace %s: scene %s is missing" % [t, sid])
-			elif story.scenes[sid]["days"].filter(func(d): return d >= 1 and d <= 7).is_empty():
-				problems.append("trace %s: scene %s is not on days 1-7" % [t, sid])
+	# The first playable's beats: some scene teaches each.
+	for beat in BEATS:
+		var lid: String = BEATS[beat]
+		if not story.scenes.values().any(func(sc): return sc["steps"].any(func(st): return st["t"] == "fx" and st["op"] == "learn" and st["arg"] == lid)):
+			problems.append("beat %s: no scene teaches %s" % [beat, lid])
 	print("[story] %d scenes, %d Ledger entries, %d conditions checked" % [story.scenes.size(), ledger.size(), conds.size()])
 	for p in problems:
 		print("[story] PROBLEM: " + str(p))

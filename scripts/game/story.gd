@@ -1,5 +1,6 @@
 extends RefCounted
-## Loads the slice's story scripts (data/slice/story/*.story) and answers questions about them:
+## Loads the story scripts of every map (data/world/maps.json "story": the camp's in
+## data/world/story/, each ruin layer's in data/ruins/<layer>/story/) and answers questions about them:
 ## which event plays at a place and time, which plays wherever you are, and whether a condition
 ## holds. The format is in design/slice/tech-plan.md §2:
 ##
@@ -28,12 +29,16 @@ extends RefCounted
 ## Such scenes play on any day and at any time unless they say otherwise. New effects: `move
 ## <spot>`, `take <item>`, `sleep` (end the day), `book` (open the spellbook) and `today <op>`
 ## (mark a once-a-day thing done, for done(op)).
+##
+## The ruins (design/ruins/tech-plan.md §1) add `go <map> <spot>` (when the scene closes, the
+## loading card takes you there) and `go <exit>` (through that exit of the map you're on); an
+## exit you walk into plays `use: <exit id>` first, if there is such a scene.
 
-const DIR := "res://data/world/story/"
+const MAPS := "res://data/world/maps.json"
 const HEADER_KEYS := ["place", "days", "times", "when", "force", "priority", "repeat", "known", "title", "slot", "backdrop",
 	"talk", "use", "arrive", "cast"]
-const EFFECTS := ["learn", "set", "clear", "fight", "wells", "train", "meditate", "study", "goto", "end_loop",
-	"skip_to", "slice_end", "model", "trial", "sound", "cutscene", "move", "take", "sleep", "book", "today"]
+const EFFECTS := ["learn", "set", "clear", "fight", "wells", "train", "meditate", "goto", "end_loop",
+	"model", "trial", "sound", "cutscene", "move", "take", "sleep", "book", "today", "go"]
 
 var scenes := {}  # id -> scene dictionary
 var errors: Array = []  # parse errors, for the linter
@@ -70,20 +75,32 @@ func _init(run = null) -> void:
 	ctx.run = run
 
 
+## Every map's story folder, from the maps registry.
+static func dirs() -> Array:
+	var out: Array = []
+	var reg: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(MAPS))
+	for id in reg["maps"]:
+		var d: String = str(reg["maps"][id].get("story", ""))
+		if d != "" and not d in out:
+			out.append(d)
+	return out
+
+
 func load_all() -> void:
 	scenes.clear()
 	errors.clear()
-	var dir := DirAccess.open(DIR)
-	if dir == null:
-		errors.append("no story directory at " + DIR)
-		return
-	var files: Array = []
-	for f in dir.get_files():
-		if f.ends_with(".story"):
-			files.append(f)
-	files.sort()
-	for f in files:
-		parse(FileAccess.get_file_as_string(DIR + f), f)
+	for dir_path in dirs():
+		var dir := DirAccess.open(dir_path)
+		if dir == null:
+			errors.append("no story directory at " + dir_path)
+			continue
+		var files: Array = []
+		for f in dir.get_files():
+			if f.ends_with(".story"):
+				files.append(f)
+		files.sort()
+		for f in files:
+			parse(FileAccess.get_file_as_string(dir_path + f), dir_path + f)
 
 
 ## Parses one file's text into scenes.

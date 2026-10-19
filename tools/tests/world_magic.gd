@@ -1,16 +1,14 @@
 extends SceneTree
 ## Magic meets the world (design/open-world/interactions.md): each case casts a real spell the way
-## a player does (the slot pressed, aimed at the thing), in the town, and checks what happened:
+## a player does (the slot pressed, aimed at the thing), in the camp, and checks what happened:
 ##
 ##   godot --headless --fixed-fps 60 --script res://tools/tests/world_magic.gd
 ##
 ## OW1: an Ember Bolt lights a street lamp and sets a hay bale burning; Splash puts the bale out
-## and the lamp too; a Pebble shoves a crate; an Ember Bolt on the Observatory wall leaves the same
-## star as the burnt door and teaches the scorch test's clue.
-## OW2: Splash on the second lantern plays its scene; a Spark flares an iron lamp and charges a
-## puddle that then shocks a Hollow in it; Rewind mends the shoved crate; a Hollow won't step into
-## a lit lamp's pool; fire in the College makes the porter flinch and scold; lighting Mira's lane
-## gets her thanks; three crates against the north door hold it on day 7.
+## and the lamp too; a Pebble shoves a crate.
+## OW2: a Spark flares an iron lamp and charges a puddle that then shocks a Hollow in it; Rewind
+## mends the shoved crate; a Hollow won't step into a lit lamp's pool; fire in the College ruins
+## makes the watch captain flinch and scold; lighting Mira's lane gets her thanks.
 
 const BOOK := ["ember_bolt", "pebble", "splash", "undertow", "pillar", "fling"]
 const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt", "pebble", "undertow"]
@@ -44,17 +42,14 @@ func _initialize() -> void:
 		["Splash puts the burning hay out", _douse_setup, func(): return state["prop"]["state"] != "burning"],
 		["Splash puts a lit lamp out", _lamp_douse_setup, func(): return not state["lamp"]["lit"]],
 		["a Pebble shoves a crate", _crate_setup, func(): return state["prop"]["pos"].distance_to(state["from"]) > 4.0],
-		["the scorch test teaches its clue", _scorch_setup, func(): return run.knows("scorch_match")],
-		["Splash on the second lantern plays its scene", _lantern_setup, func(): return run.seen("lantern_water")],
 		["a Spark flares an iron lamp", _flare_setup, func(): return state["lamp"]["flare_t"] > 0.0],
 		["a Spark charges a puddle, which shocks a Hollow", _puddle_setup, _shocked],
 		["Rewind mends the shoved crate", _rewind_setup, func(): return state["prop"]["pos"].distance_to(state["prop"]["home"]) < 1.0],
 		["a Hollow won't step into a lit lamp's pool", _light_setup, _kept_off],
-		["fire in the College: the porter flinches and scolds", _porter_setup,
-			func(): return _logged("flinch", "porter") and _logged("scold", "porter")],
+		["fire in the College ruins: the captain flinches and scolds", _captain_setup,
+			func(): return _logged("flinch", "captain") and _logged("scold", "captain")],
 		["lighting Mira's lane gets her thanks", _lane_setup,
 			func(): return run.flag("lit_lane") and slice.story.talk_scene("mira") == "mira_thanks"],
-		["three crates against the north door hold it on day 7", _barricade_setup, func(): return run.seen("door_holds")],
 	]
 
 
@@ -222,21 +217,6 @@ func _crate_setup() -> void:
 	_cast_at(state["prop"]["pos"], "pebble")
 
 
-func _scorch_setup() -> void:
-	# The Observatory is a round tower; aim at its wall from the burnt door's side.
-	var c: Array = world.map.d["circles"].filter(func(x): return x[4] == "observatory")[0]
-	var centre := Vector2(c[0], c[1])
-	var door: Vector2 = world.map.items["burnt_door"]["at"]
-	var at: Vector2 = door + (door - centre).normalized() * 30.0
-	main.place_player(at)
-	main.arena.kit.aether = main.arena.kit.max_aether()
-	cast = {"slot": main.arena.kit.slot_of("ember_bolt"), "aim": centre, "f": 0}
-
-
-func _lantern_setup() -> void:
-	_cast_at(world.map.items["second_lantern"]["at"], "splash", 30.0)
-
-
 func _flare_setup() -> void:
 	_book(STORM_BOOK)
 	state["lamp"] = _street_lamp()
@@ -310,30 +290,19 @@ func _kept_off() -> bool:
 	return true
 
 
-func _porter_setup() -> void:
-	var p = world.people.get_person("porter")
-	_cast_at(p.pos, "ember_bolt", 40.0)
+func _captain_setup() -> void:
+	# The captain keeps the cordon just south of the College gate: fire from inside the gate.
+	var p = world.people.get_person("captain")
+	main.place_player(p.pos + Vector2(0, -40))
+	main.arena.kit.aether = main.arena.kit.max_aether()
+	cast = {"slot": main.arena.kit.slot_of("ember_bolt"), "aim": p.pos, "f": 0}
 
 
 func _lane_setup() -> void:
+	run.learn("carried_out")  # her first talk (who carried you out) comes before any thanks
 	for l in world.lamps:
 		if l["group"] == "lane":
 			state["lamp"] = l
 			break
 	state["lamp"]["lit"] = false
 	_cast_at(state["lamp"]["pos"], "ember_bolt")
-
-
-func _barricade_setup() -> void:
-	var b: Dictionary = world.pd["barricade"]
-	var at := Vector2(b["at"][0], b["at"][1])
-	var n := 0
-	for p in world.props:
-		if p["kind"] == "crate" and p["pos"].y < 300.0 and n < 3:
-			p["pos"] = at + Vector2(-20 + 20 * n, 0)
-			p["vel"] = Vector2.ZERO
-			n += 1
-	main.place_player(world.map.spots["north_in"] + Vector2(0, 40))
-	run.skip_to(7, 2)
-	world.clock = world.period_s() - 1.0  # dusk comes in a second
-	cast = {}

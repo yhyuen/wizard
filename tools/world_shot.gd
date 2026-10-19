@@ -1,8 +1,9 @@
 extends SceneTree
-## Screenshots of the open world for review, with draw calls and frame time at each (needs a
-## display, not --headless): the title, the Fire on the stairs, your room, Wren in the archive,
-## the yard, the market at noon with the crowd, the lane at dusk, the town at night, a patrol
-## fight, a burning hay bale, the map and the spellbook.
+## Screenshots of the first playable for review, with draw calls and frame time at each (needs a
+## display, not --headless): the title, waking in the camp, the yard and the captain's cordon,
+## the market at noon, the lane at dusk, the camp at night, a patrol fight, a burning hay bale,
+## the camp's map and the spellbook; then the loading card, the halls' landing and shrine, the
+## entrance hall, the rune door and the halls' map.
 ##
 ##   xvfb-run -a -s "-screen 0 1440x810x24" godot --rendering-driver opengl3 --resolution 1440x810 \
 ##       --fixed-fps 60 --script res://tools/world_shot.gd -- --out DIR
@@ -53,6 +54,17 @@ func _go(at: Vector2, d: int, t: int) -> void:
 	slice.cur = {}
 
 
+## Plays out whatever scene is up, taking the first choice each time.
+func _close() -> void:
+	for i in 20:
+		if slice.cur.is_empty():
+			break
+		if slice.pending.is_empty():
+			slice.choose(0)
+		else:
+			slice.advance()
+
+
 func _process(_dt: float) -> bool:
 	if main == null or main.slice == null:
 		return false
@@ -65,47 +77,29 @@ func _process(_dt: float) -> bool:
 			_shot("01_title")
 			slice.new_month()
 		120:
-			_shot("02_fire")  # the cutscene on the stairs
-			main.arena.cutscene.t = 9.0
-		260:
-			_shot("03_fire_after")
-			for i in 20:
-				if slice.cur.is_empty():
-					break
-				if slice.pending.is_empty():
-					slice.choose(0)
-				else:
-					slice.advance()
-		300:
-			_shot("04_stairs_morning")
-			_go(sp["room_in"], 1, 0)
-		340:
-			_shot("05_room")
-			_go(sp["wren_desk"] + Vector2(0, 40), 2, 0)
-		380:
-			slice.talk("wren")
-		400:
-			_shot("06_wren_talk")
-			slice.cur = {}
-			slice._stop_talking()
-			_go(sp["yard_c"], 2, 1)
-		440:
-			_shot("07_yard_noon")
+			_shot("02_wake_camp")
+			_close()
+			_go(sp["yard_c"], 1, 1)
+		160:
+			_shot("03_yard_noon")
+			_go(sp["captain"] + Vector2(-50, 40), 1, 1)
+		200:
+			_shot("04_captain_cordon")
 			_go(sp["market_c"], 2, 1)
-		500:
-			_shot("08_market_noon")
+		240:
+			_shot("05_market_noon")
 			_go(sp["mira_door"] + Vector2(-60, -120), 2, 3)
-		540:
+		280:
 			W.clock = 30.0
-		580:
-			_shot("09_lane_dusk")
+		320:
+			_shot("06_lane_dusk")
 			_go(sp["square_c"], 2, 4)
-		620:
-			_shot("10_square_night")
-			_go(sp["market_c"] + Vector2(0, 40), 2, 4)
+		360:
+			_shot("07_camp_night")
+			_go(sp["yard_c"] + Vector2(0, 40), 2, 4)
 			slice._start_fight("patrol")
-		740:
-			_shot("11_patrol_fight")
+		480:
+			_shot("08_patrol_fight")
 			main.arena.resume_explore()
 			main.mode = "world"
 			_go(sp["mill_east"] + Vector2(-60, 120), 2, 2)
@@ -113,18 +107,35 @@ func _process(_dt: float) -> bool:
 				if p["kind"] == "hay" and p["pos"].distance_to(main.arena.player.pos) < 260.0:
 					W.ignite(p)
 					break
-		800:
-			_shot("12_mill_fire")
+		540:
+			_shot("09_mill_fire")
 			slice.overlay = "map"
-		820:
-			_shot("13_map")
+		560:
+			_shot("10_camp_map")
 			slice.overlay = "book"
-		830:
-			_shot("14_book")
+		570:
+			_shot("11_book")
 			slice.overlay = ""
-			_go(Vector2(1300, 480), 2, 4)
-		870:
-			_shot("15_observatory_night")
+			_go(sp["north_in"], 2, 0)
+		600:
+			_shot("12_north_stair")
+			slice.go_map("halls", "landing")
+		606:
+			_shot("13_loading")
+		690:
+			_close()
+		700:
+			_shot("14_halls_landing")
+			main.place_player(W.map.spots["hall_c"] + Vector2(0, 120))
+		740:
+			_shot("15_entrance_hall")
+			main.place_player(W.map.items["rune_door"]["at"] + Vector2(-60, 0))
+		780:
+			_shot("16_rune_door")
+			slice.overlay = "map"
+		800:
+			_shot("17_halls_map")
+			slice.overlay = ""
 			var f := FileAccess.open(out.path_join("stats.txt"), FileAccess.WRITE)
 			f.store_string("\n".join(stats) + "\n")
 			return true

@@ -11,7 +11,7 @@
  "water_spells": ["splash", "undertow", "puddle", "whirl"],
  "force_spells": ["pebble", "stone", "undertow"],
  "lamp_reach": 14,
- "_ow2_doc": "OW2 (interactions.md §5). Lightning (storm_zaps: the fx a Spark or Arc Lance leaves) flares the iron lamps it passes for flare_s seconds and charges the puddles it touches for charge_s; a charged puddle shocks every enemy standing in it (shock_damage every shock_every seconds). rewind_r: how far round a Rewind's shard it mends burnt and shoved props back to how they were. light_r: a lit (or flaring) lamp's pool, which light_shy enemies won't step into. barricade: how many shoved props within r of the north door's inside (at) hold it on day 7 like the beam.",
+ "_ow2_doc": "OW2 (interactions.md §5). Lightning (storm_zaps: the fx a Spark or Arc Lance leaves) flares the iron lamps it passes for flare_s seconds and charges the puddles it touches for charge_s; a charged puddle shocks every enemy standing in it (shock_damage every shock_every seconds). rewind_r: how far round a Rewind's shard it mends burnt and shoved props back to how they were. light_r: a lit (or flaring) lamp's pool, which light_shy enemies won't step into.",
  "iron_lamps": ["street", "lane"],
  "storm_zaps": ["zap", "beam"],
  "flare_s": 1.5,
@@ -21,6 +21,5 @@
  "rewind_r": 34,
  "light_r": 38,
  "light_shy": ["hollow", "slinger", "inverted"],
- "barricade": {"at": [1100, 226], "r": 42, "need": 3, "kinds": ["crate", "barrel", "cart"]},
  "scorch_life": 1.0e9
 }

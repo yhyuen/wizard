@@ -54,26 +54,31 @@ jobs:
       - name: Unit checks
         run: tools/ci/godot.sh --script res://tools/tests/unit.gd
 
-      - name: Story checks (every person, item and spot)
+      - name: Story checks (every map's people, items, spots and exits)
         run: tools/ci/godot.sh --script res://tools/tests/story_lint.gd
 
-      - name: Walking the route (loop 1 to the north door, loop 2 to the end)
+      - name: Walking the route (the camp, down to the halls and back, the shrine, loop 2)
         run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/route.gd
 
-      - name: Relearning (loop 3 regains the 3rd Ring by day 3)
+      - name: Relearning (loop 3 is back to loop 1's wells and Practice by day 3)
         run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/relearn.gd
 
-      - name: Every death teaches (criterion 7)
+      - name: Every death teaches
         run: tools/ci/godot.sh --script res://tools/tests/deaths.gd
 
-      - name: Fights in place (fresh and strong, and the millrace)
+      - name: Fights in place (fresh and strong)
         run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/encounters.gd
 
-      - name: Magic meets the world (fire, water, force, lightning, Rewind, lamplight, people, the barricade)
+      - name: Magic meets the world (fire, water, force, lightning, Rewind, lamplight, people)
         run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/world_magic.gd
 
-      - name: The Fire cutscene (played, then skipped)
-        run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/cutscenes.gd
+      - name: Map previews
+        run: tools/ci/godot.sh --script res://tools/map_preview.gd -- --out "$PWD/map-preview"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: map-preview
+          path: map-preview
 
       - name: Web export
         run: |
@@ -82,7 +87,8 @@ jobs:
           "$GODOT" --headless --path . --export-release "Web" export/web/index.html
           test -s export/web/index.wasm
           # The story is plain text, not a resource: make sure the export filter packed it.
-          grep -q "=== fire_again" export/web/index.pck
+          grep -q "=== wake_first" export/web/index.pck
+          grep -q "=== shrine_release" export/web/index.pck
 
       - uses: actions/upload-artifact@v4
         with:

@@ -1,20 +1,17 @@
 extends SceneTree
-## Success criterion 7 (design/open-world/README.md §4, as the slice), every death teaches:
+## Every death teaches (design/ruins/README.md):
 ##
 ##   godot --headless --script res://tools/tests/deaths.gd
 ##
-## For each way to die in data/slice/ledger.json "deaths", a fresh month plays the scene that
+## For each way to die in data/world/ledger.json "deaths", a fresh month plays the scene that
 ## leads to it (losing the fight, if there is one) through to the death screen. Dying that way
 ## for the first time must teach at least one Ledger entry the death screen shows.
 
 ## Death cause -> the scene that leads to it. A new cause must be added here.
 const ROUTES := {
-	"north_door": "tide",
 	"patrol": "patrol_fight",
-	"mill": "mill_risen",
-	"eclipse_alone": "eclipse_alone",
-	"long_night": "ln_trap",
-	"eclipse_after_long_night": "ln_silence",
+	"eclipse": "eclipse",
+	"shrine": "shrine_release",
 }
 const GENERIC := ["fight"]  # the fallback text for a lethal fight with no death scene of its own
 

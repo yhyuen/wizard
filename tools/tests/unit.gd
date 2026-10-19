@@ -232,59 +232,84 @@ func _controls(P) -> void:
 	P.reset_all()
 
 
-## The open world (design/open-world/tech-plan.md §6): collision, the north door, every spot and
-## item reachable by walking the street graph from your room, schedules naming real spots, and
-## the clock.
+## The maps (design/ruins/tech-plan.md §2): the registry and every map in it load, exits lead to
+## real spots, pits stop a walker but not a shot, a sealed door is shut, every spot and item can
+## be walked to from where you arrive, schedules name real camp spots, and the clock.
 func _world() -> void:
 	const Map := preload("res://scripts/world/map.gd")
 	const World := preload("res://scripts/world/world.gd")
 	const Story := preload("res://scripts/game/story.gd")
-	var m = Map.new()
-	var block: Array = m.d["blocks"][0]
-	var inside := Vector2(block[0] + block[2] * 0.5, block[1] + block[3] * 0.5)
-	ok(not m.solid_at(m.collide(inside, 7.0), 6.9), "collision pushes a walker out of a house")
-	var door: Rect2 = m.doors["north_door"]["rect"]
-	ok(m.solid_at(door.get_center()), "the north door is shut at first")
-	m.doors["north_door"]["open"] = true
-	ok(not m.solid_at(door.get_center()), "an open north door lets you through")
-	m.doors["north_door"]["open"] = false
+	var reg: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/maps.json"))
+	ok(reg["maps"].has(reg["start"]) and reg["maps"].has("halls"), "the map registry names the camp and the halls")
+	var loaded := {}
+	for mid in reg["maps"]:
+		var def: Dictionary = reg["maps"][mid]
+		loaded[mid] = Map.new(str(def["path"]), mid, str(def.get("kit", "town")))
+		ok(loaded[mid].id == mid and loaded[mid].kit == str(def.get("kit", "town")), "map %s loads with its kit" % mid)
+	var bad_exits: Array = []
+	for mid in loaded:
+		for eid in loaded[mid].exits:
+			var ex: Dictionary = loaded[mid].exits[eid]
+			if not loaded.has(ex["to"]) or not loaded[ex["to"]].spots.has(ex["at"]):
+				bad_exits.append("%s %s -> %s %s" % [mid, eid, ex["to"], ex["at"]])
+	ok(bad_exits.is_empty(), "every exit leads to a spot on a real map: " + ", ".join(bad_exits))
+	ok(loaded["camp"].exits.has("north_stair") and loaded["halls"].exits.has("stair_up"), "the north stair goes down and the halls' stair comes up")
+	var h = loaded["halls"]
+	var pit: Rect2 = h.pits[0]
+	ok(h.blocked(pit.get_center()) and h.in_pit(pit.get_center()), "a pit stops a walker")
+	ok(not h.blocks_shot(pit.get_center()), "a shot flies over a pit")
+	ok(not h.in_pit(h.collide(pit.get_center() + Vector2(3, 0), 7.0), 6.9), "collision pushes a walker out of a pit")
+	ok(h.solid_at((h.doors["rune_door"]["rect"] as Rect2).get_center()), "the rune door is sealed")
+	ok(h.exit_at(h.exits["stair_up"]["rect"].get_center()) == "stair_up", "standing in the stair finds its exit")
+	ok(h.cracks.size() > 0 and h.solid_at(h.cracks[0]["rect"].get_center()), "the glowing cracks are solid")
+	var m = loaded["camp"]
+	var tent: Array = m.d["tents"][1]
+	ok(m.solid_at(Map.tent_rect(tent).get_center()), "a tent is solid")
+	ok(not m.solid_at(Vector2(m.d["tents"][0][0], m.d["tents"][0][1])), "your open shelter isn't")
 	var pd: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/props.json"))
-	var props: Array = []
-	for pr in m.d["props"]:
-		props.append([Vector2(pr[1], pr[2]), float(pd["kinds"][pr[0]]["r"])])
-	m.movers = func(): return props
-	var reach := 30.0
-	var targets := {}
-	for id in m.spots:
-		targets["spot " + id] = m.spots[id]
-	for id in m.items:
-		targets["item " + id] = m.items[id]["at"]
-		reach = maxf(reach, float(m.items[id].get("reach", 30)))
 	var far: Array = []
-	for name in targets:
-		var b: Vector2 = targets[name]
-		var p: Vector2 = m.spots["room_in"]
-		var route := Array(m.path(p, b, 7.0))
-		for i in 6000:
-			while not route.is_empty() and p.distance_to(route[0]) < (8.0 if route.size() > 1 else 4.0):
-				route.pop_front()
-			if route.is_empty():
-				break
-			p = m.collide(p + (route[0] - p).normalized() * 2.0, 7.0)
-		if p.distance_to(b) > reach:
-			far.append("%s (%.0f px short)" % [name, p.distance_to(b)])
-	ok(far.is_empty(), "every spot and item can be walked to from your room: " + ", ".join(far))
+	for start in [["camp", "cot"], ["halls", "landing"]]:
+		var mm = loaded[start[0]]
+		var props: Array = []
+		for pr in mm.d.get("props", []):
+			props.append([Vector2(pr[1], pr[2]), float(pd["kinds"][pr[0]]["r"])])
+		mm.movers = func(): return props
+		var targets := {}
+		var reach := {}
+		for sid in mm.spots:
+			targets["spot " + sid] = mm.spots[sid]
+			reach["spot " + sid] = 30.0
+		for iid in mm.items:
+			targets["item " + iid] = mm.items[iid]["at"]
+			reach["item " + iid] = maxf(30.0, float(mm.items[iid].get("reach", 30)))
+		for eid in mm.exits:
+			targets["exit " + eid] = (mm.exits[eid]["rect"] as Rect2).get_center()
+			reach["exit " + eid] = 16.0
+		for tname in targets:
+			var b: Vector2 = targets[tname]
+			var p: Vector2 = mm.spots[start[1]]
+			var route := Array(mm.path(p, b, 7.0))
+			for i in 6000:
+				while not route.is_empty() and p.distance_to(route[0]) < (8.0 if route.size() > 1 else 4.0):
+					route.pop_front()
+				if route.is_empty():
+					break
+				p = mm.collide(p + (route[0] - p).normalized() * 2.0, 7.0)
+			if p.distance_to(b) > reach[tname]:
+				far.append("%s %s (%.0f px short)" % [start[0], tname, p.distance_to(b)])
+		mm.movers = Callable()
+	ok(far.is_empty(), "every spot, item and exit can be walked to from the cot and the landing: " + ", ".join(far))
 	var people: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/people.json"))["people"]
 	var bad: Array = []
-	for id in people:
-		for t in people[id].get("schedule", {}):
-			var sp: String = people[id]["schedule"][t]
+	for pid in people:
+		for t in people[pid].get("schedule", {}):
+			var sp: String = people[pid]["schedule"][t]
 			if sp != "" and not m.spots.has(sp) and sp != "lamp_round":  # lamp_round: Mira lights the lane
-				bad.append("%s %s: %s" % [id, t, sp])
-		for o in people[id].get("overrides", []):
+				bad.append("%s %s: %s" % [pid, t, sp])
+		for o in people[pid].get("overrides", []):
 			if not m.spots.has(str(o["spot"])):
-				bad.append("%s override: %s" % [id, o["spot"]])
-	ok(bad.is_empty(), "every schedule names a spot on the map: " + ", ".join(bad))
+				bad.append("%s override: %s" % [pid, o["spot"]])
+	ok(bad.is_empty(), "every schedule names a spot in the camp: " + ", ".join(bad))
 	var run = root.get_node("Run")
 	run.save_enabled = false
 	run.new_run()
@@ -294,3 +319,13 @@ func _world() -> void:
 	ok(w.period_s() > 0.0 and is_equal_approx(w.period_left(), 1.0), "a time of day starts full")
 	w.clock = w.period_s() * 0.5
 	ok(is_equal_approx(w.period_left(), 0.5), "the clock runs down the time of day")
+	w.lamps[0]["lit"] = true
+	w.load_map("halls")
+	ok(w.map_id == "halls" and not w.lamps[0]["lit"], "the halls' lamps are their own")
+	w.lamps[0]["lit"] = true
+	w.load_map("camp")
+	ok(w.lamps[0]["lit"], "a camp lamp lit before going down is still lit on coming back")
+	w.load_map("halls")
+	ok(w.lamps[0]["lit"], "a halls lamp lit there is still lit after going up and back")
+	w.reset_loop()
+	ok(w.map_id == "camp" and not w.lamps[0]["lit"], "a new loop wakes in the camp with its lamps out")

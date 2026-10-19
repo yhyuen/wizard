@@ -1,14 +1,16 @@
 extends Node3D
-## Vellmar's buildings and street furniture, built once from data/world/map.json (design/
-## open-world/tech-plan.md §5): houses with lit windows, the College walls and gate, the archive
-## and your dormitory (whose roofs and front walls lift while you're inside), the Observatory
-## with its burnt door, market stalls, the well and statue, the Mill and its wheel, the millrace
-## and footbridge, the College stairs, the cliffs the College stands on, trees and rocks.
+## Vellmar's buildings and street furniture, built once from a map's data (design/open-world/
+## tech-plan.md §5): houses with lit windows, the College walls and gate, enterable buildings
+## (whose roofs and front walls lift while you're inside), market stalls, the well and statue,
+## the Mill and its wheel, the millrace and footbridge, the College stairs, the cliffs the
+## College stands on, trees and rocks. These are the town kit: they run only for a map whose kit
+## is "town" (the camp). The ruin kit (ruin_mesh.gd, which extends this) adds broken walls,
+## rubble, pillars, pits, cracks, tents and the rest from the same chunks and materials.
 ##
 ## Everything that stands still is merged into one solid and one glowing mesh per 12 m chunk,
 ## with the colour in the vertices, so the browser draws a handful of meshes near the camera
-## and culls the rest. Lamps, the north door, the wheel, roofs you can lift and props that move
-## are their own nodes; the world view (world_view.gd) drives them.
+## and culls the rest. Lamps, the wheel, roofs you can lift and props that move are their own
+## nodes; the world view (world_view.gd) drives them.
 
 const Figure := preload("res://scripts/view/figure.gd")
 const POOL_SHADER := preload("res://scripts/view/pool.gdshader")
@@ -34,8 +36,7 @@ var roofs := {}  # building id -> [MeshInstance3D] hidden while you're inside
 var lanterns: Array = []  # one per map lamp: where its post stands (Vector3)
 var lantern_mi := {}  # "lit", "dark", "pools" -> MeshInstance3D
 var brazier_fires: Array = []  # MeshInstance3D per brazier
-var north_door: Node3D
-var wheel: Node3D
+var wheel: Node3D  # the mill wheel (the town kit only)
 
 
 func build(the_view, the_map, config: Dictionary) -> void:
@@ -45,33 +46,43 @@ func build(the_view, the_map, config: Dictionary) -> void:
 	pal = cfg["palette"]
 	rng.seed = 21
 	_materials()
+	if map.kit == "town":
+		_kit_town()
+	_kit_ruin()
+	_water()
+	for l in map.d.get("lamps", []):
+		_lamp(Vector2(l[0], l[1]))
+	for b in map.d.get("braziers", []):
+		_brazier(Vector2(b[0], b[1]))
+	_commit()
+	_lantern_nodes()
+
+
+## The town's own builders: the camp's cliffs, walls, houses, stalls, the square and the Mill.
+func _kit_town() -> void:
 	_cliffs()
 	_hill()
-	for w in map.d["walls"]:
+	for w in map.d.get("walls", []):
 		_wall(Rect2(w[0], w[1], w[2], w[3]), float(w[4]))
 	_gate()
 	var i := 0
-	for b in map.d["blocks"]:
+	for b in map.d.get("blocks", []):
 		_block(Rect2(b[0], b[1], b[2], b[3]), float(b[4]), i)
 		i += 1
 	for id in map.buildings:
 		_building(id, map.buildings[id])
-	_observatory()
-	_stairs()
+	if map.d.has("stairs"):
+		_stairs()
 	for s in map.d.get("stalls", []):
 		_stall(view.to_world(Vector2(s[0], s[1])), float(s[2]), c(str(s[3])))
 	_square()
 	_mill()
-	_water()
-	_north_door()
-	for l in map.d["lamps"]:
-		_lamp(Vector2(l[0], l[1]))
-	for b in map.d.get("braziers", []):
-		_brazier(Vector2(b[0], b[1]))
 	_trees()
-	_interiors()
-	_commit()
-	_lantern_nodes()
+
+
+## The ruin kit's builders (ruin_mesh.gd). Nothing in the town kit alone.
+func _kit_ruin() -> void:
+	pass
 
 
 func c(k: String) -> Color:
@@ -376,60 +387,6 @@ func _building(id: String, bd: Dictionary) -> void:
 	_box(Vector3(b.x - a.x - 0.4, 0.06, b.z - a.z - 0.4), Vector3((a.x + b.x) * 0.5, 0.03, (a.z + b.z) * 0.5), c("planks"))
 
 
-## What's inside: the archive's shelves, desk and ladder; your bed, desk and grate.
-func _interiors() -> void:
-	var W := func(x: float, y: float, h := 0.0) -> Vector3: return view.to_world(Vector2(x, y), h)
-	# The archive: shelves along the north and west walls, Wren's desk, a ladder, reading tables.
-	for i in 7:
-		_box(Vector3(2.0, 3.6, 0.7), W.call(600 + i * 38.0, 250, 1.8), c("timber"))
-		for k in 4:
-			_box(Vector3(1.8, 0.35, 0.5), W.call(600 + i * 38.0, 252, 0.5 + k * 0.85), [c("cloth"), c("cloth2"), c("leaf"), c("brass")][(i + k) % 4])
-	for i in 3:
-		_box(Vector3(0.7, 3.4, 2.0), W.call(576, 300 + i * 34.0, 1.7), c("timber"))
-	_box(Vector3(2.2, 0.9, 1.1), W.call(780, 288, 0.45), c("timber"))
-	_box(Vector3(0.5, 0.06, 0.4), W.call(770, 284, 0.93), c("paper"))
-	_box(Vector3(1.6, 0.8, 0.9), W.call(700, 360, 0.4), c("timber").darkened(0.2))
-	_box(Vector3(0.12, 3.4, 0.12), W.call(604, 268, 1.7), c("timber"))
-	_box(Vector3(0.12, 3.4, 0.12), W.call(620, 268, 1.7), c("timber"))
-	# Your room: a narrow bed, a desk, a cold grate.
-	_box(Vector3(1.0, 0.5, 2.1), W.call(1420, 560, 0.25), c("timber"))
-	_box(Vector3(0.9, 0.18, 1.9), W.call(1420, 560, 0.58), c("cloth2").darkened(0.3))
-	_box(Vector3(0.6, 0.15, 0.4), W.call(1420, 538, 0.72), c("paper"))
-	_box(Vector3(1.3, 0.8, 0.7), W.call(1432, 655, 0.4), c("timber"))
-	_box(Vector3(0.12, 0.12, 0.12), W.call(1424, 652, 0.86), c("brass"))
-	_box(Vector3(1.2, 1.0, 0.4), W.call(1330, 540, 0.5), c("stone"))
-
-
-## The Observatory: a round stone tower with a dark dome, its door burnt through from inside.
-func _observatory() -> void:
-	for cr in map.circles:
-		if cr[2] != "observatory":
-			continue
-		var p: Vector3 = view.to_world(cr[0])
-		var r: float = float(cr[1]) * view.S
-		var h := 8.6
-		_add(_cyl(r, r * 1.04, h, 14), Transform3D(Basis(), p + Vector3(0, h * 0.5, 0)), c("wall_stone"))
-		_add(_cyl(r * 1.08, r * 1.08, 0.3, 14), Transform3D(Basis(), p + Vector3(0, h, 0)), c("stone"))
-		var dome := SphereMesh.new()
-		dome.radius = r * 0.92
-		dome.height = r * 1.84
-		dome.radial_segments = 12
-		dome.rings = 5
-		dome.is_hemisphere = true
-		_add(dome, Transform3D(Basis(), p + Vector3(0, h, 0)), c("dome"))
-		# the slit in the dome
-		_box(Vector3(0.7, r * 0.9, r * 1.9), p + Vector3(0, h + r * 0.45, 0), c("dark_window"))
-		# the burnt door, and the scorch spreading out round it
-		var dz: float = p.z + r * 0.98
-		_box(Vector3(1.5, 2.4, 0.3), Vector3(p.x, 1.2, dz), c("char"))
-		for k in 7:
-			var a := -PI / 2.0 + (k - 3) * 0.32
-			_box(Vector3(0.18, 0.06, 0.9 + (k % 2) * 0.5), Vector3(p.x + cos(a) * 0.1, 1.3 + sin(a) * 0.1, dz + 0.17), c("ember"), rad_to_deg(a), true)
-		for k in 5:
-			var a := k * TAU / 5.0 - PI / 2.0
-			_box(Vector3(0.35, 1.3, 0.06), Vector3(p.x + cos(a) * 1.0, 1.4 + sin(a) * 1.0, dz + 0.12), c("char"), 0.0)
-
-
 func _stairs() -> void:
 	var s: Array = map.d["stairs"]
 	var r := Rect2(s[0], s[1], s[2], s[3])
@@ -529,21 +486,6 @@ func _water() -> void:
 		_rect_box(br, 0.12, c("timber"), 0.05)
 		_rect_box(Rect2(br.position.x, br.position.y, br.size.x, 3), 0.9, c("timber").darkened(0.3))
 		_rect_box(Rect2(br.position.x, br.end.y - 3, br.size.x, 3), 0.9, c("timber").darkened(0.3))
-
-
-## The north door: iron-bound oak in the College's north wall; it swings in on day 7.
-func _north_door() -> void:
-	var d: Array = map.d["doors"]["north_door"]
-	var hinge := Vector2(d[0], d[1] + d[3] * 0.5)
-	north_door = Node3D.new()
-	north_door.position = view.to_world(hinge)
-	add_child(north_door)
-	var w: float = float(d[2]) * view.S
-	_own(func(st):
-		_box(Vector3(w, 3.2, 0.25), Vector3(w * 0.5, 1.6, 0), c("timber").darkened(0.25), 0.0, false, st)
-		for y in [0.6, 1.6, 2.6]:
-			_box(Vector3(w, 0.12, 0.3), Vector3(w * 0.5, y, 0), c("iron"), 0.0, false, st)
-	, solid_mat, north_door)
 
 
 ## A lamp post: the post is merged with the town; the lanterns and their pools of light are

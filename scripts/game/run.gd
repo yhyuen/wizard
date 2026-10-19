@@ -1,12 +1,12 @@
 extends Node
-## The two layers of state (design/slice/systems.md §1). `mem` is what you remember and keeps
-## across loops: the Ledger, Models, trials passed, deaths. `lp` is this loop and resets when you
-## wake: the day, the time of day, flags such as "Wren is your friend", and what you learnt this
-## loop (for the death screen). Saved at each dawn and at the end of a loop.
+## The two layers of state (design/slice/systems.md §1; design/gdd/04-progression-and-loop.md).
+## `mem` is what you remember and keeps across loops: the Ledger, Models, trials passed, deaths.
+## `lp` is this loop and resets when you wake in the camp: the day, the time of day, flags, and
+## what you learnt this loop (for the death screen). Saved at each dawn and at the end of a loop.
 
 signal learned(id: String)
 
-const SAVE_PATH := "user://slice.json"
+const SAVE_PATH := "user://ruins.json"  # the ruins game; the open world's saves (slice.json) don't carry over
 const TIMES := ["morning", "noon", "afternoon", "dusk", "night"]
 const TIME_NAMES := ["Morning", "Noon", "Afternoon", "Dusk", "Night"]
 const LAST_DAY := 28
@@ -24,7 +24,7 @@ func _ready() -> void:
 
 
 func fresh_mem() -> Dictionary:
-	return {"loop": 1, "known": {}, "deaths": {}, "trials": [], "fluency": 0, "slice_end_shown": false, "log": [],
+	return {"loop": 1, "known": {}, "deaths": {}, "trials": [], "fluency": 0, "log": [],
 		"play_s": 0.0, "fps": {"sum": 0.0, "n": 0, "min": 0}}  # for the playtest run summary
 
 
@@ -38,7 +38,7 @@ func new_run() -> void:
 	lp = fresh_loop()
 
 
-## Ends this loop (`cause` is why: "north_door", "fight:mill_risen", "long_night"...). The
+## Ends this loop (`cause` is why: "patrol", "shrine", "eclipse", "fight:patrol"...). The
 ## memory keeps a count of each way you have died.
 func end_loop(cause: String) -> void:
 	mem["deaths"][cause] = int(mem["deaths"].get(cause, 0)) + 1
@@ -86,11 +86,6 @@ func next_day() -> void:
 	lp["time"] = 0
 	lp["dawn_done"] = false
 
-
-func skip_to(d: int, t := 0) -> void:
-	lp["day"] = d
-	lp["time"] = t
-	lp["dawn_done"] = true
 
 
 # --- memory ------------------------------------------------------------------

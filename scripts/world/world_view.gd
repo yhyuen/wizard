@@ -1,21 +1,25 @@
 extends "res://scripts/view/view3d.gd"
-## Vellmar in 3D (design/open-world/tech-plan.md §1, §5): the whole town under a close, steep
-## camera that follows the wizard, Diablo-style. The static town is merged per chunk
-## (town_mesh.gd); this adds the ground, the people walking their day, the props spells push
-## and burn, lamps and braziers lit or out, scorches on walls, the north door, the mill wheel,
-## roofs that lift while you're inside, and a mood for each time of day that blends into the
-## next. Spells and fighters still come from the arena through view3d.gd.
+## Vellmar in 3D (design/open-world/tech-plan.md §1, §5; design/ruins/tech-plan.md §1–2): the map
+## you stand on under a close, steep camera that follows the wizard, Diablo-style. The static
+## map is merged per chunk (town_mesh.gd and its ruin kit, ruin_mesh.gd); this adds the ground,
+## the people walking their day, the props spells push and burn, lamps and braziers lit or out,
+## scorches on walls, the mill wheel, doors, roofs that lift while you're inside, and a mood: one
+## for each time of day that blends into the next in the camp, a fixed one in the ruin. Going to
+## another map frees all of that and builds the new one (rebuild). Spells and fighters still
+## come from the arena through view3d.gd.
 ##
 ## The arena's flat marks (telegraphs, the reticle) are drawn into a window of the town that
 ## follows the wizard (`marks` in data/visual.json "world"), laid on the ground there, so they
 ## stay exactly their hitboxes without a texture the size of the town.
 
-const TownMesh := preload("res://scripts/world/town_mesh.gd")
+const TownMesh := preload("res://scripts/world/ruin_mesh.gd")
 const TIMES := ["morning", "noon", "afternoon", "dusk", "night"]
 
 var W  # scripts/world/world.gd
 var wc: Dictionary  # data/visual.json "world"
-var town  # town_mesh.gd
+var town  # ruin_mesh.gd (the town kit and the ruin kit)
+var built_for := ""  # the map id the 3D was built from
+var _map_root: Node3D  # everything that belongs to the map, freed on rebuild
 var holder: Node2D  # the arena's parent in the marks viewport, moved so the window follows
 var mark_origin := Vector2.ZERO
 var mark_size := Vector2(720, 440)
@@ -49,10 +53,8 @@ func setup_world(the_arena, vp: SubViewport, world, the_holder: Node2D) -> void:
 	mark_scale = float(m["scale"])
 	overlay.size = Vector2i(mark_size * mark_scale)
 	holder.scale = Vector2.ONE * mark_scale
-	for c in W.map.d.get("cliffs", []):
-		_cliffs.append(Rect2(c[0], c[1], c[2], c[3]))
-	for t in TIMES:
-		_moods[t] = _parse_mood(wc["moods"][t])
+	for k in wc["moods"]:
+		_moods[k] = _parse_mood(wc["moods"][k])
 	_mood = _moods["morning"]
 
 
@@ -60,14 +62,8 @@ func _ready() -> void:
 	_build_env()
 	_sun.directional_shadow_max_distance = 22.0
 	_sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL  # one shadow pass, not four
-	_build_town_ground()
 	_build_marks_window()
-	town = TownMesh.new()
-	add_child(town)
-	town.build(self, W.map, wc["town"])
-	_build_props()
-	_scorch_root = Node3D.new()
-	add_child(_scorch_root)
+	_build_map()
 	_marker = MeshInstance3D.new()
 	_marker.mesh = Spells3D.octa(0.09, 1.6)
 	_marker.material_override = Figure.mat(PixelArt.GOLD, 1.6)
@@ -88,6 +84,46 @@ func _ready() -> void:
 	add_child(camera)
 	camera.current = true
 	_apply_world_mood()
+
+
+## Everything that belongs to the map the world is on: the ground, the chunks, the props, the
+## scorches and the people's figures.
+func _build_map() -> void:
+	built_for = W.map_id
+	_map_root = Node3D.new()
+	_map_root.name = "map_" + W.map_id
+	add_child(_map_root)
+	_cliffs = []
+	for c in W.map.d.get("cliffs", []):
+		_cliffs.append(Rect2(c[0], c[1], c[2], c[3]))
+	_build_town_ground()
+	var tc: Dictionary = wc["town"].duplicate(true)
+	tc["palette"].merge(W.map_def().get("palette", {}), true)
+	town = TownMesh.new()
+	_map_root.add_child(town)
+	town.build(self, W.map, tc)
+	_prop_nodes = []
+	_build_props()
+	_scorch_root = Node3D.new()
+	_map_root.add_child(_scorch_root)
+	_people = {}
+	_lamp_key = "-"
+	_scorch_key = ""
+	_inside = ""
+	_cam_ready = false
+
+
+## The world went to another map: frees this one's 3D and builds the new one's. The game shows
+## its loading card and prewarms behind it (slice.gd go_map).
+func rebuild() -> void:
+	if built_for == W.map_id:
+		return
+	remove_child(_map_root)
+	_map_root.queue_free()
+	_build_map()
+	_apply_world_mood()
+	if low:
+		set_low(true)
 
 
 # --- coordinates ----------------------------------------------------------------------
@@ -172,6 +208,8 @@ func _build_town_ground() -> void:
 			var d: Vector3 = grid[iz + 1][ix + 1]
 			for t in [[a, bb, d], [a, d, c]]:
 				var mid: Vector3 = (t[0] + t[1] + t[2]) / 3.0
+				if _in_hole(Vector2(mid.x / S, mid.z / S)):
+					continue  # a pit or a stairwell: the ruin kit builds what's below
 				var kind := _kind_at(Vector2(mid.x / S, mid.z / S), mid.y)
 				var shade := rng.randf_range(0.94, 1.06)
 				for v in t:  # clockwise from above, so the ground survives back-face culling
@@ -184,12 +222,23 @@ func _build_town_ground() -> void:
 		mi.mesh = tools[key].commit()
 		mi.material_override = _ground
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		add_child(mi)
+		_map_root.add_child(mi)
 
 
-## 0 dirt, 1 grass, 2 rock, 3 cobbles.
+func _in_hole(p: Vector2) -> bool:
+	if W.map.in_pit(p):
+		return true
+	for st in W.map.d.get("stairwells", []):
+		if Rect2(st[0], st[1], st[2], st[3]).has_point(p):
+			return true
+	return false
+
+
+## 0 dirt, 1 grass, 2 rock, 3 cobbles (in the ruin: the halls' flagstones, rock outside them).
 func _kind_at(p: Vector2, h: float) -> int:
 	var place: String = W.map.place_at(p)
+	if W.map.kit == "ruin":
+		return 3 if place != "" else 2
 	if place in ["mill", "road", "hill"]:
 		return 0
 	if h > 0.05:
@@ -226,7 +275,7 @@ func _build_props() -> void:
 		var n := MeshInstance3D.new()
 		n.mesh = _prop_mesh(p["kind"])
 		n.material_override = _prop_mats.get(p["kind"], _prop_mats["crate"])
-		add_child(n)
+		_map_root.add_child(n)
 		_prop_nodes.append(n)
 
 
@@ -323,17 +372,21 @@ static func _mix(a: Dictionary, b: Dictionary, k: float) -> Dictionary:
 	return out
 
 
-## This time of day's mood, sliding into the next one over the last part of it, and a little
-## deeper while a fight is on.
+## This time of day's mood, sliding into the next one over the last part of it (or the map's
+## own mood, in the ruin), and a little deeper while a fight is on.
 func _update_mood(delta: float) -> void:
-	var t: int = W.run.time()
-	var now: Dictionary = _moods[TIMES[t]]
-	var next: Dictionary = _moods[TIMES[mini(t + 1, TIMES.size() - 1)]]
-	var blend := float(wc["blend"])
-	var k := smoothstep(1.0 - blend, 1.0, 1.0 - W.period_left())
+	var fixed: String = str(W.map_def().get("mood", ""))
 	var fighting: bool = not arena.phase in ["explore", "cutscene"]
 	_fight_k = move_toward(_fight_k, 1.0 if fighting else 0.0, delta / 2.0)
-	_mood = _mix(now, next, k)
+	if _moods.has(fixed):
+		_mood = _moods[fixed]
+	else:
+		var t: int = W.run.time()
+		var now: Dictionary = _moods[TIMES[t]]
+		var next: Dictionary = _moods[TIMES[mini(t + 1, TIMES.size() - 1)]]
+		var blend := float(wc["blend"])
+		var k := smoothstep(1.0 - blend, 1.0, 1.0 - W.period_left())
+		_mood = _mix(now, next, k)
 	if _fight_k > 0.0:
 		_mood = _mix(_mood, _moods["night"], _fight_k * float(wc["fight_deepen"]))
 	_apply_world_mood()
@@ -505,7 +558,7 @@ func _make_person(p) -> Node3D:
 		return _make_dog()
 	var f := Figure.new()
 	f.build(cfg["figures"].get(p.figure, cfg["figures"]["townsfolk"]), float(cfg["darken"]))
-	add_child(f)
+	_map_root.add_child(f)
 	if p.crowd:
 		# passers-by cast no shadow: each would draw itself again into the shadow map
 		for mi in f.find_children("*", "MeshInstance3D", true, false):
@@ -537,7 +590,7 @@ func _make_dog() -> Node3D:
 		mi.name = pt[0]
 		n.add_child(mi)
 	n.scale = Vector3.ONE * float(d["scale"])
-	add_child(n)
+	_map_root.add_child(n)
 	return n
 
 
@@ -606,11 +659,12 @@ func _sync_lamps() -> void:
 				want_light(to_world(W.braziers[i]["pos"], 1.6), PixelArt.FIRE, 0.5, 6.0)
 
 
-## The north door, the mill wheel, the roof of the building you're in, and scorches on walls.
+## The mill wheel, the ruin's doors, the roof of the building you're in, and scorches on walls.
 func _sync_town(delta: float) -> void:
-	var open: bool = W.map.doors["north_door"].get("open", false)
-	town.north_door.rotation.y = move_toward(town.north_door.rotation.y, deg_to_rad(-100.0) if open else 0.0, delta * 1.6)
-	town.wheel.rotation.x += delta * 0.7
+	if town.wheel != null:
+		town.wheel.rotation.x += delta * 0.7
+	for did in town.door_nodes:
+		town.door_nodes[did].visible = not W.map.doors[did]["open"]
 	var inside: String = W.map.building_at(arena.player.pos)
 	if inside != _inside:
 		for id in town.roofs:
