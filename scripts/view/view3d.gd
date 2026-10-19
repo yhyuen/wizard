@@ -9,6 +9,7 @@ extends Node3D
 ## (spells3d.gd). It reads the sim each frame and never changes it.
 
 const Figure := preload("res://scripts/view/figure.gd")
+const ShapeFigure := preload("res://scripts/view/shape_figure.gd")
 const Spells3D := preload("res://scripts/view/spells3d.gd")
 const Town := preload("res://scripts/view/town.gd")
 const OVERLAY_SHADER := preload("res://scripts/view/overlay.gdshader")
@@ -453,8 +454,9 @@ func _apply_mood(k: float) -> void:
 func _fig_for(u: Unit) -> Dictionary:
 	if _figs.has(u.id):
 		return _figs[u.id]
-	var f := Figure.new()
-	f.build(cfg["figures"][u.kind], float(cfg["darken"]))
+	var def: Dictionary = cfg["figures"][u.kind]
+	var f = ShapeFigure.new() if def.has("shape") else Figure.new()
+	f.build(def, float(cfg["darken"]))
 	add_child(f)
 	var rec := {"node": f, "unit": u, "rot": 0.0, "seen": true, "run_t": randf() * 2.0}
 	if u.team == 1:
@@ -486,6 +488,8 @@ func _sync_figures(delta: float) -> void:
 		f.rotation.y = rec["rot"]
 		var pose := _pose(u, rec, delta)
 		f.pose(pose[0], pose[1], delta)
+		if f is ShapeFigure:
+			f.sync_unit(u)
 		var fade := 0.0
 		var dark := 0.0
 		if u.dead:

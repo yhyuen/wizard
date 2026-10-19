@@ -18,14 +18,17 @@ extends SceneTree
 
 const LIMIT := 180 * 60
 const FRAME_BUDGET := 8.0  # ms
-## Where the wizard stands when each fight starts (a spot in data/world/map.json).
-const AT := {"patrol": "yard_c"}
-const REQUIRE := {}
+## Where the wizard stands when each fight starts: a map and a spot on it.
+const AT := {"patrol": ["camp", "yard_c"], "hall_fight": ["halls", "hall_c"], "refectory_fight": ["halls", "refectory_c"],
+	"gallery_fight": ["halls", "gallery_c"], "ante_fight": ["halls", "ante_c"], "warden": ["halls", "kiln_s"]}
+## The Kiln Warden is a trial (design/ruins/content.md §4): a fresh Apprentice who walks in
+## without turning the sluice loses; with the sluice turned, a wizard who has worked at it wins.
+const REQUIRE := {"warden fresh": false, "warden strong+flooded": true}
 
 var main
 var bot
 var run
-var cases: Array = []  # {"id", "profile", "millrace"}
+var cases: Array = []  # {"id", "profile", "millrace", "flooded"}
 var i := -1
 var frames := 0
 var fails: Array = []
@@ -43,7 +46,9 @@ func _initialize() -> void:
 	encounters = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/encounters.json"))["encounters"]
 	for profile in ["fresh", "strong"]:
 		for id in encounters:
-			cases.append({"id": id, "profile": profile, "millrace": false})
+			cases.append({"id": id, "profile": profile, "millrace": false, "flooded": false})
+	for profile in ["fresh", "strong"]:
+		cases.append({"id": "warden", "profile": profile, "millrace": false, "flooded": true})
 	# -- --only tide: just that encounter's cases (for tuning).
 	var args := OS.get_cmdline_user_args()
 	if args.size() >= 2 and args[0] == "--only":
@@ -53,7 +58,7 @@ func _initialize() -> void:
 
 
 func _name(c: Dictionary) -> String:
-	return "%s %s%s" % [c["id"], c["profile"], "+millrace" if c["millrace"] else ""]
+	return "%s %s%s%s" % [c["id"], c["profile"], "+millrace" if c["millrace"] else "", "+flooded" if c.get("flooded", false) else ""]
 
 
 func _process(_dt: float) -> bool:
@@ -69,7 +74,8 @@ func _process(_dt: float) -> bool:
 		frame_ms.append((now - last_us) / 1000.0)
 	last_us = now
 	if frames > LIMIT:
-		fails.append("%s did not end within %d s" % [_name(cases[i]), LIMIT / 60])
+		var left: Array = main.arena.enemies().map(func(u): return "%s at %s" % [u.kind, str(u.pos.round())])
+		fails.append("%s did not end within %d s (left: %s, you at %s)" % [_name(cases[i]), LIMIT / 60, ", ".join(left), str(main.arena.player.pos.round())])
 		_next()
 	return false
 
@@ -80,6 +86,8 @@ func _on_over(won: bool) -> void:
 	var a = main.arena
 	print("[encounters] %-26s %s in %5.1f s, %2d kills, %d downs, %3d damage taken (max HP %d)" % [_name(c), "won " if won else "lost", t,
 		a.stats["kills"], int(a.stats.get("downs", 0)), roundi(a.stats["damage_taken"]), int(a.player.max_hp)])
+	if OS.get_cmdline_user_args().has("--spells"):
+		print("[encounters] %-26s by spell: %s" % ["", str(a.stats["by_spell"])])
 	frame_ms.sort()
 	if not frame_ms.is_empty():
 		var p95: float = frame_ms[int(frame_ms.size() * 0.95)]
@@ -133,10 +141,16 @@ func _next() -> void:
 	slice.growth.end_fight()
 	slice.growth.begin_fight()
 	slice.world.reset_loop()
+	slice.world.load_map(AT[c["id"]][0])
 	slice.world.reset_day()
 	slice.set_screen("world")
-	main.enter_world(slice.world.map.spots[AT[c["id"]]])
+	main.enter_world(slice.world.map.spots[AT[c["id"]][1]])
+	if c.get("flooded", false):
+		run.lp["done_sluice"] = run.day()
 	slice.fight_id = c["id"]
 	slice.cur = {"outcomes": {"won": "pell", "lost": "pell"}}  # a harmless scene after each fight
-	main.start_world_fight(enc, slice.spawns_for(c["id"]))
 	main.bot = func(a): return bot.intent(a)
+	if c["millrace"]:
+		main.start_world_fight(enc, slice.spawns_for(c["id"]))
+	else:
+		slice._start_fight(c["id"])  # as the story starts it: flooded by the sluice, or waived

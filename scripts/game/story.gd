@@ -33,12 +33,13 @@ extends RefCounted
 ## The ruins (design/ruins/tech-plan.md §1) add `go <map> <spot>` (when the scene closes, the
 ## loading card takes you there) and `go <exit>` (through that exit of the map you're on); an
 ## exit you walk into plays `use: <exit id>` first, if there is such a scene.
+## R2 adds `open <door>` (that door of this map stands open for the rest of the loop).
 
 const MAPS := "res://data/world/maps.json"
 const HEADER_KEYS := ["place", "days", "times", "when", "force", "priority", "repeat", "known", "title", "slot", "backdrop",
 	"talk", "use", "arrive", "cast"]
 const EFFECTS := ["learn", "set", "clear", "fight", "wells", "train", "meditate", "goto", "end_loop",
-	"model", "trial", "sound", "cutscene", "move", "take", "sleep", "book", "today", "go"]
+	"model", "trial", "sound", "cutscene", "move", "take", "sleep", "book", "today", "go", "open"]
 
 var scenes := {}  # id -> scene dictionary
 var errors: Array = []  # parse errors, for the linter

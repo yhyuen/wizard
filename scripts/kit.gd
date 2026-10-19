@@ -363,7 +363,14 @@ func blink() -> void:
 		denied["blink"] = 0.4
 		return
 	var dir = move.normalized() if move.length() > 0.01 else aim_dir()
-	var dest: Vector2 = A.clamp_in(P.pos + dir * float(A.D["wizard"]["blink_dist"]), P.radius)
+	var dist := float(A.D["wizard"]["blink_dist"])
+	if A.world != null:
+		# no blinking through a wall into the dark outside the ruin: stop where the wall is
+		var go := 0.0
+		while go + 4.0 <= dist and not A.world.solid_at(P.pos + dir * (go + 4.0), P.radius):
+			go += 4.0
+		dist = go
+	var dest: Vector2 = A.clamp_in(P.pos + dir * dist, P.radius)
 	A.fx("trail", P.pos + Vector2(0, -6), {"to": dest + Vector2(0, -6), "color": element_color(last_element), "life": 0.3})
 	A.fx("dust", P.pos, {"r": 6.0, "life": 0.3})
 	P.pos = dest

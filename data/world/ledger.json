@@ -105,13 +105,88 @@
    "title": "What opens the rune door?",
    "text": "A door in the halls is sealed with a dwarf rune.",
    "opens": ["rune_shape"],
-   "clues": ["rune_shape", "rune_ashlar"]
+   "clues": ["rune_shape", "rune_ashlar"],
+   "insight": "rune_opened"
+  },
+  "rune_opened": {
+   "kind": "insight",
+   "title": "The rune door opens to Ashlar",
+   "text": "The sealed door in the entrance hall answers to the dwarves' rune, Ashlar. Behind it a passage runs to the Kiln antechamber."
+  },
+  "short_route": {
+   "kind": "insight",
+   "title": "The short way to the Kiln",
+   "text": "Through the rune door and the bell passage, the Kiln antechamber is a short walk, with no fight on the way."
+  },
+  "crack_order": {
+   "kind": "clue",
+   "title": "Which crack glows first",
+   "text": "Embers burst out of the cracks in a fixed order. In the entrance hall the west crack always glows first, then the east."
+  },
+  "warden_water": {
+   "kind": "clue",
+   "title": "Water cools the Kiln Warden",
+   "text": "A cracked pipe drips onto the Kiln Warden's grate, and each time it flinches. Water cools it."
+  },
+  "sluice_flood": {
+   "kind": "clue",
+   "title": "The cistern sluice",
+   "text": "The sluice wheel in the cistern runs its water down a channel to the Kiln's grate."
+  },
+  "burnt_far_side": {
+   "kind": "clue",
+   "title": "Burnt from the far side",
+   "text": "The door from the Kiln antechamber to the cistern was burnt open from the cistern side: the scorch fans out toward the antechamber."
+  },
+  "door_healed": {
+   "kind": "clue",
+   "title": "The door is whole",
+   "text": "Later in the month the cistern door is whole again, new oak without a mark on it. I saw it burnt to its hinges."
+  },
+  "doors_heal": {
+   "kind": "insight",
+   "title": "Time is wrong down here",
+   "text": "What was broken early in the month is whole later on. Someone burnt through that door, and the ruin has been healing behind them."
+  },
+  "q_door": {
+   "kind": "question",
+   "title": "Why did the burnt door heal?",
+   "text": "The cistern door was burnt open early in the month, and later it was whole.",
+   "opens": ["burnt_far_side", "door_healed"],
+   "clues": ["burnt_far_side", "door_healed"],
+   "insight": "doors_heal"
+  },
+  "trial_warden": {
+   "kind": "trial",
+   "title": "The Kiln Warden",
+   "text": "Beaten in the Kiln hall. My Ring rose to the 1st. Next time it should know me."
+  },
+  "ember_burst": {
+   "kind": "clue",
+   "title": "Embers burst",
+   "text": "An ember bursts into a small patch of fire as it dies. Standing in it burns; water puts it out."
+  },
+  "ember_light": {
+   "kind": "clue",
+   "title": "Embers keep out of the light",
+   "text": "Embers won't cross lamplight. In the dark lecture gallery a lit lamp would have kept them off."
+  },
+  "backward_stones": {
+   "kind": "clue",
+   "title": "The Backward Slingers",
+   "text": "Their stones fly the wrong way: each one appears behind you and flies home to the hand that throws it."
   }
  },
  "deaths": {
   "patrol": "The Hollows in the ruins were too many.",
   "eclipse": "The Eclipse came, and the Orrery's heart woke a second time.",
   "shrine": "You let the loop go at the shrine.",
-  "fight": "You fell in a fight."
+  "fight": "You fell in a fight.",
+  "fight:hall_fight": "The embers in the entrance hall burned you down. The west crack glowed first.",
+  "fight:refectory_fight": "The embers in the refectory were too many. Its four cracks glow in the same order every time.",
+  "fight:gallery_fight": "The embers in the lecture gallery caught you in the dark. They won't cross a lamp's light.",
+  "fight:ante_fight": "The Backward Slingers in the antechamber brought you down.",
+  "fight:warden": "The Kiln Warden burned you down. Each time the pipe dripped on its grate, it flinched.",
+  "first_playable_end": "The Archive stair is as far as the first playable goes. Thank you for playing! Wake to keep exploring the month: everything you know stays."
  }
 }

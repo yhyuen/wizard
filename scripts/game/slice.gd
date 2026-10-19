@@ -178,8 +178,12 @@ func wait() -> void:
 	world.request({"t": "period"})
 
 
+## Night falls, or you climb out of the ruin (a descent costs the day): sleep, and wake on the cot.
 func end_day() -> void:
 	cur = {}
+	if world.map_id != world.CAMP:
+		world.load_map(world.CAMP)
+		main.enter_world(world.map.spots["cot"])
 	if run.day() >= run.LAST_DAY:
 		play("eclipse")  # the second blast
 		return
@@ -409,6 +413,9 @@ func _effect(op: String, arg: String) -> bool:
 			after.append("go " + arg)
 		"today":
 			run.lp["done_" + arg] = run.day()
+		"open":
+			world.map.doors[arg]["open"] = true
+			Sfx.play("chime")
 		"goto":
 			if lines.is_empty():
 				play(arg, true)
@@ -509,6 +516,14 @@ func _start_fight(id: String) -> void:
 	var enc: Dictionary = encounters[id].duplicate(true)
 	if enc.has("waived") and run.knows("trial_" + id.trim_suffix("_trial")):
 		enc["waves"] = enc["waived"]
+	if enc.has("flooded_by") and story.ctx.done(str(enc["flooded_by"])):
+		# the sluice was turned this descent: the guardian starts quenched (design/ruins/content.md §4)
+		for wave in enc["waves"]:
+			for g in wave:
+				if g.get("guardian", false):
+					g["flags"] = g.get("flags", {}).duplicate()
+					g["flags"]["flooded"] = true
+		enc["flooded"] = true
 	if fight_resolver.is_valid():
 		var r = fight_resolver.call(id)  # won, or {"won", "kills"}
 		if r is Dictionary:
@@ -1096,8 +1111,11 @@ func _draw_death() -> void:
 	var log: Dictionary = run.mem["log"][-1] if not run.mem["log"].is_empty() else {}
 	var cause: String = str(log.get("cause", ""))
 	var why: String = death_texts.get(cause, death_texts.get(cause.split(":")[0], "The month ends."))
-	title(r.position + Vector2(0, 46), "Loop %d ends" % run.loop(), 28, HOURS, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-	text(r.position + Vector2(0, 76), "Day %d, %s.  %s" % [run.day(), run.time_name().to_lower(), why], 14, PAPER, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+	var the_end := cause == "first_playable_end"
+	title(r.position + Vector2(0, 46), "The end of the first playable" if the_end else "Loop %d ends" % run.loop(), 28,
+		GOLD if the_end else HOURS, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+	text(r.position + Vector2(0, 76), why if the_end else "Day %d, %s.  %s" % [run.day(), run.time_name().to_lower(), why], 14, PAPER,
+		HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 	title(r.position + Vector2(32, 120), "What you learned this loop", 15, GOLD)
 	var y := r.position.y + 146.0
 	var learned: Array = run.lp["learned"].filter(func(id): return ledger.has(id) and ledger[id]["kind"] != "trial")

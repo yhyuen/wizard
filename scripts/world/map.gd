@@ -25,7 +25,7 @@ var water: Array = []  # Rect2
 var bridges: Array = []  # Rect2
 var doors := {}  # id -> {"rect": Rect2, "open": bool, "state": String}
 var pits: Array = []  # Rect2: collapsed floor, not walkable, open to shots
-var cracks: Array = []  # {"rect": Rect2, "sphere": String}: glowing seams that Sphere-born burst from
+var cracks: Array = []  # {"rect", "sphere", "id", "foot"}: glowing seams that embers burst from; foot is where they step out
 var exits := {}  # id -> {"rect": Rect2, "to": map id, "at": spot id there}
 var buildings := {}  # id -> {"rect", "door", "walls": [Rect2], "height", ...}
 var places := {}  # id -> {"name", "district", "rect" or "circle"}
@@ -63,7 +63,7 @@ func _init(path := PATH, map_id := "camp", map_kit := "town") -> void:
 		_rect(Rect2(r[0], r[1], r[2], r[3]), "rubble")
 	for c in d.get("cracks", []):
 		var cr := Rect2(c[0], c[1], c[2], c[3])
-		cracks.append({"rect": cr, "sphere": str(c[4]) if c.size() > 4 else "mars"})
+		cracks.append({"rect": cr, "sphere": str(c[4]) if c.size() > 4 else "mars", "id": str(c[5]) if c.size() > 5 else "crack_%d" % cracks.size()})
 		_rect(cr, "crack")
 	for r in d.get("pits", []):
 		pits.append(Rect2(r[0], r[1], r[2], r[3]))
@@ -86,7 +86,8 @@ func _init(path := PATH, map_id := "camp", map_kit := "town") -> void:
 		var dd = d["doors"][did]
 		var r: Array = dd["rect"] if dd is Dictionary else dd
 		var state: String = str(dd.get("state", "shut")) if dd is Dictionary else "shut"
-		doors[did] = {"rect": Rect2(r[0], r[1], r[2], r[3]), "open": state == "open", "state": state}
+		doors[did] = {"rect": Rect2(r[0], r[1], r[2], r[3]), "open": state == "open", "state": state,
+			"open_days": dd.get("open_days", []) if dd is Dictionary else []}
 	for e in d.get("exits", []):
 		var r: Array = e["rect"]
 		exits[str(e["id"])] = {"rect": Rect2(r[0], r[1], r[2], r[3]), "to": str(e["to"]), "at": str(e["at"])}
@@ -108,6 +109,35 @@ func _init(path := PATH, map_id := "camp", map_kit := "town") -> void:
 	for e in nav["edges"]:
 		adj[e[0]].append(e[1])
 		adj[e[1]].append(e[0])
+	for cr in cracks:
+		cr["foot"] = _foot(cr["rect"])
+
+
+## Where something stepping out of a crack in a wall stands: in front of it, on the open side.
+func _foot(r: Rect2) -> Vector2:
+	var out := Vector2.ZERO
+	for dir in [Vector2.RIGHT, Vector2.LEFT, Vector2.DOWN, Vector2.UP]:
+		var p: Vector2 = r.get_center() + dir * 18.0
+		if not solid_at(p, 5.0):
+			out = p
+			break
+	return out if out != Vector2.ZERO else r.get_center()
+
+
+func crack(cid: String) -> Dictionary:
+	for cr in cracks:
+		if cr["id"] == cid:
+			return cr
+	return {}
+
+
+## Doors that stand open on some days only (the burnt door, open days 1–9) for `day`; the rest
+## as the loop began.
+func set_day_doors(day: int) -> void:
+	for did in doors:
+		var od: Array = doors[did]["open_days"]
+		if not od.is_empty():
+			doors[did]["open"] = day >= int(od[0]) and day <= int(od[1])
 
 
 ## A tent's footprint [x, y, rotation, cloth]: 44 × 36 px, turned by its rotation.
@@ -409,6 +439,8 @@ func path(a: Vector2, b: Vector2, r := 4.0) -> PackedVector2Array:
 		if n == g:
 			break
 		for m in adj[n]:
+			if _door_across(nodes[n], nodes[m]):
+				continue  # a shut door cuts the graph (the rune door until you open it)
 			var nd: float = dist[n] + nodes[n].distance_to(nodes[m])
 			if not dist.has(m) or nd < dist[m]:
 				dist[m] = nd
@@ -431,6 +463,19 @@ func path(a: Vector2, b: Vector2, r := 4.0) -> PackedVector2Array:
 		out.append(nodes[nid])
 	out.append(b)
 	return out
+
+
+## A shut door between two nav nodes.
+func _door_across(a: Vector2, b: Vector2) -> bool:
+	for did in doors:
+		if doors[did]["open"]:
+			continue
+		var r: Rect2 = (doors[did]["rect"] as Rect2).grow(2.0)
+		var steps := int(a.distance_to(b) / 6.0) + 1
+		for i in steps + 1:
+			if r.has_point(a.lerp(b, float(i) / steps)):
+				return true
+	return false
 
 
 ## Length of a path from `a` (for the route bot's clock).

@@ -3,7 +3,9 @@ extends SceneTree
 ## display, not --headless): the title, waking in the camp, the yard and the captain's cordon,
 ## the market at noon, the lane at dusk, the camp at night, a patrol fight, a burning hay bale,
 ## the camp's map and the spellbook; then the loading card, the halls' landing and shrine, the
-## entrance hall, the rune door and the halls' map.
+## entrance hall, the rune door, the halls' map, a crack glowing and the embers out of it, the
+## refectory, the dark gallery, the bell passage, the burnt door, the cistern's sluice, the Kiln
+## Warden's rings and vents, and the end card.
 ##
 ##   xvfb-run -a -s "-screen 0 1440x810x24" godot --rendering-driver opengl3 --resolution 1440x810 \
 ##       --fixed-fps 60 --script res://tools/world_shot.gd -- --out DIR
@@ -51,6 +53,13 @@ func _go(at: Vector2, d: int, t: int) -> void:
 	slice.world.reset_day()
 	main.place_player(at)
 	slice.world.requests.clear()
+	slice.cur = {}
+
+
+## Ends a fight in place without its story outcome: back to walking.
+func _end_fight() -> void:
+	main.arena.resume_explore()
+	main.mode = "world"
 	slice.cur = {}
 
 
@@ -136,6 +145,43 @@ func _process(_dt: float) -> bool:
 		800:
 			_shot("17_halls_map")
 			slice.overlay = ""
+			main.place_player(W.map.spots["hall_c"] + Vector2(-260, -40))
+			slice._start_fight("hall_fight")
+		1000:
+			_shot("18_crack_glow")
+		1130:
+			_shot("19_hall_embers")
+			_end_fight()
+			_go(W.map.spots["refectory_c"], 2, 0)
+		1170:
+			_shot("20_refectory")
+			_go(W.map.spots["gallery_c"], 2, 0)
+		1210:
+			_shot("21_gallery_dark")
+			_go(W.map.spots["passage_c"] + Vector2(0, 60), 2, 0)
+		1250:
+			_shot("22_bell_passage")
+			_go(W.map.spots["ante_s"] + Vector2(0, -60), 2, 0)
+		1290:
+			_shot("23_burnt_door")
+			_go(W.map.spots["cistern_c"] + Vector2(120, 40), 2, 0)
+		1330:
+			_shot("24_cistern_sluice")
+			_go(W.map.spots["kiln_s"], 2, 0)
+			slice._start_fight("warden")
+		1640:
+			main.arena.player.hp = main.arena.player.max_hp
+			_shot("25_warden_rings")
+			var w = main.arena.enemies().filter(func(u): return u.kind == "warden")
+			if not w.is_empty():
+				w[0].hp = w[0].max_hp * 0.5
+		1840:
+			main.arena.player.hp = main.arena.player.max_hp
+			_shot("26_warden_vents")
+			_end_fight()
+			slice.end_loop("first_playable_end")
+		1860:
+			_shot("27_end_card")
 			var f := FileAccess.open(out.path_join("stats.txt"), FileAccess.WRITE)
 			f.store_string("\n".join(stats) + "\n")
 			return true

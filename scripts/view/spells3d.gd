@@ -414,7 +414,7 @@ func _zones(glow_k: float) -> void:
 	for z in arena.zones:
 		var t: float = z["t"]
 		match z["kind"]:
-			"ember":
+			"ember", "blaze":
 				var f := take("flame")
 				f.position = _w(z["pos"])
 				var fade := clampf((z["life"] - t) / 1.0, 0.3, 1.0)
@@ -445,6 +445,18 @@ func _zones(glow_k: float) -> void:
 				paint(tail, PixelArt.FIRE_HOT, 2.0)
 				halo(b.position, PixelArt.FIRE, 2.4, 1.3)
 				view.want_light(b.position, PixelArt.FIRE, 2.0, 5.0)
+			"ring":
+				# The Warden's fire ring: low flames along the band, none in its gap
+				if t < float(z["wait"]):
+					continue
+				var r: float = z.get("r", z["r0"])
+				var half: float = z["gap"] * 0.5
+				for i in 10:
+					var a: float = float(z["gap_a"]) + half + (TAU - 2.0 * half) * (i + 0.5) / 10.0
+					var f := take("flame")
+					f.position = _w(z["pos"] + Vector2(cos(a), sin(a)) * r)
+					f.scale = Vector3(0.8, 0.6 + 0.2 * sin(t * 11.0 + i), 0.8)
+				view.want_light(_w(z["pos"], 1.0), PixelArt.FIRE, 1.6, 4.0)
 			"gravel":
 				for i in 6:
 					var a := i * 2.4

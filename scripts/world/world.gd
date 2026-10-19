@@ -75,6 +75,7 @@ func get_map(id: String):
 	if not _maps.has(id):
 		var def: Dictionary = maps[id]
 		_maps[id] = Map.new(str(def["path"]), id, str(def.get("kit", "town")))
+		_maps[id].set_day_doors(run.day())
 	return _maps[id]
 
 
@@ -160,6 +161,8 @@ func reset_loop() -> void:
 ## A new day (dawn): the lamps are out, the cook fires lit, people go to their morning spots.
 func reset_day() -> void:
 	clock = 0.0
+	for m in _maps.values():
+		m.set_day_doors(run.day())
 	for l in lamps:
 		l["lit"] = false
 		l["by"] = ""
@@ -512,6 +515,7 @@ func _magic() -> void:
 			if l["lit"] and l["pos"].distance_to(w["pos"]) < float(w["w"]) * 0.5 + 6.0:
 				_douse_lamp(l)
 	# Pillar's column of fire, puddles and whirlpools: once each.
+	var quench := []
 	for z in arena.zones:
 		if z.has("_w"):
 			continue
@@ -537,6 +541,11 @@ func _magic() -> void:
 				for pr in props:
 					if pr["pos"].distance_to(z["pos"]) < float(z["r"]) + float(prop_def(pr["kind"])["r"]):
 						douse(pr)
+				for bz in arena.zones:
+					if bz["kind"] == "blaze" and bz["pos"].distance_to(z["pos"]) < float(z["r"]) + float(bz["r"]):
+						quench.append(bz)
+	for bz in quench:
+		_quench(bz)
 	# Lodestones flung into props knock them on.
 	for s in arena.stones:
 		if s["state"] != "flung":
@@ -563,6 +572,17 @@ func _water_cone(at: Vector2, dir: Vector2, cone: float, r: float) -> void:
 		if b["lit"] and inside.call(b["pos"], 4.0):
 			b["lit"] = false
 			events_log.append(["doused", "brazier"])
+	for z in arena.zones.duplicate():
+		if z["kind"] == "blaze" and inside.call(z["pos"], float(z["r"])):
+			_quench(z)
+
+
+## Luna puts out an ember's burning patch.
+func _quench(z: Dictionary) -> void:
+	if arena.zones.has(z):
+		arena.zones.erase(z)
+		arena.fx("dust", z["pos"], {"r": float(z["r"]), "life": 0.5})
+		events_log.append(["doused", "blaze"])
 
 
 func _douse_lamp(l: Dictionary) -> void:

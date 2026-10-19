@@ -262,6 +262,18 @@ func _world() -> void:
 	ok(h.solid_at((h.doors["rune_door"]["rect"] as Rect2).get_center()), "the rune door is sealed")
 	ok(h.exit_at(h.exits["stair_up"]["rect"].get_center()) == "stair_up", "standing in the stair finds its exit")
 	ok(h.cracks.size() > 0 and h.solid_at(h.cracks[0]["rect"].get_center()), "the glowing cracks are solid")
+	var bad_feet: Array = []
+	for c in h.cracks:
+		if h.solid_at(c["foot"]) or h.blocked(c["foot"]):
+			bad_feet.append(c["id"])
+	ok(bad_feet.is_empty() and not h.crack("kiln_w").is_empty(), "embers come out of every crack onto open floor: " + ", ".join(bad_feet))
+	var bd: Rect2 = h.doors["burnt_door"]["rect"]
+	h.set_day_doors(9)
+	var open9: bool = not h.solid_at(bd.get_center())
+	h.set_day_doors(10)
+	ok(open9 and h.solid_at(bd.get_center()), "the burnt door stands open on day 9 and is whole on day 10")
+	var via: PackedVector2Array = h.path(h.spots["hall_c"], h.spots["ante_c"], 7.0)
+	ok(Array(via).any(func(q): return q.x < 700.0), "a sealed rune door sends the path the long way round")
 	var m = loaded["camp"]
 	var tent: Array = m.d["tents"][1]
 	ok(m.solid_at(Map.tent_rect(tent).get_center()), "a tent is solid")
@@ -270,6 +282,7 @@ func _world() -> void:
 	var far: Array = []
 	for start in [["camp", "cot"], ["halls", "landing"]]:
 		var mm = loaded[start[0]]
+		mm.set_day_doors(1)  # early in the month, when the burnt door stands open
 		var props: Array = []
 		for pr in mm.d.get("props", []):
 			props.append([Vector2(pr[1], pr[2]), float(pd["kinds"][pr[0]]["r"])])

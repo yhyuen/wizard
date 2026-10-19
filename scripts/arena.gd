@@ -59,6 +59,8 @@ var encounter := {}
 ## In a fight in the town the mist closes round where it started: {"at", "r"} (sim px), or {}.
 ## The arena's walls used to do this; without it you could kite a horde round the yard forever.
 var leash := {}
+var crack_glow := {}  # crack id -> seconds it glows before its embers burst out (the view lights it)
+var _src_kind := ""  # the projectile dealing the hit being applied, for resistances
 const LEASH_R := 220.0
 var cutscene = null  # scripts/game/cutscene.gd when a short scene plays instead of a fight
 var enc_wave := -1
@@ -192,6 +194,7 @@ func start_world(map, the_town, at: Vector2) -> void:
 	phase = "explore"
 	phase_t = 0.0
 	leash = {}
+	crack_glow = {}
 
 
 ## A slice fight where the wizard stands (data/slice/encounters.json): its enemies come from
@@ -202,6 +205,7 @@ func begin_encounter(enc: Dictionary, spawns: Array) -> void:
 	gates = spawns if not spawns.is_empty() else GATES
 	leash = {"at": player.pos, "r": float(enc.get("leash", LEASH_R))} if world != null else {}
 	spawn_queue.clear()
+	crack_glow = {}
 	over_t = -1.0
 	clear_t = 0.0
 	fight_time = 0.0
@@ -221,6 +225,8 @@ func resume_explore() -> void:
 	units = units.filter(func(u): return u.team == 0)
 	projs.clear()
 	spawn_queue.clear()
+	zones = zones.filter(func(z): return z["owner"] == 0 and z["kind"] != "blaze")
+	crack_glow = {}
 	encounter = {}
 	player.dead = false
 	player.hp = maxf(player.hp, player.max_hp * 0.5)
@@ -296,10 +302,14 @@ func spawn(kind: String, at: Vector2) -> Unit:
 	u.state = "enter"
 	u.state_t = 0.5
 	_add(u)
+	if e.get("anchored", false):
+		u.flags["anchored"] = true  # a guardian that never moves (the Kiln Warden)
 	if kind == "inverted":
 		# Its death played backwards: it lies here dead, then rises.
 		u.state_t = float(e["rise"])
 		fx("ring", at, {"color": PixelArt.HOURS, "r": 10.0, "life": u.state_t})
+	elif kind == "ember":
+		fx("burst", at + Vector2(0, -4), {"color": PixelArt.FIRE, "r": 10.0, "life": 0.35})
 	else:
 		fx("dust", at, {"r": 8.0, "life": 0.5})
 	if kind == "inverted" and not stats.has("inverted_seen"):
@@ -385,12 +395,35 @@ func survive_time() -> float:
 	return float(encounter.get("survive", 0.0))
 
 
+## A wave's groups: each may wait `at` seconds, come out of a named `crack` (which glows first,
+## then its embers burst out one after another), and carry `flags` for the units it makes.
 func _queue_wave(group: Array, at: float) -> void:
 	var i := 0
 	for g in group:
+		var base: float = at + float(g.get("at", 0.0))
 		for k in int(g["n"]):
-			spawn_queue.append({"t": at + 0.4 + i * 0.45, "kind": g["kind"], "gate": i % 4, "dummy": g.get("dummy", false)})
+			var s := {"t": base + 0.4 + (k * 0.3 if g.has("crack") else i * 0.45), "kind": g["kind"], "gate": i % 4,
+				"dummy": g.get("dummy", false), "flags": g.get("flags", {})}
+			if g.has("crack"):
+				s["crack"] = str(g["crack"])
+			spawn_queue.append(s)
 			i += 1
+
+
+## `n` of `kind` out of crack `cid` (the Warden's side cracks), after its glow.
+func crack_spawn(cid: String, n: int, kind := "ember") -> void:
+	for k in n:
+		spawn_queue.append({"t": k * 0.3, "kind": kind, "gate": 0, "crack": cid, "flags": {}})
+
+
+## A crack about to burst: it glows, and everything queued to come out of it waits for the glow.
+func _glow_crack(cid: String) -> void:
+	var g := float(encounter.get("glow", 1.0))
+	crack_glow[cid] = g
+	for q in spawn_queue:
+		if q.get("crack", "") == cid and not q.get("glowed", false):
+			q["glowed"] = true
+			q["t"] += g
 
 
 func _next_wave() -> void:
@@ -408,12 +441,23 @@ func _flow(dt: float) -> void:
 	phase_t += dt
 	if phase in ["wave1", "wave2", "duel", "sandbox", "enc"]:
 		fight_time += dt
+	for cid in crack_glow.keys():
+		crack_glow[cid] -= dt
+		if crack_glow[cid] <= 0.0:
+			crack_glow.erase(cid)
 	for s in spawn_queue.duplicate():
 		s["t"] -= dt
 		if s["t"] <= 0.0:
+			if s.has("crack") and not s.get("glowed", false):
+				_glow_crack(s["crack"])
+				continue
 			spawn_queue.erase(s)
 			var g: Vector2 = gates[int(s["gate"]) % gates.size()]
+			if s.has("crack") and world != null and not world.crack(s["crack"]).is_empty():
+				g = world.crack(s["crack"])["foot"]
 			var u := spawn(s["kind"], g + Vector2(rng.randf_range(-6, 6), rng.randf_range(-6, 6)))
+			for k in s.get("flags", {}):
+				u.flags[k] = s["flags"][k]
 			if s.get("dummy", false):
 				u.flags["dummy"] = true
 				u.speed *= 0.5
@@ -638,6 +682,8 @@ func _update_unit(u: Unit, dt: float) -> void:
 		u.pip_timer -= dt
 		if u.pip_timer <= 0.0:
 			u.pips = 0
+	if u.flags.get("anchored", false):
+		u.vel = Vector2.ZERO
 	u.pos += u.vel * dt
 	u.vel = u.vel.lerp(Vector2.ZERO, 1.0 - exp(-7.0 * dt))
 	if u == player and not leash.is_empty() and u.pos.distance_to(leash["at"]) > leash["r"]:
@@ -659,9 +705,15 @@ func _update_unit(u: Unit, dt: float) -> void:
 			z["tick"] = float(z.get("tick", 0.0))
 			if u.cooldown("ember_tick") <= 0.0:
 				u.cd["ember_tick"] = 0.5
+				_src_kind = "fire"
 				hit(u, float(D["field"]["ember_dps"]) * 0.5, -1, Vector2.ZERO, 0.0, true)
+				_src_kind = ""
 		elif z["kind"] == "gravel" and u.team == 1 and u.pos.distance_to(z["pos"]) < float(z["r"]):
 			u.slow_t = 0.2
+		elif z["kind"] == "blaze" and u == player and u.pos.distance_to(z["pos"]) < float(z["r"]) + u.radius:
+			if u.cooldown("blaze_tick") <= 0.0:
+				u.cd["blaze_tick"] = 0.5
+				hit(u, float(z["dmg"]), 0, Vector2.ZERO, 0.0, true)
 		elif z["kind"] == "tome" and u == player and u.pos.distance_to(z["pos"]) < 9.0:
 			_read_tome(z)
 
@@ -692,10 +744,18 @@ func _separate() -> void:
 			var l := d.length()
 			if l < min_d and l > 0.01:
 				var push := d / l * (min_d - l) * 0.5
-				if a != player:
-					a.pos -= push
-				if b != player:
-					b.pos += push
+				# An anchored guardian doesn't budge: whoever touches it takes the whole push.
+				var a_fix: bool = a.flags.get("anchored", false)
+				var b_fix: bool = b.flags.get("anchored", false)
+				if a_fix and not b_fix:
+					b.pos += push * 2.0
+				elif b_fix and not a_fix:
+					a.pos -= push * 2.0
+				else:
+					if a != player and not a_fix:
+						a.pos -= push
+					if b != player and not b_fix:
+						b.pos += push
 
 
 # --- hits, pips and reactions -----------------------------------------------
@@ -711,6 +771,13 @@ func hit(u: Unit, dmg: float, impact: int, dir: Vector2, knock := 0.0, quiet := 
 		return false
 	if encounter.has("hits") and not quiet and dmg >= float(encounter.get("hit_min", 1.0)) and phase == "enc":
 		_duel_hit(u)
+	if u.team == 1:
+		var e: Dictionary = D["enemies"][u.kind]
+		# Fire barely hurts what was born of Mars (embers); the flooded Kiln takes double for a while.
+		if e.has("resist_fire") and (_src_kind == "fire" or town != null and town.fire_proj.has(_src_kind)):
+			dmg *= float(e["resist_fire"])
+		if float(u.flags.get("vuln_t", 0.0)) > 0.0:
+			dmg *= float(u.flags.get("vuln_mult", 2.0))
 	u.hp -= dmg
 	u.flash = 0.08
 	if u == player:
@@ -782,7 +849,12 @@ func kill(u: Unit) -> void:
 		stats["kills"] += 1  # not the ones that crumble when the fight is won
 	fx("burst", u.pos, {"color": PixelArt.HOURS if u.kind == "inverted" else PixelArt.PAPER, "r": 9.0, "life": 0.35})
 	Progression.add_wizard_xp(float(D["enemies"][u.kind]["xp"]))
-	if u.kind == "rival":
+	var e: Dictionary = D["enemies"][u.kind]
+	if e.has("blaze") and phase != "won":
+		# An ember dies in a burst: a small patch of fire for a moment (Luna puts it out).
+		var bz: Dictionary = e["blaze"]
+		add_zone({"kind": "blaze", "pos": u.pos, "r": float(bz["r"]), "life": float(bz["life"]), "dmg": float(bz["dmg"])})
+	if u.kind == "rival" or e.get("guardian", false):
 		_end(true)
 
 
@@ -811,7 +883,10 @@ func ignite(u: Unit) -> void:
 	var dmg := Progression.stat("ember_bolt", "damage") * float(D["field"]["ignite_mult"]) * mult
 	fx("burst", u.pos + Vector2(0, -4), {"color": PixelArt.FIRE, "r": float(D["field"]["ignite_radius"]), "life": 0.35})
 	fx("burst", u.pos + Vector2(0, -4), {"color": PixelArt.FIRE_HOT, "r": 6.0, "life": 0.2})
-	if not hit(u, dmg, 2, Vector2.UP, 0.0):
+	_src_kind = "fire"
+	var landed := hit(u, dmg, 2, Vector2.UP, 0.0)
+	_src_kind = ""
+	if not landed:
 		return  # a risen that's down can't burn again yet (else a pile of them ignites each other forever)
 	Progression.add_xp("ember_bolt", float(Progression.spell("ember_bolt")["xp_ignite"]))
 	if Progression.has_mut("ember_bolt", "ember_ignite"):
@@ -930,7 +1005,10 @@ func _update_projs(dt: float) -> void:
 				continue
 			if u.pos.distance_to(p["pos"]) < u.radius + float(p["r"]) and u.lift() < 6.0:
 				p["hit"].append(u.id)
-				if not kit.on_proj_hit(p, u):
+				_src_kind = p["kind"]
+				var keep: bool = kit.on_proj_hit(p, u)
+				_src_kind = ""
+				if not keep:
 					projs.erase(p)
 				break
 
@@ -973,9 +1051,11 @@ func _update_zones(dt: float) -> void:
 	for z in zones.duplicate():
 		z["t"] += dt
 		match z["kind"]:
-			"ember", "gravel", "column", "rod", "puddle":
+			"ember", "gravel", "column", "rod", "puddle", "blaze":
 				if z["t"] >= z["life"]:
 					zones.erase(z)
+			"ring":
+				_fire_ring(z)
 			"slash":
 				var o := unit_by_id(z["owner"])
 				if o:
@@ -993,10 +1073,37 @@ func _update_zones(dt: float) -> void:
 					u.pos += d.normalized() * 50.0 * dt
 
 
+## The Kiln Warden's fire ring: after `wait` seconds (the grate glowing) it runs out from the
+## grate at `speed`, a band `w` wide with a gap (`gap` radians, centred on `gap_a`) to step
+## through; it burns you once if the band crosses you outside the gap.
+func _fire_ring(z: Dictionary) -> void:
+	if z["t"] < float(z["wait"]):
+		return
+	var r: float = float(z["r0"]) + (z["t"] - float(z["wait"])) * float(z["speed"])
+	z["r"] = r
+	if not z.get("hit_done", false) and not player.dead:
+		var to: Vector2 = player.pos - z["pos"]
+		if absf(to.length() - r) < float(z["w"]) * 0.5 + player.radius \
+				and absf(angle_difference(to.angle(), float(z["gap_a"]))) > float(z["gap"]) * 0.5:
+			z["hit_done"] = true
+			if not kit.ward_blocks():
+				hit(player, float(z["dmg"]), 1, to.normalized(), 40.0)
+	if r > float(z["max"]):
+		zones.erase(z)
+
+
 func _detonate(z: Dictionary) -> void:
 	if z["owner"] == 0 and kit.detonate(z):
 		return
 	match z["kind"]:
+		"cone":
+			# a vent's breath of fire
+			var dir: Vector2 = z["dir"]
+			for k in 4:
+				fx("burst", z["pos"] + dir * float(z["reach"]) * (0.25 + 0.22 * k), {"color": PixelArt.FIRE, "r": 6.0 + k * 4.0, "life": 0.35})
+			var to: Vector2 = player.pos - z["pos"]
+			if to.length() < float(z["reach"]) + player.radius and absf(to.angle_to(dir)) < float(z["arc"]) * 0.5:
+				hit(player, float(z["dmg"]), 2, to.normalized(), 60.0)
 		"storm":
 			fx("bolt", z["pos"], {"color": PixelArt.STORM, "life": 0.25})
 			fx("burst", z["pos"], {"color": PixelArt.STORM, "r": z["r"], "life": 0.25})
@@ -1369,6 +1476,34 @@ func _draw_zone(z: Dictionary) -> void:
 		"line":
 			var k := clampf(t / z["delay"], 0.0, 1.0)
 			draw_line(z["a"], z["b"], Color(PixelArt.DANGER, 0.3 + 0.5 * k), 1.0)
+		"ring":
+			# The Warden's fire ring: while the grate glows a thin circle marks the gap; then the
+			# band runs out, open where the gap is.
+			var gap_a: float = z["gap_a"]
+			var half: float = z["gap"] * 0.5
+			var r: float = z.get("r", z["r0"])
+			if t < float(z["wait"]):
+				var k := clampf(t / float(z["wait"]), 0.0, 1.0)
+				draw_circle(z["pos"], z["r0"], Color(PixelArt.FIRE_HOT, 0.2 + 0.5 * k), true, -1.0, false)
+				draw_arc(z["pos"], z["r0"] + 8.0, gap_a + half, gap_a + TAU - half, 40, Color(PixelArt.DANGER, 0.4 + 0.4 * k), 1.0, false)
+			else:
+				draw_arc(z["pos"], r, gap_a + half, gap_a + TAU - half, 64, Color(PixelArt.FIRE, 0.8), float(z["w"]), false)
+				draw_arc(z["pos"], r + float(z["w"]) * 0.5, gap_a + half, gap_a + TAU - half, 64, Color(PixelArt.DANGER, 0.9), 1.0, false)
+		"cone":
+			var dir: Vector2 = z["dir"]
+			var k := clampf(t / z["delay"], 0.0, 1.0)
+			var a0: float = dir.angle() - z["arc"] * 0.5
+			var pts := PackedVector2Array([z["pos"]])
+			for i in 9:
+				var a: float = a0 + z["arc"] * i / 8.0
+				pts.append(z["pos"] + Vector2(cos(a), sin(a)) * z["reach"])
+			draw_colored_polygon(pts, Color(PixelArt.FIRE, 0.1 + 0.3 * k))
+			pts.append(z["pos"])
+			draw_polyline(pts, Color(PixelArt.DANGER, 0.8), 1.0)
+		"blaze":
+			var fade := clampf((z["life"] - t) / 0.6, 0.0, 1.0)
+			draw_circle(z["pos"], z["r"], Color(PixelArt.FIRE, 0.25 * fade), true, -1.0, false)
+			draw_arc(z["pos"], z["r"], 0, TAU, 20, Color(PixelArt.DANGER, 0.6 * fade), 1.0, false)
 		"rline":
 			# The inverted shot: red line, and the spot behind you where the stone will appear
 			# grows toward its hitbox; chevrons point home, toward the Slinger.
