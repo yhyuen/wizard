@@ -9,6 +9,7 @@ The stair ends on a landing. The College halls go on in the dark beyond it, deep
 [not k("the_halls")] The blast went down as well as up.
 + learn the_halls
 A small Orrery shrine stands by the wall, its rings still turning, as if nothing had happened.
+The stair you came down is at your back, if you want the daylight.
 * Go on
 
 === entrance_hall
@@ -41,6 +42,11 @@ A door of dressed stone, sealed with a dwarf rune: three strokes like a cairn, l
 [k("rune_ashlar")] Ashlar, the rune from the dwarves' crate. It warms under your hand, and something behind the door shifts, and holds.
 + learn rune_shape
 * Leave
+
+=== stair_back
+use: stair_back
+repeat: true
++ go stair_up
 
 === collapsed_stair
 use: collapsed_stair

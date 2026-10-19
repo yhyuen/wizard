@@ -44,7 +44,8 @@
  "items": {
   "shrine": {"name": "The landing shrine", "at": [690, 940], "verb": "Use", "reach": 32, "height": 1.4},
   "rune_door": {"name": "A sealed door", "at": [1186, 640], "verb": "Look", "reach": 34, "height": 1.6},
-  "collapsed_stair": {"name": "The collapsed stair", "at": [750, 440], "verb": "Look", "reach": 40}
+  "collapsed_stair": {"name": "The collapsed stair", "at": [750, 440], "verb": "Look", "reach": 40},
+  "stair_back": {"name": "The stair up to the camp", "at": [750, 1012], "verb": "Climb", "reach": 40}
  },
  "spawns": {},
  "nav": {

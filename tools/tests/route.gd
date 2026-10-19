@@ -6,7 +6,7 @@ extends SceneTree
 ##
 ## A bot (tools/tests/walker.gd) wakes on the cot, talks to Mira (C1), reads the dwarves' crate
 ## (H4), walks to the north stair and goes down through the loading card to the halls' landing,
-## reads the rune door, comes back up into the camp, and sleeps. On day 2 it goes down again and
+## reads the rune door, climbs back up into the camp by the stair (G, as a player would), and sleeps. On day 2 it goes down again and
 ## lets the loop go at the shrine. Loop 2 must wake to its own scene, with the Hours stirring.
 ## Every map change must rebuild the view and warm its shaders behind the card. R2 replaces this
 ## with the long-route, short-route loops of success criterion 5.
@@ -18,7 +18,7 @@ const MAX_FRAMES := 120000
 ## out the day and sleeps.
 const PLAN_1 := {
 	1: [["talk:mira", "use:dwarf_crate", "talk:pell"], ["talk:captain", "exit:north_stair", "go:entrance_hall", "use:rune_door",
-		"exit:stair_up"], ["use:east_gate"], ["talk:aldous"], ["sleep"]],
+		"use:stair_back"], ["use:east_gate"], ["talk:aldous"], ["sleep"]],
 	2: [["exit:north_stair", "use:shrine>Let this loop go"], [], [], [], []],
 }
 const PLAN_2 := {
