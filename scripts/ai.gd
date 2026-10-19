@@ -2,6 +2,7 @@ extends RefCounted
 ## Enemy minds. Every attack has a telegraph that is its hitbox, so the player can dodge on read.
 ## Hollows swing a short red wedge, Slingers aim a red line, and Silas Vane (Storm) uses a
 ## skill-shot Spark, a charged Arc Lance line and Storm Call circles, and blinks out of Pillars.
+## In the halls, embers rush and lunge, and the Kiln Warden never moves: its fight is reading its rhythm.
 
 var A
 
@@ -31,6 +32,10 @@ func update(u: Unit, dt: float) -> void:
 			_inverted(u, dt)
 		"rival":
 			_rival(u, dt)
+		"ember":
+			_ember(u, dt)
+		"warden":
+			_warden(u, dt)
 
 
 ## A hard hit (stagger or more) breaks a wind-up: the telegraph goes away.
@@ -50,6 +55,22 @@ func _step(u: Unit, dir: Vector2, dt: float, mult := 1.0) -> void:
 		u.facing = signf(dir.x)
 
 
+## Which way to walk to reach `to` (a point): straight at it, or in the ruins, where a wall or the
+## refectory's long tables are in the way, along the map's path round them (re-planned twice a second).
+func _toward(u: Unit, to: Vector2, dt: float) -> Vector2:
+	if A.world == null or A.world.clear_line(u.pos, to, u.radius):
+		u.flags.erase("route")
+		return to - u.pos
+	u.flags["route_t"] = float(u.flags.get("route_t", 0.0)) - dt
+	if not u.flags.has("route") or u.flags["route_t"] <= 0.0:
+		u.flags["route"] = Array(A.world.path(u.pos, to, u.radius))
+		u.flags["route_t"] = 0.5
+	var route: Array = u.flags["route"]
+	while route.size() > 1 and u.pos.distance_to(route[0]) < 8.0:
+		route.pop_front()
+	return (route[0] - u.pos) if not route.is_empty() else to - u.pos
+
+
 func _hollow(u: Unit, dt: float) -> void:
 	var e: Dictionary = A.D["enemies"]["hollow"]
 	var to: Vector2 = A.player.pos - u.pos
@@ -62,12 +83,109 @@ func _hollow(u: Unit, dt: float) -> void:
 				A.add_zone({"kind": "slash", "owner": u.id, "pos": u.pos, "dir": to.normalized(),
 					"reach": float(e["reach"]) + 2.0, "arc": 1.9, "delay": float(e["windup"]), "dmg": float(e["damage"])})
 			else:
-				_step(u, to, dt)
+				_step(u, _toward(u, A.player.pos, dt), dt)
 		"windup":
 			u.state_t -= dt
 			if u.state_t <= 0.0:
 				u.state = "move"
 				u.cd["attack"] = float(e["cooldown"])
+
+
+## An ember: a Hollow's rush, faster, and its swing ends in a short lunge.
+func _ember(u: Unit, dt: float) -> void:
+	var e: Dictionary = A.D["enemies"]["ember"]
+	var to: Vector2 = A.player.pos - u.pos
+	match u.state:
+		"move":
+			if to.length() < float(e["reach"]) + 6.0 and u.cooldown("attack") <= 0.0:
+				u.state = "windup"
+				u.state_t = float(e["windup"])
+				u.aim = to.normalized()
+				u.facing = signf(to.x) if absf(to.x) > 0.1 else u.facing
+				A.add_zone({"kind": "slash", "owner": u.id, "pos": u.pos, "dir": u.aim,
+					"reach": float(e["reach"]) + 4.0, "arc": 1.6, "delay": float(e["windup"]), "dmg": float(e["damage"])})
+			else:
+				_step(u, _toward(u, A.player.pos, dt), dt)
+		"windup":
+			u.state_t -= dt
+			if u.state_t <= 0.0:
+				u.vel = u.aim * float(e["lunge"])
+				u.state = "move"
+				u.cd["attack"] = float(e["cooldown"]) * A.rng.randf_range(0.85, 1.15)
+
+
+## The Kiln Warden (design/ruins/content.md §4). Phase 1: fire rings out from the grate, each
+## with a gap to step through, and embers from the two side cracks; a cracked pipe drips on the
+## grate and it flinches (the tell). Flooded (the sluice was turned): no rings in phase 1 and
+## double damage for a while. Phase 2 (below 60%): vents breathe fire cones in turn, clockwise.
+func _warden(u: Unit, dt: float) -> void:
+	var e: Dictionary = A.D["enemies"]["warden"]
+	if not u.flags.has("ring_t"):
+		u.flags["ring_t"] = 1.2
+		u.flags["ember_t"] = 2.5
+		u.flags["drip_t"] = float(e["phase1"]["drip_every"]) * 0.5
+		u.flags["vent_t"] = 1.0
+		u.flags["vent_i"] = 0
+		if not u.flags.has("phase"):
+			u.flags["phase"] = 1
+		if u.flags.get("flooded", false):
+			u.flags["vuln_t"] = float(e["flooded"]["vuln_s"])
+			u.flags["vuln_mult"] = float(e["flooded"]["vuln_mult"])
+			A.fx("dust", u.pos, {"r": 26.0, "life": 1.2})
+	if float(u.flags.get("vuln_t", 0.0)) > 0.0:
+		u.flags["vuln_t"] -= dt
+	if int(u.flags["phase"]) == 1 and u.hp < u.max_hp * float(e["phase2_at"]):
+		u.flags["phase"] = 2
+		u.flags["vent_t"] = 1.2
+		A.fx("ring", u.pos, {"color": PixelArt.FIRE, "r": 40.0, "life": 0.6})
+	var two: bool = int(u.flags["phase"]) == 2
+	var p: Dictionary = e["phase2"] if two else e["phase1"]
+	var p1: Dictionary = e["phase1"]
+	if float(u.flags.get("flinch_t", 0.0)) > 0.0:
+		u.flags["flinch_t"] -= dt
+		return
+	# The tell: in phase 1 a cracked pipe drips onto the grate and it flinches.
+	if not two:
+		u.flags["drip_t"] -= dt
+		if u.flags["drip_t"] <= 0.0:
+			u.flags["drip_t"] = float(p1["drip_every"])
+			u.flags["flinch_t"] = float(p1["drip_flinch"])
+			u.flash = 0.12
+			A.fx("dust", u.pos + Vector2(0, -4), {"r": 10.0, "life": 0.6})
+			A.stats["warden_flinch"] = int(A.stats.get("warden_flinch", 0)) + 1
+	# Rings: not while the grate is quenched in phase 1; slower ones in phase 2.
+	u.flags["ring_t"] -= dt
+	if u.flags["ring_t"] <= 0.0:
+		u.flags["ring_t"] = float(p.get("ring_every", p1["ring_every"]))
+		if two or not u.flags.get("flooded", false):
+			A.add_zone({"kind": "ring", "owner": u.id, "pos": u.pos, "wait": float(p1["ring_windup"]), "r0": u.radius,
+				"r": u.radius, "speed": float(p1["ring_speed"]), "w": float(p1["ring_width"]), "max": float(p1["ring_max"]),
+				"gap_a": A.rng.randf() * TAU, "gap": float(p1["ring_gap"]), "dmg": float(p1["ring_damage"])})
+	# Embers out of the side cracks, a few at a time.
+	u.flags["ember_t"] -= dt
+	if u.flags["ember_t"] <= 0.0:
+		u.flags["ember_t"] = float(p.get("ember_every", p1["ember_every"]))
+		var alive := 0
+		for o in A.enemies():
+			if o.kind == "ember":
+				alive += 1
+		if alive < 5:
+			var cracks: Array = p1["cracks"]
+			var k := int(u.flags.get("crack_i", 0))
+			u.flags["crack_i"] = k + 1
+			A.crack_spawn(str(cracks[k % cracks.size()]), int(p1["ember_n"]))
+	# Vents, clockwise, the one about to fire glowing first (its telegraph).
+	if two:
+		u.flags["vent_t"] -= dt
+		if u.flags["vent_t"] <= 0.0:
+			u.flags["vent_t"] = float(p["vent_every"])
+			var vents: Array = p["vents"]
+			var i := int(u.flags["vent_i"])
+			u.flags["vent_i"] = i + 1
+			var dir := Vector2.from_angle(deg_to_rad(float(vents[i % vents.size()])))
+			A.add_zone({"kind": "cone", "owner": u.id, "pos": u.pos + dir * u.radius, "dir": dir,
+				"reach": float(p["vent_reach"]), "arc": float(p["vent_arc"]), "delay": float(p["vent_windup"]),
+				"dmg": float(p["vent_damage"])})
 
 
 func _slinger(u: Unit, dt: float) -> void:

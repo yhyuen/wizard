@@ -204,7 +204,7 @@ use: north_stair
 repeat: true
 The north door is gone, and the wall round it. Where it stood, a stair goes down under the College into the dark.
 Cold air comes up it, and a smell like a forge gone out.
-* Go down -> descend
+* Go down (a descent takes the day) -> descend
 * Not yet
 
 === descend

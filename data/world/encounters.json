@@ -1,10 +1,49 @@
 {
- "_doc": "Every fight in place (design/ruins/content.md). R1 has the night patrol in the College ruins; R2 adds the halls. waves run one after another (the next starts when the yard is clear); with survive > 0 they arrive on a timer instead and the fight is won by lasting that many seconds. lethal: losing ends the loop. unkillable: kinds that are knocked down (for down_time seconds) instead of dying. hits: a duel won by the first to land that many hits of at least hit_min damage; trickle: in a survive fight, one more Hollow every that many seconds; tell: the rival always opens with his lance, and stands for lance_recover seconds after each one. leash: in the town, how far (sim px) the mist lets you stray from where the fight began (220 unless given). max_alive: the trickle waits while that many enemies are up. light_shy: false means the Hollows ignore lamplight (the tide is too many for it); otherwise they won't step into a lit lamp's pool.",
+ "_doc": "Every fight in place (design/ruins/content.md). R1 has the night patrol in the College ruins; R2 adds the halls. waves run one after another (the next starts when the yard is clear); with survive > 0 they arrive on a timer instead and the fight is won by lasting that many seconds. lethal: losing ends the loop. unkillable: kinds that are knocked down (for down_time seconds) instead of dying. hits: a duel won by the first to land that many hits of at least hit_min damage; trickle: in a survive fight, one more Hollow every that many seconds; tell: the rival always opens with his lance, and stands for lance_recover seconds after each one. leash: in the town, how far (sim px) the mist lets you stray from where the fight began (220 unless given). max_alive: the trickle waits while that many enemies are up. light_shy: false means the Hollows ignore lamplight (the tide is too many for it); otherwise they won't step into a lit lamp's pool. In the halls a group can come out of a named crack (\"crack\": it glows for glow seconds, 1 unless the encounter gives one, then its embers burst out one after another), wait \"at\" seconds into its wave, and give its units \"flags\". flooded_by: the once-a-day action (the sluice) that starts the guardian quenched; a \"guardian\" group is the one it floods. waived: the waves used once you know that trial (the Warden comes straight to its second phase).",
  "encounters": {
   "patrol": {
    "title": "Hollows in the ruins",
    "lethal": true,
    "waves": [[{"kind": "hollow", "n": 4}], [{"kind": "hollow", "n": 3}, {"kind": "slinger", "n": 1}]]
+  },
+  "hall_fight": {
+   "title": "Embers in the entrance hall",
+   "leash": 260,
+   "waves": [
+    [
+     {"kind": "hollow", "n": 2}, {"kind": "ember", "n": 2, "crack": "hall_w", "at": 0.5},
+     {"kind": "ember", "n": 2, "crack": "hall_e", "at": 3.5}
+    ]
+   ]
+  },
+  "refectory_fight": {
+   "title": "Embers in the refectory",
+   "leash": 240,
+   "waves": [
+    [
+     {"kind": "ember", "n": 2, "crack": "ref_1"}, {"kind": "ember", "n": 2, "crack": "ref_2", "at": 3.0},
+     {"kind": "ember", "n": 2, "crack": "ref_3", "at": 6.0}, {"kind": "ember", "n": 3, "crack": "ref_4", "at": 9.0}
+    ]
+   ]
+  },
+  "gallery_fight": {
+   "title": "Embers in the lecture gallery",
+   "leash": 260,
+   "glow": 2.0,
+   "waves": [
+    [
+     {"kind": "ember", "n": 3, "crack": "gal_w"}, {"kind": "hollow", "n": 2, "at": 2.0},
+     {"kind": "ember", "n": 3, "crack": "gal_e", "at": 4.0}
+    ]
+   ]
+  },
+  "ante_fight": {"title": "Backward Slingers", "leash": 260, "waves": [[{"kind": "inverted", "n": 3}]]},
+  "warden": {
+   "title": "The Kiln Warden",
+   "leash": 400,
+   "flooded_by": "sluice",
+   "waves": [[{"kind": "warden", "n": 1, "guardian": true}]],
+   "waived": [[{"kind": "warden", "n": 1, "guardian": true, "flags": {"phase": 2}}]]
   }
  }
 }

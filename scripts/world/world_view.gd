@@ -665,6 +665,11 @@ func _sync_town(delta: float) -> void:
 		town.wheel.rotation.x += delta * 0.7
 	for did in town.door_nodes:
 		town.door_nodes[did].visible = not W.map.doors[did]["open"]
+	for i in town.crack_mis.size():
+		var hot: bool = arena.crack_glow.has(str(W.map.cracks[i]["id"]))
+		town.crack_mis[i].material_override = town.crack_hot if hot else town.crack_mat
+		if hot:
+			want_light(to_world(W.map.cracks[i]["rect"].get_center(), 1.2), PixelArt.FIRE, 1.2, 5.0)
 	var inside: String = W.map.building_at(arena.player.pos)
 	if inside != _inside:
 		for id in town.roofs:

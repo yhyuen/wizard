@@ -12,8 +12,14 @@ const ROUTES := {
 	"patrol": "patrol_fight",
 	"eclipse": "eclipse",
 	"shrine": "shrine_release",
+	"fight:hall_fight": "entrance_hall",
+	"fight:refectory_fight": "refectory",
+	"fight:gallery_fight": "gallery",
+	"fight:ante_fight": "antechamber",
+	"fight:warden": "warden_fight",
 }
 const GENERIC := ["fight"]  # the fallback text for a lethal fight with no death scene of its own
+const NOT_DEATHS := ["first_playable_end"]  # the end card, reached by winning
 
 var main
 var slice
@@ -34,7 +40,7 @@ func _go() -> void:
 	slice = main.slice
 	slice.fight_resolver = func(_id): return false
 	for cause in slice.death_texts:
-		if cause in GENERIC:
+		if cause in GENERIC or cause in NOT_DEATHS:
 			continue
 		if not ROUTES.has(cause):
 			failures.append("no route to the death \"%s\": add one to tools/tests/deaths.gd" % cause)

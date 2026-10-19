@@ -21,12 +21,15 @@ const SPHERE_COLS := {"mars": "ember", "luna": "window", "mercury": "brass", "ju
 
 var crack_mis: Array = []  # MeshInstance3D per map crack, in map order
 var crack_mat: ShaderMaterial  # a crack at rest: a dim seam of its Sphere's colour
+var crack_hot: ShaderMaterial  # a crack about to burst (arena.crack_glow)
 var door_nodes := {}  # door id -> Node3D, hidden while the door is open
 
 
 func _kit_ruin() -> void:
 	crack_mat = glow_far.duplicate()
 	crack_mat.set_shader_parameter("glow", 0.7)
+	crack_hot = glow_far.duplicate()
+	crack_hot.set_shader_parameter("glow", 3.2)
 	if map.kit == "ruin":
 		for w in map.d.get("walls", []):
 			_broken_wall(Rect2(w[0], w[1], w[2], w[3]), float(w[4]))
@@ -43,6 +46,8 @@ func _kit_ruin() -> void:
 				_pillar(at, float(cr[2]), float(cr[3]), true)
 			"observatory_ruin":
 				_observatory_ruin(at, float(cr[2]), float(cr[3]))
+			"bell":
+				_bell(at, float(cr[2]), float(cr[3]))
 	for pit: Rect2 in map.pits:
 		_pit(pit)
 	for st in map.d.get("stairwells", []):
@@ -120,6 +125,17 @@ func _pillar(at: Vector2, r_px: float, h_px: float, broken: bool) -> void:
 		var a := rng.randf() * TAU
 		var q := p + Vector3(cos(a), 0, sin(a)) * (r * 2.5 + k * r * 2.2) + Vector3(0, r * 0.85, 0)
 		_add(_cyl(r * 0.85, r * 0.85, r * 2.2, 8), Transform3D(Basis(Vector3.UP, a).rotated(Vector3(cos(a + PI / 2), 0, sin(a + PI / 2)), PI / 2.0), q), c("wall_stone"))
+
+
+## The College bell where it fell: a bronze bell on its side, its crown cracked, the clapper out.
+func _bell(at: Vector2, r_px: float, h_px: float) -> void:
+	var p: Vector3 = view.to_world(at)
+	var r: float = r_px * view.S
+	var lay := Basis(Vector3.FORWARD, PI / 2.0 + 0.12)
+	_add(_cyl(r * 0.55, r * 1.05, r * 1.8, 10), Transform3D(lay, p + Vector3(0, r * 0.95, 0)), c("brass").darkened(0.35))
+	_add(_cyl(r * 1.1, r * 1.1, r * 0.18, 10), Transform3D(lay, p + Vector3(-r * 0.9, r * 1.0, 0)), c("brass").darkened(0.2))
+	_box(Vector3(r * 0.5, r * 0.4, r * 0.5), p + Vector3(r * 1.05, r * 0.95, 0), c("iron"))
+	_box(Vector3(r * 0.25, r * 0.25, r * 1.6), p + Vector3(-r * 1.6, r * 0.12, r * 0.4), c("iron"), 30.0)
 
 
 ## The Observatory after the blast: a ring of broken wall round a heap of its own dome.
@@ -237,7 +253,16 @@ func _ruin_door(did: String, door: Dictionary) -> void:
 	var centre := (a + b) * 0.5
 	var horiz := r.size.x >= r.size.y
 	var state: String = door["state"]
-	var slab := c("char") if state == "burnt" else c("wall_stone").darkened(0.25)
+	# A burnt door is drawn whole (the slab, day 10 on) inside a charred frame that stays when it
+	# stands burnt open (days 1-9).
+	var slab := c("wall_stone").darkened(0.25)
+	if state == "burnt":
+		_own(func(st):
+			for side in [-1.0, 1.0]:
+				var off := Vector3((b.x - a.x) * 0.5 + 0.12, 0, 0) if horiz else Vector3(0, 0, (b.z - a.z) * 0.5 + 0.12)
+				_box(Vector3(0.24 if horiz else b.x - a.x + 0.1, 3.4, b.z - a.z + 0.1 if horiz else 0.24), centre + off * side + Vector3(0, 1.7, 0), c("char"), 0.0, false, st)
+			_box(Vector3(b.x - a.x + 0.4, 0.3, b.z - a.z + 0.4), centre + Vector3(0, 0.02, 0), c("char"), 0.0, false, st)
+		, solid_mat, null)
 	_own(func(st):
 		_box(Vector3(b.x - a.x, 3.2, b.z - a.z), centre + Vector3(0, 1.6, 0), slab, 0.0, false, st)
 		# a lintel over it
