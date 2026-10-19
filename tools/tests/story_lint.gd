@@ -7,11 +7,14 @@ extends SceneTree
 ## Every scene parses; every person, item, place, spot, exit, jump, Ledger id, Model, encounter,
 ## death cause, flag and condition it names exists on its own map; every person and every item on
 ## every map answers when you talk to it or use it; and the first playable's beats are there (C1:
-## Mira says who carried you out; H4: the dwarves' crate names the rune).
+## Mira says who carried you out; H1, H3, H4, H5, the sighting, Wren's chalk and the Warden's tell).
 ## Exits non-zero on any problem.
 
 const Story := preload("res://scripts/game/story.gd")
-const BEATS := {"C1 (who carried you out)": "carried_out", "H4 (the rune on the crate)": "rune_ashlar"}
+const BEATS := {"C1 (who carried you out)": "carried_out", "H1 (the Provost at the Eclipse)": "provost_crossed",
+	"H3 (the door that healed)": "doors_heal", "H4 (the rune on the crate)": "rune_ashlar", "H4 (the rune door opens)": "rune_opened",
+	"H5 (the stair brought down)": "stair_cult", "the sighting": "figure_ahead", "Wren's chalk mark": "wren_chalk",
+	"the Warden's tell": "warden_water"}
 
 var problems: Array = []
 
@@ -62,7 +65,7 @@ func _initialize() -> void:
 			problems.append("%s: nobody called %s in data/world/people.json" % [where, s["talk"]])
 		if s["use"] != "" and not items.has(s["use"]) and not exits.has(s["use"]):
 			problems.append("%s: no item or exit %s on the map %s" % [where, s["use"], mid])
-		if s["cast"] != "" and not s["cast"] in ["fire", "water", "earth", "storm"]:
+		if s["cast"] != "" and not s["cast"] in ["fire", "water", "earth", "storm", "hours"]:
 			problems.append("%s: cast must be an element, not %s" % [where, s["cast"]])
 		for key in ["when", "known"]:
 			if s[key] != "":

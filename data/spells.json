@@ -252,7 +252,7 @@
         ]
       }
     },
-    "rewind": {"name": "Rewind", "element": "hours", "slot": "control", "from_loop": 2,
+    "rewind": {"name": "Rewind", "element": "hours", "slot": "control", "from_loop": 2, "ring": 0,
       "blurb": "A shard forms where you aim, then flies back into your hand through everything between, dragging what it hits toward you.",
       "cooldown": 4.0, "range": 140, "min_range": 40, "form": 0.4, "speed": 240, "impact": 2, "pull": 45, "xp_hit": 3,
       "stats": {

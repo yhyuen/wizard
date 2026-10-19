@@ -255,6 +255,22 @@ func _ruin_door(did: String, door: Dictionary) -> void:
 	var state: String = door["state"]
 	# A burnt door is drawn whole (the slab, day 10 on) inside a charred frame that stays when it
 	# stands burnt open (days 1-9).
+	if state == "rubble":
+		# a fall of stone that the Hours can lift back where it came from (the collapsed stair),
+		# with the cult's chalk circle on its face
+		_own(func(st):
+			for i in 7:
+				var p := Vector2(rng.randf_range(r.position.x + 6, r.end.x - 6), rng.randf_range(r.position.y + 4, r.end.y - 4))
+				var sz := rng.randf_range(0.6, 1.1)
+				var axis := Vector3(rng.randf_range(-1, 1), 1.0, rng.randf_range(-1, 1)).normalized()
+				_add(_rock_mesh(sz), Transform3D(Basis(axis, rng.randf() * TAU), view.to_world(p, 0.3 + 0.8 * (i % 3))), c("rock").lerp(c("rock2"), rng.randf()), false, st)
+			_box(Vector3(b.x - a.x, 1.2, b.z - a.z), centre + Vector3(0, 0.6, 0), c("rock2"), 0.0, false, st)
+		, solid_mat, node)
+		_own(func(st):
+			_add(_cyl(0.32, 0.32, 0.03, 10), Transform3D(Basis(Vector3.RIGHT, PI / 2.0), centre + Vector3(0, 1.3, (b.z - a.z) * 0.5 + 0.05)), c("paper"), true, st)
+		, glow_far, node, false)
+		door_nodes[did] = node
+		return
 	var slab := c("wall_stone").darkened(0.25)
 	if state == "burnt":
 		_own(func(st):

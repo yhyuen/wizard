@@ -7,6 +7,11 @@ extends RefCounted
 ##
 ## A unit's pose is set through its flags: "pose" = [clip, time] and "face" = a direction, which
 ## the 3D view (scripts/view/view3d.gd) shows instead of what the sim would pick.
+##
+## In the ruins (design/ruins/tech-plan.md §6) a scene can also be a recorded path, "path:<id>",
+## from the map's paths file (data/world/maps.json "paths"): a figure walks the keyed points
+## forward, or the recording plays in reverse (it faces you and its feet run the wrong way). The
+## camera frames you and it (`look`).
 
 const Figure := preload("res://scripts/view/figure.gd")
 const LENGTH := {"fire": 12.5, "mourner": 9.0}
@@ -27,6 +32,9 @@ var crowd: Array = []
 var embers: Array = []
 var done := false
 var O := Vector2.ZERO  # where the stage is: the scenes were laid out round (240, 150)
+var length := 0.0
+var path := {}  # a recorded path: {"figure", "keys": [[t, x, y]...], "reverse", "face", "captions", "hold", "ghost"}
+var look := Vector2.INF  # where the camera looks, if not at you
 
 
 ## `at` is where you lie when the scene starts (in the town, the College stairs).
@@ -35,6 +43,15 @@ func _init(arena, which: String, at := Vector2(240, 150)) -> void:
 	id = which
 	O = at - Vector2(240, 150)
 	you = A.player
+	if id.begins_with("path:"):
+		path = _load_path(id.trim_prefix("path:"))
+		var keys: Array = path["keys"]
+		length = float(keys[-1][0]) + float(path.get("hold", 1.0))
+		walker = _figure(str(path.get("figure", "walker")), _at(0.0))
+		if path.get("ghost", false):
+			walker.flags["ghost"] = true
+		return
+	length = float(LENGTH[id])
 	walker = _figure("walker", O + Vector2(240, 100))
 	if id == "fire":
 		you.pos = O + Vector2(240, 150)
@@ -68,7 +85,7 @@ func _figure(kind: String, at: Vector2) -> Unit:
 
 func caption() -> String:
 	var out := ""
-	for c in CAPTIONS.get(id, []):
+	for c in CAPTIONS.get(id, path.get("captions", [])):
 		if t >= float(c[0]):
 			out = c[1]
 	return out
@@ -77,14 +94,16 @@ func caption() -> String:
 ## Advances the scene by `dt`. Returns false once it is over.
 func update(dt: float) -> bool:
 	t += dt
-	if id == "fire":
+	if not path.is_empty():
+		_path()
+	elif id == "fire":
 		_fire()
 	else:
 		_mourner(dt)
 	A.mouse = walker.pos
 	for u in A.units:
 		u.anim += dt
-	if t >= LENGTH[id]:
+	if t >= length:
 		done = true
 	return not done
 
@@ -156,6 +175,49 @@ func _mourner(dt: float) -> void:
 		u.pos = u.pos.move_toward(g, u.speed * dt)
 		u.flags["face"] = g - u.pos
 		u.flags["pose"] = ["run", fmod(t * 0.55 + i * 0.3, Figure.clip_len("run"))]
+
+
+## The paths of the map you're on.
+func _load_path(pid: String) -> Dictionary:
+	var file := ""
+	if A.town != null:
+		file = str(A.town.map_def().get("paths", ""))
+	var all: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(file)) if file != "" else {}
+	return all.get("paths", {}).get(pid, {"keys": [[0.0, you.pos.x, you.pos.y]]})
+
+
+## Where the recording has the figure at play time `pt` (reversed, it starts from the end).
+func _at(pt: float) -> Vector2:
+	var keys: Array = path["keys"]
+	var T := float(keys[-1][0])
+	var rt := clampf(T - pt if path.get("reverse", false) else pt, 0.0, T)
+	for i in range(1, keys.size()):
+		if rt <= float(keys[i][0]):
+			var a: Array = keys[i - 1]
+			var b: Array = keys[i]
+			var k := (rt - float(a[0])) / maxf(0.001, float(b[0]) - float(a[0]))
+			return Vector2(a[1], a[2]).lerp(Vector2(b[1], b[2]), k)
+	return Vector2(keys[-1][1], keys[-1][2])
+
+
+func _path() -> void:
+	var was := walker.pos
+	walker.pos = _at(t)
+	var step := walker.pos - _at(t - 0.05)
+	var back: bool = path.get("reverse", false)
+	# Reversed, it faces the way the recording walked: toward you, while it goes away.
+	if path.get("face", "") == "you":
+		walker.flags["face"] = you.pos - walker.pos
+	elif step.length() > 0.01:
+		walker.flags["face"] = -step if back else step
+	if walker.pos.distance_to(was) > 0.05:
+		walker.flags["run_t"] = float(walker.flags.get("run_t", 0.0)) + (-1.0 if back else 1.0) / 60.0
+		walker.flags["pose"] = ["run", fposmod(float(walker.flags["run_t"]) * 1.2, Figure.clip_len("run"))]
+	else:
+		walker.flags["pose"] = ["stand", fmod(t, Figure.clip_len("stand"))]
+	you.flags["pose"] = ["staff_idle", fmod(t, Figure.clip_len("staff_idle"))]
+	you.flags["face"] = walker.pos - you.pos
+	look = (you.pos + walker.pos) * 0.5
 
 
 func _wander_goal(i: int) -> Vector2:

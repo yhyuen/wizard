@@ -498,7 +498,10 @@ func _sync_figures(delta: float) -> void:
 			dark = 0.35 * k
 		elif u == P and u.iframes > 0.0:
 			fade = 0.45
-		f.set_look(clampf(u.flash * 6.0, 0.0, 1.0), Color("fff0d8"), fade, dark)
+		if u.flags.has("ghost"):
+			f.set_look(0.6, PixelArt.HOURS, 0.3, 0.0)  # an Hours replay: a figure out of the past
+		else:
+			f.set_look(clampf(u.flash * 6.0, 0.0, 1.0), Color("fff0d8"), fade, dark)
 		if u.kind == "rival" and not u.dead:
 			want_light(to_world(u.pos, 1.6), PixelArt.STORM, 0.6, 3.0)
 		if u == P and not u.dead:

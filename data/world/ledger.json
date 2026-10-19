@@ -105,7 +105,7 @@
    "title": "What opens the rune door?",
    "text": "A door in the halls is sealed with a dwarf rune.",
    "opens": ["rune_shape"],
-   "clues": ["rune_shape", "rune_ashlar"],
+   "clues": ["rune_shape", "rune_ashlar", "wren_chalk"],
    "insight": "rune_opened"
   },
   "rune_opened": {
@@ -175,6 +175,52 @@
    "kind": "clue",
    "title": "The Backward Slingers",
    "text": "Their stones fly the wrong way: each one appears behind you and flies home to the hand that throws it."
+  },
+  "figure_ahead": {
+   "kind": "clue",
+   "title": "Someone ahead of me",
+   "text": "A veiled figure in the entrance hall, facing me. It went backwards through the fallen stair, faster than anyone could run, and never turned round."
+  },
+  "wren_chalk": {
+   "kind": "clue",
+   "title": "A chalk mark in the gallery",
+   "text": "In the lecture gallery, a mark in the College's star cipher: the sealed door, and an arrow pointing east, back toward the entrance hall."
+  },
+  "stair_cult": {
+   "kind": "clue",
+   "title": "Chalk on the fallen stair",
+   "text": "Fresh chalk on the rubble of the stair north of the entrance hall: a circle cut through by a line. The stair was brought down on purpose."
+  },
+  "stair_mend": {
+   "kind": "insight",
+   "title": "The Hours mend the stair",
+   "text": "A Rewind on the collapsed stair puts it back where it stood, and the way north to the cistern opens, any day of the month."
+  },
+  "provost_crossed": {
+   "kind": "clue",
+   "title": "The Provost at the Eclipse",
+   "text": "The great clock, turned back with a Rewind, showed the Provost crossing the entrance hall at the Eclipse, in a hurry, going up toward the Orrery. The stair was whole then."
+  },
+  "q_ahead": {
+   "kind": "question",
+   "title": "Who is ahead of you?",
+   "text": "Someone in the halls goes backwards, and goes deeper.",
+   "opens": ["figure_ahead"],
+   "clues": ["figure_ahead", "carried_out", "backward_prints", "wren_chalk"]
+  },
+  "q_halls": {
+   "kind": "question",
+   "title": "What happened in the halls?",
+   "text": "The blast went down as well as up. Someone was down here when it came.",
+   "opens": ["provost_crossed"],
+   "clues": ["the_halls", "provost_crossed"]
+  },
+  "q_stair": {
+   "kind": "question",
+   "title": "Who brought the stair down?",
+   "text": "The stair to the cistern was brought down on purpose, and marked.",
+   "opens": ["stair_cult"],
+   "clues": ["stair_cult"]
   }
  },
  "deaths": {

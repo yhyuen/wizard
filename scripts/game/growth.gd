@@ -92,7 +92,8 @@ func blinks() -> int:
 
 ## The Ring a spell's tier needs (bolts: Apprentice, controls: 1st, signatures: 4th).
 func tier_ring(id: String) -> int:
-	return int(d["tier_ring"].get(prog.spell(id)["slot"], 0))
+	# A spell can name its own Ring (Rewind: the Hours came back with you, so an Apprentice casts it).
+	return int(prog.spell(id).get("ring", d["tier_ring"].get(prog.spell(id)["slot"], 0)))
 
 
 func can_cast(id: String) -> bool:
