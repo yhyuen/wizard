@@ -1,18 +1,29 @@
 extends RefCounted
-## Vellmar in play (design/open-world/): the clock, the people, the items, the lamps and props,
-## and what magic does to them. The arena (scripts/arena.gd) still runs the wizard, the spells and
-## the fights; this reads its spells each tick and answers with the world's reactions: fire lights
-## lamps and sets hay and crates burning, water puts them out, force shoves crates and barrels, and
-## an Ember Bolt on the Observatory wall leaves the same star as the burnt door.
+## Vellmar in play (design/open-world/, design/ruins/): the clock, the people, the items, the
+## lamps and props, and what magic does to them, on whichever map you stand: the survivors' camp
+## or a layer of the ruin (data/world/maps.json). The arena (scripts/arena.gd) still runs the
+## wizard, the spells and the fights; this reads its spells each tick and answers with the world's
+## reactions: fire lights lamps and sets hay and crates burning, water puts them out, force
+## shoves crates and barrels.
+##
+## Each map keeps its own props, lamps and scorches for the rest of the loop, so a lamp you lit in
+## the halls is still lit if you go up and come back. People live in the camp only.
 ##
 ## The world never plays a scene itself. It asks the game (scripts/game/slice.gd) through
 ## `requests`: {"t": "talk", "id"} / {"t": "use", "id"} / {"t": "arrive", "place"} /
-## {"t": "scene", "id"} / {"t": "cast", "item", "element"} / {"t": "period"}.
+## {"t": "scene", "id"} / {"t": "cast", "item", "element"} / {"t": "exit", "id"} / {"t": "period"}.
 
 const Map := preload("res://scripts/world/map.gd")
 const People := preload("res://scripts/world/people.gd")
+const MAPS := "res://data/world/maps.json"
+const CAMP := "camp"
 
 var map
+var map_id := CAMP
+var maps: Dictionary  # data/world/maps.json "maps"
+var _maps := {}  # map id -> Map, built once
+var _saved := {}  # map id -> this loop's {props, lamps, braziers, scorches} while you're elsewhere
+var _in_exit := ""  # the exit you stand in (an exit asks once, when you step into it)
 var people
 var arena
 var run  # the Run autoload
@@ -35,13 +46,16 @@ var pools: Array = []  # where a lit or flaring lamp's light keeps Hollows off, 
 var light_shy := {}
 
 ## Flags the world sets itself (not a story scene), for the story checks.
-const FLAGS := ["lit_lane", "door_barricaded"]
+const FLAGS := ["lit_lane"]
 
 
 func _init(the_run, the_story) -> void:
 	run = the_run
 	story = the_story
-	map = Map.new()
+	var reg: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(MAPS))
+	maps = reg["maps"]
+	map_id = str(reg.get("start", CAMP))
+	map = get_map(map_id)
 	cfg = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/world.json"))
 	pd = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/props.json"))
 	for k in pd["fire_spells"]:
@@ -56,40 +70,94 @@ func _init(the_run, the_story) -> void:
 	reset_loop()
 
 
+## The map `id` (data/world/maps.json), built the first time it's asked for.
+func get_map(id: String):
+	if not _maps.has(id):
+		var def: Dictionary = maps[id]
+		_maps[id] = Map.new(str(def["path"]), id, str(def.get("kit", "town")))
+	return _maps[id]
+
+
+func map_def(id := "") -> Dictionary:
+	return maps.get(map_id if id == "" else id, {})
+
+
+func in_camp() -> bool:
+	return map_id == CAMP
+
+
+## Steps onto map `id`: this map's props, lamps and scorches are kept for the loop, and the new
+## one's come back as you left them (or as they were this morning). Doesn't move the wizard: the
+## game does that (slice.gd go_map), with the arena and the view.
+func load_map(id: String) -> void:
+	if id == map_id:
+		return
+	_saved[map_id] = {"props": props, "lamps": lamps, "braziers": braziers, "scorches": scorches}
+	map.movers = Callable()
+	map_id = id
+	map = get_map(id)
+	map.movers = movers
+	var st: Dictionary = _saved.get(id, {})
+	if st.is_empty():
+		props = []
+		scorches = []
+		_build_lamps()
+		_fresh_props()
+	else:
+		props = st["props"]
+		lamps = st["lamps"]
+		braziers = st["braziers"]
+		scorches = st["scorches"]
+	_in_exit = ""
+	here = ""
+	_cache_movers()
+	people.think(true)
+
+
 func _build_lamps() -> void:
-	lamps.clear()
+	lamps = []
 	var lane_i := 0
-	for l in map.d["lamps"]:
+	for l in map.d.get("lamps", []):
 		var lamp := {"pos": Vector2(l[0], l[1]), "group": str(l[2]), "lit": false, "by": "", "flare_t": 0.0,
 			"iron": str(l[2]) in pd["iron_lamps"]}
 		if lamp["group"] == "lane":
 			lamp["id"] = "lane_lamp_%d" % lane_i
 			lane_i += 1
 		lamps.append(lamp)
-	braziers.clear()
+	braziers = []
 	for b in map.d.get("braziers", []):
-		braziers.append({"pos": Vector2(b[0], b[1]), "lit": false})
+		# [x, y] waits for fire; [x, y, true] is a cook fire kept burning, lit again each dawn
+		braziers.append({"pos": Vector2(b[0], b[1]), "lit": b.size() > 2 and bool(b[2]), "kept": b.size() > 2 and bool(b[2])})
 
 
-## Waking on day 1: everything the last loop burnt, shoved or took is back where it was.
-func reset_loop() -> void:
-	props.clear()
-	for p in map.d["props"]:
+func _fresh_props() -> void:
+	props = []
+	for p in map.d.get("props", []):
 		props.append({"kind": str(p[0]), "pos": Vector2(p[1], p[2]), "home": Vector2(p[1], p[2]), "vel": Vector2.ZERO,
 			"rot": float(p[3]), "spin": 0.0, "state": "", "burn_t": 0.0, "embers": []})
-	scorches.clear()
+
+
+## Waking on day 1: everything the last loop burnt, shoved or took is back where it was, on
+## every map, and you are in the camp.
+func reset_loop() -> void:
+	_saved.clear()
+	if map_id != CAMP:
+		map.movers = Callable()
+		map_id = CAMP
+		map = get_map(CAMP)
+		map.movers = movers
+	_fresh_props()
+	_build_lamps()
+	scorches = []
 	events_log.clear()
-	for l in lamps:
-		l["lit"] = false
-		l["by"] = ""
-		l["flare_t"] = 0.0
-	for b in braziers:
-		b["lit"] = false
-	map.doors["north_door"]["open"] = false
+	for m in _maps.values():
+		for did in m.doors:
+			m.doors[did]["open"] = m.doors[did]["state"] == "open"
+	_in_exit = ""
 	_cache_movers()
 
 
-## A new day (dawn): the lamps are out, people go to their morning spots.
+## A new day (dawn): the lamps are out, the cook fires lit, people go to their morning spots.
 func reset_day() -> void:
 	clock = 0.0
 	for l in lamps:
@@ -97,15 +165,15 @@ func reset_day() -> void:
 		l["by"] = ""
 		l["flare_t"] = 0.0
 	for b in braziers:
-		b["lit"] = false
-	map.doors["north_door"]["open"] = false
+		b["lit"] = b["kept"]
 	people.reset_day()
 	here = map.place_at(player_pos())
+	_in_exit = map.exit_at(player_pos())
 
 
 func player_pos() -> Vector2:
 	if arena == null or arena.player == null:
-		return map.spots["room_in"]
+		return map.spots.get("cot", map.bounds.get_center())
 	return arena.player.pos
 
 
@@ -136,7 +204,7 @@ func tick(dt: float) -> void:
 	if arena == null:
 		return
 	var exploring: bool = arena.phase == "explore"
-	if exploring and not (busy.is_valid() and busy.call()):
+	if exploring and not (busy.is_valid() and busy.call()) and map_def().get("clock", true):
 		clock += dt
 		if clock >= period_s():
 			clock = period_s()
@@ -148,15 +216,21 @@ func tick(dt: float) -> void:
 	_lamps_by_time()
 	_lightning(dt)
 	_light_pools()
-	_barricade()
 	var now: String = map.place_at(player_pos())
 	if now != here:
 		here = now
 		if exploring:
 			request({"t": "arrive", "place": now})
+	# An exit asks once as you step into it; step out and back in to ask again.
+	var ex: String = map.exit_at(player_pos())
+	if ex != _in_exit:
+		_in_exit = ex
+		if ex != "" and exploring:
+			request({"t": "exit", "id": ex})
 
 
-## The College and the main streets come on at dusk; the lane waits for Mira.
+## The College and the main streets come on at dusk; the lane waits for Mira; the ruin's lamps
+## only by fire.
 func _lamps_by_time() -> void:
 	var t: int = run.time()
 	for l in lamps:
@@ -240,26 +314,6 @@ func _storm_line(a: Vector2, b: Vector2) -> void:
 				and Geometry2D.get_closest_point_to_segment(z["pos"], a, b).distance_to(z["pos"]) < float(z["r"]):
 			z["charge_t"] = float(pd["charge_s"])
 			events_log.append(["charged", "puddle"])
-
-
-## Three or more crates or barrels shoved against the inside of the north door hold it on day 7,
-## like the beam. Checked all the time (shove them away again and it no longer holds).
-func _barricade() -> void:
-	if run.day() != 7:
-		return
-	var b: Dictionary = pd["barricade"]
-	var at := Vector2(b["at"][0], b["at"][1])
-	var n := 0
-	for p in props:
-		if p["state"] != "ash" and p["kind"] in b["kinds"] and p["pos"].distance_to(at) < float(b["r"]):
-			n += 1
-	var held := n >= int(b["need"])
-	if held != run.flag("door_barricaded"):
-		if held:
-			run.set_flag("door_barricaded")
-			events_log.append(["barricade", "north_door"])
-		else:
-			run.clear_flag("door_barricaded")
 
 
 # --- props ----------------------------------------------------------------------------
@@ -509,9 +563,6 @@ func _water_cone(at: Vector2, dir: Vector2, cone: float, r: float) -> void:
 		if b["lit"] and inside.call(b["pos"], 4.0):
 			b["lit"] = false
 			events_log.append(["doused", "brazier"])
-	var lantern: Dictionary = map.items.get("second_lantern", {})
-	if not lantern.is_empty() and inside.call(lantern["at"], 6.0):
-		request({"t": "cast", "item": "second_lantern", "element": "water"})
 
 
 func _douse_lamp(l: Dictionary) -> void:
@@ -520,18 +571,15 @@ func _douse_lamp(l: Dictionary) -> void:
 	events_log.append(["doused", l.get("id", l["group"])])
 
 
-## The arena calls this when one of your shots hits a wall: fire leaves a star-shaped scorch,
-## and on the Observatory it is the same star as the burnt door (the scorch test, R5).
+## The arena calls this when one of your shots hits a wall: fire leaves a star-shaped scorch.
 func on_wall(p: Dictionary) -> void:
 	if p.get("team", 0) != 0 or not fire_proj.has(p["kind"]):
 		return
 	var at: Vector2 = p["pos"] - p["vel"].normalized() * 3.0
-	scorches.append({"pos": at, "dir": p["vel"].normalized(), "obs": map.circle_kind_at(at, 8.0) == "observatory"})
+	scorches.append({"pos": at, "dir": p["vel"].normalized()})
+	events_log.append(["scorch", map_id])
 	if scorches.size() > 24:
 		scorches.pop_front()
-	if map.circle_kind_at(at, 8.0) == "observatory":
-		events_log.append(["scorch", "observatory"])
-		request({"t": "cast", "item": "burnt_door", "element": "fire"})
 
 
 # --- what the wizard can reach ---------------------------------------------------------

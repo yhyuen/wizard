@@ -1,9 +1,9 @@
 extends "res://scripts/ui/atlas.gd"
-## The game flow of the open-world prototype (design/open-world/): the title card, the town
-## itself (with the dialogue panel, the map, the spellbook and the Ledger over it), the death
-## screen and the end of the slice. The town lives in scripts/world/ and asks for scenes through
-## world.requests; this plays them with the story engine (scripts/game/story.gd) and the
-## slice's story re-homed to people, items and places (data/world/story/*.story). What you
+## The game flow of the ruins game (design/ruins/, built on design/open-world/): the title card,
+## the camp and the ruin (with the dialogue panel, the map, the spellbook and the Ledger over
+## them), the loading card between maps, and the death screen. The world lives in scripts/world/
+## and asks for scenes through world.requests; this plays them with the story engine
+## (scripts/game/story.gd) and each map's story (data/world/maps.json "story"). What you
 ## remember and what resets are in the Run autoload, as in the slice.
 ##
 ## Everything a player can do here is also a method (talk, use, choose, advance...), so the
@@ -19,14 +19,16 @@ const BuildId := preload("res://scripts/game/build_id.gd")
 const FEEDBACK_URL := "https://claude.ai/artifact/HryjwPHEs8S6swcQYFam6c"
 ## First-loop hints (onboarding), shown until they're done once.
 const HINTS := {
-	"walk": "Walk the town. G talks to people and uses things when you're close. M opens the map, Z waits for the next time of day.",
+	"walk": "Walk the camp. G talks to people and uses things when you're close. M opens the map, Z waits for the next time of day.",
 	"talk": "Number keys or a click pick a choice; Space carries on. L opens the Ledger at any time.",
 	"death": "Death resets your power, never what you know. Everything in the Ledger comes with you.",
 }
 const LEDGER_TABS := ["Questions", "Clues", "People", "Insights"]
 ## The Ledger entry that means you know a person well enough to find them on the map.
 const MAX_BARKS := 2  # speech bubbles shown at once
-const KNOWN_PEOPLE := {"wren": "wren", "silas": "silas", "aldous": "aldous", "mira": "mira"}
+const KNOWN_PEOPLE := {"mira": "mira", "aldous": "aldous", "pell": "pell", "captain": "captain"}
+## The loading card stays up at least this long, and until the new map's shaders are warm.
+const LOAD_MIN_S := 0.9
 
 var main  # scripts/main.gd: the arena, the 3D view, input
 var run  # the Run autoload
@@ -34,10 +36,11 @@ var story
 var growth  # scripts/game/growth.gd: wells, Rings, Practice, the spellbook
 var world  # scripts/world/world.gd
 var encounters: Dictionary = {}
-var ledger: Dictionary = {}  # data/slice/ledger.json "entries"
+var ledger: Dictionary = {}  # data/world/ledger.json "entries"
 var death_texts: Dictionary = {}
 
-var screen := "title"  # title, world, death, end
+var screen := "title"  # title, world, loading (the card between maps), death
+var load_to := {}  # while the loading card is up: {"map", "spot", "t"}
 var overlay := ""  # over the town: "", "map", "book", "ledger"
 var ledger_tab := 0
 var ledger_q := ""  # the question picked in the Questions tab
@@ -75,8 +78,8 @@ func setup(the_main) -> void:
 	story.load_all()
 	for e in story.errors:
 		push_error("story: " + str(e))
-	encounters = JSON.parse_string(FileAccess.get_file_as_string("res://data/slice/encounters.json"))["encounters"]
-	var ld = JSON.parse_string(FileAccess.get_file_as_string("res://data/slice/ledger.json"))
+	encounters = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/encounters.json"))["encounters"]
+	var ld = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/ledger.json"))
 	ledger = ld["entries"]
 	death_texts = ld["deaths"]
 	world = World.new(run, story)
@@ -91,7 +94,7 @@ func _ready() -> void:
 
 
 func set_screen(s: String) -> void:
-	if s in ["death", "end"]:
+	if s == "death":
 		toasts.clear()
 	if s != screen:
 		scene_t = 0.0
@@ -126,17 +129,14 @@ func continue_month() -> void:
 	begin_day()
 
 
-## Dawn: you wake in your room (the save is made here), unless the slice's end card is due.
+## Dawn: you wake on your cot in the camp (the save is made here).
 func begin_day() -> void:
 	growth.end_fight()
-	if run.knows("long_night") and not run.mem.get("slice_end_shown", false):
-		set_screen("end")
-		return
 	run.lp["time"] = 0
 	run.save()
 	growth.begin_fight()  # you can cast anywhere, so the day's Practice is lent all day
 	cur = {}
-	main.enter_world(world.map.spots["room_in"])
+	main.enter_world(world.map.spots["cot"])
 	world.reset_day()
 	set_screen("world")
 	dawn_t = 0.0
@@ -172,13 +172,16 @@ func wait() -> void:
 	if world.threatened():
 		toast("Not with something hunting you.")
 		return
+	if not world.map_def().get("clock", true):
+		toast("There's no telling the hour down here.")
+		return
 	world.request({"t": "period"})
 
 
 func end_day() -> void:
 	cur = {}
 	if run.day() >= run.LAST_DAY:
-		end_loop("eclipse_alone")
+		play("eclipse")  # the second blast
 		return
 	growth.end_fight()
 	run.next_day()
@@ -206,11 +209,38 @@ func wake() -> void:
 	begin_day()
 
 
-## From the end-of-slice card: keep playing loops.
-func keep_playing() -> void:
-	run.mem["slice_end_shown"] = true
-	run.save()
-	begin_day()
+## Through the loading card to `spot` on map `id`: the world switches its state, the arena and
+## the view rebuild, and the new map's shaders compile behind the card.
+func go_map(id: String, spot: String) -> void:
+	cur = {}
+	lines = []
+	opts = []
+	pending = {}
+	_stop_talking()
+	world.load_map(id)
+	load_to = {"map": id, "spot": spot, "t": 0.0}
+	set_screen("loading")
+	main.change_map(world.map.spots[spot])
+
+
+## `go halls landing` (a map and a spot there) or `go north_stair` (an exit of this map).
+func _go(arg: String) -> void:
+	var parts: Array = arg.split(" ", false)
+	if parts.size() == 1:
+		var ex: Dictionary = world.map.exits[parts[0]]
+		go_map(ex["to"], ex["at"])
+	else:
+		go_map(parts[0], parts[1])
+
+
+func _loading(dt: float) -> void:
+	load_to["t"] += dt
+	if load_to["t"] < LOAD_MIN_S or (main.view != null and main.view.warm > 0):
+		return
+	load_to = {}
+	set_screen("world")
+	main.resume_world()
+	place_t = 0.0
 
 
 # --- what the town asks for -------------------------------------------------------------------
@@ -224,6 +254,8 @@ func _process(dt: float) -> void:
 		t["t"] += dt
 		if t["t"] > 4.0:
 			toasts.erase(t)
+	if screen == "loading":
+		_loading(dt)
 	if screen == "world":
 		if world.here != _place:
 			_place = world.here
@@ -244,6 +276,12 @@ func handle_requests() -> void:
 				talk(r["id"], str(r.get("scene", "")))
 			"use":
 				use(r["id"])
+			"exit":
+				var s: String = story.use_scene(r["id"])
+				if s != "":
+					play(s)
+				else:
+					_go(r["id"])
 			"arrive":
 				var s: String = story.arrive_scene(str(r["place"]))
 				if s != "":
@@ -329,10 +367,8 @@ func _effect(op: String, arg: String) -> bool:
 			run.learn(arg)
 		"set":
 			var r: int = growth.ring()
-			if arg.begins_with("topic_") and not run.flag(arg):
-				Sfx.play("hiss")  # another topic in the censer
 			run.set_flag(arg)
-			_ring_toast(r)  # the yard trial sets "ring1"
+			_ring_toast(r)  # a Ring trial sets "ring1"
 		"clear":
 			run.clear_flag(arg)
 		"model":
@@ -369,6 +405,8 @@ func _effect(op: String, arg: String) -> bool:
 			run.lp["taken"][arg] = true
 		"sleep", "book":
 			after.append(op)
+		"go":
+			after.append("go " + arg)
 		"today":
 			run.lp["done_" + arg] = run.day()
 		"goto":
@@ -377,7 +415,7 @@ func _effect(op: String, arg: String) -> bool:
 			else:
 				pending = {"op": "goto", "arg": arg}
 			return true
-		"fight", "end_loop", "skip_to":
+		"fight", "end_loop":
 			pending = {"op": op, "arg": arg}
 			return true
 		_:
@@ -428,12 +466,6 @@ func advance() -> void:
 				_start_fight(p["arg"])
 			"end_loop":
 				end_loop(p["arg"])
-			"skip_to":
-				var parts: Array = str(p["arg"]).split(" ")
-				var t := 0
-				if parts.size() > 1:
-					t = maxi(0, run.TIMES.find(parts[1]))
-				_skip_to(int(parts[0]), t)
 		return
 	if opts.size() == 1:
 		choose(0)
@@ -460,23 +492,14 @@ func finish_scene() -> void:
 		main.input_cool = 0.25  # the click that closed the panel doesn't also cast
 	var a := after
 	after = []
+	for op in a:
+		if op.begins_with("go "):
+			_go(op.substr(3))
+			return
 	if "sleep" in a:
 		end_day()
 	elif "book" in a:
 		overlay = "book"
-
-
-## The weeks that pass in the slice: on to day `d` at time `t`, where something is waiting.
-func _skip_to(d: int, t: int) -> void:
-	cur = {}
-	lines = []
-	growth.end_fight()
-	run.skip_to(d, t)
-	run.save()
-	growth.begin_fight()
-	world.reset_day()
-	dawn_t = 0.0
-	_start_period()
 
 
 # --- fights in place ---------------------------------------------------------------------
@@ -649,21 +672,21 @@ func _track_play(dt: float) -> void:
 
 ## A plain-text report of this month for the feedback form.
 func run_summary() -> String:
-	var out: Array = ["Vellmar open world · build %s · %s" % [BuildId.ID, OS.get_name()]]
+	var out: Array = ["The Shattered Orrery, first playable · build %s · %s" % [BuildId.ID, OS.get_name()]]
 	out.append("Played %d min · loop %d, day %d, %s · %s, %d wells" % [roundi(float(run.mem.get("play_s", 0.0)) / 60.0),
 		run.loop(), run.day(), run.time_name().to_lower(), growth.ring_name(), growth.wells()])
 	var known: Array = run.known_ids().filter(func(id): return ledger.has(id) and ledger[id]["kind"] != "trial")
 	var qs: Array = ledger.keys().filter(func(id): return ledger[id]["kind"] == "question")
 	out.append("Ledger: %d entries · questions answered %d of %d" % [known.size(), qs.filter(func(q): return solved(q)).size(), qs.size()])
 	var reached: Array = []
-	for f in ["ring1", "wren_friend", "door_barred", "survived_day7"]:
+	for f in ["ring1"]:
 		if run.flag(f):
 			reached.append(f)
-	if run.knows("long_night"):
-		reached.append("long_night")
-	if run.mem.get("slice_end_shown", false):
-		reached.append("slice_end")
+	for k in ["carried_out", "rune_ashlar", "the_halls"]:
+		if run.knows(k):
+			reached.append(k)
 	out.append("This loop / ever: " + (", ".join(reached) if not reached.is_empty() else "nothing yet"))
+	out.append("Now: %s" % str(world.map_def().get("name", world.map_id)))
 	for d in run.mem["log"]:
 		out.append("Loop %d died on day %d, %s: %s (%d learned)" % [d["loop"], d["day"], str(d["time"]).to_lower(), d["cause"], d["learned"].size()])
 	var f: Dictionary = run.mem.get("fps", {})
@@ -723,8 +746,6 @@ func _unhandled_input(ev: InputEvent) -> void:
 			match screen:
 				"death":
 					wake()
-				"end":
-					keep_playing()
 				"title":
 					if run.has_save():
 						continue_month()
@@ -758,9 +779,9 @@ func _draw() -> void:
 		"death":
 			draw_rect(Rect2(0, 0, 960, 540), NIGHT)
 			_draw_death()
-		"end":
+		"loading":
 			draw_rect(Rect2(0, 0, 960, 540), NIGHT)
-			_draw_end()
+			_draw_loading()
 	match overlay:
 		"ledger":
 			begin_buttons()
@@ -795,9 +816,9 @@ func _draw_hint(h: String, r: Rect2) -> void:
 
 
 func _draw_title() -> void:
-	title(Vector2(0, 150), "Wizard", 58, HAIR, HORIZONTAL_ALIGNMENT_CENTER, 960)
-	text(Vector2(0, 186), "The last month of Vellmar  ·  open-world prototype: days 1 to 7 and the Long Night", 16, PAPER, HORIZONTAL_ALIGNMENT_CENTER, 960)
-	text(Vector2(0, 210), "Walk the town, talk to people where they stand, and let your magic touch the world.", 13, DIM, HORIZONTAL_ALIGNMENT_CENTER, 960)
+	title(Vector2(0, 150), "The Shattered Orrery", 50, HAIR, HORIZONTAL_ALIGNMENT_CENTER, 960)
+	text(Vector2(0, 186), "First playable, R1  ·  the survivors' camp and the way down", 16, PAPER, HORIZONTAL_ALIGNMENT_CENTER, 960)
+	text(Vector2(0, 210), "The Orrery fell last night and took most of Vellmar with it. Wren is somewhere below.", 13, DIM, HORIZONTAL_ALIGNMENT_CENTER, 960)
 	var y := 250.0
 	if run.has_save() and not run.known_ids().is_empty():
 		button(Rect2(370, y, 220, 34), "Continue  (loop %d, day %d)" % [run.loop(), run.day()], continue_month, 1, 15)
@@ -857,11 +878,11 @@ func _draw_world() -> void:
 	if dawn_t < card_s:
 		var a := clampf(card_s - dawn_t, 0.0, 1.0) * clampf(dawn_t * 3.0, 0.0, 1.0)
 		var left: int = 28 - run.day()
-		var sub := "Dawn over Vellmar."
+		var sub := "Dawn over the camp."
 		if run.day() == 1 and run.loop() == 1:
-			sub = "The first day."
+			sub = "The morning after the Orrery fell."
 		elif run.day() == 1:
-			sub = "Day one again. You remember everything; your hands don't."
+			sub = "The morning after, again. You remember everything; your hands don't."
 		elif run.time() == 4:
 			sub = "Night."
 		title(Vector2(0, 170), "Day %d" % run.day(), 40, Color(GOLD, a), HORIZONTAL_ALIGNMENT_CENTER, 960)
@@ -930,8 +951,6 @@ func _draw_dialogue() -> void:
 			y = para(Vector2(r.position.x + 110, y), ln["text"], r.size.x - 134, 14, PAPER) + 5.0
 		else:
 			y = para(Vector2(r.position.x + 24, y), ln["text"], r.size.x - 48, 14, Color(PAPER, 0.85)) + 5.0
-	if in_long_night():
-		_draw_censer(Vector2(880, 400))
 	if not pending.is_empty():
 		button(Rect2(r.position.x + 24, r.end.y - 44, 200, 30), pending_label(), advance, 1, 14)
 		return
@@ -946,57 +965,36 @@ func _draw_dialogue() -> void:
 			run.mem["hints"]["talk"] = true
 
 
-func in_long_night() -> bool:
-	var id: String = cur.get("id", "")
-	return id == "long_night" or id.begins_with("ln_")
-
-
-## The Long Night's censer: it fills with each topic, and the night ends when it's full.
-func _draw_censer(c: Vector2) -> void:
-	var told: int = mini(story.ctx.count("topic_"), 3)
-	var t := Time.get_ticks_msec() / 1000.0
-	for dx in [-14.0, 0.0, 14.0]:
-		draw_line(c + Vector2(0, -70), c + Vector2(dx, -18), Color(HAIR, 0.6), 1.0)
-	draw_colored_polygon(PackedVector2Array([c + Vector2(-22, -18), c + Vector2(22, -18), c + Vector2(14, 6), c + Vector2(-14, 6)]), Color("8a6a34"))
-	draw_arc(c + Vector2(0, -18), 22.0, PI, TAU, 16, Color("c8a050"), 2.0)
-	draw_rect(Rect2(c + Vector2(-8, 6), Vector2(16, 6)), Color("6a4e26"))
-	for i in told:
-		for k in 6:
-			var f := fmod(t * 0.35 + k / 6.0 + i * 0.13, 1.0)
-			var p := c + Vector2(sin(f * 6.0 + i * 2.0) * (6.0 + f * 14.0), -26.0 - f * (60.0 + i * 18.0))
-			draw_circle(p, 3.0 + f * 7.0, Color(0.8, 0.82, 0.9, 0.22 * (1.0 - f)))
-	for i in 3:
-		var pc := c + Vector2(-16 + i * 16, 30)
-		if i < told:
-			star(pc, 5.0, HOURS)
-		else:
-			draw_arc(pc, 4.0, 0, TAU, 12, Color(HAIR, 0.5), 1.0)
-	text(Vector2(c.x - 70, c.y + 58), "The censer: %d of 3" % told, 12, DIM, HORIZONTAL_ALIGNMENT_CENTER, 140)
-
-
 ## The map (M): the town in Star Atlas lines, its places, you, the people you know, and the
 ## events you know are coming today. Click a place to walk there.
 func _draw_map() -> void:
 	draw_rect(Rect2(0, 0, 960, 540), Color(0, 0, 0, 0.72))
 	draw_rect(MAP_RECT, NIGHT)
 	panel(MAP_RECT, Color(GOLD, 0.6))
-	title(MAP_RECT.position + Vector2(20, 22), "Vellmar  ·  Day %d, %s" % [run.day(), run.time_name().to_lower()], 15, GOLD)
+	var when := "Day %d, %s" % [run.day(), run.time_name().to_lower()] if world.map_def().get("clock", true) else "Day %d" % run.day()
+	title(MAP_RECT.position + Vector2(20, 22), "%s  ·  %s" % [world.map_def().get("name", "Vellmar"), when], 15, GOLD)
 	var xf := map_xf()
 	var k := float(xf[1])
 	var m = world.map
 	var rect := func(r: Rect2) -> Rect2: return Rect2(to_map(r.position), r.size * k)
-	for c in m.d.get("cliffs", []):
-		draw_rect(rect.call(Rect2(c[0], c[1], c[2], c[3])), Color(HAIR, 0.04))
-	for b in m.d["blocks"]:
-		draw_rect(rect.call(Rect2(b[0], b[1], b[2], b[3])), Color(PAPER, 0.08))
-	for id in m.buildings:
-		draw_rect(rect.call(m.buildings[id]["rect"]), Color(PAPER, 0.14))
-	for w in m.d["walls"]:
-		draw_rect(rect.call(Rect2(w[0], w[1], w[2], w[3])), Color(HAIR, 0.5))
+	var shade := {"cliff": Color(HAIR, 0.04), "wall": Color(HAIR, 0.5), "rubble": Color(PAPER, 0.2), "building": Color(PAPER, 0.14),
+		"crack": Color(DANGER, 0.6)}
+	for rr in m.rects:
+		draw_rect(rect.call(rr[0]), shade.get(rr[1], Color(PAPER, 0.08)))
 	for w: Rect2 in m.water:
 		draw_rect(rect.call(w), Color(0.4, 0.6, 0.9, 0.45))
+	for pit: Rect2 in m.pits:
+		draw_rect(rect.call(pit), Color(0, 0, 0, 0.8))
+		draw_rect(rect.call(pit), Color(HAIR, 0.3), false, 1.0)
 	for c in m.circles:
 		draw_circle(to_map(c[0]), float(c[1]) * k, Color(PAPER, 0.12))
+	for did in m.doors:
+		if not m.doors[did]["open"]:
+			draw_rect(rect.call(m.doors[did]["rect"]), Color(GOLD, 0.6))
+	for eid in m.exits:
+		var er: Rect2 = rect.call(m.exits[eid]["rect"])
+		draw_rect(er, Color(HOURS, 0.5), false, 1.0)
+		star(er.get_center(), 4.0, HOURS)
 	var mouse := get_local_mouse_position()
 	var events: Array = story.known_events()
 	for id in m.places:
@@ -1120,22 +1118,22 @@ func _draw_death() -> void:
 	_draw_playtest_buttons()
 
 
-func _draw_end() -> void:
-	var r := Rect2(170, 80, 620, 380)
-	panel(r, Color(GOLD, 0.7))
-	title(r.position + Vector2(0, 54), "The Last Month can begin", 30, GOLD, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-	var y := r.position.y + 100.0
-	var body := [
-		"You know now where the notes come from: they are what you tell Wren on the Long Night." if run.knows("notes_are_ours")
-			else "You told Wren what you could. Somewhere in those pages is where the notes come from.",
-		"In the full game, this is where you can choose to live one deliberate Last Month, making every message come true, and decide at the Gate who walks back.",
-		"This is the end of the vertical slice. Thank you for playing it.",
-		"You can keep playing loops: everything you know stays with you. If you're playtesting, copy your run summary (top right) into the feedback form.",
-	]
-	for b in body:
-		y = para(Vector2(r.position.x + 40, y), b, r.size.x - 80, 15, PAPER) + 10.0
-	button(Rect2(r.position.x + 200, r.end.y - 56, 220, 34), "Keep playing", keep_playing, 1, 15)
-	_draw_playtest_buttons()
+## The loading card between maps: the map's name over a ring of the Orrery's seven planets,
+## one lit after another while the new map's shaders compile behind it.
+func _draw_loading() -> void:
+	var c := Vector2(480, 250)
+	var name: String = str(world.map_def().get("name", ""))
+	var t: float = float(load_to.get("t", 0.0))
+	draw_arc(c, 64.0, 0, TAU, 48, Color(HAIR, 0.35), 1.0)
+	draw_arc(c, 40.0, 0, TAU, 40, Color(HAIR, 0.2), 1.0)
+	for i in 7:
+		var a := -PI / 2.0 + i * TAU / 7.0
+		var on := t * 7.0 / LOAD_MIN_S > i
+		star(c + Vector2(cos(a), sin(a)) * 64.0, 5.0 if on else 3.0, GOLD if on else Color(HAIR, 0.5))
+	star(c, 7.0, HOURS)
+	title(Vector2(0, c.y + 112), name, 26, GOLD, HORIZONTAL_ALIGNMENT_CENTER, 960)
+	var sub := "Down into the dark." if world.map.kit == "ruin" else "Up into the grey light, and the camp."
+	text(Vector2(0, c.y + 140), sub, 14, DIM, HORIZONTAL_ALIGNMENT_CENTER, 960)
 
 
 func _draw_ledger() -> void:

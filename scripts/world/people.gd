@@ -1,11 +1,11 @@
 extends RefCounted
-## Vellmar's people (data/world/people.json; design/open-world/world.md §3): who stands where at
+## The camp's people (data/world/people.json; design/ruins/content.md §1): who stands where at
 ## each time of day, walking the street graph between their spots, barking a line now and then,
-## and turning to face you when you come close. Three of them do more: Mira walks the lane at
-## dusk lighting its lamps, Aldous comes up to you in the market on day 4, and on day 3 at noon
-## the veiled stranger weeps in the market and backs away faster than you can follow.
+## and turning to face you when you come close. Mira walks the lane at dusk lighting its lamps;
+## anyone can be given a `seek` override to come up to you and start talking. Nobody follows you
+## down into the ruin: off the camp map everyone is away.
 ##
-## Purely the town's state: the world view draws it, the game starts the conversations.
+## Purely the camp's state: the world view draws it, the game starts the conversations.
 
 const Story := preload("res://scripts/game/story.gd")
 
@@ -26,7 +26,7 @@ class Person:
 	var bark_t := 0.0  # seconds the bark has been up
 	var bark_cool := 0.0
 	var flinch_t := 0.0  # seconds before this person flinches from a spell again
-	var mode := ""  # "", "seek", "mourner", "lamps", "wander"
+	var mode := ""  # "", "seek", "lamps", "wander"
 	var seek_scene := ""
 	var state := ""  # the mode's own step
 	var state_t := 0.0
@@ -40,7 +40,7 @@ var list: Array = []  # Person
 var by_id := {}
 var rng := RandomNumberGenerator.new()
 var _think := 0.0  # seconds to the next schedule check
-var _scold_t := 0.0  # seconds before the porter scolds fire again
+var _scold_t := 0.0  # seconds before the captain scolds fire again
 
 
 func _init(world) -> void:
@@ -99,20 +99,20 @@ func _holds(rule: Dictionary) -> bool:
 	return W.story.test(str(rule.get("when", "")))
 
 
-## Where `p` should be now: {"spot", "seek", "mourner"}.
+## Where `p` should be now: {"spot", "seek"}.
 func want(p: Person) -> Dictionary:
-	if p.def.has("from_day") and W.run.day() < int(p.def["from_day"]):
+	if not W.in_camp() or p.def.has("from_day") and W.run.day() < int(p.def["from_day"]):
 		return {"spot": ""}
 	for o in p.def.get("overrides", []):
 		if _holds(o):
-			return {"spot": str(o["spot"]), "seek": str(o.get("seek", "")), "mourner": o.get("mourner", false)}
+			return {"spot": str(o["spot"]), "seek": str(o.get("seek", ""))}
 	return {"spot": str(p.def["schedule"].get(W.run.time_id(), ""))}
 
 
 ## Re-reads every schedule (each second, and at once when the time of day changes). `snap`
 ## puts everyone straight at their spots, as at dawn.
 func think(snap := false) -> void:
-	var count := int(d["crowd"]["count"].get(W.run.time_id(), 0))
+	var count := int(d["crowd"]["count"].get(W.run.time_id(), 0)) if W.in_camp() else 0
 	var crowd_i := 0
 	for p in list:
 		if p.crowd:
@@ -142,10 +142,6 @@ func think(snap := false) -> void:
 			if w.get("seek", "") != "" and not W.run.seen(w["seek"]):
 				p.mode = "seek"
 				p.seek_scene = w["seek"]
-			if w.get("mourner", false):
-				p.mode = "mourner"
-				p.state = "wait"
-				p.state_t = 0.0
 		if p.id == "dog" and p.on and p.mode == "":
 			p.mode = "wander"
 			p.home = p.pos
@@ -211,17 +207,14 @@ func update(dt: float) -> void:
 				_lamps(p, dt, speed)
 			"seek":
 				_seek(p, dt, speed)
-			"mourner":
-				_mourner(p, dt)
 			"wander":
 				if p.path.is_empty():
 					p.state_t -= dt
 					if p.state_t <= 0.0:
 						p.path = PackedVector2Array([_wander_point(p)])
 						p.state_t = rng.randf_range(1.5, 5.0)
-		if p.mode != "mourner":
-			_walk(p, dt, speed * (0.7 if p.crowd else 1.0))
-		if not p.moving and player.distance_to(p.pos) < 70.0 and p.mode != "mourner":
+		_walk(p, dt, speed * (0.7 if p.crowd else 1.0))
+		if not p.moving and player.distance_to(p.pos) < 70.0:
 			p.face = player - p.pos
 		_barks(p, dt, player)
 
@@ -260,7 +253,7 @@ func _lamps(p: Person, dt: float, speed: float) -> void:
 			p.state_t = 0.0
 
 
-## Aldous on day 4: comes up to the wizard and starts talking.
+## Someone with a `seek` override: comes up to the wizard and starts talking.
 func _seek(p: Person, _dt: float, _speed: float) -> void:
 	var player: Vector2 = W.player_pos()
 	if W.run.seen(p.seek_scene):
@@ -272,47 +265,6 @@ func _seek(p: Person, _dt: float, _speed: float) -> void:
 		if d < 26.0 and W.can_start():
 			p.path = PackedVector2Array()
 			W.request({"t": "talk", "id": p.id, "scene": p.seek_scene})
-
-
-## The Mourner (R2): stands weeping, backs away faster than you when you come at them (a chase),
-## or slips off if you keep away (letting them go).
-func _mourner(p: Person, dt: float) -> void:
-	var m: Dictionary = W.cfg["mourner"]
-	var player: Vector2 = W.player_pos()
-	p.state_t += dt
-	match p.state:
-		"wait":
-			p.face = player - p.pos
-			if W.here == "market":
-				p.state = "weep"
-				p.state_t = 0.0
-		"weep":
-			p.face = player - p.pos
-			p.bark = "(weeping)"
-			p.bark_t = 0.0
-			if player.distance_to(p.pos) < float(m["flee_at"]):
-				p.state = "flee"
-				p.state_t = 0.0
-			elif p.state_t > float(m["wait_s"]):
-				p.state = "go"
-				p.state_t = 0.0
-		"flee", "go":
-			# Backwards: still facing you, the feet carrying them away.
-			p.face = player - p.pos
-			var exit := Vector2(m["exit"][0], m["exit"][1])
-			var spd := float(m["speed"]) if p.state == "flee" else 30.0
-			var to := exit - p.pos
-			if to.length() > 2.0:
-				p.pos += to.normalized() * minf(spd * dt, to.length())
-				p.moving = true
-			if p.state == "flee" and p.state_t > float(m["chase_s"]) and W.can_start():
-				p.state = "gone"
-				W.request({"t": "scene", "id": "mourner_chase"})
-			elif p.state == "go" and p.state_t > 4.0 and W.can_start():
-				p.state = "gone"
-				W.request({"t": "scene", "id": "mourner_go"})
-		"gone":
-			p.on = false
 
 
 func _barks(p: Person, dt: float, player: Vector2) -> void:
@@ -351,7 +303,7 @@ func flinch(at: Vector2) -> void:
 	var R: Dictionary = d["reactions"]
 	var r := float(R["flinch_r"])
 	for p in list:
-		if not p.on or p.talking or p.mode == "mourner" or p.flinch_t > 0.0 or p.pos.distance_to(at) > r:
+		if not p.on or p.talking or p.flinch_t > 0.0 or p.pos.distance_to(at) > r:
 			continue
 		p.flinch_t = float(R["flinch_cool"])
 		var away: Vector2 = (p.pos - at).normalized() if p.pos.distance_to(at) > 0.1 else Vector2.DOWN
@@ -362,15 +314,15 @@ func flinch(at: Vector2) -> void:
 		W.events_log.append(["flinch", p.id])
 
 
-## Fire flying in the College at `at`: the porter, if near enough to see it, has words.
+## Fire flying in the College ruins at `at`: the watch captain, if near enough to see it, has words.
 func scold_fire(at: Vector2) -> void:
-	var p: Person = by_id.get("porter")
+	var p: Person = by_id.get("captain")
 	if p == null or not p.on or _scold_t > 0.0 or p.pos.distance_to(at) > float(W.cfg["bark_range"]):
 		return
 	_scold_t = float(d["reactions"]["scold_cool"])
 	p.face = W.player_pos() - p.pos
-	say(p, str(d["reactions"]["porter_fire"]))
-	W.events_log.append(["scold", "porter"])
+	say(p, str(d["reactions"]["captain_fire"]))
+	W.events_log.append(["scold", "captain"])
 
 
 ## Everyone you could talk to: in town, not the crowd's nameless passers-by.

@@ -1,13 +1,14 @@
 extends RefCounted
-## A bot that plays the open world the way a player does, for the route, relearn and deaths
-## tests: each time of day it works through a list of goals by walking the streets (along the
-## map's street graph, with the clock running), talking to people where they stand and using
-## things with the same request G sends, then waits (Z) for the next time of day. Scenes are read
-## through slice.advance and slice.choose, picking from `prefer`.
+## A bot that plays the camp and the ruin the way a player does, for the route and relearn
+## tests: each time of day it works through a list of goals by walking (along the map's street
+## graph, with the clock running), talking to people where they stand and using things with the
+## same request G sends, then waits (Z) for the next time of day. Scenes are read through
+## slice.advance and slice.choose, picking from `prefer`.
 ##
-## Goals: "talk:wren", "use:desk", "go:market" (a place), "spot:room_in", "sleep" (walk to the bed
-## and sleep), "wait" (Z at once), "cast:burnt_door:ember_bolt" (walk up to it and cast that spell
-## at it). "use:bed>Sleep until dawn" prefers that choice when the scene comes up.
+## Goals: "talk:mira", "use:dwarf_crate", "go:market" (a place), "spot:cot", "sleep" (walk to the
+## cot and sleep), "wait" (Z at once), "exit:north_stair" (walk into that exit and through it,
+## done once the map has changed), "cast:targets:ember_bolt" (walk up to it and cast that spell at
+## it). "use:cot>Sleep until dawn" prefers that choice when the scene comes up.
 ## Fights go through slice.fight_resolver, which the test sets.
 
 const LINE_SECONDS := 3.5
@@ -33,7 +34,8 @@ var missed: Array = []  # goals a time of day ran out on: "day 3 noon talk:wren"
 var stuck: Array = []  # goals the bot could not walk to
 var log_goals := false
 var _cast := {}  # casting at an item: {"slot", "aim", "t", "pressed"}
-var _want_next := ""  # the choice the last goal asked for ("use:bed>Sleep until dawn")
+var _want_next := ""  # the choice the last goal asked for ("use:cot>Sleep until dawn")
+var _goal_map := ""  # the map a goal began on (an exit goal is done when it changes)
 
 
 func _init(the_main) -> void:
@@ -90,7 +92,7 @@ func tick(dt: float) -> String:
 			slice.choose(pick(slice.opts))
 		return "scene"
 	if slice.screen != "world" or main.mode != "world" or not world.requests.is_empty():
-		return "scene"
+		return "scene"  # a fight, the loading card, or a request about to play
 	play_s += dt
 	if goal == "":
 		if goals.is_empty():
@@ -100,6 +102,7 @@ func tick(dt: float) -> String:
 		best_d = INF
 		best_t = 0.0
 		repath_t = 0.0
+		_goal_map = world.map_id
 		if log_goals:
 			print("[walker] day %d %s: %s" % [run.day(), run.time_name(), goal])
 	goal_t += dt
@@ -123,9 +126,14 @@ func _work(dt: float) -> void:
 			slice.wait()
 			return
 		"sleep":
-			goals.push_front("use:bed>Sleep until dawn")
+			goals.push_front("use:cot>Sleep until dawn")
 			goal = ""
 			return
+		"exit":
+			if world.map_id != _goal_map:
+				goal = ""
+				route = PackedVector2Array()
+				return
 	var target := _target(kind, id)
 	if target == Vector2.INF:
 		stuck.append("day %d %s: %s is nowhere" % [run.day(), run.time_name(), goal])
@@ -143,6 +151,13 @@ func _work(dt: float) -> void:
 			done = at.distance_to(target) < reach
 		"use", "cast":
 			done = at.distance_to(target) < float(world.map.items[id].get("reach", world.cfg["reach"])) * 0.8
+		"exit":
+			if world.map.exit_at(at) == id:
+				route = PackedVector2Array()
+				if goal_t > STUCK_S * 3.0:
+					stuck.append("day %d %s: stood in exit %s and nothing happened" % [run.day(), run.time_name(), id])
+					goal = ""
+				return  # in the exit: its scene plays, then the loading card
 	if done:
 		route = PackedVector2Array()
 		_want_next = goal.split(">")[1] if ">" in goal else ""
@@ -189,6 +204,8 @@ func _target(kind: String, id: String) -> Vector2:
 			return world.map.place_centre(id)
 		"spot":
 			return world.map.spots.get(id, Vector2.INF)
+		"exit":
+			return (world.map.exits[id]["rect"] as Rect2).get_center() if world.map.exits.has(id) else Vector2.INF
 	return Vector2.INF
 
 

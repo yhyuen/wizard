@@ -202,12 +202,13 @@ func rules() -> Dictionary:
 func begin_fight() -> void:
 	if lent:
 		return
+	var spells: Dictionary = practice().duplicate(true)  # before lending: practice() reads the lent copy once lent
 	lent = true
 	_stash = prog.p
 	_stash_save = prog.save_enabled
 	prog.save_enabled = false
 	var p: Dictionary = prog.fresh()
-	p["spells"] = practice().duplicate(true)
+	p["spells"] = spells
 	for id in prog.data["spells"]:
 		if not p["spells"].has(id):
 			p["spells"][id] = {"level": 1, "xp": 0.0, "muts": {}}

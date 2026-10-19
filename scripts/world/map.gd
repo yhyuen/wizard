@@ -1,25 +1,32 @@
 extends RefCounted
-## Vellmar as one walkable map (data/world/map.json; design/open-world/world.md). Answers the
-## questions the sim and the people ask about the town: where a circle of radius r can stand
-## (collide), whether a shot hits a wall (blocks_shot), where running water is, which place a
-## point is in, and how to walk from one point to another along the streets (path).
+## One walkable map: the camp (data/world/map.json; design/open-world/world.md) or a layer of the
+## ruin (data/ruins/<layer>/map.json; design/ruins/tech-plan.md §1–2). Answers the questions the
+## sim and the people ask about it: where a circle of radius r can stand (collide), whether a shot
+## hits a wall (blocks_shot), where water is, which place a point is in, and how to walk from one
+## point to another along the streets (path).
 ##
-## Solids are axis-aligned rects (houses, walls, cliffs, stalls, closed doors, the walls of the
-## buildings you can enter) and circles (the Observatory, the well). They are sorted into a grid
-## of CELL-pixel cells so each query only looks at what is near. Props that move (crates and
-## barrels) are not here: the world adds them through `movers`.
+## Solids are axis-aligned rects (houses, walls, cliffs, stalls, tents, rubble, cracks, closed
+## doors, the walls of the buildings you can enter) and circles (the well, pillars). They are
+## sorted into a grid of CELL-pixel cells so each query only looks at what is near. Pits stop
+## walkers but not shots. Props that move (crates and barrels) are not here: the world adds them
+## through `movers`. `exits` are rects that take you to another map.
 
 const PATH := "res://data/world/map.json"
 const CELL := 96.0
 const WALL := 10.0  # thickness of an enterable building's walls
 
+var id := "camp"
+var kit := "town"  # which builders draw it: "town" (the camp) or "ruin"
 var d: Dictionary
 var bounds := Rect2()
 var rects: Array = []  # [Rect2, kind]
 var circles: Array = []  # [Vector2, r, kind]
 var water: Array = []  # Rect2
 var bridges: Array = []  # Rect2
-var doors := {}  # id -> {"rect": Rect2, "open": bool}
+var doors := {}  # id -> {"rect": Rect2, "open": bool, "state": String}
+var pits: Array = []  # Rect2: collapsed floor, not walkable, open to shots
+var cracks: Array = []  # {"rect": Rect2, "sphere": String}: glowing seams that Sphere-born burst from
+var exits := {}  # id -> {"rect": Rect2, "to": map id, "at": spot id there}
 var buildings := {}  # id -> {"rect", "door", "walls": [Rect2], "height", ...}
 var places := {}  # id -> {"name", "district", "rect" or "circle"}
 var spots := {}  # id -> Vector2
@@ -31,7 +38,9 @@ var _grid := {}  # Vector2i -> {"r": [rect indices], "c": [circle indices]}
 var movers: Callable
 
 
-func _init(path := PATH) -> void:
+func _init(path := PATH, map_id := "camp", map_kit := "town") -> void:
+	id = map_id
+	kit = map_kit
 	d = JSON.parse_string(FileAccess.get_file_as_string(path))
 	var b: Array = d["bounds"]
 	bounds = Rect2(b[0], b[1], b[2], b[3])
@@ -41,18 +50,31 @@ func _init(path := PATH) -> void:
 		_rect(Rect2(r[0], r[1], r[2], r[3]), "wall")
 	for r in d.get("blocks", []):
 		_rect(Rect2(r[0], r[1], r[2], r[3]), "block")
+	for r in d.get("ruin_walls", []):
+		_rect(Rect2(r[0], r[1], r[2], r[3]), "wall")
 	for s in d.get("stalls", []):
 		var horiz: bool = absf(fmod(float(s[2]), 180.0)) < 45.0
 		var size := Vector2(40, 18) if horiz else Vector2(18, 40)
 		_rect(Rect2(Vector2(s[0], s[1]) - size * 0.5, size), "stall")
-	for id in d.get("buildings", {}):
-		var bd: Dictionary = d["buildings"][id].duplicate(true)
+	for t in d.get("tents", []):
+		if not (t.size() > 4 and bool(t[4])):  # an open shelter: walk in under the canvas
+			_rect(tent_rect(t), "tent")
+	for r in d.get("rubble", []):
+		_rect(Rect2(r[0], r[1], r[2], r[3]), "rubble")
+	for c in d.get("cracks", []):
+		var cr := Rect2(c[0], c[1], c[2], c[3])
+		cracks.append({"rect": cr, "sphere": str(c[4]) if c.size() > 4 else "mars"})
+		_rect(cr, "crack")
+	for r in d.get("pits", []):
+		pits.append(Rect2(r[0], r[1], r[2], r[3]))
+	for bid in d.get("buildings", {}):
+		var bd: Dictionary = d["buildings"][bid].duplicate(true)
 		var rr: Array = bd["rect"]
 		bd["rect"] = Rect2(rr[0], rr[1], rr[2], rr[3])
 		bd["walls"] = _building_walls(bd["rect"], bd["door"])
 		for w in bd["walls"]:
 			_rect(w, "building")
-		buildings[id] = bd
+		buildings[bid] = bd
 	for c in d.get("circles", []):
 		circles.append([Vector2(c[0], c[1]), float(c[2]), str(c[4])])
 		_index_circle(circles.size() - 1)
@@ -60,25 +82,39 @@ func _init(path := PATH) -> void:
 		water.append(Rect2(w[0], w[1], w[2], w[3]))
 	for w in d.get("bridges", []):
 		bridges.append(Rect2(w[0], w[1], w[2], w[3]))
-	for id in d.get("doors", {}):
-		var r: Array = d["doors"][id]
-		doors[id] = {"rect": Rect2(r[0], r[1], r[2], r[3]), "open": false}
-	for id in d.get("places", {}):
-		places[id] = d["places"][id]
-	for id in d.get("spots", {}):
-		var p: Array = d["spots"][id]
-		spots[id] = Vector2(p[0], p[1])
-	for id in d.get("items", {}):
-		var it: Dictionary = d["items"][id].duplicate()
+	for did in d.get("doors", {}):
+		var dd = d["doors"][did]
+		var r: Array = dd["rect"] if dd is Dictionary else dd
+		var state: String = str(dd.get("state", "shut")) if dd is Dictionary else "shut"
+		doors[did] = {"rect": Rect2(r[0], r[1], r[2], r[3]), "open": state == "open", "state": state}
+	for e in d.get("exits", []):
+		var r: Array = e["rect"]
+		exits[str(e["id"])] = {"rect": Rect2(r[0], r[1], r[2], r[3]), "to": str(e["to"]), "at": str(e["at"])}
+	for pid in d.get("places", {}):
+		places[pid] = d["places"][pid]
+	for sid in d.get("spots", {}):
+		var p: Array = d["spots"][sid]
+		spots[sid] = Vector2(p[0], p[1])
+	for iid in d.get("items", {}):
+		var it: Dictionary = d["items"][iid].duplicate()
 		it["at"] = Vector2(it["at"][0], it["at"][1])
-		items[id] = it
-	for id in d["nav"]["nodes"]:
-		var p: Array = d["nav"]["nodes"][id]
-		nodes[id] = Vector2(p[0], p[1])
-		adj[id] = []
-	for e in d["nav"]["edges"]:
+		items[iid] = it
+	# The street graph is optional: a small ruin room is crossed in straight lines.
+	var nav: Dictionary = d.get("nav", {"nodes": {}, "edges": []})
+	for nid in nav["nodes"]:
+		var p: Array = nav["nodes"][nid]
+		nodes[nid] = Vector2(p[0], p[1])
+		adj[nid] = []
+	for e in nav["edges"]:
 		adj[e[0]].append(e[1])
 		adj[e[1]].append(e[0])
+
+
+## A tent's footprint [x, y, rotation, cloth]: 44 × 36 px, turned by its rotation.
+static func tent_rect(t: Array) -> Rect2:
+	var horiz: bool = absf(fmod(float(t[2]), 180.0)) < 45.0
+	var size := Vector2(44, 36) if horiz else Vector2(36, 44)
+	return Rect2(Vector2(t[0], t[1]) - size * 0.5, size)
 
 
 ## The four walls of an enterable building, with a gap for its door.
@@ -167,9 +203,11 @@ func collide(p: Vector2, r := 0.0, wet_solid := false) -> Vector2:
 			p = _out_of_rect(p, r, rects[i][0])
 		for i in near["c"]:
 			p = _out_of_circle(p, r, circles[i][0], circles[i][1])
-		for id in doors:
-			if not doors[id]["open"]:
-				p = _out_of_rect(p, r, doors[id]["rect"])
+		for did in doors:
+			if not doors[did]["open"]:
+				p = _out_of_rect(p, r, doors[did]["rect"])
+		for pit: Rect2 in pits:
+			p = _out_of_rect(p, r, pit)
 		if wet_solid:
 			for w in water:
 				p = _out_of_rect(p, r, w)
@@ -222,14 +260,39 @@ func solid_at(p: Vector2, grow := 0.0) -> bool:
 	for i in near["c"]:
 		if p.distance_to(circles[i][0]) < float(circles[i][1]) + grow:
 			return true
-	for id in doors:
-		if not doors[id]["open"] and (doors[id]["rect"] as Rect2).grow(grow).has_point(p):
+	for did in doors:
+		if not doors[did]["open"] and (doors[did]["rect"] as Rect2).grow(grow).has_point(p):
 			return true
 	return false
 
 
 func blocks_shot(p: Vector2) -> bool:
 	return solid_at(p)
+
+
+## Whether a walker can't stand at `p`: anything solid, or a pit.
+func blocked(p: Vector2, grow := 0.0) -> bool:
+	if solid_at(p, grow):
+		return true
+	for pit: Rect2 in pits:
+		if pit.grow(grow).has_point(p):
+			return true
+	return false
+
+
+func in_pit(p: Vector2, r := 0.0) -> bool:
+	for pit: Rect2 in pits:
+		if pit.grow(r).has_point(p):
+			return true
+	return false
+
+
+## The exit a point stands in, or "".
+func exit_at(p: Vector2) -> String:
+	for eid in exits:
+		if (exits[eid]["rect"] as Rect2).has_point(p):
+			return eid
+	return ""
 
 
 ## The circle a point is in (the Observatory for the scorch test), or "".
@@ -265,7 +328,7 @@ func out_of_water(p: Vector2, r: float) -> Vector2:
 func clear_line(a: Vector2, b: Vector2, r := 0.0) -> bool:
 	var n := maxi(1, int(a.distance_to(b) / 8.0))
 	for i in n + 1:
-		if solid_at(a.lerp(b, float(i) / n), r):
+		if blocked(a.lerp(b, float(i) / n), r):
 			return false
 	return true
 
@@ -275,14 +338,14 @@ func clear_line(a: Vector2, b: Vector2, r := 0.0) -> bool:
 ## The place a point is in ("" outside them all). The first match in the data wins, so small
 ## places come before the larger ones round them.
 func place_at(p: Vector2) -> String:
-	for id in places:
-		if in_place(id, p):
-			return id
+	for pid in places:
+		if in_place(pid, p):
+			return pid
 	return ""
 
 
-func in_place(id: String, p: Vector2) -> bool:
-	var pl: Dictionary = places.get(id, {})
+func in_place(pid: String, p: Vector2) -> bool:
+	var pl: Dictionary = places.get(pid, {})
 	if pl.has("rect"):
 		var r: Array = pl["rect"]
 		return Rect2(r[0], r[1], r[2], r[3]).has_point(p)
@@ -292,12 +355,12 @@ func in_place(id: String, p: Vector2) -> bool:
 	return false
 
 
-func place_name(id: String) -> String:
-	return str(places.get(id, {}).get("name", ""))
+func place_name(pid: String) -> String:
+	return str(places.get(pid, {}).get("name", ""))
 
 
-func place_centre(id: String) -> Vector2:
-	var pl: Dictionary = places.get(id, {})
+func place_centre(pid: String) -> Vector2:
+	var pl: Dictionary = places.get(pid, {})
 	if pl.has("rect"):
 		var r: Array = pl["rect"]
 		return Rect2(r[0], r[1], r[2], r[3]).get_center()
@@ -308,9 +371,9 @@ func place_centre(id: String) -> Vector2:
 
 ## The enterable building a point is inside, or "".
 func building_at(p: Vector2) -> String:
-	for id in buildings:
-		if (buildings[id]["rect"] as Rect2).has_point(p):
-			return id
+	for bid in buildings:
+		if (buildings[bid]["rect"] as Rect2).has_point(p):
+			return bid
 	return ""
 
 
@@ -319,10 +382,12 @@ func building_at(p: Vector2) -> String:
 ## The nav node nearest `p` that can be walked to in a straight line (or simply the nearest).
 func nearest_node(p: Vector2, r := 4.0) -> String:
 	var ids: Array = nodes.keys()
+	if ids.is_empty():
+		return ""
 	ids.sort_custom(func(a, b): return p.distance_squared_to(nodes[a]) < p.distance_squared_to(nodes[b]))
-	for id in ids.slice(0, 6):
-		if clear_line(p, nodes[id], r):
-			return id
+	for nid in ids.slice(0, 6):
+		if clear_line(p, nodes[nid], r):
+			return nid
 	return ids[0]
 
 
@@ -330,7 +395,7 @@ func nearest_node(p: Vector2, r := 4.0) -> String:
 ## nothing is in the way.
 func path(a: Vector2, b: Vector2, r := 4.0) -> PackedVector2Array:
 	var out := PackedVector2Array()
-	if clear_line(a, b, r):
+	if clear_line(a, b, r) or nodes.is_empty():
 		out.append(b)
 		return out
 	var s := nearest_node(a, r)
@@ -362,8 +427,8 @@ func path(a: Vector2, b: Vector2, r := 4.0) -> PackedVector2Array:
 		chain.pop_front()
 	while chain.size() >= 2 and clear_line(nodes[chain[-2]], b, r):
 		chain.pop_back()
-	for id in chain:
-		out.append(nodes[id])
+	for nid in chain:
+		out.append(nodes[nid])
 	out.append(b)
 	return out
 

@@ -1,0 +1,248 @@
+# The survivors' camp (design/ruins/content.md §1, §6): waking on the cot, the camp's people,
+# the dwarves' crate, the east gate, the watch's targets, the way down, and the Hollows that walk
+# the College ruins at night. Beats C1 (Mira) and H4 (the crate). The format is in
+# scripts/game/story.gd.
+
+# --- waking ------------------------------------------------------------------------
+
+=== wake_first
+arrive: tent
+when: loop == 1
+priority: 20
+You wake on a cot under a sheet of canvas. Smoke, wet ash, someone crying a long way off.
+You remember the Orrery: the great brass rings turning wrong, Wren a step ahead of you on the gallery, then a light that had no colour.
+Nothing after that. Nothing at all.
++ learn orrery_light
+Your spellbook lies beside the cot, its pages scorched at the edges.
+* Get up
+
+=== wake_again
+arrive: tent
+when: loop > 1
+priority: 20
+You wake on the cot under the canvas. The same smoke, the same crying a long way off.
+You've woken here before.
+[not k("hours_stirs")] Something has come back with you that wasn't there the first time: a slow tick under your ribs, the College's own Sphere. The Hours.
+[not k("hours_stirs")] + learn hours_stirs
+[not k("model_rewind")] + model rewind
+* Get up
+
+=== cot
+use: cot
+repeat: true
+Your cot under the canvas, and your spellbook.
+* Change the spellbook -> cot_book
+* Meditate for a while [not done("meditate")] -> cot_meditate
+* Sleep until dawn -> cot_sleep
+* Leave
+
+=== cot_book
++ book
+
+=== cot_meditate
+You sit cross-legged on the cot and draw the cold in, slow and even, until the shaking stops.
++ meditate 5
+
+=== cot_sleep
+You lie down and let the day go.
++ sleep
+
+# --- the market --------------------------------------------------------------------
+
+=== mira_c1
+talk: mira
+priority: 10
+when: not k("carried_out")
+Mira: You're up. Good. I wasn't sure you would be.
+Mira: You know who brought you in? Neither do I.
+Mira: A veiled figure left you at the east gate before dawn. Carried you, like you weighed nothing.
+Mira: Then it went back the way it came. I've never seen anyone walk like that. I didn't like it.
++ learn mira
++ learn carried_out
+* "Which way did it go?" -> mira_which
+* Leave
+
+=== mira_which
+Mira: North. Back toward the College, and what's left of it.
+* Leave
+
+=== mira_thanks
+talk: mira
+priority: 8
+when: f("lit_lane") and not f("mira_thanked")
+Mira: Somebody lit my lane before I got round to it. That was you, wasn't it, College?
+Mira: Saved me the oil and the ladder. Thank you.
++ set mira_thanked
+* Leave
+
+=== mira
+talk: mira
+repeat: true
+priority: -10
+[time == "dusk"] Mira: Can't stop. Lamps don't light themselves.
+[time != "dusk"] Mira: Stay where the lamps are, after dark. Whatever came up out of the College doesn't like the light.
+* Leave
+
+=== pell_first
+talk: pell
+priority: 10
+when: not k("wren_cipher")
+Pell: You're from the College! You're alive! Anything you need, I'll find it. Rope, chalk, lamp oil. Anything.
+Pell: You knew Wren, didn't you? Everyone knew Wren. Always scribbling in that star cipher of the College's. A hobby, Wren said.
+Pell: Notes to people, in stars. I never could read them.
++ learn pell
++ learn wren_cipher
+* Leave
+
+=== pell
+talk: pell
+repeat: true
+priority: -10
+[time == "morning" or time == "noon"] Pell: Still here if you need anything. Anything at all.
+[time != "morning" and time != "noon"] Pell: Someone should go down there. Someone who knows the College. Someone like you.
+* Leave
+
+=== captain_first
+talk: captain
+priority: 10
+when: not k("captain")
+Captain: Stop there. Nobody goes past the gate. Nobody goes down.
+Captain: We lost six last night to the things that walk up out of the College after dark.
+Captain: ...You're one of theirs, aren't you. A College robe. Fine. I didn't see you. Be back before the lamps.
++ learn captain
+* Leave
+
+=== captain
+talk: captain
+repeat: true
+priority: -10
+Captain: I didn't see you. Lamps before dark, College.
+* Leave
+
+=== pie_seller
+talk: pie_seller
+repeat: true
+The pie-seller hands you one pie, hot, and doesn't say what's in it.
+* Leave
+
+=== dog
+talk: dog
+repeat: true
+The dog sniffs your hand, then your boots, then decides you're all right.
+* Leave
+
+=== dwarf_crate
+use: dwarf_crate
+priority: 5
+when: not k("rune_ashlar")
+A salvage crate of dwarf tools: crowbars, wedges, a lamp with a cracked glass.
+Every handle is stamped with the same rune, three strokes like a cairn.
+One of the dwarves, packing it, sees you looking. "Ashlar. The stone that holds. Our doors answer to it, if you ask them right."
++ learn rune_ashlar
+* Leave
+
+=== dwarf_crate_again
+use: dwarf_crate
+repeat: true
+priority: -10
+The dwarves' crate. Ashlar on every handle.
+* Leave
+
+# --- the Mill ------------------------------------------------------------------------
+
+=== aldous_first
+talk: aldous
+priority: 10
+when: not k("mill_cellars")
+Aldous: Bread? Take it. There's little enough, but it's bread.
+Aldous: Don't go near my cellar door. Things came up out of it the night the Orrery fell. Up the steps, out into the yard.
+Aldous: I've nailed it shut. I hear them, some nights.
++ learn aldous
++ learn mill_cellars
+* Leave
+
+=== aldous
+talk: aldous
+repeat: true
+priority: -10
+Aldous: Flour and ash. Flour and ash.
+* Leave
+
+# --- the square, the east gate -------------------------------------------------------
+
+=== targets
+use: targets
+repeat: true
+The watch's straw targets, more hole than straw.
+* Train [not done("train")] -> targets_train
+* Leave
+
+=== targets_train
+You drill until your hands ache and the target is more hole than straw.
++ train
+
+=== east_gate
+use: east_gate
+priority: 5
+when: not k("backward_prints")
+The east gate, where Mira found you. Ash has drifted against the posts.
+There are prints in it, coming out of the gate toward the camp. The heels are where the toes should be.
++ learn backward_prints
+* Leave
+
+=== east_gate_again
+use: east_gate
+repeat: true
+priority: -10
+The east gate. The backward prints are still there in the ash, as if nobody dares walk over them.
+* Leave
+
+# --- the way down --------------------------------------------------------------------
+
+=== north_stair
+use: north_stair
+repeat: true
+The north door is gone, and the wall round it. Where it stood, a stair goes down under the College into the dark.
+Cold air comes up it, and a smell like a forge gone out.
+* Go down -> descend
+* Not yet
+
+=== descend
++ go north_stair
+
+# --- night in the ruins ----------------------------------------------------------------
+
+=== patrol
+arrive: college, yard, archive, observatory, stairs, north_door
+times: night
+repeat: true
+priority: -5
+when: not done("patrol")
++ today patrol
+The ruins are quiet after dark. Then they aren't.
+Shapes in the mist among the fallen stone, shuffling, wearing the clothes of people you might have known.
+Hollows.
+* Fight them -> patrol_fight
+* Slip away
+
+=== patrol_fight
++ fight patrol
+? won -> patrol_won
+? lost -> patrol_death
+
+=== patrol_death
+They come out of the mist from every side at once, and keep coming.
++ learn died_patrol
++ end_loop patrol
+
+=== patrol_won
+The Hollows fall still. Every one of them was someone, once.
++ wells 4
+
+# --- the Eclipse ---------------------------------------------------------------------
+
+=== eclipse
+The Eclipse comes. Under the ruin, the Orrery's heart wakes a second time.
+The light has no colour, and this time it doesn't stop at the College.
++ learn second_blast
++ end_loop eclipse

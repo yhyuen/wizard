@@ -1,0 +1,68 @@
+{
+ "_doc": "The College halls, the first layer under the camp (design/ruins/content.md §2). Same units and keys as data/world/map.json; walls here are broken walls with jagged tops. pillars are circles of kind pillar or pillar_broken; pits: collapsed floor [x, y, w, h], not walkable, open to shots; cracks: glowing seams in the walls [x, y, w, h, sphere] that Sphere-born burst from (R2); doors: {id: {rect, state}} with state shut, sealed or open. R1 builds the landing (the shrine and the stair up) and the entrance hall; the ways on are blocked until R2.",
+ "bounds": [0, 0, 1500, 1100],
+ "walls": [
+  [640, 880, 80, 20, 100], [780, 880, 80, 20, 100], [640, 880, 20, 200, 100], [840, 880, 20, 200, 100],
+  [640, 1060, 220, 20, 100], [280, 880, 360, 20, 110], [860, 880, 360, 20, 110], [280, 400, 20, 200, 110],
+  [280, 680, 20, 220, 110], [1200, 400, 20, 200, 110], [1200, 680, 20, 220, 110], [280, 400, 420, 20, 110],
+  [800, 400, 420, 20, 110]
+ ],
+ "rubble": [
+  [690, 352, 120, 72, 70], [236, 592, 64, 96, 60], [460, 620, 70, 40, 30], [1010, 820, 80, 40, 26],
+  [560, 786, 44, 26, 18], [976, 560, 40, 24, 16]
+ ],
+ "circles": [
+  [420, 540, 14, 130, "pillar"], [540, 540, 14, 130, "pillar"], [660, 540, 14, 130, "pillar"],
+  [840, 540, 14, 130, "pillar"], [960, 540, 14, 60, "pillar_broken"], [1080, 540, 14, 130, "pillar"],
+  [420, 760, 14, 130, "pillar"], [540, 760, 14, 50, "pillar_broken"], [660, 760, 14, 130, "pillar"],
+  [840, 760, 14, 130, "pillar"], [960, 760, 14, 130, "pillar"], [1080, 760, 14, 130, "pillar"]
+ ],
+ "pits": [[820, 600, 100, 80]],
+ "cracks": [[300, 500, 6, 50, "mars"], [300, 760, 6, 50, "mars"], [1194, 480, 6, 50, "mars"]],
+ "doors": {"rune_door": {"rect": [1200, 600, 20, 80], "state": "sealed"}},
+ "exits": [{"id": "stair_up", "rect": [716, 1024, 68, 36], "to": "camp", "at": "north_in"}],
+ "dressing": [
+  ["shrine", 690, 936, 0], ["stair_up", 750, 1044, 0], ["clock", 1110, 432, 0], ["fissure", 620, 700, 30],
+  ["fissure", 1000, 480, -20], ["bones", 520, 660, 40]
+ ],
+ "lamps": [
+  [668, 914, "ruin"], [832, 914, "ruin"], [330, 450, "ruin"], [1170, 450, "ruin"], [330, 850, "ruin"],
+  [1170, 850, "ruin"]
+ ],
+ "props": [["crate", 880, 850, 15], ["barrel", 620, 850, 0]],
+ "places": {
+  "landing": {"name": "The landing", "district": "halls", "rect": [660, 900, 180, 160]},
+  "entrance_hall": {"name": "The entrance hall", "district": "halls", "rect": [300, 420, 900, 460]}
+ },
+ "spots": {
+  "landing": [750, 972],
+  "shrine": [700, 960],
+  "hall_c": [750, 650],
+  "hall_north": [750, 460],
+  "clock": [1100, 460]
+ },
+ "items": {
+  "shrine": {"name": "The landing shrine", "at": [690, 940], "verb": "Use", "reach": 32, "height": 1.4},
+  "rune_door": {"name": "A sealed door", "at": [1186, 640], "verb": "Look", "reach": 34, "height": 1.6},
+  "collapsed_stair": {"name": "The collapsed stair", "at": [750, 440], "verb": "Look", "reach": 40}
+ },
+ "spawns": {},
+ "nav": {
+  "nodes": {
+   "landing": [750, 960],
+   "gap": [750, 880],
+   "hall_s": [750, 820],
+   "mid": [750, 700],
+   "west": [480, 700],
+   "nw": [480, 470],
+   "north": [750, 460],
+   "east": [1030, 700],
+   "ne": [1030, 470],
+   "door": [1150, 650]
+  },
+  "edges": [
+   ["landing", "gap"], ["gap", "hall_s"], ["hall_s", "mid"], ["mid", "west"], ["west", "nw"], ["nw", "north"],
+   ["mid", "north"], ["mid", "east"], ["east", "ne"], ["ne", "north"], ["east", "door"]
+  ]
+ }
+}

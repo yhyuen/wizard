@@ -1,16 +1,14 @@
 extends SceneTree
-## Plays every fight in data/slice/encounters.json with the autoplay bot, headless, in the open
-## world where the story starts it (the market at night, the yard, the Mill, the north door):
+## Plays every fight in data/world/encounters.json with the autoplay bot, headless, in the camp
+## where the story starts it (the night patrol in the yard):
 ##
 ##   godot --headless --fixed-fps 60 --script res://tools/tests/encounters.gd
 ##
-## Each fight is started the way the game starts it (in place, with its spawns from
-## data/world/map.json, and the day's growth lent to the fight) and
-## must end within its time limit; a fight with "survive" must last at least that long. Fights are
-## played as a fresh loop-1 Apprentice and as a "strong" wizard (4th Ring, Practice 10), and the
-## Mill once more with Aldous's millrace tip. Some results are required, because the design rests
-## on them (design/slice/content.md §4): a fresh Apprentice passes the yard trial, survives the
-## Mill from the millrace, and does not survive the tide. The rest are printed for tuning.
+## Each fight is started the way the game starts it (in place, with its spawns from its map, and
+## the day's growth lent to the fight) and must end within its time limit; a fight with "survive"
+## must last at least that long. Fights are played as a fresh loop-1 Apprentice and as a "strong"
+## wizard (4th Ring, Practice 10). REQUIRE names results the design rests on (none yet: R2 adds
+## the halls' fights); the rest are printed for tuning.
 ##
 ## Success criterion 8 (runs well) is checked here too: --fixed-fps runs frames back to back, so
 ## the wall time between frames is what one frame of a fight costs without drawing (the rules,
@@ -21,8 +19,8 @@ extends SceneTree
 const LIMIT := 180 * 60
 const FRAME_BUDGET := 8.0  # ms
 ## Where the wizard stands when each fight starts (a spot in data/world/map.json).
-const AT := {"patrol": "market_c", "yard_trial": "yard_c", "silas_duel": "yard_c", "mill_risen": "mill_east", "tide": "north_in"}
-const REQUIRE := {"yard_trial fresh": true, "mill_risen fresh+millrace": true, "tide fresh": false}
+const AT := {"patrol": "yard_c"}
+const REQUIRE := {}
 
 var main
 var bot
@@ -42,11 +40,10 @@ func _initialize() -> void:
 	root.get_node("Progression").reset_all()
 	run = root.get_node("Run")
 	run.save_enabled = false
-	encounters = JSON.parse_string(FileAccess.get_file_as_string("res://data/slice/encounters.json"))["encounters"]
+	encounters = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/encounters.json"))["encounters"]
 	for profile in ["fresh", "strong"]:
 		for id in encounters:
 			cases.append({"id": id, "profile": profile, "millrace": false})
-	cases.insert(encounters.keys().find("mill_risen") + 1, {"id": "mill_risen", "profile": "fresh", "millrace": true})
 	# -- --only tide: just that encounter's cases (for tuning).
 	var args := OS.get_cmdline_user_args()
 	if args.size() >= 2 and args[0] == "--only":
