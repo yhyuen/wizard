@@ -5,6 +5,14 @@
 (the `.story` files) is indexed in [content.md](content.md). Design: GDD 01, the story doc.
 Tracker: S-1, W-1, R-2.*
 
+*Target for the powers (勢力) and schools (流派): the [powers and reputation spec](/mnt/project-files/design/powers/powers-and-reputation-spec.md)
+(tracker M0-14: standing per power, joining a road power and its rank ladder with dated exams,
+lessons from a master, fame and infamy with witnesses and nicknames, fines and bounties, rivals,
+blame for damage, what carries across lives); visual page
+[Powers and Reputation Atlas](https://claude.ai/artifact/4kaEe5EARHzsXc2AN4bZq1). It adds story
+conditions (`standing`, `rank`, `fame`, `nickname`, `wanted`) and effects (`+ standing`, `+ merit`,
+`+ fame`, `+ join`) that are not built yet; see [drift.md](drift.md).*
+
 ## Scenes (`scripts/game/story.gd`)
 
 - Each map's story folder (`maps.json` `story`) holds plain-text `.story` files of scenes:

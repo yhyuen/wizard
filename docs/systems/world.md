@@ -49,6 +49,10 @@
 
 ## People (`scripts/world/people.gd`, `data/world/people.json`)
 
+*Target: how people and powers judge what you do (standing, fame and infamy, the numbered blame
+ladder, suspicion, amends, bounties) is the [powers and reputation spec](/mnt/project-files/design/powers/powers-and-reputation-spec.md)
+§9 (tracker M0-14). What follows is the build today.*
+
 - Camp only (nobody follows you into the ruin). Each person has a `schedule` of spots per time
   of day, `overrides` (days, times, `when`, `spot`, `seek` to walk up and talk once a loop),
   `from_day`, and `barks` heard within 170 px every 7–15 s.
