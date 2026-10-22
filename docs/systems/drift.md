@@ -58,6 +58,19 @@ The [spells and environment](/mnt/project-files/design/world/spells-and-environm
 | Changes last the life; people and nature repair over days; Time mends by grade | Every reaction resets when you wake; Rewind mends within 34 px | [world.md](world.md) |
 | Owners, values, witnesses, a reaction ladder, faction temperaments | People flinch and complain; the captain scolds fire | [world.md](world.md) |
 
+## Enemies: the target vs the build
+
+The [enemy combat spec](/mnt/project-files/design/combat/enemy-combat-spec.md) (2026-10-22, tracker
+M0-7) is how enemies should fight under the combat spec. Its §15 is the full table; the big gaps:
+
+| Target says | As built | Where |
+| --- | --- | --- |
+| Tiers Minion to Boss; a Break meter and Guard arcs beside Poise; Focus on enemy casters, and enemies that interrupt you | Per-kind numbers; Impact vs Poise reactions only | [combat.md](combat.md) |
+| Body and armour materials with grades; states on units last half as long as on props | Hollows light-shy; units have no material | [combat.md](combat.md), [world.md](world.md) |
+| A fight director (attack tokens, telegraph and interrupt budgets) and four AI tiers that use and fear terrain | `ai.gd` minds per kind; waves | [combat.md](combat.md) |
+| `data/enemies.json` with factions; encounters name 2–3 terrain hooks and a knowledge route | `spells.json` `enemies`; encounters are waves, timers, leash and cracks | [combat.md](combat.md) |
+| Regions keep a fixed tier; Unmoored counter-pick your last life; a Field Guide that carries over | Fixed per encounter; no bestiary | [combat.md](combat.md), [loop.md](loop.md) |
+
 ## Known differences inside the build
 
 | Doc says | As built | Where |
