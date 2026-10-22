@@ -72,6 +72,7 @@ M0-7) is how enemies should fight under the combat spec. Its §15 is the full ta
 | A fight director (attack tokens, telegraph and interrupt budgets) and four AI tiers that use and fear terrain | Attack tokens and the reach rule built (N-6.1; distance stands in for "off-screen"); no telegraph or interrupt budget yet, minds still per kind | [combat.md](combat.md) |
 | `data/enemies.json` with factions; encounters name 2–3 terrain hooks and a knowledge route | `data/enemies.json` with faction, role, tier, body and lesson (N-6.1); brigands built (N-6.3), their `toll` fight has no place until the east road (N-7.1.5); encounters are still waves, timers, leash and cracks. Not yet: the cult, the new Hollows (Lantern-eater, Choir, Overdrawn Husk), the Knights | [combat.md](combat.md) |
 | Regions keep a fixed tier; Unmoored counter-pick your last life; a Field Guide that carries over | Fixed per encounter; no bestiary | [combat.md](combat.md), [loop.md](loop.md) |
+| People yield or flee; sparing or finishing a yielded enemy moves fame and standing | Brigands yield and flee (N-6.4); everyone kneeling when you win is spared and counted (`Run.life` "spared"). Not yet: finishing a kneeling enemy, fame and standing (no reputation system yet), elves, dwarves and fae | [combat.md](combat.md) |
 
 ## Lives, saves and HUD: the target vs the build
 

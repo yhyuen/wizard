@@ -22,7 +22,15 @@ func update(u: Unit, dt: float) -> void:
 		if u.state_t <= 0.0:
 			u.state = "move"
 		return
-	if u.locked() or A.player.dead or A.phase in ["won", "lost"]:
+	if A.phase in ["won", "lost"]:
+		return
+	# Morale (N-6.4): people who give up run or kneel.
+	if u.flags.has("fleeing"):
+		A.morale.flee(u, dt)
+		return
+	if A.morale.check(u):
+		return
+	if u.locked() or A.player.dead:
 		return
 	# A burning husk panics: it runs from you, lighting what it passes (enemy spec §5.2).
 	if u.burn_t > 0.0 and str(A.D["enemies"][u.kind].get("faction", "")) in A.D["foes"]["states"]["panic"]:

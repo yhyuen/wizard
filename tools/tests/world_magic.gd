@@ -101,6 +101,7 @@ func _initialize() -> void:
 			func(): return state["blocked"] and state["behind"] and state["s"].flags.get("shield_gone", false)],
 		["an Ember Bolt on a Powder Monkey blows his keg, and it hurts the Cutthroat beside him", _keg_setup, _keg_blown],
 		["the Brigand Captain's net roots you, and Blink gets you out", _net_setup, _netted],
+		["with their Captain down, a hurt Shieldman kneels and is spared, and a hurt Cutthroat runs", _yield_setup, _yielded],
 	]
 
 
@@ -791,3 +792,53 @@ func _netted() -> bool:
 	var ok: bool = not A.player.flags.has("net_t") and A.move_speed(A.player) > 0.0
 	_clear_enemies()
 	return ok
+
+
+# --- N-6.4: morale ---------------------------------------------------------------------------
+
+func _yield_setup() -> void:
+	_clear_enemies()
+	main.arena.zones.clear()
+	var A = main.arena
+	A.morale.reset()
+	var at := _dark_spot()
+	main.place_player(at)
+	A.player.iframes = 99.0
+	state["spared"] = int(slice.run.life.get("spared", {}).get("brigands", 0))
+	state["c"] = A.spawn("brigand_captain", at + Vector2(90, 0))
+	state["s"] = A.spawn("shieldman", at + Vector2(-90, 0))
+	state["t"] = A.spawn("cutthroat", at + Vector2(0, 90))
+	for u in [state["c"], state["s"], state["t"]]:
+		u.stun = 9.0
+		u.state = "move"
+	for u in [state["s"], state["t"]]:
+		u.hp = u.max_hp * 0.2
+	state["step"] = 0
+	state["frames"] = 0
+
+
+func _yielded() -> bool:
+	var A = main.arena
+	state["frames"] += 1
+	match state["step"]:
+		0:
+			if state["frames"] < 10:
+				return false
+			# hurt, but their Captain stands and the side is whole: they fight on
+			state["held"] = not state["s"].flags.has("yielded") and not state["t"].flags.has("fleeing")
+			A.kill(state["c"])
+			state["step"] = 1
+			return false
+		1:
+			if state["t"].flags.has("fleeing"):
+				state["t"].flags["fleeing"] = 0.2  # it runs; no need to watch it all the way off
+				state["step"] = 2
+			return false
+	if not state["t"].dead:
+		return false
+	var knelt: bool = state["s"].flags.has("yielded") and state["s"].team == 2 and not A.enemies().has(state["s"])
+	A.morale.settle(true)
+	var spared: bool = int(slice.run.life.get("spared", {}).get("brigands", 0)) == state["spared"] + 1
+	A.player.iframes = 0.0
+	A.units = A.units.filter(func(u): return u.team == 0)
+	return state["held"] and knelt and spared

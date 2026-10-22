@@ -527,6 +527,8 @@ func _pose(u: Unit, rec: Dictionary, delta: float) -> Array:
 			# it came into the fight by rising from death, so it leaves standing, fading out of time
 			return ["stand", 0.0]
 		return ["down", k * Figure.clip_len("down")]
+	if u.flags.has("yielded"):
+		return ["down", 0.3 * Figure.clip_len("down")]  # kneeling, out of the fight (N-6.4)
 	if u.state == "enter" and u.kind == "inverted":
 		# the Backward Slinger's death played in reverse: it lies dead, then rises
 		var rise := float(arena.D["enemies"]["inverted"]["rise"])

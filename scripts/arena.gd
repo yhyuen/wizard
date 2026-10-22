@@ -21,10 +21,12 @@ const Kit := preload("res://scripts/kit.gd")
 const Ai := preload("res://scripts/ai.gd")
 const Cutscene := preload("res://scripts/game/cutscene.gd")
 const Matter := preload("res://scripts/world/matter.gd")
+const Morale := preload("res://scripts/morale.gd")
 
 var D: Dictionary  # data/spells.json
 var kit
 var ai
+var morale  # scripts/morale.gd: who yields or runs (N-6.4)
 var rng := RandomNumberGenerator.new()
 
 var player: Unit
@@ -110,6 +112,7 @@ func _ready() -> void:
 	_tex["ember"] = [PixelArt.tex("ember", PixelArt.EMBER), PixelArt.tex("ember_b", PixelArt.EMBER_B)]
 	kit = Kit.new(self)
 	ai = Ai.new(self)
+	morale = Morale.new(self)
 	start()
 
 
@@ -126,6 +129,7 @@ func start(test_scene := "", enc := {}) -> void:
 	fxs.clear()
 	ignite_queue.clear()
 	spawn_queue.clear()
+	morale.reset()
 	summoned = false
 	over_t = -1.0
 	clear_t = 0.0
@@ -316,6 +320,7 @@ func spawn(kind: String, at: Vector2) -> Unit:
 	u.state = "enter"
 	u.state_t = 0.5
 	_add(u)
+	morale.on_spawn(u)
 	if e.get("anchored", false):
 		u.flags["anchored"] = true  # a guardian that never moves (the Kiln Warden)
 	if kind == "inverted":
@@ -545,6 +550,7 @@ func _end(won: bool) -> void:
 	if not echo_rec.is_empty():
 		Progression.set_echo(echo_rec, won)
 	if not encounter.is_empty():
+		morale.settle(won)  # the ones who knelt are spared
 		banner.emit(("You survive" if survive_time() > 0.0 else "The fight is over") if won else "You fall")
 		if won:
 			for u in enemies():
@@ -1001,6 +1007,7 @@ func kill(u: Unit) -> void:
 	if u == player:
 		_end(false)
 		return
+	morale.on_out(u)
 	if phase != "won":
 		stats["kills"] += 1  # not the ones that crumble when the fight is won
 	fx("burst", u.pos, {"color": PixelArt.HOURS if u.kind == "inverted" else PixelArt.PAPER, "r": 9.0, "life": 0.35})

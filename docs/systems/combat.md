@@ -164,6 +164,13 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   gets you out) and every 8 s calls a **volley** (his ready Crossbowmen shoot together, past the
   director). Encounter `toll` (the bridge toll, places spec F13) is the group; until the east road
   is built (N-7.1.5) only the fight tests play it, in the camp yard.
+- **Morale** (N-6.4, enemy spec §6.5, `foes.morale`, `scripts/morale.gd`): people yield, Hollows,
+  constructs, embers and Silas don't (only `brigands` so far). Once a side's leader is dead or half
+  of it is out of the fight, any of it at 25% HP or less gives up: a Minion runs for 2.5 s and is
+  gone (not a kill); the rest **kneel**, out of the fight (team 2: spells, AI and the win check pass
+  them by) and give their XP and wells as if beaten. The leader going down toasts that the rest lose
+  heart. Win, and everyone kneeling is **spared**: `Run.life["spared"]` counts them by faction for
+  the reputation to read later. Losing to people isn't lethal (the toll sets `lethal: false`).
 - `scripts/bot.gd` plays the wizard for tests and F2 autoplay: one committed spell at a time, waiting
   for Aether rather than Overdrawing, the Ward against shots, the staff when something is close.
 
