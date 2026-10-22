@@ -23,6 +23,8 @@ func mind(u: Unit, dt: float) -> bool:
 			_choir(u, dt)
 		"husk":
 			_husk(u, dt)
+		"lightdrinker":
+			_drinker(u, dt)
 		_:
 			return false
 	return true
@@ -144,6 +146,14 @@ func shot(o: Unit, z: Dictionary) -> Dictionary:
 
 ## An enemy was Broken: a Husk leaks its Aether onto the ground.
 func on_broken(u: Unit) -> void:
+	if u.kind == "lightdrinker" and A.town != null:
+		# Broken, it spits the light back out: the dark lamps round it relight.
+		for l in A.town.lamps:
+			if not l["lit"] and l["pos"].distance_to(u.pos) < float(_rec(u)["spit_r"]):
+				A.town.light_lamp(l, "spat")
+		A.fx("ring", u.pos, {"color": PixelArt.GOLD, "r": float(_rec(u)["spit_r"]), "life": 0.8})
+		A.stats["light_spat"] = int(A.stats.get("light_spat", 0)) + 1
+		return
 	if u.kind != "husk":
 		return
 	var k: Dictionary = _rec(u)["leak"]
@@ -164,3 +174,30 @@ func update(dt: float) -> void:
 				z["left"] = float(z["left"]) - take
 				A.kit.aether += take
 				A.stats["drank"] = float(A.stats.get("drank", 0.0)) + take
+
+
+## The Lightdrinker (Lantern Night's boss): every lamp near it goes out as it walks at you, and it
+## swings like a great Hollow.
+func _drinker(u: Unit, dt: float) -> void:
+	var e := _rec(u)
+	if A.town != null:
+		for l in A.town.lit_lamps_near(u.pos, float(e["drink_r"])):
+			if l["lit"]:
+				A.town.smother_lamp(l)
+				A.stats["lamps_drunk"] = int(A.stats.get("lamps_drunk", 0)) + 1
+	var to: Vector2 = A.player.pos - u.pos
+	match u.state:
+		"move":
+			if to.length() < float(e["reach"]) + 4.0 and u.cooldown("attack") <= 0.0:
+				u.state = "windup"
+				u.state_t = float(e["windup"])
+				u.facing = signf(to.x) if absf(to.x) > 0.1 else u.facing
+				A.add_zone({"kind": "slash", "owner": u.id, "pos": u.pos, "dir": to.normalized(),
+					"reach": float(e["reach"]) + 4.0, "arc": 2.2, "delay": float(e["windup"]), "dmg": float(e["damage"])})
+			else:
+				AI._step(u, AI._toward(u, A.player.pos, dt), dt)
+		"windup":
+			u.state_t -= dt
+			if u.state_t <= 0.0:
+				u.state = "move"
+				u.cd["attack"] = float(e["cooldown"])

@@ -96,6 +96,11 @@ workroom moving to the halls, shops, boards and crews behind the new places (N-7
   III 240, IV the whole circuit; the ground rule below), and **every circuit lamp on a charged cell
   flares** (logged `flare`), so a strong enough strike lights a whole run for a moment and none of
   the others.
+- **The vigil** (Lantern Night's Peak, N-7.5.2; encounter `vigil`): while a fight with a vigil runs,
+  30 people (20 if `sheltered`) sleep round the 24 circuit lamps' pools; a pool that is dark (not
+  lit, not flaring) with an enemy within 72 px for 10 s loses its people (`calamity_lost`, logged
+  `taken`, a toast). With `helpers_coming` a helper relights the first dark circuit lamp with no
+  enemy near every 15 s (`by` "helper").
 
 ## The fallen city (`data/city/map.json`, `scripts/world/gates.gd`)
 
@@ -334,7 +339,8 @@ grid, breaking and collapse, damage that lasts the life, owners and witnesses. W
 - A lit or flaring lamp's pool (`light_r` 38) keeps `light_shy` kinds out (Hollows, Slingers,
   Backward Slingers, embers, the Choir and the Husk). A **Lantern-eater** (N-6.3) isn't: it walks in
   and **smothers** the lamp (`smother_lamp`: out as if doused, logged `smothered`) until someone
-  lights it again.
+  lights it again. The **Lightdrinker** (Lantern Night's boss, N-7.5.2) puts out every lamp within
+  64 px as it walks, and when Broken relights every dark lamp within 150 px (`by` "spat").
 - **Devices** (N-5.2, [combat.md](combat.md)): a Spark Flask's burst is a `flask` mark that acts
   like Pillar's fire (ground, props, lamps, braziers). A Tar Pot turns the cells under its pool to
   **oil** (`cells.gd` `tar`: catches at Fire I, burns 12 s); fire touching the pool lights it all.

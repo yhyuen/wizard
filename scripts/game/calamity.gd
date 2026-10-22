@@ -108,11 +108,12 @@ func here_now(id: String, region: String) -> bool:
 
 # --- Dawn: stakes, tier, aftermath ------------------------------------------------------------
 
-## The tier the stakes earn (rules checked in order; the last tier if none holds).
+## The tier the stakes earn (rules checked in order, each with its sealed `flag` if it has one; the
+## last tier if none holds).
 func tier_for(id: String, lamps: int, lost: int) -> String:
 	var tiers: Array = rec(id)["tiers"]
 	for t in tiers:
-		if not t.has("lamps_at_least"):
+		if not t.has("lamps_at_least") or (t.has("flag") and not run.flag(str(t["flag"]))):
 			continue
 		var a := lamps >= int(t["lamps_at_least"])
 		var b := lost <= int(t["lost_at_most"])

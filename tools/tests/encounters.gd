@@ -23,7 +23,8 @@ const FRAME_BUDGET := 8.0  # ms
 ## (its `place` [map, place, spot], N-7.1.6) starts at its spot instead.
 const AT := {"patrol": ["camp", "yard_c"], "hall_fight": ["halls", "hall_c"], "refectory_fight": ["halls", "refectory_c"],
 	"gallery_fight": ["halls", "gallery_c"], "ante_fight": ["halls", "ante_c"], "warden": ["halls", "kiln_s"],
-	"lamp_night": ["camp", "yard_c"], "c1_peak": ["camp", "great_lamp"]}
+	"lamp_night": ["camp", "yard_c"], "c1_peak": ["camp", "great_lamp"],
+	"stair_test": ["camp", "great_lamp"]}
 ## The Kiln Warden is a trial (design/ruins/content.md §4): a fresh Apprentice who walks in
 ## without turning the sluice loses; with the sluice turned, a wizard who has worked at it wins.
 const REQUIRE := {"warden fresh": false, "warden strong+flooded": true}

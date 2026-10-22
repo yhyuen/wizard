@@ -60,6 +60,7 @@ var fire_proj := {}  # the marks that carry fire (data/materials.json carriers)
 var events_log: Array = []  # what magic did, for tests: [kind, what]
 var pools: Array = []  # where a lit or flaring lamp's light keeps Hollows off, rebuilt each tick
 var light_shy := {}
+var vigil := {}  # a calamity's Peak (encounter "vigil", N-7.5.2): {"lamps": [{"l", "people", "t"}], "help_t"}
 
 ## Flags the world sets itself (not a story scene), for the story checks.
 const FLAGS := ["lit_lane", "round_done"]
@@ -308,6 +309,7 @@ func tick(dt: float) -> void:
 	_magic()
 	_lamps_by_time()
 	_lightning(dt)
+	_vigil(dt)
 	_ground(dt)
 	_structures(dt)
 	_light_pools()
@@ -396,6 +398,53 @@ func out_of_light(kind: String, p: Vector2, r: float) -> Vector2:
 		if to.length_squared() < lr * lr:
 			p = c + (to.normalized() if to.length_squared() > 0.01 else Vector2.UP) * lr
 	return p
+
+
+## A calamity's Peak (encounter `vigil`, seasons spec §8.5): people sleep in the circuit lamps'
+## pools; a pool dark with an enemy in it for `taken_s` s loses its people (Run.life
+## calamity_lost), and helpers, if you asked for them, relight a dark lamp now and then.
+func _vigil(dt: float) -> void:
+	var v: Dictionary = arena.encounter.get("vigil", {}) if arena.phase == "enc" else {}
+	if v.is_empty():
+		vigil = {}
+		return
+	if vigil.is_empty():
+		var circuit: Array = lamps.filter(func(l): return l["circuit"] != "")
+		var n := int(v["people"])
+		var sh: Dictionary = v.get("shelter", {})
+		if not sh.is_empty() and run.flag(str(sh["flag"])):
+			n -= int(sh["n"])
+		vigil = {"lamps": [], "help_t": 0.0}
+		for l in circuit:
+			vigil["lamps"].append({"l": l, "people": 0, "t": 0.0})
+		for i in maxi(0, n):
+			if not circuit.is_empty():
+				vigil["lamps"][i % circuit.size()]["people"] += 1
+	var near := float(v["near_r"])
+	var foes: Array = arena.enemies()
+	for w in vigil["lamps"]:
+		var l: Dictionary = w["l"]
+		if int(w["people"]) <= 0:
+			continue
+		if lamp_on(l) or not foes.any(func(u): return u.pos.distance_to(l["pos"]) < near):
+			w["t"] = 0.0
+			continue
+		w["t"] += dt
+		if w["t"] >= float(v["taken_s"]):
+			run.life["calamity_lost"] = int(run.life.get("calamity_lost", 0)) + int(w["people"])
+			events_log.append(["taken", int(w["people"])])
+			w["people"] = 0
+			arena.toast.emit("Someone in the dark: \"No, no, I'm in the light, I'm in the...\"", PixelArt.HOURS)
+	var hp: Dictionary = v.get("helpers", {})
+	if not hp.is_empty() and run.flag(str(hp["flag"])):
+		vigil["help_t"] += dt
+		if vigil["help_t"] >= float(hp["every"]):
+			vigil["help_t"] = 0.0
+			for w in vigil["lamps"]:
+				var l: Dictionary = w["l"]
+				if not l["lit"] and not foes.any(func(u): return u.pos.distance_to(l["pos"]) < near):
+					light_lamp(l, "helper")
+					break
 
 
 ## Lightning: flaring lamps fade back, and charged puddles shock whoever stands in them.

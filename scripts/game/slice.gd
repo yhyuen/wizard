@@ -252,11 +252,18 @@ func _calamities() -> bool:
 
 
 ## The Onset (the story's `calamity_onset <id>`): the market's circuit lamps go out, and won't
-## come back on by themselves tonight.
+## come back on by themselves tonight; with the calamity's `onset_hold`, unless the cut was
+## stopped, and the re-wicked circuits hold.
 func _calamity_onset(id: String) -> void:
 	toast("This night can end the year.", true)
+	var hold: Dictionary = calamity.rec(id).get("onset_hold", {})
+	if not hold.is_empty():
+		if run.flag(str(hold["stopped"])):
+			run.set_flag(str(hold["kept"]))
+			return
+		run.set_flag(str(hold["taken"]))
 	for l in world.lamps:
-		if l["circuit"] != "":
+		if l["circuit"] != "" and not run.flag(str(hold.get("held_prefix", "-")) + str(l["circuit"]).to_lower()):
 			l["lit"] = false
 			l["by"] = "doused"
 
@@ -727,6 +734,7 @@ func _effect(op: String, arg: String) -> bool:
 		"prep":
 			var pp: PackedStringArray = arg.split(" ", false)
 			calamity.prep(pp[0], pp[1])
+			after.append("period")  # preparing is work: it takes the time of day
 		"calamity_onset":
 			_calamity_onset(arg)
 		"calamity_dawn":
@@ -905,6 +913,8 @@ func _start_fight(id: String) -> void:
 					g["flags"] = g.get("flags", {}).duplicate()
 					g["flags"]["flooded"] = true
 		enc["flooded"] = true
+	if enc.has("shorter") and run.flag(str(enc["shorter"]["flag"])):
+		enc["survive"] = int(enc["shorter"]["survive"])  # the cut came late: a shorter Peak
 	if fight_resolver.is_valid():
 		var r = fight_resolver.call(id)  # won, or {"won", "kills"}
 		if r is Dictionary:

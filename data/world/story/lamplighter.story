@@ -2,7 +2,7 @@
 # the road is open (lives.json roads.lamplighter.opens_by). Master: Fennick Brass; friend: Mira.
 # Fennick's offer hangs off the first morning (apprentice.story wake_again_ask); rule one and the
 # late answer to his offer are choices on the Guild bench (camp.story). The coupling (S24) and the
-# wrong oil come with Calamity 1 (N-7.5). The format is in scripts/game/story.gd.
+# wrong oil are in lantern_night.story (N-7.5.2). The format is in scripts/game/story.gd.
 
 # --- S20. Fennick at the tent flap --------------------------------------------------------------
 
