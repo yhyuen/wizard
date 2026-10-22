@@ -105,7 +105,9 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
   Gate shuts** (Thaw 2, morning, the Iron Gate, an appointment; the Iron Gate is a card, so for now
   it is always missed) and **A voice under Cinder Row** (Thaw 10, Night, anywhere in the fallen
   city; an appointment: Brogan, trapped under a beam in the sliced bakery's cellar, freed with a
-  lever or by digging, then sits in the camp's market and owes you a road; missed, he's lost).
+  lever or by digging, then sits in the camp's market and owes you a road; missed, he's lost)
+  and **Two on the watch** (Seedmoon 12, Night, the Mill fields; an appointment, part of the life 1
+  main line, N-7.3.2; missed, it sets `tam_taken`).
   The Ring 1 story's other dated beats are people's scenes (N-7.2.3): Sister Nobody's fire from
   Ashmoon 4, Cass's portrait from Ashmoon 20. The main line's are N-7.3.
 - Story conditions `attended(id)` and `missed(id)` (this life, or an appointment from before).
@@ -114,17 +116,30 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
 
 - One gold step under the vitals, outside fights: the first step whose `when` holds. The
   Apprentice road's opening (N-7.3.1): Crane's first lesson (Ashmoon 3, or 4) and Marrow's
-  (Ashmoon 5, or 6), then the first playable's two (the way to the Kiln, past the Kiln) until the
-  rest of the road replaces them.
+  (Ashmoon 5, or 6), Aldous's ask and his cellar (Ashmoon 8–28), the Thaw examination (Thaw 21)
+  and Wren's ask (Seedmoon 1–10) and meeting (Seedmoon 11) (N-7.3.2), then the first playable's
+  two (the way to the Kiln, past the Kiln) until the rest of the road replaces them.
 - **The Apprentice road's opening** (`apprentice.story`, SEALED story content): the first morning
   (life 1: Wren at the tent flap, the Ledger under the pillow; sitting up fast faints you; every
   later life: the same morning, the Hours, Wren's answers to what the soul knows, the Omens, and
   the backward hand's line for lives 2–4), the glass note at the camp's edge (the hill), Crane's
   lesson (the Kindle's seven doors, one choice per stroke; how many are right decides how it
   lights; a soul that knows them draws them at once) and Marrow's (stand still on the star stone).
-  The lessons are board events at the College tents (`known: true`). Four sealed story
-  achievements: fainting on the first morning, all seven doors, carrying Brogan home, sitting for
-  Cass.
+  The lessons are board events at the College tents (`known: true`). **The Mill cellar**
+  (N-7.3.2): from Ashmoon 8 Aldous asks you down into his grain cellar (the cellar itself plays
+  on arrival, in `fields.story`); the Kindle way burns it (`ignite mill_cellar`: the four seed
+  sacks and the ground; the deed `burned_mill`, Aldous remembers it, and the Mill's night fight
+  stops); the patient way hangs a lamp an aisle on three different days and saves the seed. Both
+  write a word on the Ledger's next page. **The Thaw examination** (Thaw 21, Morning, a board
+  event at the College tents): read Marrow's chart right and know Alignment to pass (`deed
+  exam_thaw`). **Wren's book** (S7): Wren asks you in Seedmoon; said yes, the Archive stair past
+  the Kiln offers the climb on Seedmoon 11 (a scene, not a room yet); the stair ages on the way
+  down and the story knocks you down three days (`downed 3 fall`), so the watch on Seedmoon 12
+  goes by without you, and you wake to Mira and the news. **Two on the watch** (S8) plays at the
+  east fence if you're in the Mill fields that night instead; a later life that kept it hears
+  from Aldous what came up out of his cellar. Seven sealed story achievements: fainting on the
+  first morning, all seven doors, carrying Brogan home, sitting for Cass, the patient way,
+  passing the exam, keeping the watch.
 
 ## Achievements (`data/world/achievements.json`, `scripts/game/achievements.gd`, lives spec §7)
 
@@ -193,5 +208,5 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
 `tools/tests/route.gd` (loop 1 through the camp and the halls, loses to the Warden on day 2 and
 wakes Injured on day 4, lets the loop go at the shrine, then loop 2), `tools/tests/deaths.gd`
 (each first death or fall teaches something; a fall wakes you Injured two days later; resting
-until the next moon, and travelling), `tools/tests/unit.gd` (`_year`: the calendar, losses, the
+until the next moon, and travelling; the Thaw examination; the stair fall that misses the watch), `tools/tests/unit.gd` (`_year`: the calendar, losses, the
 roads), `tools/tests/relearn.gd`.

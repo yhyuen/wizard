@@ -52,6 +52,7 @@ extends SceneTree
 ## burns the webs off an apple tree and leaves the tree standing.
 ## N-7.1.5 (the east road): Impact II breaks the bar across the waystation cellar's door and the
 ## door opens; breaking a quarry scaffold post brings the scaffold down on the ledge camp.
+## N-7.3.2 (the cellar thing): the Kindle way's `ignite mill_cellar` sets the seed sacks burning.
 
 const BOOK := ["ember_bolt", "pebble", "splash", "undertow"]
 const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt"]
@@ -150,6 +151,7 @@ func _initialize() -> void:
 		["shoving the counterweight opens the drain grate for good (a soul memory): its exits up and down work", _weight_setup, _weighted],
 		["in the Mill fields, draining the pond at its sluice makes the islet a walk", _pond_setup, _pond_walk],
 		["Fire I burns the webs off an apple tree and leaves the tree standing", _web_setup, _webs_gone],
+		["in the Mill cellar, the Kindle way sets the seed sacks burning", _cellar_fire_setup, _cellar_burned],
 		["on the east road, Impact II breaks the bar on the waystation cellar's door and it opens", _bar_setup, _cellar_open],
 		["breaking a quarry scaffold post brings the scaffold down on the ledge camp", _scaffold_setup, _scaffold_down],
 	]
@@ -1436,6 +1438,21 @@ func _webs_gone() -> bool:
 	if state["web"]["state"] != "ash":
 		return false
 	return state["tree"]["state"] != "burning" and state["tree"]["state"] != "ash"
+
+
+# --- the cellar thing (N-7.3.2): the story's ignite effect -------------------------------------
+
+func _cellar_fire_setup() -> void:
+	state.erase("long")
+	main.enter_world(world.map.spots["mill_cellar"])
+	_clear_enemies()
+	slice.play("cellar_fire")
+	slice.finish_scene()
+
+
+func _cellar_burned() -> bool:
+	var seed: Array = world.props.filter(func(p): return str(p.get("tag", "")).begins_with("seed_"))
+	return seed.size() == 4 and seed.all(func(p): return p["state"] in ["burning", "ash"])
 
 
 # --- the east road (N-7.1.5) -------------------------------------------------------------------

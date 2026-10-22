@@ -7,7 +7,7 @@ extends SceneTree
 ## leads to it (losing the fight, if there is one) through to the death screen, or, for a loss that
 ## doesn't end the life (lives spec §3.2), to the hurt screen and waking injured two days later.
 ## Dying or falling that way for the first time must teach at least one Ledger entry the screen
-## shows.
+## shows. Also the life 1 main line's Thaw examination and the stair fall that costs the watch.
 
 ## Death cause -> the scene that leads to it. A new cause must be added here.
 const ROUTES := {
@@ -19,6 +19,7 @@ const ROUTES := {
 	"fight:gallery_fight": "gallery",
 	"fight:ante_fight": "antechamber",
 	"fight:warden": "warden_fight",
+	"fall": "daybook_study",
 }
 const GENERIC := ["fight"]  # the fallback text for a lethal fight with no death scene of its own
 const NOT_DEATHS := ["first_playable_end"]  # the end card, reached by winning
@@ -51,6 +52,8 @@ func _go() -> void:
 	_rest_and_travel()
 	_fixed_events()
 	_shrine_waits()
+	_thaw_exam()
+	_daybook_fall()
 	for f in failures:
 		print("[deaths] FAIL: " + f)
 	if failures.is_empty():
@@ -90,13 +93,18 @@ func _die(cause: String, scene: String) -> void:
 		failures.append("dying to %s for the first time teaches nothing" % cause)
 
 
-## A loss that doesn't end the life (lives spec §3.2): you wake on your cot two days later, Injured,
+## A loss that doesn't end the life (lives spec §3.2): you wake on your cot two days later (a lost
+## fight) or as many as the story says (`downed`), Injured,
 ## with Vitality held down until a full night's sleep.
 func _wake_injured(cause: String) -> void:
 	var day: int = run.day()
+	var days: int = int(run.life["losses"][-1]["days"])  # the story sets its own (`downed`)
+	if cause.begins_with("fight") or cause == "patrol":
+		if days != int(run.lives["wake_injured"]["days"]):
+			failures.append("%s: a lost fight should cost %d days, not %d" % [cause, int(run.lives["wake_injured"]["days"]), days])
 	slice.wake()
-	if slice.screen != "world" or run.day() != day + int(run.lives["wake_injured"]["days"]):
-		failures.append("%s: should wake in the world two days later (day %d), got %s on day %d" % [cause, day + 2, slice.screen, run.day()])
+	if slice.screen != "world" or run.day() != day + days:
+		failures.append("%s: should wake in the world %d days later (day %d), got %s on day %d" % [cause, days, day + days, slice.screen, run.day()])
 	elif not run.injured() or main.arena.hp_cap >= 1.0 or main.arena.player.hp > main.arena.player.max_hp * 0.76:
 		failures.append("%s: waking after a loss should leave you Injured" % cause)
 
@@ -154,3 +162,43 @@ func _shrine_waits() -> void:
 	if not "Turn back the Hours" in texts:
 		failures.append("the shrine should offer to turn back the Hours once a calamity has passed: %s" % str(texts))
 	slice.finish_scene()
+
+
+## The life 1 main line (N-7.3.2): the fall on the way back from Wren's book on Seedmoon 11 keeps
+## you down three days, so the watch on Seedmoon 12 goes by without you and becomes an appointment.
+func _daybook_fall() -> void:
+	slice.new_month()
+	slice.finish_scene()
+	run.life["day"] = 67
+	run.life["time"] = 2
+	slice.play("daybook_study")
+	slice.choose(0)
+	slice.choose(0)
+	if slice.screen != "hurt":
+		failures.append("the stair should knock you down (screen %s)" % slice.screen)
+		return
+	slice.wake()
+	if run.day() != 70 or run.event_state("two_on_watch") != "missed" or not run.flag("tam_taken"):
+		failures.append("three days down from Seedmoon 11 should miss the watch on the 12th (day %d, %s)" % [run.day(), run.event_state("two_on_watch")])
+	elif not run.soul["appointments"].has("two_on_watch"):
+		failures.append("the missed watch should become an appointment")
+	elif slice.story.arrive_scene("tent") != "daybook_wake":
+		failures.append("you should wake to Mira after the fall, not %s" % slice.story.arrive_scene("tent"))
+	else:
+		print("[deaths] the stair fall on Seedmoon 11 cost three days, and the watch on the 12th became an appointment")
+
+
+## The Thaw examination (N-7.3.2): the right chart and Alignment pass; the wrong chart fails.
+func _thaw_exam() -> void:
+	for right in [true, false]:
+		slice.new_month()
+		slice.finish_scene()
+		run.learn("alignment")
+		slice.play("thaw_exam")
+		slice.choose(0 if right else 1)
+		for i in 3:
+			if not slice.cur.is_empty():
+				slice.choose(0)
+		if run.flag("exam_passed_thaw") != right:
+			failures.append("the Thaw examination with the %s chart should %s" % ["right" if right else "wrong", "pass" if right else "fail"])
+	print("[deaths] the Thaw examination passes on the right chart with Alignment, and fails on the wrong one")

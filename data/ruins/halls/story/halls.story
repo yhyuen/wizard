@@ -249,8 +249,33 @@ use: archive_stair
 repeat: true
 The Archive stair climbs past the Kiln into the dark, choked with fallen stone a few steps up.
 A draught comes down through the gaps, smelling of old paper.
+* Climb to the Provost's study with Wren [f("warden_down") and f("daybook_yes") and day == 67 and not f("daybook")] -> daybook_study
 * Sit on the bottom step and rest (the end of the first playable) [f("warden_down")] -> end_card
 * Leave
 
 === end_card
 + end_loop first_playable_end
+
+# --- S7, Wren's book (SEALED story content; the life 1 main line, N-7.3.2) ----------------------
+
+# Wren meets you here on Seedmoon 11 if you said you'd come (apprentice.story). The study is a
+# scene at the top of the stair for now, not a room.
+=== daybook_study
+Wren is sitting on the bottom step with a lantern between their boots. They don't say anything; they just get up and climb, and you climb after them, over the fallen stone, into the dark.
+The Provost's study is the only room in the halls that still looks like a room. The ash has settled on it like a dust sheet.
+The daybook is on the reading stand, open, as Wren said. His handwriting runs right to the edge of the page.
+Wren reads the last page by your Kindle-light. Their face does something you don't have a word for.
+Wren: Later.
+They close the book. The word means "never ask me".
++ set daybook
++ learn daybook_hand
++ learn lens_schedule
++ learn polish_margin
+* Go back down the stair -> daybook_stair
+
+=== daybook_stair
+The stair under you ages.
+There's no other word. The oak treads grey, split, sag and powder in the time it takes to look down. A hundred years in a heartbeat.
+You fall one storey into the room below. Wren, a step above you, doesn't.
++ downed 3 fall
+* Let go

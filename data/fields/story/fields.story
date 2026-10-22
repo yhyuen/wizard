@@ -112,7 +112,7 @@ arrive: mill_cellar
 times: night
 repeat: true
 priority: 5
-when: not done("mill_cellar") and since("mill_cellar_won") >= 3 and day > 28
+when: not done("mill_cellar") and since("mill_cellar_won") >= 3 and day > 28 and not f("mill_burned")
 + today mill_cellar
 Down in the sack aisles something is tearing at the grain. Hollows, drawn by it the way moths are drawn to a lamp, and the air is thick with flour.
 Fire would be a very bad idea in here.
@@ -127,3 +127,110 @@ Fire would be a very bad idea in here.
 The aisles go still. Flour settles on everything, on you too, like snow.
 + today mill_cellar_won
 
+
+# --- S4, the cellar thing (the life 1 main line; Aldous asks in data/world/story/apprentice.story) --
+
+=== cellar_first
+arrive: mill_cellar
+priority: 8
+when: f("cellar_asked") and not f("cellar_done") and not f("cellar_patient_1")
+The cellar door is set into the hillside under the mill. Inside, the dark smells of dust and barley and something like a snuffed candle.
+The sacks are stacked to the beams in long aisles. Your lantern makes one small room of light that moves when you move.
+At the end of the first aisle, where the light stops, something is sitting in the dark.
+You can't see it. You can see where it is, because there is a place the lantern-light doesn't go. Not a shadow. A shadow has edges. A patch of less.
+When you step forward it doesn't move. When you step back, it's a step closer.
++ learn the_less
+* Build the Kindle here and now -> cellar_fire
+* Hang the lantern on the hook and back away slowly -> cellar_patient
+
+=== cellar_fire
+Seven doors. You name them as you lay them. North for draw. South for spread.
+The Kindle doesn't light a lamp. It lights the air in front of you: a ball of honest flame the size of a fist.
+For the first time you see the thing in the dark. A man, sitting on a seed sack with his hands on his knees. You can see the sacking through his chest. His face is a smooth place, like a page with the ink washed off.
+The light touches him and he flinches. He turns his washed-out face aside, like someone in bed when the shutters are opened.
+He doesn't strike. He tilts his head at you, the way a dog does at a sound it almost knows.
+And the flame falls.
+It drops from your figure because you let go of it in fright, and it lands on the barley.
+Dry grain doesn't catch. It goes.
++ ignite mill_cellar
++ sound cast_fire
+In the light, more light than this cellar has held in three hundred years, you see what was sitting in the dark. Not one faceless man. A dozen, along every aisle, all turning their blank faces away from the fire like sleepers.
+Then the roof beam comes down.
+* Run -> cellar_after
+
+=== cellar_after
++ move mill_pond
+You're on the hillside on your hands and knees. The mill above you is burning.
+Aldous is standing in the field with a bucket in each hand and no water in either, watching the camp's bread go up into the evening.
+He doesn't shout. That's the worst of it.
+Aldous: (after a long time) Well. It's not waiting any more.
+Aldous: There's seed in the east barn. Not enough. (He puts the buckets down very carefully, as if they might break.) Not nearly enough.
++ set cellar_done
++ set mill_burned
++ deed burned_mill
++ remember aldous mill_burned
++ learn page_why
+* Leave
+
+=== cellar_patient
+You hang the lantern on the hook at the end of the aisle and step back, slowly. The less doesn't follow into the light.
+It sits at the edge of it, exactly at the edge, the way a cat sits at the edge of a rug it's been told off for.
+Through the dark you feel it tilt its head at you, the way a dog does at a sound it almost knows.
+One lamp. One aisle. That's a start.
++ set cellar_patient_1
++ today cellar
++ learn page_why
+* Leave
+
+=== cellar_aisle2
+arrive: mill_cellar
+priority: 8
+when: f("cellar_patient_1") and not f("cellar_patient_2") and not done("cellar")
+Your first lamp is still burning on its hook. The less sits where the second aisle goes dark, patient as a heron.
+You carry a second lamp down the aisle a step at a time and hang it. It gives ground. Not much. Enough.
++ set cellar_patient_2
++ today cellar
+* Leave
+
+=== cellar_aisle3
+arrive: mill_cellar
+priority: 8
+when: f("cellar_patient_2") and not f("cellar_done") and not done("cellar")
+The third lamp goes up on the last hook. The cellar is a long room of light, all three aisles, sack after sack of seed barley, and nothing sitting on any of them.
+At the end of the third aisle, where the less was, there's a crack in the floor. Cold breathes out of it, very steadily, like something asleep.
++ set cellar_done
++ set seed_saved
++ learn mill_crack
+* Carry the seed up to Aldous -> cellar_seed
+
+=== cellar_seed
+Aldous: (looking at the sacks, not at you) Three days. I'd have said one torch and done.
+Aldous: (He picks up a handful of barley and lets it run through his fingers.) Bread for Highsun.
+Aldous: Tam. Fetch the good lantern back up. Leave the others. (To you.) I'm leaving the others.
++ remember aldous seed_saved
+* Leave
+
+
+# --- S8, two on the watch (the fixed event tam_fence: Seedmoon 12, Night, the Mill fields) --------
+
+=== tam_fence_here
+Captain Halloway's watchman, Dob, is alone on the east fence with a lantern that won't stay lit.
+Dob: Supposed to be two of us. The other one's a wizard and the wizards are all off in the city looking for books.
+At the far end of the fence, a boy and a goat. Tam has the rope. The goat has opinions.
+Between Tam and the gate there's a patch of field where the lantern light doesn't go.
+* Kindle the lantern -> tam_fence_light
+* Call Tam to you -> tam_fence_call
+
+=== tam_fence_call
+Tam: (cheerful) It won't come! It's being a goat!
+He laughs, and walks towards you with the rope, straight into the patch of less.
+* Kindle the lantern, now -> tam_fence_light
+
+=== tam_fence_light
+Seven doors. The lantern takes the Kindle and holds it, steady and yellow.
+The patch of less stops at the edge of the light. It sits there, exactly at the edge.
+Tam walks the goat home through the gate in the light, talking to it the whole way.
+Tam: You're a bad goat. You're the worst goat.
+Dob: (letting his breath out) Two on the watch. Like it should be.
++ set tam_safe
+* Leave

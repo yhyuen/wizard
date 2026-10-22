@@ -47,6 +47,9 @@
   "number_five": {"kind": "story", "name": "Number Five", "hint": "Get up too quickly.", "sealed": true, "when": "f(\"fainted_first\")"},
   "seven_doors": {"kind": "story", "name": "Seven Doors", "hint": "Know what every stroke is for.", "sealed": true, "when": "f(\"doors_all\")"},
   "brogan_home": {"kind": "story", "name": "Heavy Lifting", "hint": "Carry someone home.", "sealed": true, "when": "f(\"brogan_home\")"},
-  "cass_portrait": {"kind": "story", "name": "Sit Still", "hint": "Sit for a portrait.", "sealed": true, "when": "f(\"cass_portrait\")"}
+  "cass_portrait": {"kind": "story", "name": "Sit Still", "hint": "Sit for a portrait.", "sealed": true, "when": "f(\"cass_portrait\")"},
+  "patient_way": {"kind": "story", "name": "One Lamp at a Time", "hint": "Win ground without a fight.", "sealed": true, "when": "f(\"seed_saved\")"},
+  "two_on_watch": {"kind": "story", "name": "Two on the Watch", "hint": "Keep an appointment.", "sealed": true, "when": "f(\"tam_safe\") and k(\"tam_fence\")"},
+  "passed_in_form": {"kind": "story", "name": "Passed in Form", "hint": "Pass an examination.", "sealed": true, "when": "f(\"exam_passed_thaw\")"}
  }
 }

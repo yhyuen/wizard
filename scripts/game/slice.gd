@@ -317,6 +317,15 @@ func _lose(cause: String) -> void:
 	set_screen("hurt")
 
 
+## The story knocks you down (`downed <days> <cause>`): the hurt screen, then `days` pass and you
+## wake on your cot, Injured. Not a fight, so nothing counts toward the soul's deaths.
+func _downed(days: int, cause: String) -> void:
+	Sfx.play("hurt")
+	run.life["losses"].append({"day": run.day(), "time": run.time_name(), "cause": cause, "learned": run.life["learned"].size(), "days": days})
+	run.life["injured"] = true
+	set_screen("hurt")
+
+
 ## From the hurt screen: the days pass and you wake on your cot, Injured.
 func wake_hurt() -> void:
 	if screen != "hurt":
@@ -626,6 +635,8 @@ func _effect(op: String, arg: String) -> bool:
 			run.life["taken"][arg] = true
 		"sleep", "book":
 			after.append(op)
+		"downed":
+			after.append("downed " + arg)
 		"go":
 			after.append("go " + arg)
 		"today":
@@ -661,6 +672,16 @@ func _effect(op: String, arg: String) -> bool:
 		"remember":
 			var rw: PackedStringArray = arg.split(" ", false)
 			preload("res://scripts/world/people.gd").remember(run.life, rw[0], rw[1], int(world.people.d["memories_max"]))
+		"ignite":
+			# A place goes up: everything that burns in its rect, and the ground under it. The story
+			# already says who did it, so it isn't counted as unseen damage (deeds.gd).
+			var rr: Array = world.map.places[arg]["rect"]
+			var rect := Rect2(rr[0], rr[1], rr[2], rr[3])
+			for p in world.props:
+				if rect.has_point(p["pos"]):
+					p["damaged"] = true
+					world.ignite(p)
+			world.burn_ground(rect.get_center(), maxf(rect.size.x, rect.size.y) * 0.5, 1)
 		"open":
 			world.map.doors[arg]["open"] = true
 			world.map.doors[arg]["opened"] = true  # for the life, even a gate whose prop still stands
@@ -751,6 +772,10 @@ func finish_scene() -> void:
 	for op in a:
 		if op.begins_with("go "):
 			_go(op.substr(3))
+			return
+		if op.begins_with("downed "):
+			var dw: PackedStringArray = op.substr(7).split(" ", false)
+			_downed(int(dw[0]), dw[1] if dw.size() > 1 else "story")
 			return
 	if "sleep" in a:
 		end_day()
