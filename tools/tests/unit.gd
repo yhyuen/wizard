@@ -411,9 +411,10 @@ func _world() -> void:
 	ok(not m.solid_at(Vector2(m.d["tents"][0][0], m.d["tents"][0][1])), "your open shelter isn't")
 	var pd: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/props.json"))
 	var far: Array = []
-	for start in [["camp", "cot"], ["halls", "landing"], ["city", "wall_gap"], ["undercroft", "drain_stair"]]:
+	for start in [["camp", "cot"], ["halls", "landing"], ["city", "wall_gap"], ["undercroft", "drain_stair"], ["fields", "mill_bridge"]]:
 		var mm = loaded[start[0]]
 		mm.set_day_doors(1)  # early in the month, when the burnt door stands open
+		mm.set_drained(func(_f): return true)  # every sluice open: the mill pond's islet is a walk
 		var gate_props := {}
 		for did in mm.doors:
 			# the city's gates, winch and lens: walk as if each were opened (gates.gd)
@@ -450,7 +451,7 @@ func _world() -> void:
 			if p.distance_to(b) > reach[tname]:
 				far.append("%s %s (%.0f px short)" % [start[0], tname, p.distance_to(b)])
 		mm.movers = Callable()
-	ok(far.is_empty(), "every spot, item and exit can be walked to from the cot, the landing, the wall gap and the drain stair: " + ", ".join(far))
+	ok(far.is_empty(), "every spot, item and exit can be walked to from where you arrive on each map, sluices open: " + ", ".join(far))
 	var people: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/people.json"))["people"]
 	var bad: Array = []
 	for pid in people:
@@ -508,7 +509,7 @@ func _year() -> void:
 	var reach = Reach.new(R, null)
 	ok(reach.region_of("camp") == "camp" and reach.region_of("halls") == "city", "each map belongs to a region")
 	ok(reach.days_between("camp", "city") == 1 and reach.days_between("mill", "archive") == 3, "travel costs the cheapest road's days")
-	ok(reach.built("city") and not reach.built("mill"), "a region with no maps is a card")
+	ok(reach.built("city") and reach.built("mill") and not reach.built("archive"), "a region with no maps is a card")
 	_carry(R)
 	R.new_run()
 	var t: Array = reach.rest_targets()

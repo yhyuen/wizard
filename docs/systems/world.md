@@ -44,10 +44,11 @@ hits, and where shops, crews, powers and the two roads sit) is the
 follows is the build today.*
 
 - **Regions** group maps: the survivors' camp (`camp`) and the fallen city of Vellmar (`city`:
-  the city's streets, the College halls and the undercroft under them, arriving at the `wall_gap`). Each has a name, ring, a
+  the city's streets, the College halls and the undercroft under them, arriving at the `wall_gap`)
+  and the Mill fields (`mill`: the `fields` map, arriving at the `mill_bridge`). Each has a name, ring, a
   place on the chart (`pos`), its `maps` (the first is where travel arrives), `arrive` (the spot)
-  and a `blurb`. A region with no maps is a **card**: the Mill fields and east road (Ring 1) and
-  four Ring 2 regions show their blurb and cost no time (the Wuxia rule).
+  and a `blurb`. A region with no maps is a **card**: the four Ring 2 regions show their blurb and cost no time
+  (the Wuxia rule).
 - **Roads** `[a, b, days]`; a journey takes the cheapest roads' days (`days_between`). Walking
   inside a region is free.
 - **The Reach** is the map's second tab (M, then 2): the chart, roads with their days, and a card
@@ -156,6 +157,34 @@ freezing its chain to shut the Lantern Night approach (N-7.5).*
   counterweight crate (a prop tagged `counterweight`) is shoved into the weight's rect, or
   lightning at grade II charges the chain's rail at its post. You learn `drain_open` (a soul
   memory, Ledger insight), so both exits work in this life and every later one.
+
+## The Mill fields (`data/fields/map.json`)
+
+*N-7.1.4, [Ring 1 places spec](/mnt/project-files/design/places/ring1-places-and-fights-spec.md)
+§6. Not built: the farm track's exit to the east road (N-7.1.5), the fields' fights (F10, F11,
+F17: N-7.1.6), the granary's flooded cellar (D8), the mill wheel as a motor (P3), the islet's ley
+point, the footbridge breaking (P8), freezing or planking across the pond, Aldous complaining
+when the pond is drained, the bramble commission and the granary's bread shortage.*
+
+- **The map** (3600 × 2400 px, the **country kit**: farm buildings from `blocks`, buildings you
+  walk into, the circles `mill_wheel`, `granary`, `ley_stone` and `trough`, and `trees`
+  [x, y, size]; the ground's colour follows its cells: grass, earth, stone). Travel to the Mill
+  fields region arrives at the **Mill bridge** over the millrace (wadeable, as in the camp). A
+  track runs east past the **mill pond**, the **mill store** (a building; inside, the **mill
+  cellar** and its sealed **cold crack**, a Ring 2 lock), **Aldous's barns**, the **granary** on
+  its stone legs, the **bramble field** and its barn, the **wayside shrine**, the **webbed
+  orchard** and the **east fence** (posts facing the moor, the scarecrow brazier) to the **farm
+  track**.
+- **Deep water**: a water rect's 6th field `deep` makes it a wall to walkers (`Map.deep`; shots
+  fly over it). The mill pond is deep round the **islet stone**; its **sluice** (an item) drains
+  it (life flag `pond_dry`), the islet becomes a walk, and the mill wheel stops while it's dry.
+  Touching the stone teaches `islet_stone` (Ledger clue).
+- **New prop kinds**: `bramble` (grass, Fire I, spreads 40 px), `apple_tree` (living wood: Fire I
+  only smoulders it), `web` (cloth, Fire I, gone in 2 s) and `fence` (wood). Fire I on the webs
+  burns them off and leaves the trees standing.
+- **Owners**: Aldous (`miller`) owns the fields; the bridge, the shrine and the track are
+  nobody's.
+- The loading card's line under a map's name is the map's `card` in maps.json.
 
 ## Weather (`data/world/weather.json`, `scripts/world/weather.gd`)
 
@@ -351,7 +380,8 @@ Spark Artifice part (reagents, salvage, the Lamplighters' bench and device charg
 
 `tools/tests/world_magic.gd` (each reaction, with real casts, including a Pillar grass fire that
 spreads, Splash on a ground fire, a Spark on wet ground, a strike along a lamp rail, and the city's
-barricade, winch, mirrors, Old Watch bridge and plaque, the undercroft's sluice and counterweight),
+barricade, winch, mirrors, Old Watch bridge and plaque, the undercroft's sluice and counterweight, the
+mill pond's sluice, the orchard's webs),
 `tools/tests/unit.gd` (maps load, exits lead somewhere real, pits, reachability, per-map lamps; the
 ground grid: spread, stone and water stop fire, ash, wind, rain, the cap, lightning reach by grade;
 the camp's places and buildings, 24 lamps on 4 separate rail networks; every city spot reachable

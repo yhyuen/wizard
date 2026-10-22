@@ -22,7 +22,8 @@ var bounds := Rect2()
 var rects: Array = []  # [Rect2, kind]
 var circles: Array = []  # [Vector2, r, kind]
 var water: Array = []  # Rect2
-var water_all: Array = []  # [Rect2, flag]: every water rect; while its flag is set it's drained (a sluice)
+var water_all: Array = []  # [Rect2, flag, deep]: every water rect; while its flag is set it's drained (a sluice)
+var deep: Array = []  # Rect2: water too deep to wade (the mill pond), a wall to walkers until drained
 var bridges: Array = []  # Rect2
 var doors := {}  # id -> {"rect": Rect2, "open": bool, "state": String}
 var pits: Array = []  # Rect2: collapsed floor, not walkable, open to shots
@@ -82,8 +83,9 @@ func _init(path := PATH, map_id := "camp", map_kit := "town") -> void:
 		circles.append([Vector2(c[0], c[1]), float(c[2]), str(c[4])])
 		_index_circle(circles.size() - 1)
 	for w in d.get("water", []):
-		water_all.append([Rect2(w[0], w[1], w[2], w[3]), str(w[4]) if w.size() > 4 else ""])
+		water_all.append([Rect2(w[0], w[1], w[2], w[3]), str(w[4]) if w.size() > 4 else "", w.size() > 5 and str(w[5]) == "deep"])
 	water = water_all.map(func(w): return w[0])
+	deep = water_all.filter(func(w): return w[2]).map(func(w): return w[0])
 	for w in d.get("bridges", []):
 		bridges.append(Rect2(w[0], w[1], w[2], w[3]))
 	for did in d.get("doors", {}):
@@ -248,6 +250,8 @@ func collide(p: Vector2, r := 0.0, wet_solid := false) -> Vector2:
 				p = _out_of_rect(p, r, doors[did]["rect"])
 		for pit: Rect2 in pits:
 			p = _out_of_rect(p, r, pit)
+		for dw: Rect2 in deep:
+			p = _out_of_rect(p, r, dw)
 		if wet_solid:
 			for w in water:
 				p = _out_of_rect(p, r, w)
@@ -310,12 +314,15 @@ func blocks_shot(p: Vector2) -> bool:
 	return solid_at(p)
 
 
-## Whether a walker can't stand at `p`: anything solid, or a pit.
+## Whether a walker can't stand at `p`: anything solid, a pit, or deep water.
 func blocked(p: Vector2, grow := 0.0) -> bool:
 	if solid_at(p, grow):
 		return true
 	for pit: Rect2 in pits:
 		if pit.grow(grow).has_point(p):
+			return true
+	for dw: Rect2 in deep:
+		if dw.grow(grow).has_point(p):
 			return true
 	return false
 
@@ -508,8 +515,9 @@ func bridge_pits(r: Rect2) -> int:
 ## The water that stands now, given the life flags set (`flag(id) -> bool`): a rect whose drain
 ## flag is set is gone. Returns whether anything changed.
 func set_drained(flag: Callable) -> bool:
-	var now: Array = water_all.filter(func(w): return w[1] == "" or not flag.call(w[1])).map(func(w): return w[0])
+	var now: Array = water_all.filter(func(w): return w[1] == "" or not flag.call(w[1]))
 	if now.size() == water.size():
 		return false
-	water = now
+	water = now.map(func(w): return w[0])
+	deep = now.filter(func(w): return w[2]).map(func(w): return w[0])
 	return true

@@ -14,17 +14,17 @@ and its layout data `ring1-layout.json` beside it (M0-16).*
 | --- | --- | --- |
 | The camp's layout: walls, houses, tents, places, spots, items, lamps, exits, street graph | `data/world/map.json` | [world.md](world.md) |
 | A ruin layer's layout: walls, rubble, pillars, pits, cracks, doors, exits | `data/ruins/<layer>/map.json` | [world.md](world.md) |
-| The fallen city's layout (burned houses, gates, rails, the lens, places) and the undercroft's | `data/city/map.json`, `data/city/undercroft/map.json` (written by generator scripts, checked with `tools/map_preview.gd`) | [world.md](world.md) |
+| The fallen city's layout (burned houses, gates, rails, the lens, places), the undercroft's and the Mill fields' | `data/city/map.json`, `data/city/undercroft/map.json`, `data/fields/map.json` (written by generator scripts, checked with `tools/map_preview.gd`) | [world.md](world.md) |
 | A layer's recorded paths (replays, traces) | `data/ruins/<layer>/paths.json` | [story.md](story.md) |
 | The camp's people: schedules, overrides, barks, figures | `data/world/people.json` | [world.md](world.md) |
-| Scenes | `data/world/story/*.story` (camp), `data/city/story/*.story`, `data/city/undercroft/story/*.story`, `data/ruins/<layer>/story/*.story` | [story.md](story.md) |
+| Scenes | `data/world/story/*.story` (camp), `data/city/story/*.story`, `data/city/undercroft/story/*.story`, `data/fields/story/*.story`, `data/ruins/<layer>/story/*.story` | [story.md](story.md) |
 | Ledger entries and death lines | `data/world/ledger.json` | [loop.md](loop.md) |
 
 ## Counts (2026-10-22)
 
-- Maps: 4 (camp, city, halls, undercroft). People: 6 in the camp (Mira, Aldous, Pell, the watch captain, the
+- Maps: 5 (camp, city, halls, undercroft, fields). People: 6 in the camp (Mira, Aldous, Pell, the watch captain, the
   pie-seller, a stray dog).
-- Story: `camp.story`, `city.story`, `halls.story` and `undercroft.story`.
+- Story: `camp.story`, `city.story`, `halls.story`, `undercroft.story` and `fields.story`.
 
 ## Conventions
 

@@ -241,6 +241,10 @@ func _kind_at(p: Vector2, h: float) -> int:
 	var place: String = W.map.place_at(p)
 	if W.map.kit == "ruin":
 		return 3 if place != "" else 2
+	if W.map.kit == "country":
+		# the fields: what the ground cells are (data/world/ground.json)
+		var m: String = W.cells.material_at(p) if W.cells != null else "grass"
+		return {"grass": 1, "stone": 3, "earth": 0, "water": 0, "wood": 0}.get(m, 1) if h <= 0.05 else 2
 	if place in ["mill", "road", "hill"]:
 		return 0
 	if h > 0.05:
@@ -776,8 +780,8 @@ func _sync_lamps() -> void:
 
 ## The mill wheel, the ruin's doors, the roof of the building you're in, and scorches on walls.
 func _sync_town(delta: float) -> void:
-	if town.wheel != null:
-		town.wheel.rotation.x += delta * 0.7
+	if town.wheel != null and W.map.water.size() == W.map.water_all.size():
+		town.wheel.rotation.x += delta * 0.7  # a drained pond stops it
 	for did in town.door_nodes:
 		town.door_nodes[did].visible = not W.map.doors[did]["open"]
 	for wn in town.water_nodes:

@@ -143,6 +143,11 @@
    "title": "The drain under the square",
    "text": "The undercroft's grate opens into the camp's market cellar. Once the counterweight drags it up, it stays up: a walk from the camp to the city, with no day lost on the road."
   },
+  "islet_stone": {
+   "kind": "clue",
+   "title": "The islet stone",
+   "text": "A standing stone on the mill pond's islet hums under your hand. Drain the pond at its sluice and you can walk to it."
+  },
   "archive_key": {
    "kind": "clue",
    "title": "The Archive gate",

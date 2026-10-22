@@ -8,7 +8,7 @@ extends SceneTree
 ## refectory, the dark gallery, the bell passage, the burnt door, the cistern's sluice, the Kiln
 ## Warden's rings and vents, the end card, and the fallen city: the wall gap, the Sunken Square,
 ## the glassworks, Bell Street's barricade and the Old Watch at dusk; the undercroft's stair,
-## channel and grate hall.
+## channel and grate hall; the Mill fields' bridge, pond, orchard and east fence at dusk.
 ##
 ##   xvfb-run -a -s "-screen 0 1440x810x24" godot --rendering-driver opengl3 --resolution 1440x810 \
 ##       --fixed-fps 60 --script res://tools/world_shot.gd -- --out DIR
@@ -332,6 +332,20 @@ func _process(_dt: float) -> bool:
 			_go(W.map.spots["grate_hall"] + Vector2(40, 40), 2, 1)
 		2800:
 			_shot("35_grate_hall")
+			slice.go_map("fields", "mill_bridge")
+		2890:
+			_close()
+		2900:
+			_shot("36_mill_bridge")
+			_go(W.map.spots["mill_pond"] + Vector2(-60, 60), 2, 1)
+		2940:
+			_shot("37_mill_pond")
+			_go(W.map.spots["orchard"] + Vector2(0, 80), 2, 2)
+		2980:
+			_shot("38_orchard")
+			_go(W.map.spots["east_fence"], 2, 3)
+		3020:
+			_shot("39_east_fence_dusk")
 			var f := FileAccess.open(out.path_join("stats.txt"), FileAccess.WRITE)
 			f.store_string("\n".join(stats) + "\n")
 			return true
