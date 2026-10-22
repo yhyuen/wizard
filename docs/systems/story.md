@@ -36,7 +36,7 @@ It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `c
   line, effect or outcome can start with `[condition]`.
 - **Effects:** `learn`, `set`, `clear`, `fight`, `wells`, `train`, `meditate`, `goto`, `end_loop`,
   `model`, `trial`, `sound`, `cutscene`, `move`, `take`, `sleep`, `book`, `today` (a once-a-day
-  action, for `done(op)`), `go <map> <spot>` or `go <exit>`, `open <door>`, `play_path <id>`, `road <id>` (take a road
+  action, for `done(op)`), `go <map> <spot>` or `go <exit>`, `open <door>` (that door stands open for the life, even a gate whose prop still stands), `play_path <id>`, `road <id>` (take a road
   for this life, [loop.md](loop.md)), `deed <id>` (a soul flag the Turning keeps; SEALED deeds
   open roads), `omen <id>` (take an Omen for this life), `forecast <who>` (that person says
   tomorrow's weather, [world.md](world.md)), `bench` (work at a bench: fill your devices from
