@@ -44,6 +44,11 @@ static func carry(soul: Dictionary, life: Dictionary, cause: String, rules: Dict
 			var r: Dictionary = s["revisions"].get(id, {})
 			r.merge(muts, true)
 			s["revisions"][id] = r
+	# School rank (spell spec §8): the best rank each school reached is remembered.
+	for sid in life.get("schools", {}):
+		if not s.has("schools"):
+			s["schools"] = {}
+		s["schools"][sid] = maxi(int(s["schools"].get(sid, -1)), int(life["schools"][sid].get("rank", 0)))
 	# Deeds done this life (soul flags) and the road walked.
 	for f in life.get("deeds", []):
 		s["flags"][f] = true

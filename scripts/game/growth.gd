@@ -20,6 +20,59 @@ func _init(run_node, prog_node) -> void:
 	run = run_node
 	prog = prog_node
 	d = JSON.parse_string(FileAccess.get_file_as_string("res://data/slice/progression.json"))
+	prog.practised.connect(_on_practised)
+
+
+# --- school rank (spell spec §7-8, lives spec §4; N-5.1) ---------------------------------
+
+## This life's school: its road's (data/world/lives.json roads), or "" before a road is taken.
+func school() -> String:
+	var r: String = run.road()
+	return str(run.lives["roads"].get(r, {}).get("school", "")) if r != "" else ""
+
+
+## {school: {rank, progress}} this life; your road's school starts at Initiate.
+func school_ranks() -> Dictionary:
+	if not run.life.has("schools"):
+		run.life["schools"] = {}
+	var sc := school()
+	if sc != "" and not run.life["schools"].has(sc):
+		run.life["schools"][sc] = {"rank": 0, "progress": 0.0}
+	return run.life["schools"]
+
+
+## The best rank each school reached in any earlier life (soul.schools {id: best}).
+func school_best() -> Dictionary:
+	return run.soul.get("schools", {})
+
+
+func school_rank(sid := "") -> int:
+	sid = sid if sid != "" else school()
+	return int(school_ranks().get(sid, {}).get("rank", -1))
+
+
+func rank_name(r: int) -> String:
+	var ranks: Array = prog.schools["ranks"]
+	return str(ranks[clampi(r, 0, ranks.size() - 1)]["name"]) if r >= 0 else "untrained"
+
+
+## Practice gained on a spell of this life's school counts toward its next rank: `echo` times
+## faster below the best rank an earlier life reached, and insight adds to it as to all Practice.
+func _on_practised(id: String, amount: float) -> void:
+	var sid := school()
+	if sid == "" or prog.school_of(id) != sid:
+		return
+	var e: Dictionary = school_ranks()[sid]
+	var ranks: Array = prog.schools["ranks"]
+	if int(e["rank"]) >= ranks.size() - 1:
+		return
+	var k := 1.0 + fluency()
+	if int(e["rank"]) < int(school_best().get(sid, -1)):
+		k *= float(prog.schools["echo"])
+	e["progress"] = float(e["progress"]) + amount * k
+	while int(e["rank"]) < ranks.size() - 1 and float(e["progress"]) >= float(ranks[int(e["rank"]) + 1]["at"]):
+		e["rank"] = int(e["rank"]) + 1
+		prog.school_ranked.emit(sid, int(e["rank"]))
 
 
 # --- wells and Rings ---------------------------------------------------------------
@@ -255,7 +308,15 @@ func rules() -> Dictionary:
 		"echo": echo().duplicate(), "echo_mult": float(d["echo_mult"]), "fluency": fluency(),
 		"revisions": run.soul.get("revisions", {}).duplicate(true),
 		"walls": true, "grade_cap": int(d["grade_cap"][ring()]), "broken": run.soul.get("broken", {}).duplicate(),
-		"known": run.soul.get("known", {})}
+		"known": run.soul.get("known", {}),
+		"school": school(), "school_ranks": _rank_table(), "school_best": school_best().duplicate()}
+
+
+func _rank_table() -> Dictionary:
+	var out := {}
+	for sid in school_ranks():
+		out[sid] = int(school_ranks()[sid]["rank"])
+	return out
 
 
 ## Lends Progression this loop's Practice, spellbook and rules (for a fight, training, or in

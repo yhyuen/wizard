@@ -54,7 +54,7 @@
   "dodge": {"reaction": 0.25},
   "spells": {
     "ember_bolt": {
-      "minor": ["damage"], "name": "Ember Bolt", "element": "fire", "slot": "bolt", "cast": "swift", "windup": 0.4, "aether": 14,
+      "minor": ["damage"], "school": "astral_rite", "name": "Ember Bolt", "element": "fire", "slot": "bolt", "cast": "swift", "windup": 0.4, "aether": 14,
       "blurb": "Fast bolt. Adds a flame pip; 3 pips Ignite.",
       "cooldown": 3.0, "impact": 1, "xp_hit": 1, "xp_ignite": 2, "radius": 3.5,
       "stats": {
@@ -77,7 +77,7 @@
       }
     },
     "pillar": {
-      "minor": ["damage"], "name": "Pillar", "element": "fire", "slot": "control", "cast": "weave", "windup": 0.9, "aether": 26,
+      "minor": ["damage"], "school": "astral_rite", "name": "Pillar", "element": "fire", "slot": "control", "cast": "weave", "windup": 0.9, "aether": 26,
       "blurb": "Delayed fire column on a circle. Adds 2 pips.",
       "cooldown": 7.0, "impact": 3, "range": 150, "xp_hit": 4,
       "stats": {
@@ -97,7 +97,7 @@
       }
     },
     "pyroclasm": {
-      "minor": ["range"], "needs": [["ember_bolt", 1], ["pillar", 1]], "name": "Pyroclasm", "element": "fire", "slot": "signature", "cast": "incant", "windup": 1.6, "aether": 45,
+      "minor": ["range"], "needs": [["ember_bolt", 1], ["pillar", 1]], "school": "astral_rite", "name": "Pyroclasm", "element": "fire", "slot": "signature", "cast": "incant", "windup": 1.6, "aether": 45,
       "blurb": "Fireball that bounces between pip-marked enemies.",
       "cooldown": 12.0, "impact": 2, "speed": 210, "xp_hit": 4, "radius": 4.0,
       "stats": {
@@ -116,7 +116,7 @@
       }
     },
     "pebble": {
-      "minor": ["size"], "name": "Pebble", "element": "earth", "slot": "bolt", "cast": "swift", "windup": 0.5, "aether": 16,
+      "minor": ["size"], "school": "astral_rite", "name": "Pebble", "element": "earth", "slot": "bolt", "cast": "swift", "windup": 0.5, "aether": 16,
       "blurb": "Slow heavy shot. Hits drop a lodestone.",
       "cooldown": 3.5, "impact": 2, "speed": 150, "xp_hit": 3,
       "stats": {
@@ -132,7 +132,7 @@
       }
     },
     "fling": {
-      "minor": ["force"], "name": "Fling", "element": "earth", "slot": "control", "cast": "weave", "windup": 0.8, "aether": 22,
+      "minor": ["force"], "school": "astral_rite", "name": "Fling", "element": "earth", "slot": "control", "cast": "weave", "windup": 0.8, "aether": 22,
       "blurb": "Pushes every orbiting lodestone out in a cone.",
       "cooldown": 6.0, "impact": 2, "range": 120, "xp_hit": 4,
       "stats": {
@@ -151,7 +151,7 @@
       }
     },
     "avalanche": {
-      "minor": ["damage"], "needs": [["pebble", 1], ["fling", 1]], "name": "Avalanche", "element": "earth", "slot": "signature", "cast": "incant", "windup": 1.5, "aether": 45,
+      "minor": ["damage"], "needs": [["pebble", 1], ["fling", 1]], "school": "astral_rite", "name": "Avalanche", "element": "earth", "slot": "signature", "cast": "incant", "windup": 1.5, "aether": 45,
       "blurb": "Every lodestone you own slams the target, one hit per stone.",
       "cooldown": 12.0, "impact": 1, "final_impact": 3, "range": 170, "xp_hit": 3,
       "stats": {
@@ -169,7 +169,7 @@
       }
     },
     "spark": {
-      "minor": ["range"], "name": "Spark", "element": "storm", "slot": "bolt", "cast": "swift", "windup": 0.4, "aether": 14,
+      "minor": ["range"], "school": "astral_rite", "name": "Spark", "element": "storm", "slot": "bolt", "cast": "swift", "windup": 0.4, "aether": 14,
       "blurb": "Zig-zag that hits the nearest enemy in a cone and chains.",
       "cooldown": 3.0, "impact": 1, "xp_hit": 1, "cone": 70, "hop": 46,
       "stats": {
@@ -185,7 +185,7 @@
       }
     },
     "arc_lance": {
-      "minor": ["damage"], "name": "Arc Lance", "element": "storm", "slot": "control", "cast": "weave", "windup": 0.9, "aether": 28,
+      "minor": ["damage"], "school": "astral_rite", "name": "Arc Lance", "element": "storm", "slot": "control", "cast": "weave", "windup": 0.9, "aether": 28,
       "blurb": "Hold to extend a line, release to strike along it.",
       "cooldown": 7.0, "impact": 2, "full_impact": 3, "xp_hit": 4, "width": 7, "hold_speed": 0.4,
       "stats": {
@@ -204,7 +204,7 @@
       }
     },
     "storm_call": {
-      "minor": ["radius"], "needs": [["spark", 1], ["arc_lance", 1]], "name": "Storm Call", "element": "storm", "slot": "signature", "cast": "incant", "windup": 1.8, "aether": 50,
+      "minor": ["radius"], "needs": [["spark", 1], ["arc_lance", 1]], "school": "astral_rite", "name": "Storm Call", "element": "storm", "slot": "signature", "cast": "incant", "windup": 1.8, "aether": 50,
       "blurb": "Artillery strikes on circles you place. The last leaves a rod.",
       "cooldown": 14.0, "impact": 2, "range": 170, "xp_hit": 3, "delay": 0.7, "gap": 0.22,
       "stats": {
@@ -223,7 +223,7 @@
       }
     },
     "splash": {
-      "minor": ["width"], "name": "Splash", "element": "water", "slot": "bolt", "cast": "swift", "windup": 0.4, "aether": 12,
+      "minor": ["width"], "school": "astral_rite", "name": "Splash", "element": "water", "slot": "bolt", "cast": "swift", "windup": 0.4, "aether": 12,
       "blurb": "Short spray that pushes and makes enemies Wet.",
       "cooldown": 3.0, "impact": 1, "xp_hit": 1, "range": 48,
       "stats": {
@@ -239,7 +239,7 @@
       }
     },
     "undertow": {
-      "minor": ["distance"], "name": "Undertow", "element": "water", "slot": "control", "cast": "weave", "windup": 0.8, "aether": 24,
+      "minor": ["distance"], "school": "astral_rite", "name": "Undertow", "element": "water", "slot": "control", "cast": "weave", "windup": 0.8, "aether": 24,
       "blurb": "A wave that pushes enemies and leaves a puddle.",
       "cooldown": 7.0, "impact": 2, "xp_hit": 3, "speed": 170,
       "stats": {
@@ -258,7 +258,7 @@
       }
     },
     "maelstrom": {
-      "minor": ["duration"], "needs": [["undertow", 2]], "name": "Maelstrom", "element": "water", "slot": "signature", "cast": "incant", "windup": 1.6, "aether": 45,
+      "minor": ["duration"], "needs": [["undertow", 2]], "school": "astral_rite", "name": "Maelstrom", "element": "water", "slot": "signature", "cast": "incant", "windup": 1.6, "aether": 45,
       "blurb": "A whirlpool that pulls enemies together.",
       "cooldown": 14.0, "impact": 1, "range": 150, "xp_hit": 1, "pull": 55, "tick": 0.5,
       "stats": {
@@ -276,7 +276,7 @@
         ]
       }
     },
-    "rewind": {"minor": ["radius"], "name": "Rewind", "element": "hours", "slot": "control", "cast": "weave", "windup": 0.8, "aether": 25, "from_loop": 2, "ring": 0,
+    "rewind": {"minor": ["radius"], "school": "astral_rite", "name": "Rewind", "element": "hours", "slot": "control", "cast": "weave", "windup": 0.8, "aether": 25, "from_loop": 2, "ring": 0,
       "blurb": "A shard forms where you aim, then flies back into your hand through everything between, dragging what it hits toward you.",
       "cooldown": 6.0, "range": 140, "min_range": 40, "form": 0.4, "speed": 240, "impact": 2, "pull": 45, "xp_hit": 3,
       "stats": {
