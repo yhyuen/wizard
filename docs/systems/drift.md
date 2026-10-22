@@ -170,7 +170,7 @@ full table; the big gaps:
 
 | Target spec says | As built | Where |
 | --- | --- | --- |
-| About 20 named people in Ring 1 with schedule rows by slot, weekday, season, weather and events; reactions to weather, calamities, standing and what you did to them | 6 camp people with a schedule per time of day, overrides, `seek` and barks | [world.md](world.md) |
+| About 20 named people in Ring 1 with schedule rows by slot, weekday, season, weather and events; reactions to weather, calamities, standing and what you did to them | Schedule rows built (N-7.2.1: weekdays, seasons, moons, slots, weather, `if`, map, away, doing, cover in rain, busy, one seeker a day, three memories; the 7-day away check). Still 6 camp people; Aldous's rows send him to his fields. Not yet: events placing people, calamity tiers, standing and fame reactions, the bucket line, the Ledger's people page | [world.md](world.md) |
 | Six bond tiers with scene gates, gifts and tastes as knowledge, companions (Guard, Cutter, Mender, Guide), sworn friends, one romance | No friendship; the soul keeps only the lives spec's bond floors | [world.md](world.md), [loop.md](loop.md) |
 | Eight commissions, a six-rung dueling ladder, Star-charts and Sparks minigames | None | [story.md](story.md) |
 | Rumours (date, person, lead), overheard talk, every missable event with a rumour 7 days ahead | Ledger clues only | [story.md](story.md) |

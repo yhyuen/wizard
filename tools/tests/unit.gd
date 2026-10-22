@@ -363,6 +363,7 @@ func _world() -> void:
 	const Map := preload("res://scripts/world/map.gd")
 	const World := preload("res://scripts/world/world.gd")
 	const Story := preload("res://scripts/game/story.gd")
+	const PeopleS := preload("res://scripts/world/people.gd")
 	var reg: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/maps.json"))
 	ok(reg["maps"].has(reg["start"]) and reg["maps"].has("halls"), "the map registry names the camp and the halls")
 	var loaded := {}
@@ -468,7 +469,46 @@ func _world() -> void:
 		for o in people[pid].get("overrides", []):
 			if not m.spots.has(str(o["spot"])):
 				bad.append("%s override: %s" % [pid, o["spot"]])
-	ok(bad.is_empty(), "every schedule names a spot in the camp: " + ", ".join(bad))
+		# schedules v2 (N-7.2.1): a row's spot is on its own map; the cover spot is the camp's
+		for r in people[pid].get("rows", []):
+			var at := str(r["at"])
+			var rm := str(r.get("map", "camp"))
+			if not at in ["", "away"] and not (loaded.has(rm) and loaded[rm].spots.has(at)):
+				bad.append("%s row: %s on %s" % [pid, at, rm])
+		if people[pid].has("cover") and not m.spots.has(str(people[pid]["cover"])):
+			bad.append("%s cover: %s" % [pid, people[pid]["cover"]])
+	ok(bad.is_empty(), "every schedule names a spot on its map: " + ", ".join(bad))
+	# Away needs a rumour (people spec §3.2): nobody is away a whole day more than 7 days running
+	# unless the rows that send them away name the rumour that says where they went.
+	var cal: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/calendar.json"))
+	var long_away: Array = []
+	for pid in people:
+		if not people[pid].has("rows"):
+			continue
+		var streak := 0
+		var told := false
+		for day in range(1, cal["moons"].size() * 28 + 1):
+			var moon: int = (day - 1) / 28 + 1
+			var wd := str(cal["weekdays"][(day - 1) % 7]["sphere"])
+			var season := str(cal["moons"][moon - 1]["season"]).to_lower()
+			var away := true
+			var rumoured := false
+			for slot in ["morning", "noon", "afternoon", "dusk", "night"]:
+				var hit := {}
+				for r in people[pid]["rows"]:
+					if PeopleS.row_holds(r, day, moon, wd, season, slot, ""):
+						hit = r
+						break
+				if hit.is_empty() or str(hit["at"]) != "away":
+					away = false
+				elif hit.has("rumour"):
+					rumoured = true
+			streak = streak + 1 if away else 0
+			told = (told or rumoured) if away else false
+			if streak > 7 and not told:
+				long_away.append("%s from day %d" % [pid, day - 7])
+				break
+	ok(long_away.is_empty(), "nobody is away more than 7 days without a rumour: " + ", ".join(long_away))
 	var run = root.get_node("Run")
 	run.save_enabled = false
 	run.new_run()
@@ -501,6 +541,36 @@ func _world() -> void:
 	ok(unplaced.is_empty(), "every placed fight has its place, spot, spawns and a scene that starts it: " + ", ".join(unplaced))
 	var w = World.new(run, story)
 	ok(w.period_s() > 0.0 and is_equal_approx(w.period_left(), 1.0), "a time of day starts full")
+	# Schedules v2 (N-7.2.1): rows by weekday and season, a row on another map, cover in the rain,
+	# busy at work, and what a person remembers of you.
+	var row := {"seasons": ["spring"], "weekdays": ["sol"], "slot": "morning,noon", "moons": "1-3"}
+	ok(PeopleS.row_holds(row, 1, 1, "sol", "spring", "noon", "") and not PeopleS.row_holds(row, 2, 1, "luna", "spring", "noon", "")
+		and not PeopleS.row_holds(row, 1, 1, "sol", "spring", "dusk", "") and not PeopleS.row_holds(row, 113, 5, "sol", "summer", "noon", "")
+		and not PeopleS.row_holds({"if": "true"}, 1, 1, "sol", "spring", "noon", ""), "a schedule row holds by weekday, season, slot and moon; an `if` needs its test")
+	run.life["day"] = 1  # Sol's day in Ashmoon: Aldous works his fields by day
+	run.life["time"] = 0
+	w.load_map("fields")
+	w.people.think(true)
+	var ald = w.people.get_person("aldous")
+	var at_barns: bool = ald.on and ald.pos == w.map.spots["barns"] and w.people.busy(ald)
+	w.load_map("camp")
+	w.people.think(true)
+	ok(at_barns and not ald.on, "Aldous works the Mill fields on Sol's day in spring, busy, and isn't in the camp then")
+	run.life["day"] = 2
+	w.people.think(true)
+	ok(ald.on and ald.pos == w.map.spots["aldous_mill"] and not w.people.busy(ald), "on Luna's day he keeps the mill in the camp")
+	var pie = w.people.get_person("pie_seller")
+	w.sky = {"kind": "rain"}
+	w.people.think(true)
+	var dry: bool = pie.pos == w.map.spots["inn"]
+	w.sky = {}
+	w.people.think(true)
+	ok(dry and pie.pos == w.map.spots["pie_seller"], "in the rain the pie-seller sells from under the inn's eaves")
+	var life := {}
+	for deed in ["a", "b", "c", "d"]:
+		PeopleS.remember(life, "mira", deed, 3)
+	PeopleS.remember(life, "mira", "b", 3)
+	ok(life["memories"]["mira"] == ["c", "d", "b"], "a person remembers three deeds of yours a life, the newest kept")
 	w.clock = w.period_s() * 0.5
 	ok(is_equal_approx(w.period_left(), 0.5), "the clock runs down the time of day")
 	w.lamps[0]["lit"] = true

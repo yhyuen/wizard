@@ -504,6 +504,12 @@ func handle_requests() -> void:
 
 ## Talks to person `id`: their scene for now (or `scene`, when they came to you).
 func talk(id: String, scene := "") -> void:
+	var who = world.people.get_person(id)
+	var next: String = story.talk_scene(id) if scene == "" else scene
+	if scene == "" and who != null and world.people.busy(who) and (next == "" or story.scenes[next]["repeat"]):
+		# at work (people spec §3.4): one line and "Later." Something new to say still gets said.
+		world.people.say(who, str(who.def.get("busy_line", world.people.d["busy_line"])))
+		return
 	if scene == "" or run.seen(scene):
 		scene = story.talk_scene(id)
 	if scene == "":
@@ -652,6 +658,9 @@ func _effect(op: String, arg: String) -> bool:
 		"omen":
 			if run.take_omen(arg):
 				toast("Omen taken: %s." % run.lives["omens"][arg]["name"])
+		"remember":
+			var rw: PackedStringArray = arg.split(" ", false)
+			preload("res://scripts/world/people.gd").remember(run.life, rw[0], rw[1], int(world.people.d["memories_max"]))
 		"open":
 			world.map.doors[arg]["open"] = true
 			world.map.doors[arg]["opened"] = true  # for the life, even a gate whose prop still stands

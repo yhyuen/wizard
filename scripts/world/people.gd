@@ -3,7 +3,14 @@ extends RefCounted
 ## each time of day, walking the street graph between their spots, barking a line now and then,
 ## and turning to face you when you come close. Mira walks the lane at dusk lighting its lamps;
 ## anyone can be given a `seek` override to come up to you and start talking. Nobody follows you
-## down into the ruin: off the camp map everyone is away.
+## down into the ruin; only a schedule row can place someone on a map other than the camp.
+##
+## Schedules v2 (N-7.2.1, people spec §3.2): a person may have `rows` instead of a `schedule`; the
+## first row that holds now places them (see row_holds). A row's `at` is a spot on its `map`
+## (the camp unless it says), "" (off the map) or "away" (gone from the region); `doing` tags
+## what they're at, and a busy doing answers a talk with one line. In rain or a storm, a row
+## without `weather` (or a plain schedule) sends its person to their `cover` spot, if they have one. At most one
+## person seeks you out a day.
 ##
 ## Purely the camp's state: the world view draws it, the game starts the conversations.
 
@@ -28,6 +35,7 @@ class Person:
 	var bark_cool := 0.0
 	var flinch_t := 0.0  # seconds before this person flinches from a spell again
 	var mode := ""  # "", "seek", "lamps", "wander"
+	var doing := ""  # the schedule row's activity (work, eat, pray, drill, drink, sleep, trade, mourn)
 	var seek_scene := ""
 	var state := ""  # the mode's own step
 	var state_t := 0.0
@@ -95,22 +103,102 @@ func reset_day() -> void:
 
 # --- schedules --------------------------------------------------------------------
 
-func _holds(rule: Dictionary) -> bool:
+func _holds(rule: Dictionary, p: Person = null) -> bool:
 	if rule.has("days") and not W.run.day() in Story.parse_days(str(rule["days"])):
 		return false
 	if rule.has("times") and not W.run.time_id() in Story.parse_times(str(rule["times"])):
 		return false
+	if rule.has("doing") and (p == null or p.doing != str(rule["doing"])):
+		return false
+	if rule.has("remembers") and (p == null or not str(rule["remembers"]) in remembered(p.id)):
+		return false
 	return W.story.test(str(rule.get("when", "")))
 
 
-## Where `p` should be now: {"spot", "seek"}.
+# --- what they remember of you (people spec §3.3) ---------------------------------------------
+
+## What `who` remembers you did to them this life: at most `memories_max` deeds, the newest kept.
+func remembered(who: String) -> Array:
+	return W.run.life.get("memories", {}).get(who, [])
+
+
+static func remember(life: Dictionary, who: String, deed: String, most: int) -> void:
+	if not life.has("memories"):
+		life["memories"] = {}
+	var m: Array = life["memories"].get(who, [])
+	m.erase(deed)
+	m.append(deed)
+	while m.size() > most:
+		m.pop_front()
+	life["memories"][who] = m
+
+
+## The moon's season ("spring" .. "winter") and today's weather kind here ("" when none is set).
+func season() -> String:
+	return str(W.run.cal["moons"][W.run.moon() - 1]["season"]).to_lower()
+
+
+func weather() -> String:
+	return str(W.sky.get("kind", ""))
+
+
+## Whether schedule row `r` holds at this moment: `days` ("4", "1-7", "2,3"), `moons` (same
+## form), `weekdays` (spheres: "sol", "luna" ..), `seasons`, `slot` (times, or "any"), `weather`
+## (kinds) and `if` (a story condition, tested by `test` when given). Pure, so the data check can
+## walk the calendar with it.
+static func row_holds(r: Dictionary, day: int, moon: int, weekday: String, season_id: String, slot: String,
+		sky: String, test := Callable()) -> bool:
+	if r.has("days") and not day in Story.parse_days(str(r["days"])):
+		return false
+	if r.has("moons") and not moon in Story.parse_days(str(r["moons"])):
+		return false
+	if r.has("weekdays") and not weekday in r["weekdays"]:
+		return false
+	if r.has("seasons") and not season_id in r["seasons"]:
+		return false
+	if r.has("slot") and str(r["slot"]) != "any" and not slot in Story.parse_times(str(r["slot"])):
+		return false
+	if r.has("weather") and not sky in r["weather"]:
+		return false
+	return str(r.get("if", "")) == "" or (test.is_valid() and bool(test.call(str(r["if"]))))
+
+
+## The first of `p`'s rows that holds now, or {}.
+func row_now(p: Person) -> Dictionary:
+	for r in p.def.get("rows", []):
+		if row_holds(r, W.run.day(), W.run.moon(), str(W.run.weekday()["sphere"]), season(), W.run.time_id(), weather(),
+				W.story.test):
+			return r
+	return {}
+
+
+## Where `p` should be now: {"spot", "seek", "doing"}.
 func want(p: Person) -> Dictionary:
-	if not W.in_camp() or p.def.has("from_day") and W.run.day() < int(p.def["from_day"]):
+	if p.def.has("from_day") and W.run.day() < int(p.def["from_day"]):
 		return {"spot": ""}
-	for o in p.def.get("overrides", []):
-		if _holds(o):
-			return {"spot": str(o["spot"]), "seek": str(o.get("seek", ""))}
-	return {"spot": str(p.def["schedule"].get(W.run.time_id(), ""))}
+	if W.in_camp():
+		for o in p.def.get("overrides", []):
+			if _holds(o):
+				return {"spot": str(o["spot"]), "seek": str(o.get("seek", ""))}
+	if p.def.has("rows"):
+		var r := row_now(p)
+		if r.is_empty() or str(r["at"]) == "away" or str(r.get("map", "camp")) != W.map_id:
+			return {"spot": "", "doing": str(r.get("doing", ""))}
+		var at := str(r["at"])
+		if weather() in d["cover_in"] and not r.has("weather") and p.def.has("cover") and W.in_camp():
+			at = str(p.def["cover"])
+		return {"spot": at, "seek": str(r.get("seek", "")), "doing": str(r.get("doing", ""))}
+	if not W.in_camp():
+		return {"spot": ""}
+	var spot := str(p.def["schedule"].get(W.run.time_id(), ""))
+	if spot != "" and weather() in d["cover_in"] and p.def.has("cover"):
+		spot = str(p.def["cover"])
+	return {"spot": spot}
+
+
+## `p` is at something that won't stop for talk: they answer with one line.
+func busy(p: Person) -> bool:
+	return p.doing in d["busy"]
 
 
 ## Re-reads every schedule (each second, and at once when the time of day changes). `snap`
@@ -134,6 +222,7 @@ func think(snap := false) -> void:
 		var w := want(p)
 		if p.talking:
 			continue
+		p.doing = str(w.get("doing", ""))
 		if w["spot"] == "lamp_round":
 			if p.mode != "lamps":
 				_go(p, "lamp_round", snap)
@@ -143,7 +232,7 @@ func think(snap := false) -> void:
 		if w["spot"] != p.spot:
 			_go(p, w["spot"], snap)
 			p.mode = ""
-			if w.get("seek", "") != "" and not W.run.seen(w["seek"]):
+			if w.get("seek", "") != "" and not W.run.seen(w["seek"]) and int(W.run.life.get("seek_day", 0)) != W.run.day():
 				p.mode = "seek"
 				p.seek_scene = w["seek"]
 		if p.id == "dog" and p.on and p.mode == "":
@@ -268,6 +357,7 @@ func _seek(p: Person, _dt: float, _speed: float) -> void:
 		p.path = PackedVector2Array([player])
 		if d < 26.0 and W.can_start():
 			p.path = PackedVector2Array()
+			W.run.life["seek_day"] = W.run.day()  # one seeker a day
 			W.request({"t": "talk", "id": p.id, "scene": p.seek_scene})
 
 
@@ -286,7 +376,7 @@ func _barks(p: Person, dt: float, player: Vector2) -> void:
 		lines = d["crowd"]["barks"]
 	else:
 		for b in p.def.get("barks", []):
-			if _holds(b):
+			if _holds(b, p):
 				lines.append(b["text"])
 	if not lines.is_empty():
 		p.bark = str(lines[rng.randi() % lines.size()])
