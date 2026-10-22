@@ -39,6 +39,7 @@ func _ready() -> void:
 func fresh_soul() -> Dictionary:
 	return {"version": SAVE_VERSION, "lives": [], "insight": 0, "known": {}, "deaths": {}, "trials": [],
 		"echo": {}, "revisions": {}, "best_wells": 0, "achievements": {}, "titles": [], "title": "",
+		"dates": {}, "appointments": {},
 		"play_s": 0.0, "fps": {"sum": 0.0, "n": 0, "min": 0}}  # for the playtest run summary
 
 
@@ -47,7 +48,7 @@ func fresh_life() -> Dictionary:
 	var first: bool = (soul.get("lives", []) as Array).is_empty()
 	return {"version": SAVE_VERSION, "n": soul.get("lives", []).size() + 1, "road": "apprentice" if first else "", "deeds": [],
 		"day": 1, "time": 0, "flags": {}, "seen": {}, "learned": [], "dawn_done": false,
-		"injured": false, "losses": [], "calamities": [], "omens": [], "earned": []}
+		"injured": false, "losses": [], "calamities": [], "omens": [], "earned": [], "events": {}}
 
 
 ## A brand new month: forgets everything.
@@ -79,6 +80,49 @@ func pass_calamity(id: String) -> void:
 
 func insight() -> int:
 	return int(soul.get("insight", 0))
+
+
+# --- fixed events (lives spec §6.2; build item N-1.5) ----------------------------------------
+
+## The calendar's fixed events, each with its day of the year and time index.
+func fixed_events() -> Array:
+	var out: Array = []
+	for e in cal["events"]:
+		if e.get("kind", "") == "fixed":
+			var f: Dictionary = e.duplicate()
+			f["at_day"] = day_of(int(e["moon"]), int(e["day"]))
+			f["at_time"] = TIMES.find(str(e.get("time", "morning")))
+			out.append(f)
+	return out
+
+
+## Fixed events not yet settled in this life whose hour has come or gone.
+func due_events() -> Array:
+	var out: Array = []
+	for e in fixed_events():
+		if life["events"].has(e["id"]):
+			continue
+		if int(e["at_day"]) < day() or (int(e["at_day"]) == day() and int(e["at_time"]) <= time()):
+			out.append(e)
+	return out
+
+
+## How fixed event `id` went this life: "" (not yet), "attended" or "missed".
+func event_state(id: String) -> String:
+	return str(life.get("events", {}).get(id, ""))
+
+
+## Settles fixed event `e` this life. Either way the soul knows its date from now on; a missed one
+## whose default is a loss becomes an appointment (lives spec §6.2). Returns true for a new
+## appointment.
+func settle_event(e: Dictionary, how: String) -> bool:
+	life["events"][e["id"]] = how
+	soul["dates"][e["id"]] = true
+	if how != "missed" or not e.get("appointment", false) or soul["appointments"].has(e["id"]):
+		return false
+	soul["appointments"][e["id"]] = {"name": e["name"], "life": loop(), "moon": int(e["moon"]), "day": int(e["day"]),
+		"time": str(e.get("time", "morning")), "region": str(e.get("region", "")), "who": str(e.get("who", ""))}
+	return true
 
 
 # --- Omens (lives spec §6.4) ------------------------------------------------------------

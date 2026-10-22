@@ -49,6 +49,7 @@ func _go() -> void:
 			continue
 		_die(cause, ROUTES[cause])
 	_rest_and_travel()
+	_fixed_events()
 	_shrine_waits()
 	for f in failures:
 		print("[deaths] FAIL: " + f)
@@ -114,6 +115,28 @@ func _rest_and_travel() -> void:
 		failures.append("the road to the fallen city should take a day and arrive at the halls (day %d, %s)" % [run.day(), slice.world.map_id])
 	else:
 		print("[deaths] rested to %s, then travelled to the fallen city, arriving %s" % [run.date_name(29), run.date_name()])
+
+
+## Fixed events (lives spec §6.2): one plays if you're in its region at its hour; one you sleep
+## through runs its default, and one that costs something becomes an appointment for later lives.
+func _fixed_events() -> void:
+	slice.new_month()
+	slice.finish_scene()
+	run.life["day"] = 12
+	slice.next_period()
+	if str(slice.cur.get("id", "")) != "knights_arrive" or run.event_state("knights_arrive") != "attended":
+		failures.append("the Knights should arrive while you're in the camp at noon on Ashmoon 12 (%s, %s)" % [slice.cur.get("id", ""), run.event_state("knights_arrive")])
+	slice.finish_scene()
+	if not slice.rest_until(40) or run.event_state("iron_gate_shuts") != "missed" or not run.flag("iron_gate_shut"):
+		failures.append("resting past Thaw 7 should run the Iron Gate's default (%s)" % run.event_state("iron_gate_shuts"))
+	elif not run.soul["appointments"].has("iron_gate_shuts") or run.soul["appointments"].has("knights_arrive"):
+		failures.append("only a missed event that costs something becomes an appointment: %s" % str(run.soul["appointments"].keys()))
+	else:
+		var pinned: Array = slice.reach.events().filter(func(e): return e["known"]).map(func(e): return e["id"])
+		if not ("knights_arrive" in pinned and "iron_gate_shuts" in pinned):
+			failures.append("fixed events seen or missed should be pinned from then on: %s" % str(pinned))
+		else:
+			print("[deaths] the Knights came at noon on Ashmoon 12; the Iron Gate shut while you rested, and the Ledger kept the date")
 
 
 ## The shrine turns back the Hours only once a calamity has passed in this life (lives spec §3.1).

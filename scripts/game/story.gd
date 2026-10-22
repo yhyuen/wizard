@@ -95,6 +95,14 @@ class Ctx:
 	func omens_offered() -> bool:
 		return run.omens_offered()
 
+	## Fixed event `id` happened with you there this life.
+	func attended(id: String) -> bool:
+		return run.event_state(id) == "attended"
+
+	## Fixed event `id` went by without you, in this life or one before (an appointment).
+	func missed(id: String) -> bool:
+		return run.event_state(id) == "missed" or run.soul.get("appointments", {}).has(id)
+
 	func died(cause: String) -> bool:
 		return run.died_of(cause) > 0
 

@@ -14,6 +14,7 @@ const AETHER := Color("b48cff")
 const BG := Color(0.035, 0.055, 0.125, 0.8)  # navy glass
 const HAIR := Color("d8c27a")  # gold hairline
 const VITAL := Color("e8e4d8")
+const SILVER := Color("c9d3e6")  # appointments on the calendar (UI spec §3.2)
 const RING_R := 22.0
 ## The four stars of the spellbook, the two cantrips, then the Ward's diamond (HUD coordinates).
 const STARS := [Vector2(300, 476), Vector2(383, 458), Vector2(466, 476), Vector2(549, 458)]
@@ -247,6 +248,14 @@ func _draw_fight() -> void:
 		_text(Vector2(20, y), "%s %s" % [_glyph(rows[row]), f["name"]], 11, col)
 		for i in int(f["cap"]):
 			_diamond(Vector2(88 + i * 11, y - 4), 3.5, col if i < int(f["count"]) else Color(col, 0.22), i < int(f["count"]))
+	# The main line's gold step under the vitals, outside fights (UI spec §3.4).
+	if main.mode == "world" and main.slice.screen == "world":
+		var step: String = main.slice.main_line()
+		if step != "":
+			star(Vector2(17, pr.end.y + 14), 3.5, PixelArt.GOLD)
+			var rows_t: Array = main.slice.wrap_text(step, 200.0, 12)
+			for i in rows_t.size():
+				_text(Vector2(26, pr.end.y + 18 + i * 15), rows_t[i], 12, Color(PixelArt.GOLD, 0.9))
 	var el: Dictionary = arena.D["elements"]
 	_draw_moons()
 	# Top right: the duelist.
@@ -290,7 +299,7 @@ func _draw_moons() -> void:
 	var run = main.slice.run
 	var known := ""
 	for e in main.slice.reach.events():
-		known += "1" if e["known"] else "0"
+		known += ("2" if e["appointment"] else "1") if e["known"] else "0"
 	var key := "%d/%d/%s" % [run.day(), run.time(), known]
 	_g.cached(get_canvas_item(), "moons", key, _moon_shapes.bind(run.day(), run.time()))
 	if main.mode == "fight":
@@ -319,9 +328,12 @@ func _moon_shapes(day: int, time: int) -> void:
 	_g.rect(strip, Color(BG, 0.55))
 	_g.line(strip.position + Vector2(0, strip.size.y), strip.end, Color(HAIR, 0.3), 1.0)
 	var calamity := {}
+	var pins := {}  # day -> silver (an appointment) or gold (a known fixed event), UI spec §3.2
 	for e in main.slice.reach.events():
 		if e["known"] and e["kind"] == "calamity":
 			calamity[int(e["day"])] = true
+		elif e["known"] or e["appointment"]:
+			pins[int(e["day"])] = SILVER if e["appointment"] else PixelArt.GOLD
 	# the 13 moons: past ones dim, this one bright and ringed
 	for m in run.MOONS:
 		var c := Vector2(x0 + m * MOON_STEP + 4.0, 21)
@@ -332,6 +344,9 @@ func _moon_shapes(day: int, time: int) -> void:
 		for d in calamity:
 			if (int(d) - 1) / run.MOON_DAYS == m:
 				_g.circle(c + Vector2(2.5, 0), 3.0, Color(0, 0, 0))
+		for d in pins:
+			if (int(d) - 1) / run.MOON_DAYS == m:
+				_g.circle(c + Vector2(0, -6), 1.3, pins[d])
 	# this moon's 28 days in four weeks, each dot in its weekday Sphere's colour
 	var dx0: float = x0 + run.MOONS * MOON_STEP + 10.0
 	var first: int = run.day_of(moon, 1)
@@ -346,6 +361,9 @@ func _moon_shapes(day: int, time: int) -> void:
 			_g.circle(c, 2.6 if d == day else 1.8, Color(col, 0.95 if d == day else (0.2 if d < day else 0.45)))
 		if d == day:
 			_g.arc(c, 4.6, 0, TAU, 16, HAIR, 1.0)
+		if pins.has(d):
+			_g.line(c + Vector2(0, -8), c + Vector2(0, -4), pins[d], 1.0)
+			_g.circle(c + Vector2(0, -8.5), 1.6, pins[d])
 	# the Great Eclipse: a black sun at the row's end
 	var ec := Vector2(dx0 + run.MOON_DAYS * DAY_STEP + 3 * WEEK_GAP + 8.0, 21)
 	_g.arc(ec, 6.5, 0, TAU, 24, Color(PixelArt.GOLD, 0.8), 1.5)

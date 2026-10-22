@@ -8,6 +8,7 @@ const HAIR := Color("d8c27a")  # gold hairline
 const GOLD := Color("f0c05a")
 const PAPER := Color("ece4d4")
 const DIM := Color(1, 1, 1, 0.6)
+const SILVER := Color("c9d3e6")  # appointments on the calendar (UI spec §3.2)
 const HOURS := Color("ffb347")
 const DANGER := Color("e04a3a")
 const NIGHT := Color(0.02, 0.03, 0.07)

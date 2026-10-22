@@ -1,0 +1,8 @@
+{
+ "_doc": "The main line (UI spec §3.4; build item N-1.5): one gold step under the vitals naming the next main-story action, in the camp's voice. The first step whose when (a story condition) holds is shown; none shows nothing. Hidden in fights. Written by the story threads as the story grows; these cover the first playable.",
+ "steps": [
+  {"when": "not k(\"carried_out\")", "text": "Someone carried you out of the Orrery. Ask around the camp who it was."},
+  {"when": "not k(\"trial_warden\")", "text": "Go down the north stair and find a way through the College halls to the Kiln."},
+  {"when": "not seen(\"archive_stair\")", "text": "Go on past the Kiln hall, deeper into the College."}
+ ]
+}

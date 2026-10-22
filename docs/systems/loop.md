@@ -27,7 +27,8 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
   (always `apprentice` until roads are built), the day, the time of day, flags, scenes seen, what
   was learnt, Practice, wells, the book, once-a-day actions done (`done_<op>`), items taken,
   `injured`, `losses` (each lost fight: day, time, cause, days slept), `calamities` passed,
-  `omens` and the achievements `earned` in it.
+  `omens`, the achievements `earned` in it and how each fixed event went (`events`). The soul
+  also keeps `dates` (fixed events seen come or go) and `appointments`.
   `Run.loop()` is the life's number.
 - **The Turning** (`Run.end_life(cause)`): `scripts/game/lives.gd` `carry(soul, life, cause)` is a
   pure function that returns the new soul (deaths, insight +1 up to `insight.cap`, the Echo and
@@ -74,11 +75,33 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
 - **The end card** (lives spec §3.3): one quiet card with the date and the cause's line
   (`ledger.json` `deaths`), "Continue" after a second; no lists. Then you wake on the cot on the
   first morning of the next life. **Knowledge stays; power resets** ([growth.md](growth.md)).
-- **The life's page** is in the Ledger's **Lives** tab (5): the life, its road, how it ended,
+- **The life's page** is in the Ledger's **Lives** tab (6): the life, its road, how it ended,
   insight stars, a SEALED line from `lives.json` `ledger_lines` (empty until the story threads
   write them), and three columns: **Kept** (Ledger entries learnt, spells whose best Practice
   rose, insight), **Opened** (roads a deed opened) and **Left behind** (the Ring and wells
   reached, Practice, flags). The first morning's toast points at it.
+
+## Fixed events and appointments (`calendar.json` `events` of kind `fixed`, lives spec §6.2, N-1.5)
+
+- Each has a moon, day, time of day, `region`, `who`, a `scene` and `missed` (its default: set,
+  clear, learn or deed). Each happens **once a life**. At the start of every time of day
+  (`slice._fixed_events`, before forced scenes), an event whose hour has come: if you're in its
+  region at that hour, the life is saved and its scene plays (`attended`); otherwise, or if the
+  hour went by while you slept, rested or travelled, its default runs (`missed`).
+- From then on, in every life, its date is known: pinned in gold on the calendar row, the
+  Calendar tab and the Rest until… list. A missed event marked `appointment` (missing it costs
+  something) goes into `soul.appointments` (name, date, time, place, who, the life) with a toast;
+  it's pinned in **silver** and listed in the Ledger's **Appointments** tab (5).
+- Built: **The Knights reach the camp** (Ashmoon 12, noon, the camp; teaches "Riders at the
+  fence") and **The Iron Gate shuts** (Thaw 7, morning, the Iron Gate, an appointment; the Iron
+  Gate is a card, so for now it is always missed). Moons 1–3's people and events are N-7.2.
+- Story conditions `attended(id)` and `missed(id)` (this life, or an appointment from before).
+
+## The main line (`data/world/main_line.json`, UI spec §3.4)
+
+- One gold step under the vitals, outside fights: the first step whose `when` holds. Three cover
+  the first playable (who carried you out, the way to the Kiln, past the Kiln); the story threads
+  write the rest.
 
 ## Achievements (`data/world/achievements.json`, `scripts/game/achievements.gd`, lives spec §7)
 
@@ -91,7 +114,7 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
 - Four so far, none from the story: **The First Ring** (a Ring's trial), **A Cold Kiln** (the
   Kiln Warden), **To the Last Day** (a year to the Eclipse) and **Under a Bad Sky** (hidden: a
   year finished, at the Eclipse or by turning, under an Omen).
-- The Ledger's **Deeds** tab (6): the titles earned (click one to wear it), then every
+- The Ledger's **Deeds** tab (7): the titles earned (click one to wear it), then every
   achievement: earned ones in gold with when, hidden ones as "?" and the hint, sealed (story) ones
   as "A deed not yet done". A road's `opens_by` may name an achievement as well as a deed.
 

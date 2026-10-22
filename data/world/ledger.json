@@ -21,6 +21,11 @@
    "title": "Wren's hobby",
    "text": "Pell says the College's old star cipher was Wren's hobby. Wren wrote notes to people in it."
   },
+  "knights_camp": {
+   "kind": "clue",
+   "title": "Riders at the fence",
+   "text": "Knights of the Iron Oath came up the east road on Ashmoon 12 and camped a bowshot from the fence. They watch the camp, and say nothing."
+  },
   "mill_cellars": {
    "kind": "clue",
    "title": "The Mill cellars",

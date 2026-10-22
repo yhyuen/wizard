@@ -543,6 +543,7 @@ func _carry(R) -> void:
 	ok(R.loop() == 6 and R.life["day"] == 1, "the next life is numbered after the soul's pages and starts on the first morning")
 	_save_files(R)
 	_deeds(R)
+	_events(R)
 
 
 ## The save files (save spec §5, §12): a Turning cut short is finished on load, once.
@@ -618,4 +619,24 @@ func _deeds(R) -> void:
 	R.save_enabled = false
 	R.save_dir = "user://slot1/"
 	R.profile_path = "user://profile.json"
+	R.new_run()
+
+
+## Fixed events and appointments (lives spec §6.2): the Run's side.
+func _events(R) -> void:
+	R.new_run()
+	var fx: Array = R.fixed_events()
+	ok(fx.size() >= 2 and fx.all(func(e): return int(e["at_time"]) >= 0), "the calendar has fixed events with a time of day")
+	ok(R.due_events().is_empty(), "none is due on the first morning")
+	R.life["day"] = 40
+	var due: Array = R.due_events().map(func(e): return e["id"])
+	ok("knights_arrive" in due and "iron_gate_shuts" in due, "events whose hour has gone by are due")
+	var ig: Dictionary = fx.filter(func(e): return e["id"] == "iron_gate_shuts")[0]
+	ok(R.settle_event(ig, "missed") and not R.settle_event(ig, "missed"), "a missed loss becomes an appointment, once")
+	ok(R.soul["appointments"]["iron_gate_shuts"]["region"] == "iron_gate" and R.soul["dates"].has("iron_gate_shuts"), "the appointment keeps the place, and the date is known")
+	ok(not R.due_events().any(func(e): return e["id"] == "iron_gate_shuts"), "a settled event isn't due again this life")
+	var s: Dictionary = load("res://scripts/game/lives.gd").carry(R.soul, R.life, "eclipse", R.lives)
+	R.soul = s
+	R.life = R.fresh_life()
+	ok(R.soul["appointments"].has("iron_gate_shuts") and R.event_state("iron_gate_shuts") == "", "appointments outlive the life; the event comes round again")
 	R.new_run()
