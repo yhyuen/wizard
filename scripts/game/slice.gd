@@ -21,6 +21,7 @@ const Commissions := preload("res://scripts/game/commissions.gd")
 const Ladder := preload("res://scripts/game/ladder.gd")
 const Games := preload("res://scripts/game/minigames/games.gd")
 const Companions := preload("res://scripts/game/companions.gd")
+const Confront := preload("res://scripts/game/confront.gd")
 const World := preload("res://scripts/world/world.gd")
 const Reach := preload("res://scripts/game/reach.gd")
 const Weather := preload("res://scripts/world/weather.gd")
@@ -62,6 +63,10 @@ var game_out := {}  # the match's result once it's over (games.gd finish)
 var game_easy := false  # F1 in a game: tells shown, a wrong answer struck out
 var spark_more := 0  # Sparks: dice added to the fewest you may bid
 var game_resolver: Callable  # tests: plays the match (the core) and returns whether you won
+var confront  # the confrontation being played (confront.gd), or null
+var confront_id := ""
+var confront_pick := ""  # the evidence picked to present
+var confront_resolver: Callable  # tests: plays the confrontation and returns a close id or "lost"
 var world  # scripts/world/world.gd
 var reach  # scripts/game/reach.gd: regions, roads, the calendar's events
 var weather  # scripts/world/weather.gd: each region's weather, the Almanac
@@ -899,6 +904,9 @@ func _effect(op: String, arg: String) -> bool:
 				return false
 			pending = {"op": "game", "arg": arg}
 			return true
+		"confront":
+			pending = {"op": "confront", "arg": arg}
+			return true
 		_:
 			push_warning("story effect not handled yet: " + op)
 	return false
@@ -971,6 +979,8 @@ func pending_label() -> String:
 			return "Fight"
 		"game":
 			return "Play"
+		"confront":
+			return "Go on"
 		"end_loop":
 			return "…"
 	return "Continue"
@@ -992,6 +1002,8 @@ func advance() -> void:
 				_start_fight(p["arg"])
 			"game":
 				_start_game(p["arg"])
+			"confront":
+				_start_confront(p["arg"])
 			"end_loop":
 				end_loop(p["arg"])
 		return
@@ -1190,6 +1202,55 @@ func toggle_easy() -> void:
 	toast("Easy mode on (F1)" if game_easy else "Easy mode off (F1)")
 
 
+# --- confrontations (people spec §11; N-7.6.7) ------------------------------------------------
+
+## `confront <id>`: the scene opens in its panel with the evidence you hold now; the story waits.
+func _start_confront(id: String) -> void:
+	var rec: Dictionary = Confront.load_scene(id)
+	var have: Array = rec["evidence"].filter(func(e): return story.test(str(e.get("needs", "")))).map(func(e): return e["id"])
+	var free := 0
+	if str(rec["kind"]) != "soft":
+		if not run.soul.get("confronts_played", false):
+			free = 1  # your very first confrontation never loses a lamp
+		run.soul["confronts_played"] = true
+		if str(rec["kind"]) == "believer" and bonds.tier(str(rec["who"])) >= 3:
+			free += 1
+	confront_id = id
+	confront_pick = ""
+	confront = Confront.new(rec, have, free, run.soul.get("confront_breaks", {}).get(id, {}))
+	if confront_resolver.is_valid():
+		confront_close(str(confront_resolver.call(confront)))
+		return
+	overlay = "confront"
+
+
+## The scene closes: `close` is the close chosen, or "lost" (lamps out). The breaks you found are
+## remembered faintly next life; the story carries on by `? <close>` or `? lost`.
+func confront_close(close: String) -> void:
+	if confront == null:
+		return
+	if not run.life.has("confronted"):
+		run.life["confronted"] = {}
+	run.life["confronted"][confront_id] = close
+	if close != "lost":
+		if not run.soul.has("confront_breaks"):
+			run.soul["confront_breaks"] = {}
+		run.soul["confront_breaks"][confront_id] = confront.broken.duplicate()
+	overlay = ""
+	confront = null
+	var outs: Dictionary = cur.get("outcomes", {})
+	if outs.has(close):
+		play(outs[close])
+		return
+	_run_steps()
+
+
+func _confront_present(sid: String) -> void:
+	if confront_pick != "":
+		confront.present(confront_pick, sid)
+		confront_pick = ""
+
+
 # --- the spellbook (from your desk) ---------------------------------------------------------
 
 func _pick_slot(i: int) -> void:
@@ -1353,6 +1414,11 @@ func _unhandled_input(ev: InputEvent) -> void:
 		return
 	var k: int = ev.physical_keycode
 	var dlg := in_dialogue()
+	if overlay == "confront":
+		if k >= KEY_1 and k <= KEY_9:
+			press_key(k - KEY_0)
+			get_viewport().set_input_as_handled()
+		return
 	if overlay == "game":
 		if k == KEY_F1:
 			toggle_easy()
@@ -1454,6 +1520,9 @@ func _draw() -> void:
 		"game":
 			begin_buttons()
 			_draw_game()
+		"confront":
+			begin_buttons()
+			_draw_confront()
 	if overlay != "ledger":
 		_draw_toasts()
 	end_buttons()
@@ -2063,6 +2132,76 @@ func _draw_game_over(r: Rect2, o: Dictionary) -> void:
 			var kind: String = pick[k][0]
 			button(Rect2(x + k * 150, r.end.y - 84, 140, 30), str(pick[k][1]), func(): game_pick(kind), k + 1, 14)
 	button(Rect2(r.end.x - 152, r.end.y - 50, 120, 30), "Done", game_close, 9, 14)
+
+
+## The confrontation panel (people spec §11): their statements (press, or present the evidence
+## picked), your evidence, the lamps; then how it closes.
+func _draw_confront() -> void:
+	if confront == null:
+		return
+	var c = confront
+	draw_rect(Rect2(0, 0, 960, 540), Color(0, 0, 0, 0.65))
+	var r := Rect2(110, 50, 740, 440)
+	draw_rect(r, NIGHT)
+	panel(r, Color(GOLD, 0.6))
+	title(r.position + Vector2(28, 36), str(c.d["title"]), 20, GOLD)
+	if not c.soft():
+		for i in Confront.LAMPS:
+			var lc := r.position + Vector2(r.size.x - 40 - i * 24, 30)
+			draw_circle(lc, 8.0, Color(GOLD, 0.9) if i < c.lamps else Color(PAPER, 0.15))
+	var x := r.position.x + 28.0
+	var y := r.position.y + 64.0
+	if c.result == "":
+		text(Vector2(x, y), "Press a statement, or pick evidence and present it." if confront_pick == "" else "Present it at which statement?", 12, DIM)
+		y += 14.0
+		for s in c.statements():
+			var sid: String = s["id"]
+			var done: bool = c.broken.has(sid)
+			var ty := para(Vector2(x, y + 8), str(s["text"]), 330, 13, DIM if done else PAPER, 1.2)
+			if c.hints.has(sid) and not done:
+				text(Vector2(x, ty + 2), "Once before: %s" % _evidence_name(str(c.hints[sid])), 11, Color(HOURS, 0.6))
+				ty += 14.0
+			if not done:
+				button(Rect2(x + 340, y, 60, 24), "Press", func(): c.press(sid), 0, 12)
+				button(Rect2(x + 406, y, 74, 24), "Present", func(): _confront_present(sid), 0, 12, confront_pick != "")
+			y = maxf(ty, y + 26.0) + 8.0
+		var ex := r.end.x - 212.0
+		var ey := r.position.y + 78.0
+		text(Vector2(ex, ey - 6), "Your evidence", 12, HAIR)
+		var k := 0
+		for e in c.evidence():
+			k += 1
+			var eid: String = e["id"]
+			var er := Rect2(ex, ey + 4, 188, 40)
+			if confront_pick == eid:
+				draw_rect(er.grow(2), Color(GOLD, 0.35))
+			button(er, "", func(): confront_pick = "" if confront_pick == eid else eid, k, 11)
+			para(Vector2(ex + 24, ey + 18), str(e["name"]), 160, 11, PAPER, 1.1)
+			ey += 46.0
+		if c.evidence().is_empty():
+			para(Vector2(ex, ey + 14), "You have nothing to show yet.", 188, 12, DIM)
+		if c.said != "":
+			para(Vector2(x, r.end.y - 44), c.said, r.size.x - 260, 13, GOLD)
+	elif c.result == "won":
+		para(Vector2(x, y + 10), str(c.d["won"]), r.size.x - 56, 15, PAPER)
+		para(Vector2(x, y + 60), c.said, r.size.x - 56, 13, GOLD)
+		var by: float = r.end.y - 50.0 - 36.0 * (c.d["closes"].size() - 1)
+		var i := 0
+		for cl in c.d["closes"]:
+			i += 1
+			var cid: String = cl["id"]
+			button(Rect2(x, by, 360, 30), str(cl["text"]), func(): confront_close(cid), i, 14)
+			by += 36.0
+	else:
+		para(Vector2(x, y + 10), "The last lamp goes out. Whatever was there to find, it isn't coming out today.", r.size.x - 56, 15, PAPER)
+		button(Rect2(r.end.x - 152, r.end.y - 50, 120, 30), "Done", func(): confront_close("lost"), 9, 14)
+
+
+func _evidence_name(eid: String) -> String:
+	for e in confront.d["evidence"]:
+		if e["id"] == eid:
+			return str(e["name"])
+	return eid
 
 
 func _draw_death() -> void:

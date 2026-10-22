@@ -1,0 +1,31 @@
+{
+ "_doc": "SPOILER. A confrontation (people spec §11, §21.3; build item N-7.6.7). Rules in scripts/game/confront.gd; the format in docs/systems/story.md.",
+ "title": "Pell, about the lamps",
+ "who": "pell",
+ "kind": "liar",
+ "need": 2,
+ "statements": [
+  {"id": "stall", "text": "I was at my stall all evening. Ask anyone.", "press": "Selling oil. Lamp oil, on Lantern Night. Where else would I be?", "reveals": ["steady"]},
+  {"id": "oil", "text": "My oil's as good as the Guild's. Better. Cheaper.", "press": "I buy where I can. I sell where I can. That's a stall."},
+  {"id": "steady", "hidden": true, "text": "All right. I went up to the lamp. I touched the coupling to steady myself. The crowd was pushing.", "press": "Just to steady myself. That's all."},
+  {"id": "me", "text": "Whatever you think I did, I did it for nobody. Nobody but me.", "press": "Nobody. There's nobody left."}
+ ],
+ "evidence": [
+  {"id": "mira", "kind": "witness", "name": "Mira, who saw him at the coupling", "needs": "bond(\"mira\") >= 2"},
+  {"id": "grey_oil", "kind": "object", "name": "A flask of his oil, with a grey bloom in it", "needs": "f(\"oil_grey\")"},
+  {"id": "lips", "kind": "clue", "name": "A name at the coupling", "needs": "k(\"pell_lips\")"},
+  {"id": "children", "kind": "clue", "name": "Three names on an arm", "needs": "k(\"pell_children\")"}
+ ],
+ "breaks": [
+  {"statement": "stall", "evidence": "mira", "text": "Pell: Mira. (He laughs, and it goes wrong halfway.) Mira sees everything. She lights the lamps."},
+  {"statement": "oil", "evidence": "grey_oil", "text": "Pell: (He won't look at the flask.) Put it away. Please. Put it away."},
+  {"statement": "steady", "evidence": "lips", "text": "Pell: You heard that. (His hand goes to his mouth.) Nobody was meant to hear that."},
+  {"statement": "me", "evidence": "children", "text": "Pell: Don't. Don't say them. (He holds his forearm against his chest as if it hurt.)"}
+ ],
+ "won": "Pell sits down on an oil crate, all at once, like a man whose strings were cut.",
+ "closes": [
+  {"id": "expose", "text": "Take him to the watch"},
+  {"id": "bargain", "text": "Keep quiet, for one thing he knows"},
+  {"id": "let_go", "text": "Let him go"}
+ ]
+}

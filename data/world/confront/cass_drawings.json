@@ -1,0 +1,23 @@
+{
+ "_doc": "SPOILER. A soft talk (people spec §11, §21.3; build item N-7.6.7): no lamps, it never fails. Rules in scripts/game/confront.gd.",
+ "title": "Cass, about her drawings",
+ "who": "cass",
+ "kind": "soft",
+ "need": 1,
+ "statements": [
+  {"id": "everything", "text": "I draw everything. Tents, boards, people. Silas says it's a waste of charcoal.", "press": "If I draw it, I've got it. That's how it works. That's how it's always worked."},
+  {"id": "better", "text": "I'm better than I was last year. I'm sure I am.", "press": "It's only that the lines don't stay where I put them, lately.", "reveals": ["cold"]},
+  {"id": "cold", "hidden": true, "text": "It's the cold. My hands go stupid in the cold.", "press": "It's spring, I know. I know it's spring."}
+ ],
+ "evidence": [
+  {"id": "board", "kind": "object", "name": "Her drawing of you on the wagon board", "needs": "f(\"cass_asked\")"},
+  {"id": "silas", "kind": "statement", "name": "Silas: \"Stay away from her.\"", "needs": "k(\"silas\")"}
+ ],
+ "breaks": [
+  {"statement": "cold", "evidence": "board", "text": "Cass: (She looks at the board for a long moment.) I did that. I did do that, didn't I? (She laughs, too loudly.) Course I did."}
+ ],
+ "won": "Cass picks up her charcoal again, and holds it a little tighter.",
+ "closes": [
+  {"id": "sit", "text": "Tell her you'll sit for her"}
+ ]
+}

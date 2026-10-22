@@ -24,6 +24,10 @@ extends SceneTree
 ## their kills train nothing), a won fight is +2 bond once a day, a night talk plays as you wake
 ## (one a night), the Guide passes on a rumour on reaching a region once a season; at most three
 ## Sworn a life.
+## Confrontations (§11; N-7.6.7): every scene can be won with its evidence; a miss costs a lamp
+## (never in your first, never in a soft talk), a near costs nothing, three misses lose it; pressing
+## can show a hidden statement; the scene closes into its story outcome, and a won scene's breaks
+## are remembered next life.
 
 var main
 var slice
@@ -101,10 +105,11 @@ func _go() -> void:
 	_ladder()
 	_minigames()
 	_companions()
+	_confronts()
 	for f in failures:
 		print("[people] FAIL: " + f)
 	if failures.is_empty():
-		print("[people] bonds, rumours, commissions, the ladder, the minigames and companions hold")
+		print("[people] bonds, rumours, commissions, the ladder, the minigames, companions and confrontations hold")
 	quit(1 if not failures.is_empty() else 0)
 
 
@@ -414,6 +419,69 @@ func _companions() -> void:
 	slice.end_loop("turned")
 	slice.wake()
 	_check(c.who() == "", "a new life walks alone")
+
+
+func _confronts() -> void:
+	slice.new_month()
+	slice.finish_scene()
+	var Confront = slice.Confront
+	var rec: Dictionary = Confront.load_scene("pell_lamps")
+	var all: Array = rec["evidence"].map(func(e): return e["id"])
+	_check(Confront.new(rec, all).bot() == "won", "a confrontation can be won with all its evidence")
+	# Press can show a hidden statement.
+	var cf = Confront.new(rec, all)
+	var hidden: Array = rec["statements"].filter(func(x): return x.get("hidden", false)).map(func(x): return x["id"])
+	_check(not cf.statements().any(func(x): return x["id"] in hidden), "hidden statements start hidden")
+	for x in cf.statements():
+		cf.press(x["id"])
+	_check(cf.statements().any(func(x): return x["id"] in hidden), "pressing shows a hidden statement")
+	# Near costs nothing; a miss costs a lamp; three misses and it's lost.
+	var b0: Dictionary = rec["breaks"][0]
+	var b1: Dictionary = rec["breaks"][1]
+	_check(cf.present(b1["evidence"], b0["statement"]) == "near" and cf.lamps == 3, "right evidence at the wrong statement is near, and free")
+	var wrong = Confront.new(rec, all)
+	var junk: String = b0["evidence"]
+	var at := ""
+	for x in wrong.statements():
+		if not rec["breaks"].any(func(b): return b["evidence"] == junk and b["statement"] == x["id"]):
+			at = x["id"]
+	wrong.broken[b0["statement"]] = junk  # the evidence's own break is spent: now it only misses
+	_check(wrong.present(junk, at) == "miss" and wrong.lamps == 2, "a miss costs a lamp (%d)" % wrong.lamps)
+	wrong.present(junk, at)
+	wrong.present(junk, at)
+	_check(wrong.result == "lost" and wrong.lamps == 0, "three misses and the lamps are out")
+	var first = Confront.new(rec, all, 1)
+	first.broken[b0["statement"]] = junk
+	first.present(junk, at)
+	_check(first.lamps == 3, "the first confrontation's miss is free")
+	var soft = Confront.new(Confront.load_scene("cass_drawings"), ["silas"])
+	for x in soft.statements():
+		soft.present("silas", x["id"])
+	_check(soft.lamps == 3 and soft.result == "", "a soft talk never loses a lamp")
+	for fn in DirAccess.get_files_at(Confront.DIR):
+		if fn.ends_with(".json"):
+			_check(Confront.check(Confront.load_scene(fn.get_basename())).is_empty(), "the data check passes for " + fn)
+	# In the story: the scene opens after Lantern Night with what you hold, and closes into its outcome.
+	run.life["day"] = slice.calamity.day("lantern_night") + 1
+	slice._effect("learn", "pell_lips")
+	slice._effect("learn", "pell_children")
+	run.set_flag("oil_grey")
+	_check(slice.story.choices(slice.story.scenes["pell_confront_ask"]).any(func(ch): return ch["target"] == "pell_confront") and slice.story.test("confronted(\"pell_lamps\") == \"\""), "after Lantern Night you can ask Pell about the lamps")
+	var held: Array = []
+	slice.confront_resolver = func(c):
+		held.append_array(c.have)
+		c.bot()
+		return "bargain"
+	_play("pell_confront")
+	_check(not "mira" in held and "grey_oil" in held and "lips" in held, "you present only what you hold (%s)" % str(held))
+	_check(slice.story.test("confronted(\"pell_lamps\") == \"bargain\"") and run.flag("pell_bargain"), "the close you choose runs its outcome")
+	_check(not run.soul.get("confront_breaks", {}).get("pell_lamps", {}).is_empty(), "a won scene's breaks are remembered")
+	slice.confront_resolver = Callable()
+	slice.end_loop("turned")
+	slice.wake()
+	_check(slice.story.test("confronted(\"pell_lamps\") == \"\""), "a new life can confront again")
+	var again = Confront.new(rec, all, 0, run.soul["confront_breaks"]["pell_lamps"])
+	_check(not again.hints.is_empty() and again.broken.is_empty(), "next life shows the old breaks as hints, nothing broken")
 
 
 ## Plays a scene through its fight, taking the first choice anywhere else.

@@ -147,6 +147,28 @@ It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `c
   and its answer among the options, and each opponent has riddles enough. `people.gd` plays both
   cores alone with bots, and the frame through the slice.
 
+## Confrontations (`data/world/confront/*.json`, `scripts/game/confront.gd`, people spec §11; N-7.6.7)
+
+- `confront <id>` stops the scene like a fight (button "Go on") and opens the confrontation panel:
+  their statements on the left, the evidence you hold now on the right. Evidence is held when its
+  `needs` condition is true as the scene opens (a clue in the Ledger, a flag for an object, a bond
+  tier for a witness); a witness is of this life only.
+- **Press** a statement and they say more; pressing can show a **hidden** statement. **Present**
+  evidence (pick it, then click a statement): the right evidence at the right statement **breaks**
+  it; evidence that breaks some other statement is **near** and costs nothing; anything else is a
+  **miss** and puts out one of **three lamps**. Break `need` statements and you choose a **close**
+  (the scene's own list); lamps out and it's lost for this life. `? <close id>` and `? lost` carry
+  the story on, and `confronted(id)` reads the result this life ("" if not played).
+- **Kinds:** a liar (as above), a believer (forgives one miss once you're Close), a soft talk (no
+  lamps, never fails, `? lost` not needed). Your very first hard confrontation never loses a lamp.
+- **Across lives:** a won scene's breaks are kept (`Run.soul.confront_breaks`) and shown faintly
+  next life as hints; nothing starts broken.
+- **Ring 1** (`data/world/story/confront.story`, SPOILER: sealed content): one hard confrontation
+  after Lantern Night and one soft talk before Seedmoon 20.
+- **Data check** (story_lint): each scene is solvable (every break reachable by pressing, names
+  real evidence, enough breaks for `need`, a bot wins with everything), evidence conditions parse,
+  and every scene that confronts has an outcome for each close (and `lost` unless soft).
+
 ## Cutscenes (`scripts/game/cutscene.gd`)
 
 - Short scenes in the fight view where time runs the wrong way: the Fire and the Mourner, and
@@ -156,4 +178,4 @@ It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `c
 ## Tests
 
 `tools/tests/story_lint.gd` (every scene against its own map's people, items, spots and exits;
-parse errors; the 7-day rumour check; the commissions' and the ladder's checks), `tools/tests/route.gd`, `tools/tests/people.gd`.
+parse errors; the 7-day rumour check; the commissions', the ladder's, the minigames' and the confrontations' checks), `tools/tests/route.gd`, `tools/tests/people.gd`.
