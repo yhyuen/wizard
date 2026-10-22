@@ -39,6 +39,12 @@
 
 ## Magic meets the world (`data/world/props.json`)
 
+*Target design: [spells and the environment](/mnt/project-files/design/world/spells-and-environment-spec.md)
+(2026-10-22, tracker M0-6; visual: [World Matter Atlas](https://claude.ai/artifact/2kDFnWVKykbTzChnjmPNhD)):
+one force × material table for props, tiles and units, states, fire/water/charge spreading on a cell
+grid, breaking and collapse, damage that lasts the life, owners and witnesses. The gaps are in
+[drift.md](drift.md). What follows is the build today.*
+
 - **Fire** spells (`fire_spells`) light lamps and braziers and set hay, crates and carts burning
   (`burns` s, `spread` px, `dps` to enemies standing in it, then ash). **Water** spells put them
   out. **Force** spells shove crates and barrels (`mass`, `roll`, `shove`).
