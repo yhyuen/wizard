@@ -191,6 +191,8 @@ The Lamplighters' bench: a vice, a spirit lamp, racks of empty flasks and coils 
 [not k("model_spark_flask")] A Lamplighter looks up from her soldering. "Want to see how a flask is packed? Oil, a spark in the stopper, and keep it away from your face."
 [not k("model_spark_flask")] + model spark_flask
 * Ask about the lantern with the star-chart shade [mastered("astral_rite") and mastered("spark_artifice") and not k("model_star_lantern")] -> bench_lantern
+* "About that road, Fennick." [offered("lamplighter") and f("fennick_later") and day < 7] -> fennick_road_yes
+* "Rule one?" [on_road("lamplighter") and not f("rule_one")] -> rule_one
 * Fill your devices (it takes a while) -> bench_fill
 * Ask for spare stock [not f("bench_stock")] -> bench_stock
 * Leave
