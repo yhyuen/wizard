@@ -21,6 +21,8 @@ M0-1 (these specs and the spec check).*
   staff, Q W E R spells, D F cantrips, hold C Ward) and League smart cast (a spell commits on the
   key going down); Tab cycles any time; kept in `user://settings.cfg`.
   `scripts/autoload/input_setup.gd` registers the actions in code ([combat.md](combat.md) has the kit).
+- **Text:** wrapped lines are cached (`scripts/ui/atlas.gd` `wrap_text`, up to 256), since the
+  same barks, hints and toasts are measured word by word every frame otherwise.
 - **Graphics:** the 3D renders at most 1280 px wide; below 40 fps for 4 s graphics drop to low
   (F4 toggles, low draws the 3D at 3/4 size); kept in `user://settings.json`. F8 mutes.
 

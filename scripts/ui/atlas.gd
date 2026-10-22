@@ -79,7 +79,23 @@ func para(pos: Vector2, s: String, width: float, sz := 15, col := PAPER, gap := 
 	return y
 
 
+## Wrapped lines are kept (measuring every word is slow in the browser, and the same lines are
+## drawn every frame).
+var _wraps := {}
+
+
 func wrap_text(s: String, width: float, sz: int) -> Array:
+	var key := "%s|%d|%d" % [s, width, sz]
+	if _wraps.has(key):
+		return _wraps[key]
+	if _wraps.size() > 256:
+		_wraps.clear()
+	var out := _wrap(s, width, sz)
+	_wraps[key] = out
+	return out
+
+
+func _wrap(s: String, width: float, sz: int) -> Array:
 	var out: Array = []
 	var cur := ""
 	for word in s.split(" ", false):

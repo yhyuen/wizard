@@ -526,7 +526,7 @@ func _warm_up() -> void:
 func _follow_close(delta: float) -> void:
 	var c: Dictionary = wc["camera"]
 	var o: Array = c["offset"]
-	var target := to_world(arena.player.pos)
+	var target := to_world(arena.player.shown_pos())
 	target.y = 0.0
 	var off := Vector3(o[0], o[1], o[2])
 	var who = W.people.get_person(talk_to) if talk_to != "" else null
@@ -542,7 +542,7 @@ func _follow_close(delta: float) -> void:
 	var sh: float = arena.shake
 	camera.position = _cam_at + off + (Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * sh * 0.03 if sh > 0.3 else Vector3.ZERO)
 	camera.look_at(_cam_at + Vector3(0, float(c["look_up"]), 0))
-	var chest := to_world(arena.player.pos, 1.0)
+	var chest := to_world(arena.player.shown_pos(), 1.0)
 	for m in [town.solid_mat, town.glow_mat]:
 		m.set_shader_parameter("cut", 1.0)
 		m.set_shader_parameter("cut_cam", camera.position)
@@ -591,7 +591,7 @@ func _sync_people(delta: float) -> void:
 			_people[p.id] = rec
 		var n: Node3D = rec["node"]
 		n.visible = true
-		n.position = to_world(p.pos)
+		n.position = to_world(p.shown_pos())
 		if p.face.length() > 0.1:
 			rec["rot"] = lerp_angle(rec["rot"], face_rot(p.face), clampf(delta * 8.0, 0.0, 1.0))
 		n.rotation.y = rec["rot"]

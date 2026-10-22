@@ -193,9 +193,11 @@ ice on the cells, mud from water on earth.*
 - **Weather** (`world.set_sky`, called at dawn and on arriving): `rain`/`storm` (weather `wet`)
   puts out every fire outdoors and nothing outdoors catches; `fire_spread` scales spread (heat
   ×1.5, snow ×0.5); wind and its direction drive it. The halls are `indoors`: no weather.
-- **Shown:** burning cells are flames (arena `ember` zones with `cell`, drawn and lit by the
-  view, not counted as your Embers); the ground decal has dark ash blots, blue wet blots and a
-  crackle on charged cells.
+- **Shown:** burning cells are flames (arena `ember` zones with `cell`, not counted as your
+  Embers). The view draws them all as one batch (`spells3d.gd` `_ground_fires`); only the 40
+  nearest glow and the 2 nearest ask for a light. The ground decal has dark ash blots, blue wet
+  blots and a crackle on charged cells, drawn as one batch of triangles, the ash and rubble from a
+  cache rebuilt when they change (`world.gd` `draw_ground`).
 
 ## Economy, gear and repair (not built)
 

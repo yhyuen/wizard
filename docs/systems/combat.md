@@ -19,7 +19,10 @@ page [Enemy Field Guide](https://claude.ai/artifact/NfkV4YFAufXzUP1pBuGcAK)). Un
 - **One sim, flat and 2D.** `scripts/arena.gd` simulates every unit (`scripts/unit.gd`),
   projectile, telegraph, zone, field object and effect in sim pixels (the old yard is 480×270).
   The 3D view only reads it ([art.md](art.md)), so **a telegraph is the hitbox** and a shot's
-  ground shadow is its exact hitbox.
+  ground shadow is its exact hitbox. The sim steps 60 times a second; each unit (and each
+  person in town) keeps `prev_pos`, and the view draws it at `shown_pos()`, between the last two
+  steps, so movement stays smooth on faster screens or a late frame (a jump of over 20 px, such
+  as a blink, is drawn where it lands).
 - **Fights in place.** A story `fight <id>` effect starts an encounter from
   `data/world/encounters.json` where you stand. `waves` run one after another (the next starts
   when the field is clear); `survive > 0` runs them on a timer instead. `leash` (sim px, default

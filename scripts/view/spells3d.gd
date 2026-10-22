@@ -12,6 +12,13 @@ var view
 var arena
 var _pools := {}  # kind -> Array of nodes
 var _used := {}
+## The ground's fires (one per burning cell, often dozens) as two batches, flames and their
+## glow, so a grass fire costs two draw calls instead of four per cell.
+var _cell_fires: Array = []  # this frame's burning-cell zones
+var _fire_mm: MultiMeshInstance3D
+var _fire_halo_mm: MultiMeshInstance3D
+const CELL_HALOS := 40  # the nearest this many cell fires glow; the rest are flames only
+const CELL_LIGHTS := 2  # and the nearest this many ask for a light
 
 
 func _init(the_view) -> void:
@@ -114,6 +121,8 @@ func warm_up(at: Vector3) -> void:
 	for i in KINDS.size():
 		var a := i * TAU / KINDS.size()
 		take(KINDS[i]).position = at + Vector3(cos(a), 0.2 * (i % 3), sin(a)) * 1.5
+	_cell_fires = [{"t": 0.0, "pos": arena.player.pos + Vector2(0, 30)}]  # and the ground's fires
+	_ground_fires()
 
 
 func _make(kind: String, i: int) -> Node3D:
@@ -288,7 +297,9 @@ func sync(_delta: float) -> void:
 	var glow_k: float = view.spell_k()
 	_stones()
 	_projs(glow_k)
+	_cell_fires.clear()
 	_zones(glow_k)
+	_ground_fires()
 	_fx(glow_k)
 	for kind in _pools:
 		var pool: Array = _pools[kind]
@@ -415,6 +426,9 @@ func _zones(glow_k: float) -> void:
 		var t: float = z["t"]
 		match z["kind"]:
 			"ember", "blaze":
+				if z.has("cell"):
+					_cell_fires.append(z)
+					continue
 				var f := take("flame")
 				f.position = _w(z["pos"])
 				var fade := clampf((z["life"] - t) / 1.0, 0.3, 1.0)
@@ -518,6 +532,80 @@ func _zones(glow_k: float) -> void:
 			"storm", "strike":
 				var k := clampf(t / maxf(0.01, float(z.get("delay", 1.0))), 0.0, 1.0)
 				view.want_light(_w(z["pos"], 1.0), PixelArt.STORM, 0.6 * k, float(z["r"]) * view.S * 2.0)
+
+
+## The burning cells: every flame in one batch, and a glow and a light for the nearest few.
+func _ground_fires() -> void:
+	var n := _cell_fires.size()
+	if _fire_mm == null:
+		if n == 0:
+			return
+		_fire_mm = _batch(flame_mesh(), Figure.fade_mat(Color.WHITE, 1.6))
+		_fire_mm.material_override.set_shader_parameter("vcol_albedo", true)
+		var hm := ShaderMaterial.new()
+		hm.shader = HALO_SHADER
+		hm.set_shader_parameter("color", PixelArt.FIRE)
+		_fire_halo_mm = _batch(QuadMesh.new(), hm)
+	_fire_mm.visible = n > 0
+	_fire_halo_mm.visible = n > 0
+	if n == 0:
+		return
+	var at: Vector2 = arena.player.pos
+	_cell_fires.sort_custom(func(a, b): return a["pos"].distance_squared_to(at) < b["pos"].distance_squared_to(at))
+	var mm := _fire_mm.multimesh
+	if mm.instance_count < n:
+		mm.instance_count = n + 32
+	mm.visible_instance_count = n
+	var halos := mini(n, CELL_HALOS)
+	var hmm := _fire_halo_mm.multimesh
+	if hmm.instance_count < halos:
+		hmm.instance_count = CELL_HALOS
+	hmm.visible_instance_count = halos
+	_fire_halo_mm.material_override.set_shader_parameter("strength", 0.9 * lerpf(0.55, 1.0, view.spell_k()))
+	for i in n:
+		var z: Dictionary = _cell_fires[i]
+		var t: float = z["t"]
+		var x: float = z["pos"].x
+		var b := Basis(Vector3.UP, t * 0.7 + x).scaled(Vector3(1.0, 0.8 + 0.25 * sin(t * 13.0 + x), 1.0))
+		mm.set_instance_transform(i, Transform3D(b, _w(z["pos"])))
+		if i < halos:
+			hmm.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3.ONE * 1.6), _w(z["pos"], 0.45)))
+		if i < CELL_LIGHTS:
+			view.want_light(_w(z["pos"], 0.5), PixelArt.FIRE, 1.4, 3.0)
+
+
+func _batch(mesh: Mesh, m: Material) -> MultiMeshInstance3D:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = mesh
+	var mi := MultiMeshInstance3D.new()
+	mi.multimesh = mm
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	view.add_child(mi)
+	return mi
+
+
+## The "flame" shape's three cones as one mesh, coloured by vertex (for the ground's fires).
+static func flame_mesh() -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for k in 3:
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.0
+		cm.bottom_radius = 0.13 - 0.03 * k
+		cm.height = 0.5 - 0.12 * k
+		cm.radial_segments = 4
+		cm.rings = 1
+		var arr := cm.get_mesh_arrays()
+		var verts: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		var norms: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
+		var off := Vector3((k - 1) * 0.08, cm.height * 0.5, (k % 2) * 0.05)
+		st.set_color((PixelArt.FIRE if k < 2 else PixelArt.FIRE_HOT).srgb_to_linear())
+		for j in arr[Mesh.ARRAY_INDEX]:
+			st.set_normal(norms[j])
+			st.add_vertex(verts[j] + off)
+	return st.commit()
 
 
 ## A stick from `a` to `b`, `w` thick.
