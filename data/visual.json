@@ -32,6 +32,7 @@
     "warden": {"shape": "kiln", "scale": 1.0, "body": "3a3430", "glow": "ff7a2a", "glow_k": 2.0},
     "inverted": {"model": "bandit", "scale": 0.92, "facet": 0.7, "tint": ["8a7a5e", 0.7], "eyes": "ffb347"},
     "lantern_eater": {"model": "bandit", "scale": 0.98, "facet": 0.7, "tint": ["2a2622", 0.8], "eyes": "6a5a4a", "hat": {"kind": "hood", "color": "1e1a18", "band": "2a2420"}},
+    "lightdrinker": {"model": "elder", "scale": 1.9, "facet": 0.7, "tint": ["1a1820", 0.9], "eyes": "cfe8ff", "hat": {"kind": "hood", "color": "141218", "band": "3a4458"}},
     "choir": {"model": "elder", "scale": 1.1, "facet": 0.7, "tint": ["6a6258", 0.75], "eyes": "ffb347", "hat": {"kind": "hood", "color": "4a4440", "band": "8a7a5e"}},
     "husk": {"model": "elder", "scale": 1.04, "facet": 0.7, "weapon": "staff", "staff_gem": "9a7af0", "tint": ["5e5a6a", 0.7], "eyes": "9a7af0", "hat": {"kind": "wizard", "color": "3a3644", "band": "9a7af0"}},
     "cutthroat": {"model": "bandit", "scale": 0.94, "facet": 0.7, "weapon": "blade", "tint": ["4a3a32", 0.6], "hat": {"kind": "hood", "color": "2e2622", "band": "6a4a3a"}},

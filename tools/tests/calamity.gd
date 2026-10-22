@@ -35,6 +35,7 @@ func _go() -> void:
 	_taken()
 	_present()
 	_lost()
+	_vigil()
 	for f in failures:
 		print("[calamity] FAIL: " + f)
 	if failures.is_empty():
@@ -230,3 +231,37 @@ func _lost() -> void:
 		failures.append("falling in the Peak should end the life (%s)" % slice.screen)
 	else:
 		print("[calamity] falling in the Peak ends the life")
+
+
+## The Peak's vigil (encounter `vigil`): a dark pool with a Hollow in it for 10 s loses its people;
+## helpers relight a dark lamp with nothing near it.
+func _vigil() -> void:
+	_fresh(84, 4)
+	slice.world.load_map("camp")
+	run.set_flag("helpers_coming")
+	var a = main.arena
+	a.encounter = {"vigil": {"people": 30, "shelter": {"flag": "sheltered", "n": 10}, "near_r": 72, "taken_s": 10,
+		"helpers": {"flag": "helpers_coming", "every": 15}}}
+	a.phase = "enc"
+	var circuit: Array = slice.world.lamps.filter(func(l): return l["circuit"] != "")
+	for l in circuit:
+		l["lit"] = false
+		l["by"] = "doused"
+	var h = a.spawn("hollow", circuit[0]["pos"] + Vector2(10, 0))
+	for i in 66:
+		slice.world._vigil(1.0 / 6.0)
+	var lost := int(run.life.get("calamity_lost", 0))
+	var early: int = circuit.filter(func(l): return l["by"] == "helper").size()
+	for i in 30:
+		slice.world._vigil(1.0 / 6.0)
+	var helped: int = circuit.filter(func(l): return l["by"] == "helper" and l["pos"].distance_to(h.pos) > 72.0).size()
+	h.dead = true
+	a.phase = "explore"
+	a.encounter = {}
+	slice.world._vigil(0.1)
+	if lost < 1 or lost > 4:
+		failures.append("a dark pool with a Hollow in it for 10 s should lose its people (lost %d)" % lost)
+	elif early != 0 or helped != 1:
+		failures.append("a helper should relight one dark lamp with nothing near it after 15 s (%d, %d)" % [early, helped])
+	else:
+		print("[calamity] a dark pool with a Hollow in it for 10 s loses its people (%d); a helper relights a lamp" % lost)

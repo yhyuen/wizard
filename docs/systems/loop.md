@@ -171,7 +171,7 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
   travelled, it passes **without you** at its absent tier (Fallen; Scarred with four
   preparations).
 - **Dawn:** surviving the Peak, the story's `calamity_dawn` reads the stakes (the camp's circuit
-  lamps still lit, people lost: `life.calamity_lost`) and picks the tier: **Held** (16+ lamps and
+  lamps still lit, people lost: `life.calamity_lost`, counted by the Peak's vigil in world.md) and picks the tier: **Held** (16+ lamps and
   at most 3 lost, and the sealed stake kept), **Scarred** (8+ lamps or at most 10 lost), else **Fallen**. The tier's aftermath
   sets its flags (`market_held` …) and deeds (SEALED: Held opens a road), keeps `shut`, `shortage`
   and `abandons` on the life for the economy, teaches the Ledger entry, keeps the date for every

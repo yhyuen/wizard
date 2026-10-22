@@ -103,6 +103,7 @@ Hay off the posts, awnings rolled, crates stacked away from the glass. Bett watc
 [standing("guild") >= 25 or standing("college") >= 25] Mira: You? People will come if you ask. Four, maybe. Tapers and buckets.
 [standing("guild") < 25 and standing("college") < 25] Mira: Ask around. Nobody knows you well enough yet to stand in the dark for you.
 + set helpers_asked
+[standing("guild") >= 25 or standing("college") >= 25] + set helpers_coming
 [standing("guild") >= 25 or standing("college") >= 25] + prep lantern_night helpers
 * Leave
 

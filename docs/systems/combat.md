@@ -191,8 +191,11 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   Lantern Night's Peak (N-7.5.1): three waves over 480 s in the camp (Hollows and Slingers;
   Lantern-eaters, a Choir and Hollows; Husks, Hollows, a Lantern-eater and Slingers), up to 24
   alive; losing it ends the life (`cause` `calamity:lantern_night`); with `shorter` (N-7.5.2) a
-  life flag cuts it to 300 s. Encounter `stair_test` is Lantern Night's third sign: three Hollows
-  and a Slinger at the north stair. The boss is not built yet.
+  life flag cuts it to 300 s. Wave 3 brings the boss, **the Lightdrinker** (N-7.5.2; Boss, 520 HP,
+  Poise 2, slow, a wide 14-damage swing): not light-shy, every lamp within 64 px of it goes out,
+  and Broken it spits the light back (dark lamps within 150 px relight). Its `vigil` (world.md)
+  counts the people taken. Encounter `stair_test` is Lantern Night's third sign: three Hollows
+  and a Slinger at the north stair.
 - **Brigands** (N-6.3, enemy spec §8.2; minds, guard, keg and net in `scripts/brigands.gd`, flesh
   bodies): the **Cutthroat** (Minion) stabs with a lunge and backs off; the **Crossbowman**
   (Soldier) keeps 170 px off, shoots a bolt (Impact 2, the Ward stops it) and stands reloading 3 s
