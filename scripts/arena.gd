@@ -733,7 +733,9 @@ func _update_unit(u: Unit, dt: float) -> void:
 		u.vel = Vector2.ZERO
 	u.pos += u.vel * dt
 	u.vel = u.vel.lerp(Vector2.ZERO, 1.0 - exp(-7.0 * dt))
-	if u == player and not leash.is_empty() and u.pos.distance_to(leash["at"]) > leash["r"]:
+	# The mist holds the fight: you can't stray past it, and nor can they (a Slinger backing off
+	# would end up behind a wall out of reach).
+	if (u == player or u.team == 1) and not leash.is_empty() and u.pos.distance_to(leash["at"]) > leash["r"]:
 		u.pos = leash["at"] + (u.pos - leash["at"]).normalized() * leash["r"]
 	if town != null and u.team == 1 and encounter.get("light_shy", true):
 		u.pos = town.out_of_light(u.kind, u.pos, u.radius)
@@ -1026,6 +1028,7 @@ func kill(u: Unit) -> void:
 		fx("burst", u.pos, {"color": PixelArt.HOURS, "r": 9.0, "life": 0.35})
 		stats["downs"] = int(stats.get("downs", 0)) + 1
 		return
+	ai.cult.on_killed(u)  # a runner caught before it raised the alarm
 	u.dead = true
 	u.hp = 0.0
 	u.death_t = 0.6
@@ -1319,6 +1322,8 @@ func _detonate(z: Dictionary) -> void:
 			ai.brig.pot(z)
 		"bell":
 			ai.knights.ring(z)
+		"fuse":
+			ai.cult.light(z)
 		"rline":
 			# Inverted: the stone appears behind you and flies home to the Slinger's hand.
 			var o := unit_by_id(z["owner"])
@@ -1698,6 +1703,12 @@ func _draw_zone(z: Dictionary) -> void:
 			var fade := clampf((float(z["life"]) - t) / 1.0, 0.0, 1.0)
 			draw_circle(z["pos"], z["r"], Color(0.62, 0.48, 0.95, 0.3 * k * fade), true, -1.0, false)
 			draw_arc(z["pos"], z["r"], 0, TAU, 24, Color(0.62, 0.48, 0.95, 0.8 * fade), 1.0, false)
+		"fuse":
+			# a Saboteur's oil: a dark pool with a ring that closes in as the fuse burns down
+			var k := clampf(t / z["delay"], 0.0, 1.0)
+			draw_circle(z["pos"], z["r"], Color(0.1, 0.08, 0.05, 0.45), true, -1.0, false)
+			draw_arc(z["pos"], z["r"], 0, TAU, 28, PixelArt.DANGER, 1.0, false)
+			draw_arc(z["pos"], z["r"] * (1.0 - k) + 1.0, 0, TAU, 28, PixelArt.FIRE, 1.0, false)
 		"bell":
 			# a Silencer's bell: the circle its ring will silence fills as it swings
 			var k := clampf(t / z["delay"], 0.0, 1.0)

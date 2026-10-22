@@ -110,8 +110,8 @@ func intent(A) -> Dictionary:
 			"lance":
 				c = Geometry2D.get_closest_point_to_segment(P.pos, z["a"], z["b"])
 				hit = P.pos.distance_to(c) < z["w"] + 6.0
-			"bell", "hush":
-				# a Silencer's ring: no spells inside it
+			"bell", "hush", "fuse":
+				# a Silencer's ring (no spells inside it), a Saboteur's oil
 				c = z["pos"]
 				hit = P.pos.distance_to(c) < float(z["r"]) + 4.0
 			"line", "rline":

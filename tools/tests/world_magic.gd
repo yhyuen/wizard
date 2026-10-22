@@ -31,6 +31,8 @@ extends SceneTree
 ## N-6.6 (armour and the Knights): an Oath Squire's mail halves a light hit and not a heavy one,
 ## and falls away when worn through; a Spark goes through a Shieldknight's iron shield, which fire
 ## doesn't burn; a Silencer's bell stops a spell inside its ring, and a heavy blow breaks it.
+## N-6.7 (the cult's first cell): the first Acolyte runs for help, and catching it keeps the alarm
+## down while letting it go brings two more; Splash washes out a Saboteur's oil before it's lit.
 
 const BOOK := ["ember_bolt", "pebble", "splash", "undertow"]
 const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt"]
@@ -115,6 +117,8 @@ func _initialize() -> void:
 			func(): return state["armoured"]],
 		["a Spark goes through a Shieldknight's iron shield, which fire doesn't burn", _iron_setup, _conducted],
 		["a Silencer's bell stops spells inside its ring, and a heavy blow breaks the bell", _bell_setup, _belled],
+		["the first Acolyte runs for help: caught, no alarm; left alone, the alarm brings two more", _runner_setup, _alarmed],
+		["Splash washes out a Saboteur's oil before it's lit; oil left alone goes up", _oil_setup, _oiled],
 	]
 
 
@@ -1043,4 +1047,65 @@ func _belled() -> bool:
 	var refused: bool = A.kit.wind.is_empty()
 	A.hit(sil, 1.0, 3, (sil.pos - A.player.pos).normalized(), 0.0)
 	return refused and sil.flags.get("bell_gone", false) and "bell_broken" in run.soul["guide"]["silencer"]["found"]
+
+
+# --- N-6.7: the cult's first cell ----------------------------------------------------------------
+
+func _runner_setup() -> void:
+	_clear_enemies()
+	main.arena.zones.clear()
+	_book(BOOK)
+	var A = main.arena
+	main.place_player(_dark_spot())
+	A.stats.erase("runner_id")
+	A.player.max_hp = 999.0
+	A.player.hp = 999.0
+	state["alarms"] = int(A.stats.get("alarms", 0))
+	state["caught"] = A.spawn("acolyte", A.player.pos + Vector2(60, 0))
+	state["caught"].state = "move"
+	state["phase"] = 0
+
+
+func _alarmed() -> bool:
+	var A = main.arena
+	var r = state["caught"]
+	if state["phase"] == 0:
+		if not r.flags.has("runner"):
+			return false
+		A.kill(r)  # caught it
+		state["phase"] = 1
+		state["found"] = "caught_runner" in run.soul["guide"]["acolyte"]["found"]
+		A.stats.erase("runner_id")
+		state["free"] = A.spawn("acolyte", A.player.pos + Vector2(60, 0))
+		state["free"].state = "move"
+		return false
+	var f = state["free"]
+	if f.flags.has("runner"):
+		f.flags["runner"] = minf(float(f.flags["runner"]), 0.3)  # let it get away quickly
+		return false
+	var callers: int = A.enemies().filter(func(u): return u.flags.has("caller")).size()
+	return state["found"] and int(A.stats.get("alarms", 0)) == state["alarms"] + 1 and callers == 2 and f.dead
+
+
+func _oil_setup() -> void:
+	_clear_enemies()
+	main.arena.zones.clear()
+	_book(BOOK)
+	var A = main.arena
+	var at := _dark_spot() + Vector2(0, 20)
+	var s = A.spawn("saboteur", at + Vector2(90, 0))
+	s.stun = 9.0
+	state["far"] = at + Vector2(-80, -60)
+	A.add_zone({"kind": "fuse", "owner": -1, "by": s.id, "pos": at, "r": 26.0, "delay": 2.0})
+	A.add_zone({"kind": "fuse", "owner": -1, "by": s.id, "pos": state["far"], "r": 26.0, "delay": 1.0})
+	state["defused"] = int(A.stats.get("defused", 0))
+	_cast_at(at, "splash", 40.0)
+
+
+func _oiled() -> bool:
+	var A = main.arena
+	var fuses: int = A.zones.filter(func(z): return z["kind"] == "fuse").size()
+	var lit: bool = A.zones.any(func(z): return z["kind"] == "blaze" and z["pos"] == state["far"])
+	return fuses == 0 and lit and int(A.stats.get("defused", 0)) == state["defused"] + 1 \
+		and "defused" in run.soul["guide"]["saboteur"]["found"]
 

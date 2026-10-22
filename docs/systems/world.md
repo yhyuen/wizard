@@ -190,7 +190,8 @@ ice on the cells, mud from water on earth.*
   on it alight (grade I).
 - **Water** (Splash's cone, Douse, puddles and whirlpools, Undertow's wave) puts burning cells
   out in a puff of steam and wets cells for `wet_s` 20 s. A wet cell doesn't catch: fire on it
-  only steams it dry. A doused cell keeps its unburnt fuel.
+  only steams it dry. A doused cell keeps its unburnt fuel. The same water washes out a Saboteur's
+  oil before it's lit (`wet_ground` tells the cult, [combat.md](combat.md)).
 - **Lightning** strikes the cells along its line. A conducting cell (wet, water, iron) fills its
   connected network breadth-first as far as the Force grade reaches (`reach`: I 24 px, II 60,
   III 240, IV the whole network; at most 256 cells), charged for 4 s. Dry grass or cloth struck

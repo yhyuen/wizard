@@ -423,6 +423,7 @@ func burn_ground(at: Vector2, r: float, grade: int) -> int:
 ## Water on the ground: within `r` of `at`, inside `cone` (radians) round `dir`. Puts out the
 ## cells' fires and wets them. Returns how many fires it put out.
 func wet_ground(at: Vector2, r: float, dir := Vector2.RIGHT, cone := TAU) -> int:
+	arena.ai.cult.wet(at, r)  # a Saboteur's oil, washed out before it's lit (N-6.7)
 	if cells == null:
 		return 0
 	var n := 0
