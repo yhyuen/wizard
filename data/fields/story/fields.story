@@ -239,3 +239,102 @@ Dob: (letting his breath out) Two on the watch. Like it should be.
 + set tam_safe
 + bond tam kindness fence
 * Leave
+
+
+# --- commissions in the fields (N-7.6.3; people spec §6.3: C1, C2, C7) ------------------------
+
+=== com_c1_here
+arrive: orchard
+repeat: true
+priority: 6
+when: commission_step("c1_goat") == 0
+Somewhere under the apple trees a goat is complaining about her lot. Between you and her, low shapes move through the webs.
+[commission_known("c1_goat")] You know this: she's in the ditch past the second row, behind the hay, and the dogs will come from the east.
+[commission_lost("c1_goat")] The dogs are still here. So is the goat, louder than ever.
+* Drive the dogs off -> com_c1_go
+* Take the long way round the hedge, and wait them out [commission_lost("c1_goat")] -> com_c1_slow
+* Leave her for now
+
+=== com_c1_go
++ fight com_goat
+? won -> com_c1_won
+? lost -> com_c1_lost
+
+=== com_c1_won
+The last of the dogs runs off toward the moor with its tail down. Pepper comes out from under the hay and looks at you as if you're late.
++ commission c1_goat next
++ commission c1_goat work
+
+=== com_c1_lost
+You come to in the wet grass with the dogs gone and the goat standing on your chest.
++ commission c1_goat lose
++ downed 1 commission
+
+=== com_c1_slow
+It takes the rest of the day and all your patience. In the end Pepper comes to you, because you've got an apple and the dogs haven't.
++ commission c1_goat slow
++ commission c1_goat next
+
+=== com_c2_here
+arrive: bramble_field
+repeat: true
+priority: 6
+when: commission_step("c2_bramble") == 0
+The bramble on the long field has grown right across the Mill road, higher than a cart. Something in it rustles, and then a lot of somethings.
+[commission_known("c2_bramble")] You know this: the crawlers come out in two lots, and the wind takes fire east, toward the fence.
+[commission_lost("c2_bramble")] The thorn has closed up again where you were dragged out of it.
+* Clear it -> com_c2_go
+* Hack a way round by hand, slowly [commission_lost("c2_bramble")] -> com_c2_slow
+* Leave it for now
+
+=== com_c2_go
++ fight com_bramble
+? won -> com_c2_won
+? lost -> com_c2_lost
+
+=== com_c2_won
+The last crawler comes apart into twigs. The Mill road runs clear to the wheat for the first time since winter.
++ commission c2_bramble next
++ commission c2_bramble work
+
+=== com_c2_lost
+You wake on the road with thorns in places thorns should not be.
++ commission c2_bramble lose
++ downed 1 commission
+
+=== com_c2_slow
+A borrowed hook and a long, hot afternoon. The road is open, and your arms are a map of scratches.
++ commission c2_bramble slow
++ commission c2_bramble next
+
+=== com_c7_here
+arrive: granary
+repeat: true
+priority: 6
+when: commission_step("c7_rats") == 0
+The granary loft is loud with squeaking, and the air is white with flour dust. It hangs in the lamplight and doesn't settle.
+[commission_known("c7_rats")] You know this: they come in two waves, and the second comes down from the rafters.
+[commission_lost("c7_rats")] They've had the loft back since you were carried out of it.
+* Clear the loft -> com_c7_go
+* Set traps and wait, the slow way [commission_lost("c7_rats")] -> com_c7_slow
+* Leave them for now
+
+=== com_c7_go
++ fight com_rats
+? won -> com_c7_won
+? lost -> com_c7_lost
+
+=== com_c7_won
+The loft goes quiet. A last rat thinks about it, and leaves by the drainpipe.
++ commission c7_rats next
++ commission c7_rats work
+
+=== com_c7_lost
+You wake at the foot of the granary ladder with the miller fanning you with his hat.
++ commission c7_rats lose
++ downed 1 commission
+
+=== com_c7_slow
+Traps, cheese and a long wait in the dust. By evening the loft is quiet.
++ commission c7_rats slow
++ commission c7_rats next

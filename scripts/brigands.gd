@@ -19,7 +19,7 @@ func _init(arena, ai) -> void:
 
 ## Runs a brigand's mind; false for any other kind.
 func mind(u: Unit, dt: float) -> bool:
-	match u.kind:
+	match str(_rec(u).get("mind", u.kind)):
 		"cutthroat":
 			_cutthroat(u, dt)
 		"crossbowman":

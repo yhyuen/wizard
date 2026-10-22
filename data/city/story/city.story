@@ -221,3 +221,54 @@ The Old Watch goes quiet. Whoever they were, they won't meet here again soon.
 === watch_cell_lost
 You wake at the foot of the tower. Somebody dragged you out of the way before they left, which is more than you expected.
 
+
+
+# --- commissions in the fallen city (N-7.6.3; people spec §6.3: C4, C8) -----------------------
+
+=== com_c4_here
+arrive: cinder_row
+times: morning, noon, afternoon
+repeat: true
+priority: 6
+when: commission_step("c4_salvage") == 0
+The house with the green door is half a house now. The cellar stair goes down under a beam that's cracked right through. Three people are already picking over the rubble, and they've seen you.
+Scavenger: Move along. This one's spoken for.
+[commission_known("c4_salvage")] You know this: the box is under the stair, and the beam goes if you so much as breathe on it. Prop it first.
+[commission_lost("c4_salvage")] Scavenger: You again. Didn't you learn?
+* Prop the beam before anything else -> com_c4_shore
+* Run them off -> com_c4_go
+* Wait till they knock off for the day, then go in [commission_lost("c4_salvage")] -> com_c4_slow
+* Leave it for now
+
+=== com_c4_shore
+You wedge a post under the cracked beam while they jeer at you. It holds. They stop jeering.
++ commission c4_salvage clean
++ commission c4_salvage work
+* Now them -> com_c4_go
+
+=== com_c4_go
++ fight com_salvage
+? won -> com_c4_won
+? lost -> com_c4_lost
+
+=== com_c4_won
+They decide it's somebody else's house after all. The strongbox is under the stair where the note said, heavier than it looks.
++ commission c4_salvage next
+
+=== com_c4_lost
+You wake on Cinder Row with a lump on your head and the rival crew long gone.
++ commission c4_salvage lose
++ downed 1 commission
+
+=== com_c4_slow
+They knock off at dusk. You go in after, by lamplight, very quietly, and come out with the box.
++ commission c4_salvage slow
++ commission c4_salvage next
+
+=== com_c8_bell
+arrive: bell_street
+repeat: true
+priority: 6
+when: commission_step("c8_letters") == 1
+The door on Bell Street is still on its hinges. Nobody answers. You slip the letter under it, and as you go you hear, or think you hear, someone pick it up.
++ commission c8_letters next

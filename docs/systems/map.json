@@ -41,7 +41,7 @@
       "docs": ["docs/systems/story.md"],
       "paths": [
         "scripts/game/story.gd", "scripts/game/cutscene.gd", "scripts/game/slice.gd",
-        "scripts/game/rumours.gd", "data/world/rumours.json"
+        "scripts/game/rumours.gd", "data/world/rumours.json", "scripts/game/commissions.gd", "data/world/commissions.json"
       ]
     },
     "frame": {

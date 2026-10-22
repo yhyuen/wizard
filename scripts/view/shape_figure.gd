@@ -5,6 +5,9 @@ extends Node3D
 ## figures with a "shape" use it:
 ##   ember: a flame core in a cage of dark faceted shards that bob and tilt.
 ##   kiln: the Kiln Warden, a squat furnace with a glowing grate at the front and three vents.
+##   beast: a low four-legged body (N-7.6.3): a dog, a rat, a crawler of thorn ("spikes"); its legs
+##   trot while it moves and it crouches into a wind-up. "body" is its colour, "eyes" its glint,
+##   "long" stretches the body.
 
 const Figure := preload("res://scripts/view/figure.gd")
 
@@ -17,6 +20,8 @@ var _core: MeshInstance3D
 var _core_mat: ShaderMaterial
 var _vent_mat: ShaderMaterial
 var _glow := 2.0
+var _legs: Array[MeshInstance3D] = []
+var _torso: Node3D
 
 
 func build(def: Dictionary, _darken: float) -> void:
@@ -94,6 +99,54 @@ func build(def: Dictionary, _darken: float) -> void:
 				vs.append_from(v, 0, Transform3D(b, b * Vector3(0, 1.1, 1.12)))
 			vs.generate_normals()
 			_mesh(vs.commit(), _vent_mat, Vector3.ZERO)
+		"beast":
+			_beast(def, body)
+
+
+func _beast(def: Dictionary, body: Color) -> void:
+	var long := float(def.get("long", 1.0))
+	_torso = Node3D.new()
+	add_child(_torso)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var trunk := BoxMesh.new()
+	trunk.size = Vector3(0.34, 0.3, 0.7 * long)
+	st.append_from(trunk, 0, Transform3D(Basis(), Vector3(0, 0.42, 0)))
+	var head := PrismMesh.new()
+	head.size = Vector3(0.26, 0.26, 0.32)
+	st.append_from(head, 0, Transform3D(Basis(Vector3.RIGHT, PI / 2.0), Vector3(0, 0.5, 0.42 * long + 0.1)))
+	var tail := BoxMesh.new()
+	tail.size = Vector3(0.06, 0.06, 0.34)
+	st.append_from(tail, 0, Transform3D(Basis(Vector3.RIGHT, -0.5), Vector3(0, 0.55, -0.4 * long - 0.12)))
+	if def.get("spikes", false):
+		var thorn := PrismMesh.new()
+		thorn.size = Vector3(0.1, 0.24, 0.1)
+		for i in 7:
+			var a := i * 2.4
+			st.append_from(thorn, 0, Transform3D(Basis(Vector3.FORWARD, 0.6 * sin(a)), Vector3(0.12 * sin(a), 0.66, -0.3 * long + i * 0.1 * long)))
+	st.generate_normals()
+	var bm := _add_mat(body, 0.0)
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = bm
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_torso.add_child(mi)
+	var em := SphereMesh.new()
+	em.radius = 0.035
+	em.height = 0.07
+	em.radial_segments = 4
+	em.rings = 2
+	var eye_mat := _add_mat(Color(str(def.get("eyes", "ffd36b"))), 1.6)
+	for sx in [-0.07, 0.07]:
+		var e := MeshInstance3D.new()
+		e.mesh = em
+		e.material_override = eye_mat
+		e.position = Vector3(sx, 0.56, 0.42 * long + 0.2)
+		_torso.add_child(e)
+	var leg := BoxMesh.new()
+	leg.size = Vector3(0.08, 0.3, 0.08)
+	for at in [Vector3(-0.12, 0.15, 0.25 * long), Vector3(0.12, 0.15, 0.25 * long), Vector3(-0.12, 0.15, -0.25 * long), Vector3(0.12, 0.15, -0.25 * long)]:
+		_legs.append(_mesh(leg, bm, at))
 
 
 func _add_mat(col: Color, glow: float) -> ShaderMaterial:
@@ -125,6 +178,16 @@ func pose(clip: String, t: float, delta: float) -> void:
 			_core.scale = Vector3.ONE * s
 			if clip in ["down"]:
 				_cage.position.y = maxf(0.15, 0.7 - t * 1.2)
+		"beast":
+			var moving := clip.contains("run") or clip.contains("walk")
+			var tense := clip in ["overhead", "cast", "channel", "slash", "thrust"]
+			for i in _legs.size():
+				var ph := _t * 14.0 + (PI if i % 3 == 0 else 0.0)
+				_legs[i].rotation.x = 0.6 * sin(ph) if moving else 0.0
+			_torso.position.y = (0.03 * absf(sin(_t * 14.0)) if moving else 0.0) - (0.1 if tense else 0.0)
+			_torso.rotation.x = 0.25 if tense else 0.0
+			if clip == "down":
+				_torso.rotation.z = minf(t * 3.0, 1.4)
 
 
 ## The view's per-frame look of the unit behind it: the grate glows white before a ring, is dark

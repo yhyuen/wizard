@@ -62,3 +62,34 @@ Something stirs in the long channel: Hollows wading out of the dark, and behind 
 The channel goes still. Burn the backward ones, or they'll stand up again.
 + today channel_won
 
+
+
+# --- a commission in the undercroft (N-7.6.3; people spec §6.3: C5) ---------------------------
+
+=== com_c5_here
+arrive: grate_hall
+repeat: true
+priority: 6
+when: commission_step("c5_flood") == 0
+Water pours through the old grate in a steady sheet and runs off under the wall toward the widow's cellar. The wall weeps at every joint. It's very old and it isn't happy.
+[commission_known("c5_flood")] You know this: freeze the grate and it holds for a season, or open the drain under it and the water goes down to the channel. Don't touch the wall.
+* Freeze the water at the grate -> com_c5_freeze
+* Open the old drain and send it down to the channel -> com_c5_drain
+* Knock a hole in the wall and let it out -> com_c5_crack
+* Leave it for now
+
+=== com_c5_freeze
+Frost runs out from your hands along the grate. The sheet of water slows, thickens, stops. It'll hold till summer.
++ commission c5_flood clean
++ commission c5_flood work
++ commission c5_flood next
+
+=== com_c5_drain
+It takes a while to find the drain under the silt, and longer to shift the cover. Then the water turns and goes away down into the dark with a sound like a long sigh.
++ commission c5_flood clean
++ commission c5_flood work
++ commission c5_flood next
+
+=== com_c5_crack
+The wall gives at the second blow, and the water goes out through it in a rush. So does a good deal of the wall. Somewhere above, a house shifts on its footings.
++ commission c5_flood next

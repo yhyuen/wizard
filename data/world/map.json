@@ -176,7 +176,7 @@
   ["crate", 478, 1002, 10], ["crate", 500, 1022, 40], ["barrel", 360, 1062, 0], ["barrel", 512, 1200, 0],
   ["crate", 1180, 244, 0], ["crate", 1208, 252, 15], ["crate", 1022, 250, 30]
  ],
- "items": {
+ "items": {"board": {"name": "The commissions board", "at": [1675, 922], "verb": "Read", "reach": 30}, "duty_slate": {"name": "The duty slate", "at": [1000, 872], "verb": "Read", "reach": 26}, 
   "cot": {"name": "Your cot", "at": [990, 1160], "verb": "Use", "reach": 26},
   "dwarf_crate": {"name": "The dwarves' salvage crate", "at": [1188, 1066], "verb": "Look", "reach": 28},
   "targets": {"name": "The watch's straw targets", "at": [1745, 1050], "verb": "Train", "reach": 30},

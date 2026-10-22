@@ -56,8 +56,9 @@ Reach and Calendar tabs (§5.5).*
   "?" until seen, then faction and tier, times beaten, the weakness found with its lesson, a gold
   star once mastered; [combat.md](combat.md)).
 - **The main line:** a gold step under the vitals (outside fights) names the next main-story
-  action ([loop.md](loop.md)). The calendar row pins known fixed events in gold and appointments
-  in silver.
+  action ([loop.md](loop.md)). Under it, the **jobs line** (a hollow diamond, in paper) names the
+  commission taken last and its step ([story.md](story.md) Commissions). The calendar row pins
+  known fixed events in gold and appointments in silver.
 - **Toasts** run down the right; an achievement's is gold, with a chime (UI spec §3.6). A spell
   reaching its wall and a breakthrough toast too (`main.gd` `_on_breakthrough`), and a new school
   rank (`_on_school_ranked`). The spellbook

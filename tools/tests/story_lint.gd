@@ -46,6 +46,8 @@ func _initialize() -> void:
 	var flags_set := {}
 	var rumour_d: Dictionary = _json("res://data/world/rumours.json")["rumours"]
 	var rumour_from := {}  # rumour id -> the scenes that give it
+	var com_d: Dictionary = _json("res://data/world/commissions.json")["commissions"]
+	var com_ops := {}  # commission id -> {op: scenes giving it}
 	for id in load("res://scripts/world/world.gd").FLAGS:
 		flags_set[id] = true  # set by the world itself
 	for cid in _json("res://data/world/calamities.json")["calamities"]:
@@ -142,6 +144,14 @@ func _initialize() -> void:
 						problems.append("%s: no rumour %s in data/world/rumours.json" % [where, arg])
 					else:
 						rumour_from[arg] = rumour_from.get(arg, []) + [s]
+				"commission":
+					var cp := arg.split(" ")
+					if cp.size() != 2 or not com_d.has(cp[0]) or not cp[1] in ["take", "next", "clean", "lose", "slow", "work", "pay"]:
+						problems.append("%s: commission %s is not <id in data/world/commissions.json> <take|next|clean|lose|slow|work|pay>" % [where, arg])
+					else:
+						if not com_ops.has(cp[0]):
+							com_ops[cp[0]] = {}
+						com_ops[cp[0]][cp[1]] = int(com_ops[cp[0]].get(cp[1], 0)) + 1
 				"bond", "gift", "bond_cross", "betray":
 					var bp := arg.split(" ")
 					var bd: Dictionary = _json("res://data/world/bonds.json")
@@ -194,7 +204,7 @@ func _initialize() -> void:
 				problems.append("achievement %s: no %s" % [id, key])
 	# Conditions: they parse, run, and name things that exist.
 	var re := RegEx.new()
-	re.compile("\\b(k|f|seen|died|count|omen|ended|attended|missed|bond|bond_ready|rumour_heard)\\(\"([a-z0-9_]+)\"\\)")
+	re.compile("\\b(k|f|seen|died|count|omen|ended|attended|missed|bond|bond_ready|rumour_heard|commission_[a-z]+)\\(\"([a-z0-9_]+)\"\\)")
 	for pair in conds:
 		var e := Expression.new()
 		if e.parse(pair[0], ["loop", "day", "time", "ring"]) != OK:
@@ -212,6 +222,8 @@ func _initialize() -> void:
 				problems.append("%s: flag %s is never set" % [pair[1], id])
 			elif fn == "rumour_heard" and not rumour_d.has(id):
 				problems.append("%s: rumour_heard(\"%s\") is no rumour" % [pair[1], id])
+			elif fn.begins_with("commission_") and not com_d.has(id):
+				problems.append("%s: %s(\"%s\") is no commission" % [pair[1], fn, id])
 			elif fn in ["bond", "bond_ready"] and not people.has(id):
 				problems.append("%s: %s(\"%s\") is nobody in data/world/people.json" % [pair[1], fn, id])
 			elif fn == "seen" and not story.scenes.has(id):
@@ -253,6 +265,28 @@ func _initialize() -> void:
 		var lid: String = BEATS[beat]
 		if not story.scenes.values().any(func(sc): return sc["steps"].any(func(st): return st["t"] == "fx" and st["op"] == "learn" and st["arg"] == lid)):
 			problems.append("beat %s: no scene teaches %s" % [beat, lid])
+	# Commissions (people spec §6): each can be taken and paid, every step but the last is done by
+	# some scene, every step's place is on its map, and a commission's scenes teach nothing, open no
+	# road and give no merit (texture, not story).
+	for cid in com_d:
+		var c: Dictionary = com_d[cid]
+		var ops: Dictionary = com_ops.get(cid, {})
+		if not ops.has("take") or not ops.has("pay"):
+			problems.append("commission %s: no scene takes it, or none pays it" % cid)
+		if int(ops.get("next", 0)) < c["steps"].size() - 1:
+			problems.append("commission %s: %d steps but only %d scenes move it on" % [cid, c["steps"].size(), int(ops.get("next", 0))])
+		for st in c["steps"]:
+			if not maps.has(str(st["map"])) or not maps[str(st["map"])]["places"].has(str(st["place"])):
+				problems.append("commission %s: step place %s isn't on the map %s" % [cid, st["place"], st["map"]])
+		var sp: Dictionary = c.get("hook", {}).get("spare", {})
+		if not sp.is_empty() and not c["steps"].any(func(st): return st["place"] == sp["place"]):
+			problems.append("commission %s: its hook spares %s, where no step is done" % [cid, sp["place"]])
+		if str(c["board"]) != "" and not maps["camp"]["places"].has(str(c["board"])):
+			problems.append("commission %s: no board %s in the camp" % [cid, c["board"]])
+	for s in story.scenes.values():
+		var is_com: bool = s["id"].begins_with("com_") or str(s["file"]).ends_with("commissions.story")
+		if is_com and s["steps"].any(func(st): return st["t"] == "fx" and st["op"] in ["learn", "road", "merit", "trial", "model", "exam"]):
+			problems.append("%s: a commission's scene gives something the main line needs (people spec §6.1)" % s["id"])
 	# Every missable event has a rumour (people spec §10): a fixed event that is an appointment has a
 	# rumour pointing at it, from a scene that can play at least 7 days before it.
 	var calendar: Dictionary = _json("res://data/world/calendar.json")
