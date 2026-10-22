@@ -16,6 +16,7 @@ const Growth := preload("res://scripts/game/growth.gd")
 const Powers := preload("res://scripts/game/powers.gd")
 const Calamity := preload("res://scripts/game/calamity.gd")
 const Bonds := preload("res://scripts/game/bonds.gd")
+const Rumours := preload("res://scripts/game/rumours.gd")
 const World := preload("res://scripts/world/world.gd")
 const Reach := preload("res://scripts/game/reach.gd")
 const Weather := preload("res://scripts/world/weather.gd")
@@ -31,7 +32,7 @@ const HINTS := {
 	"talk": "Number keys or a click pick a choice; Space carries on. L opens the Ledger at any time.",
 	"death": "Death resets your power, never what you know. Everything in the Ledger comes with you.",
 }
-const LEDGER_TABS := ["Questions", "Clues", "People", "Insights", "Appointments", "Lives", "Deeds", "Guide"]
+const LEDGER_TABS := ["Questions", "Clues", "People", "Insights", "Appointments", "Lives", "Deeds", "Guide", "Rumours"]
 ## The Ledger entry that means you know a person well enough to find them on the map.
 const MAX_BARKS := 2  # speech bubbles shown at once
 const KNOWN_PEOPLE := {"mira": "mira", "aldous": "aldous", "pell": "pell", "captain": "captain"}
@@ -45,6 +46,7 @@ var growth  # scripts/game/growth.gd: wells, Rings, Practice, the spellbook
 var powers  # scripts/game/powers.gd: standing, and rank and merit in your road's power
 var calamity  # scripts/game/calamity.gd: signs, the Eve, the Onset, the Dawn tally
 var bonds  # scripts/game/bonds.gd: each person's lamp and tier, gifts and tastes
+var rumours  # scripts/game/rumours.gd: what you've heard, in any life
 var world  # scripts/world/world.gd
 var reach  # scripts/game/reach.gd: regions, roads, the calendar's events
 var weather  # scripts/world/weather.gd: each region's weather, the Almanac
@@ -101,6 +103,8 @@ func setup(the_main) -> void:
 	story.ctx.calamity = calamity
 	bonds = Bonds.new(run)
 	story.ctx.bonds = bonds
+	rumours = Rumours.new(run)
+	story.ctx.rumours = rumours
 	story.load_all()
 	for e in story.errors:
 		push_error("story: " + str(e))
@@ -792,6 +796,10 @@ func _effect(op: String, arg: String) -> bool:
 			# bond <who> <source> [key] [amount] (people spec §4.2)
 			var bw: PackedStringArray = arg.split(" ", false)
 			bonds.gain(bw[0], bw[1], bw[2] if bw.size() > 2 else "", int(bw[3]) if bw.size() > 3 else 0)
+		"rumour":
+			if rumours.hear(arg):
+				var rr: Dictionary = rumours.rec(arg)
+				toast("A rumour, in the Ledger." + ("  The calendar marks the date." if rr.get("points_at", {}).has("event") else ""))
 		"bond_cross":
 			if bonds.cross(arg):
 				toast("%s: %s." % [str(bonds.people[arg]["name"]), bonds.tier_name(bonds.tier(arg))], true)
@@ -1172,7 +1180,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		toggle_map()
 	elif k == KEY_ESCAPE and overlay != "":
 		overlay = ""
-	elif overlay == "ledger" and k >= KEY_1 and k <= KEY_8:
+	elif overlay == "ledger" and k >= KEY_1 and k <= KEY_9:
 		ledger_tab = k - KEY_1
 	elif overlay == "map" and k >= KEY_1 and k <= KEY_3:
 		map_tab = k - KEY_1
@@ -1842,8 +1850,13 @@ func _draw_ledger() -> void:
 	panel(r, Color(GOLD, 0.7))
 	title(r.position + Vector2(28, 36), "The Ledger", 24, GOLD)
 	var x := r.position.x + 186.0
+	var ty := r.position.y + 14.0
 	for i in LEDGER_TABS.size():
-		var tr := Rect2(x, r.position.y + 14, text_w("%d  %s" % [i + 1, LEDGER_TABS[i]], 13) + 18.0, 28)
+		var tw: float = text_w("%d  %s" % [i + 1, LEDGER_TABS[i]], 13) + 18.0
+		if x + tw > r.end.x - 12.0:
+			x = r.position.x + 186.0  # a second row of tabs
+			ty += 31.0
+		var tr := Rect2(x, ty, tw, 28)
 		var on := i == ledger_tab
 		draw_rect(tr, Color(GOLD, 0.25) if on else Color(0, 0, 0, 0.3))
 		draw_rect(tr, Color(GOLD, 0.8 if on else 0.3), false, 1.0)
@@ -1863,6 +1876,8 @@ func _draw_ledger() -> void:
 			_draw_deeds(r)
 		7:
 			_draw_guide(r)
+		8:
+			_draw_rumours(r)
 		1, 2, 3:
 			var kinds: Array = [["clue"], ["person"], ["insight", "model"]][ledger_tab - 1]
 			var ids: Array = []
@@ -1885,6 +1900,27 @@ func _draw_ledger() -> void:
 	if run.known_ids().is_empty() and ledger_tab < 4:
 		text(Vector2(r.position.x + 28, y), "Nothing yet.", 14, DIM)
 	button(Rect2(r.end.x - 120, r.end.y - 36, 100, 26), "Close  (L)", toggle_ledger, 0, 13)
+
+
+## The Rumours tab (people spec §10): what you've heard, by kind; one from an earlier life says so.
+func _draw_rumours(r: Rect2) -> void:
+	var x := r.position.x + 28.0
+	var y := r.position.y + 78.0
+	var any := false
+	for kd in [["date", "When"], ["person", "Who"], ["lead", "Where"]]:
+		var got: Array = rumours.of_kind(kd[0])
+		if got.is_empty():
+			continue
+		any = true
+		text(Vector2(x, y), kd[1], 14, GOLD)
+		for g in got:
+			var line: String = str(g["text"]) + ("  (from another year)" if g["earlier"] else "")
+			y = para(Vector2(x + 90, y), line, r.size.x - 150, 12, Color(PAPER, 0.85), 1.2) + 6.0
+			if y > r.end.y - 50:
+				return
+		y += 6.0
+	if not any:
+		para(Vector2(x, y - 12), "No rumours yet. Stand near people who are talking, and listen.", r.size.x - 56, 13, DIM)
 
 
 ## The Appointments tab (lives spec §6.2, UI spec §5.3): every fixed event you missed in a life

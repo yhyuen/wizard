@@ -270,4 +270,4 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
 wakes Injured on day 4, lets the loop go at the shrine, then loop 2), `tools/tests/deaths.gd`
 (each first death or fall teaches something; a fall wakes you Injured two days later; resting
 until the next moon, and travelling; the Thaw examination; the stair fall that misses the watch), `tools/tests/unit.gd` (`_year`: the calendar, losses, the
-roads), `tools/tests/relearn.gd`, `tools/tests/bonds.gd` (tiers, caps, crossings, gifts, floors).
+roads), `tools/tests/relearn.gd`, `tools/tests/people.gd` (bonds: tiers, caps, crossings, gifts, floors; rumours: overheard once, pinned, kept, drawn).

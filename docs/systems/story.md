@@ -37,7 +37,7 @@ It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `c
 - **Effects:** `learn`, `set`, `clear`, `fight`, `wells`, `train`, `meditate`, `goto`, `end_loop`,
   `model`, `trial`, `sound`, `cutscene`, `move`, `take`, `sleep`, `book`, `today` (a once-a-day
   action, for `done(op)`), `go <map> <spot>` or `go <exit>`, `open <door>` (that door stands open for the life, even a gate whose prop still stands), `ignite <place>` (everything that burns in the current map's place rect catches, and the ground under it; not counted as unseen damage), `downed <days> <cause>` (when the scene closes: the hurt screen with the death text for `cause`, then `days` pass and you wake on your cot, Injured; not counted as a death), `standing <power> <n>`, `merit <n>` and `exam <power>` (the next rank in your road's power if its rows are met; [growth.md](growth.md) Powers), `sign <calamity> <sign>`, `prep <calamity> <prep>` (takes the time of day), `calamity_onset <calamity>` and `calamity_dawn <calamity>` ([loop.md](loop.md) Calamities), `remember <who> <deed>` (a person's memory of you, [world.md](world.md) People), `bond <who>
-  <source> [key] [amount]`, `bond_cross <who>`, `betray <who>` and `gift <who> <item>` ([world.md](world.md) Bonds), `play_path <id>`, `road <id>` (take a road
+  <source> [key] [amount]`, `bond_cross <who>`, `betray <who>` and `gift <who> <item>` ([world.md](world.md) Bonds), `rumour <id>` (Rumours below), `play_path <id>`, `road <id>` (take a road
   for this life, [loop.md](loop.md)), `deed <id>` (a soul flag the Turning keeps; SEALED deeds
   open roads), `omen <id>` (take an Omen for this life), `forecast <who>` (that person says
   tomorrow's weather, [world.md](world.md)), `bench` (work at a bench: fill your devices from
@@ -45,7 +45,7 @@ It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `c
   [growth.md](growth.md) "Devices"). Conditions also have `mastered(school)` (that school at Master in this life or an earlier
   one, N-5.3), `guide_found()` and `guide_mastered()` (Field Guide counts, N-6.5,
   [combat.md](combat.md)), `on_road(id)`,
-  `offered(id)`, `omen(id)`, `omens()`, `omens_offered()`, `ended(cause)`, `attended(id)` and `missed(id)` (fixed events, [loop.md](loop.md)), `bond(who)` (your bond tier with them, 0–5) and `bond_ready(who)` (lamp full, a crossing scene
+  `offered(id)`, `omen(id)`, `omens()`, `omens_offered()`, `ended(cause)`, `attended(id)` and `missed(id)` (fixed events, [loop.md](loop.md)), `rumour_heard(id)` (Rumours below), `bond(who)` (your bond tier with them, 0–5) and `bond_ready(who)` (lamp full, a crossing scene
   can open the next tier; [world.md](world.md) Bonds), `calamity_in(id)` (days until
   that calamity, after the Early Bell) and `calamity_variant(id)` (its later-lives variant, 0 before
   it has been Held; [loop.md](loop.md) Calamities) (only while a life's
@@ -60,6 +60,22 @@ It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `c
   after it closes (sleep, the spellbook, a map change). Everything a player can do is also a
   method (`talk`, `use`, `choose`, `advance`), so the route bot plays the same code.
 
+## Rumours (`data/world/rumours.json`, `scripts/game/rumours.gd`, people spec §10; N-7.6.2)
+
+- A rumour has a kind (date, person, lead), its text, what it points at (an event, a person and
+  maybe a taste, a place) and a pool (region and moon band). The story's `rumour <id>` hears it:
+  kept in the soul for every life, a toast, and a date rumour pins its event on the calendar
+  (`soul.dates`). `rumour_heard(id)` reads it.
+- **Overheard talk** (`data/world/story/rumours.story`): scenes at a place in a window of days and
+  times, `slot: free`, that play once and never again once their rumour is heard in any life. Ring
+  1 has seven: the Knights' arrival, the Iron Gate, the voice under Cinder Row, the east fence,
+  the Market's lighting, and two about people.
+- The Ledger's **Rumours** tab (9) lists them by kind; one heard in an earlier life says so.
+- `draw(pool)` takes the unheard rumour pointing at the soonest event still ahead (for minigames
+  and companions, later).
+- **Data check** (story_lint): every fixed event that is an appointment has a rumour pointing at
+  it, from a scene that can play at least 7 days before.
+
 ## Cutscenes (`scripts/game/cutscene.gd`)
 
 - Short scenes in the fight view where time runs the wrong way: the Fire and the Mourner, and
@@ -69,4 +85,4 @@ It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `c
 ## Tests
 
 `tools/tests/story_lint.gd` (every scene against its own map's people, items, spots and exits;
-parse errors), `tools/tests/route.gd`.
+parse errors; the 7-day rumour check), `tools/tests/route.gd`, `tools/tests/people.gd`.

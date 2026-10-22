@@ -74,8 +74,8 @@ jobs:
       - name: Calamities (signs, the Eve, the Peak, the Dawn tally, Ring 1's end card)
         run: tools/ci/godot.sh --script res://tools/tests/calamity.gd
 
-      - name: Bonds (tiers, caps, crossings, gifts, floors)
-        run: tools/ci/godot.sh --script res://tools/tests/bonds.gd
+      - name: People (bonds and rumours)
+        run: tools/ci/godot.sh --script res://tools/tests/people.gd
 
       - name: Fights in place (fresh and strong)
         run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/encounters.gd

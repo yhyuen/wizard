@@ -1,12 +1,14 @@
 extends SceneTree
-## Bonds (people spec §4-5; N-7.6.1):
+## People's systems: bonds (people spec §4-5; N-7.6.1) and rumours (§10; N-7.6.2):
 ##
-##   godot --headless --script res://tools/tests/bonds.gd
+##   godot --headless --script res://tools/tests/people.gd
 ##
 ## A first talk makes you Warm; gains climb to Friendly by themselves and stop at Close's door until
 ## its scene; once-per-key and once-a-week caps hold; a loss stops at the bottom of the tier and
 ## betrayal drops one; light people stop at Close and role people have no track; a gift's gain is
 ## by taste and its reaction is learned for every life; Close in one life starts the next at Warm.
+## Overhearing gives a rumour once, pins its date on the calendar and keeps it for later lives;
+## a pool draws the unheard rumour pointing at the soonest event.
 
 var main
 var slice
@@ -79,8 +81,33 @@ func _go() -> void:
 	slice.wake()
 	_check(slice.bonds.tier("mira") == 1 and slice.bonds.tier("bett") == 1 and slice.bonds.tier("fennick") == 0, "Close starts the next life at Warm (%d, %d, %d)" % [slice.bonds.tier("mira"), slice.bonds.tier("bett"), slice.bonds.tier("fennick")])
 	_check(slice.bonds.tastes_known("wren").get("old_book", "") == "love", "tastes carry")
+	_rumours()
 	for f in failures:
-		print("[bonds] FAIL: " + f)
+		print("[people] FAIL: " + f)
 	if failures.is_empty():
-		print("[bonds] bonds hold")
+		print("[people] bonds and rumours hold")
 	quit(1 if not failures.is_empty() else 0)
+
+
+
+func _rumours() -> void:
+	slice.new_month()
+	slice.finish_scene()
+	var r = slice.rumours
+	run.life["day"] = 21
+	run.life["time"] = 3
+	_check(r.draw("camp:m1-3") == "r_iron_gate", "the pool should draw the rumour of the soonest event ahead (%s)" % r.draw("camp:m1-3"))
+	_check(slice.story.event_at("inn") == "overhear_iron_gate", "the squire talks at the inn at Dusk (%s)" % slice.story.event_at("inn"))
+	slice.play("overhear_iron_gate")
+	var known := false
+	for e in slice.reach.events():
+		if e["id"] == "iron_gate_shuts":
+			known = e["known"]
+	_check(r.heard("r_iron_gate") and known, "overhearing gives the rumour and pins the date")
+	_check(r.of_kind("date").size() == 1 and not r.of_kind("date")[0]["earlier"], "the Ledger lists it as this year's")
+	slice.end_loop("turned")
+	slice.wake()
+	run.life["day"] = 21
+	run.life["time"] = 3
+	_check(slice.story.event_at("inn") == "", "a rumour heard in any life isn't overheard again")
+	_check(r.of_kind("date")[0]["earlier"], "next life it's from another year")

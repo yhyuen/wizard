@@ -40,7 +40,8 @@
     "story": {
       "docs": ["docs/systems/story.md"],
       "paths": [
-        "scripts/game/story.gd", "scripts/game/cutscene.gd", "scripts/game/slice.gd"
+        "scripts/game/story.gd", "scripts/game/cutscene.gd", "scripts/game/slice.gd",
+        "scripts/game/rumours.gd", "data/world/rumours.json"
       ]
     },
     "frame": {
