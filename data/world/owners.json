@@ -2,12 +2,15 @@
  "_doc": "Owners and witnesses (spells-and-environment spec §7.3, §9; build item N-4.4). values: what each prop kind is worth in crowns. owners: who a thing belongs to and whether they mend it (`repairs`). maps: each map's `default` owner and owners by place (`places`, a place id from the map's places); \"\" is nobody's (wild or abandoned: nothing is owed and nothing repairs, so the halls remember you for the life). repair_days: how many dawns after it was broken or burned an owner has it put back. sight: how far (px) someone sees a change, by day and at dusk and night. ladder: what a witnessed change costs by value: under `complain_under` crowns a grumble, up to `guards_over` the owner wants paying (counted in Run.life \"owed\" until there's money), over that the watch is called; `standing` is what each step costs with the owner, and `fire` counts a prop set burning as the top step's cost when it isn't the top step already. Unwitnessed damage is found by the next person to see it: `found` standing and a point of suspicion. Good deeds: putting out an owned prop's fire, or mending one with Time, `good` standing and a point of fame.",
  "values": {"hay": 2, "crate": 4, "barrel": 6, "cart": 40, "post": 20},
  "owners": {
-  "camp": {"name": "the camp", "repairs": true},
+  "watch": {"name": "the Watch", "repairs": true},
+  "guild": {"name": "the Guild", "repairs": true},
+  "college": {"name": "the College", "repairs": true},
   "traders": {"name": "the traders", "repairs": true},
   "miller": {"name": "the Mill", "repairs": true}
  },
  "maps": {
-  "camp": {"default": "camp", "places": {"market": "traders", "mill": "miller", "college": "", "yard": "", "archive": "", "observatory": "", "stairs": "", "gate": "", "north_door": "", "hill": "", "road": ""}},
+  "camp": {"default": "watch", "places": {"market": "traders", "great_lamp": "guild", "guild_bench": "guild", "mill": "miller", "mill_lane": "miller",
+   "yard": "college", "college_tents": "college", "duel_ring": "college", "college": "", "broken_wall": "", "archive": "", "observatory": "", "stairs": "", "gate": "", "north_door": "", "hill": "", "road": ""}},
   "halls": {"default": ""}
  },
  "repair_days": {"hay": 1, "crate": 1, "barrel": 2, "cart": 3, "post": 2},

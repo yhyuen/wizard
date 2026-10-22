@@ -356,6 +356,33 @@ func _dressing(kind: String, at2: Vector2, rot: float) -> void:
 			for sx in [-1.0, 1.0]:
 				put.call(Vector3(0.1, 1.6, 0.1), Vector3(sx * 0.8, 0.8, 0), c("timber"))
 				put.call(Vector3(0.6, 0.8, 0.3), Vector3(sx * 0.8, 1.2, 0.05), Color("b8984a"))
+		"grate":
+			# the market cellar's iron grate, down to the drain
+			put.call(Vector3(1.6, 0.05, 1.1), Vector3(0, 0.02, 0), c("char"))
+			for k in 6:
+				put.call(Vector3(0.08, 0.08, 1.2), Vector3(-0.7 + k * 0.28, 0.06, 0), c("iron"))
+			put.call(Vector3(1.7, 0.08, 0.08), Vector3(0, 0.07, 0), c("iron"))
+		"board":
+			for sx in [-1.0, 1.0]:
+				put.call(Vector3(0.12, 2.0, 0.12), Vector3(sx * 0.9, 1.0, 0), c("timber"))
+			put.call(Vector3(2.0, 1.1, 0.08), Vector3(0, 1.45, 0), c("timber").lightened(0.1))
+			for k in 5:
+				put.call(Vector3(0.32, 0.4, 0.02), Vector3(-0.7 + k * 0.35, 1.45 + (0.15 if k % 2 == 0 else -0.12), 0.06), c("paper"))
+			put.call(Vector3(2.3, 0.1, 0.4), Vector3(0, 2.05, 0), c("roof"))
+		"chalk_ring":
+			var ring := TorusMesh.new()
+			ring.inner_radius = 2.8
+			ring.outer_radius = 3.0
+			ring.rings = 20
+			ring.ring_segments = 3
+			_add(ring, Transform3D(Basis().scaled(Vector3(1, 0.02, 1)), at + Vector3(0, 0.02, 0)), c("paper").darkened(0.1))
+			for sx in [-1.0, 1.0]:
+				put.call(Vector3(0.6, 0.03, 0.1), Vector3(sx * 1.2, 0.02, 0), c("paper").darkened(0.1))
+		"anvil":
+			put.call(Vector3(0.5, 0.5, 0.4), Vector3(0, 0.25, 0), c("timber").darkened(0.3))
+			put.call(Vector3(0.9, 0.25, 0.35), Vector3(0, 0.62, 0), c("iron"))
+			put.call(Vector3(0.7, 0.9, 0.7), Vector3(1.1, 0.45, 0), c("stone").darkened(0.2))
+			put.call(Vector3(0.4, 0.12, 0.4), Vector3(1.1, 0.92, 0), c("ember"), true)
 		"fissure":
 			put.call(Vector3(2.2, 0.05, 0.35), Vector3(0, 0.02, 0), c("char"))
 			put.call(Vector3(1.8, 0.06, 0.07), Vector3(0, 0.04, 0), c("ember"), true)

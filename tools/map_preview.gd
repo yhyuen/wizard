@@ -18,7 +18,7 @@ const COLORS := {
 	"building": "8a8690", "stall": "7a6a50", "tent": "a89870", "rubble": "7a6450", "crack": "e04030",
 	"circle": "a8a4ae", "water": "3a6a9a", "bridge": "8a7050", "pit": "08080a", "sealed": "9a5ad0",
 	"open": "5ab070", "exit": "e8c840", "nav": "40a0b0", "spot": "f0f0f0", "item": "e0b040", "lamp": "f09040",
-	"brazier": "e05030",
+	"brazier": "e05030", "rail": "5a6a7a",
 }
 
 var out := "user://map_preview"
@@ -94,8 +94,12 @@ func _draw(m, title: String) -> void:
 				_line(m.nodes[a], m.nodes[b], "nav")
 	for nid in m.nodes:
 		_circle(m.nodes[nid], 4.0, "nav")
+	for r in m.d.get("rails", []):
+		_rect(Rect2(Vector2(r[1], r[2]), Vector2.ZERO).expand(Vector2(r[3], r[4])).grow(4.0), "rail")
 	for l in m.d.get("lamps", []):
 		_circle(Vector2(l[0], l[1]), 5.0, "lamp")
+		if l.size() > 3:
+			_label(Vector2(l[0], l[1]) + Vector2(5, -5), str(l[3]), "lamp")
 	for b in m.d.get("braziers", []):
 		_circle(Vector2(b[0], b[1]), 7.0, "brazier")
 	for sid in m.spots:

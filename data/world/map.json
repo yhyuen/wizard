@@ -8,18 +8,23 @@
   [2100, 828, 16, 152, 70], [2100, 1080, 16, 520, 70]
  ],
  "doors": {},
- "buildings": {},
+ "buildings": {
+  "guild_bench": {"rect": [1250, 840, 220, 150], "door": {"side": "south", "from": 1340, "to": 1384}, "height": 100, "wall": "wall2", "roof": "roof3"},
+  "inn": {"rect": [1800, 840, 290, 130], "door": {"side": "south", "from": 1846, "to": 1890}, "height": 110, "wall": "wall", "roof": "roof2"},
+  "smith": {"rect": [1400, 1110, 150, 140], "door": {"side": "north", "from": 1454, "to": 1498}, "height": 100, "wall": "wall3", "roof": "roof"},
+  "infirmary": {"rect": [770, 840, 170, 70], "door": {"side": "south", "from": 828, "to": 872}, "height": 90, "wall": "wall2", "roof": "roof2"}
+ },
  "blocks": [
-  [860, 730, 80, 66, 70], [560, 840, 190, 150, 100], [770, 840, 170, 70, 90], [1060, 840, 170, 70, 110],
-  [1250, 840, 220, 150, 100], [1250, 1110, 300, 230, 105], [760, 1190, 480, 200, 95], [570, 1110, 180, 280, 100],
-  [1720, 1180, 360, 180, 100], [1800, 840, 290, 130, 110], [1250, 1350, 300, 200, 90],
+  [860, 730, 80, 66, 70], [560, 840, 190, 150, 100], [1060, 840, 170, 70, 110],
+  [1250, 1110, 150, 230, 105], [1400, 1250, 150, 90, 105], [760, 1190, 480, 200, 95], [570, 1110, 180, 280, 100],
+  [1720, 1180, 360, 180, 100], [1250, 1350, 300, 200, 90],
   [1840, 1380, 250, 190, 100], [1490, 832, 290, 58, 90], [1790, 1090, 300, 80, 95], [570, 1400, 670, 175, 90],
   [1700, 1380, 120, 100, 90], [250, 930, 140, 110, 110], [160, 832, 230, 60, 90], [160, 1360, 230, 215, 90],
   [450, 1360, 110, 215, 90], [1720, 1490, 110, 85, 90]
  ],
  "circles": [
   [1300, 330, 72, 60, "observatory_ruin"], [1630, 1030, 16, 14, "well"], [1560, 965, 11, 50, "statue"],
-  [230, 1220, 18, 10, "ash"]
+  [230, 1220, 18, 10, "ash"], [1092, 972, 30, 30, "great_lamp"]
  ],
  "stalls": [[880, 958, 0, "cloth"], [1120, 958, 0, "cloth2"], [800, 1000, 90, "cloth"], [1200, 1000, -90, "cloth2"]],
  "water": [[400, 828, 40, 772]],
@@ -27,6 +32,20 @@
  "stairs": [940, 708, 120, 92],
  "places": {
   "tent": {"name": "Your shelter", "district": "camp", "rect": [968, 1142, 44, 36]},
+  "great_lamp": {"name": "The great lamp", "district": "camp", "circle": [1092, 972, 40]},
+  "guild_bench": {"name": "The Guild workshop", "district": "camp", "rect": [1250, 840, 220, 150]},
+  "inn": {"name": "The Crooked Wick", "district": "camp", "rect": [1800, 840, 290, 130]},
+  "smith": {"name": "The camp smithy", "district": "camp", "rect": [1400, 1110, 150, 140]},
+  "infirmary": {"name": "The infirmary", "district": "camp", "rect": [770, 840, 170, 70]},
+  "market_cellar": {"name": "The market cellar grate", "district": "camp", "rect": [872, 1040, 56, 40]},
+  "board": {"name": "The commissions board", "district": "camp", "rect": [1640, 895, 70, 40]},
+  "shrine": {"name": "The camp shrine", "district": "camp", "circle": [1600, 940, 28]},
+  "watch_post": {"name": "The watch post", "district": "camp", "rect": [940, 860, 120, 40]},
+  "duel_ring": {"name": "The duel ring", "district": "college", "circle": [740, 700, 56]},
+  "broken_wall": {"name": "The broken west wall", "district": "college", "rect": [536, 640, 80, 164]},
+  "college_tents": {"name": "The College tents", "district": "college", "rect": [1250, 440, 200, 90]},
+  "grief_circle": {"name": "The grief fire", "district": "camp", "circle": [490, 890, 40]},
+  "mill_lane": {"name": "The Mill lane", "district": "camp", "rect": [444, 1110, 110, 240]},
   "north_door": {"name": "The north stair", "district": "college", "rect": [1010, 210, 180, 110]},
   "archive": {"name": "The fallen Archive", "district": "college", "rect": [560, 230, 300, 190]},
   "observatory": {"name": "The broken Observatory", "district": "college", "circle": [1300, 340, 125]},
@@ -71,7 +90,15 @@
    "east2": [1940, 1030],
    "east_gate": [2108, 1030],
    "road": [2250, 1030],
-   "tent": [990, 1130]
+   "tent": [990, 1130],
+   "infirmary_door": [850, 930],
+   "infirmary_in": [850, 880],
+   "guild_door": [1362, 1015],
+   "guild_in": [1362, 930],
+   "smith_door": [1476, 1085],
+   "smith_in": [1476, 1160],
+   "inn_door": [1868, 1000],
+   "inn_in": [1868, 920]
   },
   "edges": [
    ["yard_nw", "yard_c"], ["yard_c", "yard_ne"], ["yard_c", "north_in"], ["yard_c", "stairs"], ["stairs", "gate"],
@@ -80,7 +107,9 @@
    ["market_c", "market_e"], ["market_e", "east_st"], ["east_st", "square_w"], ["square_w", "square_c"],
    ["square_c", "square_n"], ["square_w", "square_n"], ["square_c", "lane_top"], ["lane_top", "lane_mid"],
    ["lane_mid", "lane_bot"], ["lane_bot", "mira_door"], ["square_c", "east2"], ["east2", "east_gate"],
-   ["east_gate", "road"], ["market_c", "tent"]
+   ["east_gate", "road"], ["market_c", "tent"],
+   ["main", "infirmary_door"], ["infirmary_door", "infirmary_in"], ["east_st", "guild_door"], ["guild_door", "guild_in"],
+   ["square_w", "smith_door"], ["smith_door", "smith_in"], ["east2", "inn_door"], ["inn_door", "inn_in"]
   ]
  },
  "spots": {
@@ -101,18 +130,36 @@
   "square_c": [1630, 1100],
   "mill_east": [520, 1100],
   "east_gate": [2090, 1030],
-  "road": [2250, 1030]
+  "road": [2250, 1030],
+  "great_lamp": [1092, 1010],
+  "guild_bench": [1362, 960],
+  "inn": [1868, 930],
+  "smith": [1476, 1150],
+  "infirmary": [855, 880],
+  "market_cellar": [900, 1060],
+  "board": [1675, 925],
+  "shrine": [1600, 960],
+  "watch_post": [1000, 880],
+  "duel_ring": [740, 700],
+  "broken_wall": [580, 720],
+  "college_tents": [1340, 510],
+  "grief_circle": [490, 916],
+  "mill_lane": [500, 1230]
  },
  "lamps": [
-  [946, 880, "street"], [782, 940, "street"], [1218, 940, "street"], [782, 1172, "street"],
-  [1218, 1172, "street"], [1300, 1096, "street"], [1430, 1006, "street"], [1500, 912, "street"],
-  [1764, 1150, "street"], [1900, 986, "street"], [2080, 1074, "street"], [1568, 1200, "lane"],
-  [1692, 1262, "lane"], [1568, 1322, "lane"], [1692, 1370, "lane"], [1568, 1462, "lane"], [700, 1008, "broken"],
-  [580, 1094, "broken"], [520, 942, "broken"], [300, 1300, "broken"], [470, 1250, "broken"],
-  [640, 470, "broken"], [640, 690, "broken"], [1240, 690, "broken"], [928, 742, "broken"], [1072, 742, "broken"],
-  [1060, 236, "broken"], [1140, 236, "broken"]
+  [804, 924, "street", "A"], [900, 924, "street", "A"], [996, 924, "street", "A"], [1092, 924, "street", "A"], [1164, 924, "street", "A"], [1212, 924, "street", "A"],
+  [972, 972, "street", "B"], [828, 1020, "street", "B"], [828, 1116, "street", "B"], [876, 1164, "street", "B"], [972, 1164, "street", "B"], [1068, 1164, "street", "B"],
+  [1188, 972, "street", "C"], [1236, 1020, "street", "C"], [1332, 1044, "street", "C"], [1428, 1044, "street", "C"], [1524, 1044, "street", "C"], [1596, 1044, "street", "C"],
+  [1572, 1188, "lane", "D"], [1572, 1260, "lane", "D"], [1572, 1332, "lane", "D"], [1572, 1404, "lane", "D"], [1572, 1476, "lane", "D"], [1572, 1548, "lane", "D"],
+  [1500, 912, "street"], [1764, 1150, "street"], [1900, 986, "street"], [2080, 1074, "street"],
+  [700, 1008, "broken"], [580, 1094, "broken"], [520, 942, "broken"], [300, 1300, "broken"], [470, 1250, "broken"], [640, 470, "broken"],
+  [640, 690, "broken"], [1240, 690, "broken"], [928, 742, "broken"], [1072, 742, "broken"], [1060, 236, "broken"], [1140, 236, "broken"]
  ],
- "braziers": [[1000, 1100, true], [1630, 1090, true]],
+ "rails": [
+  ["A", 804, 924, 1212, 924], ["A", 1092, 924, 1092, 948], ["B", 1068, 972, 828, 972], ["B", 828, 972, 828, 1164], ["B", 828, 1164, 1068, 1164],
+  ["C", 1116, 972, 1236, 972], ["C", 1236, 972, 1236, 1044], ["C", 1236, 1044, 1596, 1044], ["D", 1092, 996, 1092, 1092], ["D", 1092, 1092, 1572, 1092], ["D", 1572, 1092, 1572, 1548]
+ ],
+ "braziers": [[1000, 1100, true], [1630, 1090, true], [490, 890, true]],
  "props": [
   ["hay", 806, 1102, 10], ["hay", 1206, 1116, 60], ["crate", 880, 1152, 0], ["crate", 906, 1150, 20],
   ["crate", 1150, 962, 5], ["barrel", 1182, 1150, 0], ["barrel", 1204, 1134, 0], ["barrel", 790, 960, 0],
@@ -141,11 +188,15 @@
  "exits": [{"id": "north_stair", "rect": [1072, 222, 56, 38], "to": "halls", "at": "landing"}],
  "tents": [
   [990, 1160, 0, "canvas", true], [860, 1000, 0, "canvas2"], [1190, 1136, 0, "canvas"],
-  [940, 1120, 90, "canvas2"], [1540, 1120, 0, "canvas"], [1720, 960, 90, "canvas2"], [1720, 1130, 0, "canvas"]
+  [940, 1120, 90, "canvas2"], [1720, 960, 90, "canvas2"], [1720, 1130, 0, "canvas"],
+  [1290, 475, 0, "canvas2", true], [1390, 480, 90, "canvas"]
  ],
  "dressing": [
   ["cot", 990, 1164, 0], ["tool_crate", 1188, 1066, 20], ["bench", 930, 960, 0], ["barrier", 1000, 872, 0], ["targets", 1745, 1050, 0],
   ["fissure", 760, 560, 20], ["fissure", 1060, 640, -60], ["fissure", 900, 700, 10], ["scorch", 1000, 600, 0],
-  ["scorch", 760, 460, 0], ["scorch", 1180, 470, 0]
+  ["scorch", 760, 460, 0], ["scorch", 1180, 470, 0],
+  ["grate", 900, 1060, 0], ["board", 1675, 905, 0], ["shrine", 1600, 940, 0], ["chalk_ring", 740, 700, 0],
+  ["anvil", 1440, 1180, 0], ["bench", 1300, 900, 0], ["cot", 800, 870, 90], ["cot", 900, 870, 90],
+  ["fissure", 560, 700, 80]
  ]
 }

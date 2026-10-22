@@ -63,6 +63,9 @@ func _init(map, def: Dictionary, spread: Dictionary, materials: Dictionary) -> v
 			areas.append([[Vector2(c[0], c[1]), float(c[2])], pr[1]])
 	for r in def.get("paint", []):
 		areas.append([Rect2(r[0], r[1], r[2], r[3]), r[4]])
+	for r in def.get("rails", []):
+		# an iron rail a cell wide, from one cell centre to another (the camp's lamp circuits)
+		areas.append([Rect2(Vector2(r[1], r[2]), Vector2.ZERO).expand(Vector2(r[3], r[4])).grow(size * 0.5 - 1.0), "iron"])
 	var dflt := mats.find(str(def.get("default", "earth")))
 	var water := mats.find("water")
 	var brick := mats.find("brick")

@@ -143,7 +143,7 @@ func _build_lamps() -> void:
 	var lane_i := 0
 	for l in map.d.get("lamps", []):
 		var lamp := {"pos": Vector2(l[0], l[1]), "group": str(l[2]), "lit": false, "by": "", "flare_t": 0.0,
-			"iron": str(l[2]) in pd["iron_lamps"]}
+			"iron": str(l[2]) in pd["iron_lamps"], "circuit": str(l[3]) if l.size() > 3 else ""}
 		if lamp["group"] == "lane":
 			lamp["id"] = "lane_lamp_%d" % lane_i
 			lane_i += 1
@@ -182,6 +182,7 @@ func _fresh_cells() -> void:
 	_drop_fire_zones()
 	var def: Dictionary = gd["maps"].get(map_id, {"default": "stone", "indoors": true})
 	def["cell"] = gd["cell"]
+	def["rails"] = map.d.get("rails", [])
 	cells = Cells.new(map, def, gd["spread"], matter.d["materials"])
 	cells.rng.seed = hash(map_id)
 	_apply_sky()
@@ -458,6 +459,11 @@ func strike_ground(a: Vector2, b: Vector2, grade: int) -> int:
 			hit[c] = true
 	if not hit.is_empty():
 		events_log.append(["ground_charged", hit.size()])
+		# a lamp on a rail the charge ran along flares with it (the camp's circuits)
+		for l in lamps:
+			if l["circuit"] != "" and hit.has(cells.index(l["pos"])):
+				l["flare_t"] = float(pd["flare_s"])
+				events_log.append(["flare", l.get("id", l["group"])])
 	_sync_fire_zones()
 	return hit.size()
 

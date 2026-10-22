@@ -679,6 +679,7 @@ func _carry(R) -> void:
 	_weather(R)
 	_matter()
 	_cells()
+	_camp_redress()
 
 
 ## The save files (save spec §5, §12): a Turning cut short is finished on load, once.
@@ -866,6 +867,45 @@ class GroundMap:
 		return p.x > 200 and p.y > 200
 	func solid_at(_p: Vector2) -> bool:
 		return false
+
+
+## The camp re-dressed (Ring 1 places spec §3, §11.1; N-7.1.1): its places, the buildings you
+## can enter, and 24 lamps on 4 rail circuits that are four separate networks until bridged.
+func _camp_redress() -> void:
+	var m = load("res://scripts/world/map.gd").new("res://data/world/map.json", "camp", "town")
+	var want := ["tent", "market", "guild_bench", "market_cellar", "square", "board", "inn", "smith", "lane",
+		"mill", "mill_lane", "gate", "watch_post", "yard", "college_tents", "duel_ring", "broken_wall",
+		"observatory", "hill", "north_door", "stairs", "road", "great_lamp", "infirmary", "shrine", "grief_circle"]
+	var missing := want.filter(func(pid): return not m.places.has(pid) or not m.spots.has(pid) and pid not in ["tent", "market", "square", "lane", "mill", "gate", "yard", "observatory", "hill", "north_door", "stairs", "road"])
+	ok(missing.is_empty(), "the camp has every place in the Ring 1 spec, each new one with its spot: " + ", ".join(missing))
+	var wrong := []
+	for pid in m.spots:
+		if m.places.has(pid) and m.place_at(m.spots[pid]) != pid and pid not in ["stairs", "road", "east_gate", "cot", "market_c", "square_c"]:
+			wrong.append("%s is in %s" % [pid, m.place_at(m.spots[pid])])
+	ok(wrong.is_empty(), "each new place's spot stands in it: " + ", ".join(wrong))
+	ok(["guild_bench", "inn", "smith", "infirmary"].all(func(b): return m.buildings.has(b) and m.building_at(m.spots[b]) == b), "the Guild workshop, inn, smithy and infirmary can be walked into")
+	var gd: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/ground.json"))
+	var def: Dictionary = gd["maps"]["camp"].duplicate(true)
+	def["cell"] = gd["cell"]
+	def["rails"] = m.d["rails"]
+	var g = load("res://scripts/world/cells.gd").new(m, def, gd["spread"], load("res://scripts/world/matter.gd").new().d["materials"])
+	var by := {}
+	for l in m.d["lamps"]:
+		if l.size() > 3:
+			by[l[3]] = by.get(l[3], []) + [Vector2(l[0], l[1])]
+	ok(by.keys().size() == 4 and by.values().all(func(ls): return ls.size() == 6), "24 lamps on 4 circuits of 6")
+	ok(by.values().all(func(ls): return ls.all(func(p): return g.material_at(p) == "iron")), "every circuit lamp stands on its iron rail")
+	ok(g.material_at(Vector2(1092, 972)) != "iron", "the great lamp's coupling is open: the rails don't touch")
+	var crossed := []
+	for k in by:
+		for i in g.charge.size():
+			g.charge[i] = 0.0
+		g.strike(g.index(by[k][0]), 4)
+		for k2 in by:
+			for p in by[k2]:
+				if (g.charge[g.index(p)] > 0.0) != (k2 == k):
+					crossed.append("%s strike at %s" % [k, k2])
+	ok(crossed.is_empty(), "lightning on one circuit runs its whole rail and no other's: " + ", ".join(crossed))
 
 
 ## The ground (spells-and-environment spec §5, N-4.2): fire spreads over fuel, stops at stone
