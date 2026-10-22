@@ -274,7 +274,7 @@ Cold air comes up it, and a smell like a forge gone out.
 # --- night in the ruins ----------------------------------------------------------------
 
 === patrol
-arrive: college, yard, archive, observatory, stairs, north_door
+arrive: college, yard, archive, observatory, stairs, north_door, duel_ring, broken_wall, college_tents
 times: night
 repeat: true
 priority: -5

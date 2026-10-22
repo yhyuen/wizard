@@ -1,7 +1,7 @@
 extends SceneTree
 ## Screenshots of the first playable for review, with draw calls and frame time at each (needs a
 ## display, not --headless): the title, waking in the camp, the yard and the captain's cordon,
-## the market at noon, the lane at dusk, the camp at night, a patrol fight, the brigands' toll fight, a burning hay bale,
+## the market at noon, the lane at dusk, the great lamp and its circuits at night, the camp at night, a patrol fight, the brigands' toll fight, a burning hay bale,
 ## a grass fire and a charged wet patch, the leaning gallery coming down, the camp's map, the Reach and the calendar, the Deeds and the Field Guide, and the
 ## spellbook; then the loading card, the halls' landing and shrine, the
 ## entrance hall, the rune door, the halls' map, a crack glowing and the embers out of it, the
@@ -105,6 +105,9 @@ func _process(_dt: float) -> bool:
 			W.clock = 30.0
 		320:
 			_shot("06_lane_dusk")
+			_go(sp["great_lamp"] + Vector2(0, 40), 2, 4)
+		340:
+			_shot("07a_great_lamp")
 			_go(sp["square_c"], 2, 4)
 		360:
 			_shot("07_camp_night")

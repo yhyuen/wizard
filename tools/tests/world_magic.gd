@@ -36,6 +36,8 @@ extends SceneTree
 ## N-4.4 (owners and witnesses): a crate broken in front of someone costs standing with its owner;
 ## one broken unseen is found by the next person to pass; its owner puts it back after a dawn or
 ## two; dousing someone's burning bale earns standing and fame.
+## N-7.1.1 (the camp re-dressed): lightning on a lamp rail runs along the iron and flares that
+## circuit's lamps in reach, and no other circuit's.
 
 const BOOK := ["ember_bolt", "pebble", "splash", "undertow"]
 const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt"]
@@ -124,6 +126,7 @@ func _initialize() -> void:
 		["Splash washes out a Saboteur's oil before it's lit; oil left alone goes up", _oil_setup, _oiled],
 		["breaking a crate someone sees costs standing; one nobody sees is found later; its owner mends it", _deeds_setup, _deeds],
 		["putting out a burning bale someone owns earns standing and fame", _good_setup, _good_deed],
+		["lightning on a lamp rail runs along it: that circuit's lamps in reach flare, no other circuit's", _rail_setup, _rail_flared],
 	]
 
 
@@ -197,7 +200,9 @@ func _dark_spot() -> Vector2:
 			continue
 		if world.lamps.all(func(l): return l["pos"].distance_to(p) > 120.0) and world.map.place_at(p) in ["market", "square", "streets"]:
 			return p
-	return world.map.spots["market"]
+	# the market is ringed with lamps and rails now (N-7.1.1): the open east side of the square,
+	# away from lamps, rails and props
+	return Vector2(1752, 1032)
 
 
 func _clear_enemies() -> void:
@@ -258,7 +263,7 @@ func _intent(A) -> Dictionary:
 
 func _street_lamp() -> Dictionary:
 	for l in world.lamps:
-		if l["group"] == "street":
+		if l["group"] == "street" and not world.map.solid_at(l["pos"], 30.0):
 			return l
 	return world.lamps[0]
 
@@ -1196,4 +1201,27 @@ func _good_deed() -> bool:
 	if state["bale"]["state"] == "burning":
 		return false
 	return D.standing(state["bale_owner"]) > state["after_fire"] and int(run.life.get("fame", 0)) == state["fame"] + 1
+
+
+## A grade III strike on circuit C's rail (between the market and the square): the charge runs
+## 240 px along the iron, so C's nearer lamps flare and its far end doesn't; A, B and D don't.
+func _rail_setup() -> void:
+	for l in world.lamps:
+		l["flare_t"] = 0.0
+	var at := Vector2(1284, 1044)
+	state["at"] = at
+	world.strike_ground(at, at, 3)
+
+
+func _rail_flared() -> bool:
+	var near := 0
+	for l in world.lamps:
+		var flared: bool = l["flare_t"] > 0.0
+		if l["circuit"] == "C" and l["pos"].distance_to(state["at"]) < 200.0:
+			near += 1
+			if not flared:
+				return false
+		elif flared and (l["circuit"] != "C" or l["pos"].distance_to(state["at"]) > 280.0):
+			return false
+	return near >= 4
 

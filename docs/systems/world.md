@@ -56,6 +56,41 @@ follows is the build today.*
   Eclipse falls on the road, it comes first.
 - The camp's north stair still leads straight down to the halls for free (the build's shortcut).
 
+## The camp (`data/world/map.json`)
+
+*N-7.1.1, [Ring 1 places spec](/mnt/project-files/design/places/ring1-places-and-fights-spec.md)
+§3, §11.1. Not built: the market cellar grate as a way down (the drain and undercroft are N-7.1.3),
+the broken wall's climb-down to the Mill side, the cart at the gate and the Guild's oil shed (Lantern
+Night's approaches and preparations, N-7.5), the straw targets moving to the watch post, the
+workroom moving to the halls, shops, boards and crews behind the new places (N-7.6).*
+
+- **Places** (the map's `places`; the first that holds a point names it): the built ones (your
+  shelter, the Lantern Market, the square, Lamplighter's Lane, the Mill, the College gate, the
+  ruined yard, the Observatory, the hill, the north stair, the road) and the re-dress's: the
+  **great lamp** (Market centre), the **Guild workshop** (Market, east), the **market cellar**
+  grate, the **commissions board** and the **camp shrine** (square), the **Crooked Wick** inn
+  (east of the square), the **camp smithy** (south of the square), the **infirmary** and the
+  **watch post** (by the College gate), the **Mill lane** (the stream's east bank), the **duel
+  ring**, the **broken west wall** and the **College tents** (in the yard), and the **grief fire**
+  (a kept fire at the foot of the College hill, by the stream). Each new place has a spot of the
+  same name.
+- **Buildings you walk into** (`buildings`: a rect with a door gap, the roof and front lift while
+  you're inside): the Guild workshop, the inn, the smithy and the infirmary, each with a door node
+  on the street graph.
+- **The great lamp** stands on a stone platform (a solid circle, r 30 px) at the Market's centre,
+  its brass coupling where the four lamp circuits meet.
+- **24 lamps on 4 circuits** (`lamps` [x, y, group, circuit]; `rails` [circuit, x1, y1, x2, y2],
+  runs from cell centre to cell centre): **A** the Gate row (the Market's north edge), **B** the
+  Market ring (round the west and south stalls), **C** the Square run (past the Guild workshop to
+  the square), **D** the Lane run (down Lamplighter's Lane: Mira's round, now six lamps). Each rail
+  is an iron strip a cell wide in the paving; the cell grid paints its cells **iron**, so they
+  conduct. Every rail stops at the platform: the coupling is open, so the four circuits are four
+  separate networks. Four street lamps outside the Market stay on no circuit.
+- **Lightning on a rail** charges along the iron as far as its Force grade reaches (I 24 px, II 60,
+  III 240, IV the whole circuit; the ground rule below), and **every circuit lamp on a charged cell
+  flares** (logged `flare`), so a strong enough strike lights a whole run for a moment and none of
+  the others.
+
 ## Weather (`data/world/weather.json`, `scripts/world/weather.gd`)
 
 *Target: the [seasons, weather and calamities spec](/mnt/project-files/design/seasons/seasons-and-calamities-spec.md)
@@ -214,13 +249,14 @@ now), fines, paying or fixing what you owe, nature regrowing, amends within 3 da
 evidence.*
 
 - **Every prop has an owner** by map and place: in the camp the market's things are the traders',
-  the Mill's the Mill's, the rest the camp's; the College ruins, the hill, the road and the whole
-  halls are nobody's (nothing is owed there and nothing repairs, so a ruin remembers you for the
+  the great lamp's and the Guild workshop's the Guild's, the Mill's and its lane's the Mill's, the
+  yard's, the College tents' and the duel ring's the College's, the rest the Watch's (public); the
+  rest of the College ruins, the broken wall, the hill, the road and the whole halls are nobody's (nothing is owed there and nothing repairs, so a ruin remembers you for the
   life). Each kind has a **value** in crowns: hay 2, crate 4, barrel 6, post 20, cart 40.
 - **Breaking or setting alight** an owned prop counts once until it's put back. If someone can see
   it (in town, 110 px by day, 55 at dusk and night, nothing solid between) the nearest one
   reacts by its value: under 10 crowns a grumble (−1 standing with the owner), up to 100 a demand
-  ("That's 40 crowns you owe the camp", −3, counted in `owed`), over that the watch is called (−10,
+  ("That's 40 crowns you owe the Watch", −3, counted in `owed`), over that the watch is called (−10,
   +1 infamy, a toast). Setting a thing alight costs at least −3.
 - **Nobody saw?** It goes on the life's `unseen` list; the next person to see where it was says so
   (−1 standing, +1 suspicion with the owner).
@@ -246,7 +282,8 @@ Spark Artifice part (reagents, salvage, the Lamplighters' bench and device charg
 ## Tests
 
 `tools/tests/world_magic.gd` (each reaction, with real casts, including a Pillar grass fire that
-spreads, Splash on a ground fire and a Spark on wet ground), `tools/tests/unit.gd` (maps load,
-exits lead somewhere real, pits, reachability, per-map lamps; the ground grid: spread, stone and
-water stop fire, ash, wind, rain, the cap, lightning reach by grade), `tools/map_preview.gd` (top-down
-PNG/SVG of every map; CI artifact `map-preview`).
+spreads, Splash on a ground fire, a Spark on wet ground and a strike along a lamp rail),
+`tools/tests/unit.gd` (maps load, exits lead somewhere real, pits, reachability, per-map lamps; the
+ground grid: spread, stone and water stop fire, ash, wind, rain, the cap, lightning reach by grade;
+the camp's places and buildings, 24 lamps on 4 separate rail networks), `tools/map_preview.gd`
+(top-down PNG/SVG of every map with rails and circuit letters; CI artifact `map-preview`).

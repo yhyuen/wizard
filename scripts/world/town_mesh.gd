@@ -52,6 +52,7 @@ func build(the_view, the_map, config: Dictionary) -> void:
 	_water()
 	for l in map.d.get("lamps", []):
 		_lamp(Vector2(l[0], l[1]))
+	_rails()
 	for b in map.d.get("braziers", []):
 		_brazier(Vector2(b[0], b[1]))
 	_commit()
@@ -439,6 +440,17 @@ func _square() -> void:
 				_add(head, Transform3D(Basis(), p + Vector3(0, 3.0, 0)), c("statue"))
 			"ash":
 				_add(_cyl(0.1, r * 1.1, 0.6, 7), Transform3D(Basis(), p + Vector3(0, 0.3, 0)), c("ash"))
+			"great_lamp":
+				# the Guild's great lamp: a stone platform, a brass coupling where the circuits meet,
+				# an iron mast and the great glass at its head
+				_add(_cyl(r * 0.95, r, 0.5, 8), Transform3D(Basis(), p + Vector3(0, 0.25, 0)), c("stone"))
+				_add(_cyl(r * 0.45, r * 0.5, 0.3, 8), Transform3D(Basis(), p + Vector3(0, 0.65, 0)), c("brass"))
+				for k in 4:
+					var dir := Vector3.FORWARD.rotated(Vector3.UP, k * PI / 2.0)
+					_box(Vector3(0.22, 0.16, 0.22), p + dir * r * 0.75 + Vector3(0, 0.55, 0), c("brass").darkened(0.25))
+				_add(_cyl(0.1, 0.15, 3.0, 6), Transform3D(Basis(), p + Vector3(0, 2.2, 0)), c("iron"))
+				_add(_cyl(0.3, 0.22, 0.55, 6), Transform3D(Basis(), p + Vector3(0, 3.95, 0)), Color("ffd890"), true)
+				_add(_cyl(0.0, 0.38, 0.3, 6), Transform3D(Basis(), p + Vector3(0, 4.38, 0)), c("iron"))
 
 
 ## The Mill: its wheel turning in the millrace (the house itself is one of the blocks).
@@ -496,6 +508,18 @@ func _lamp(at: Vector2) -> void:
 	_add(_cyl(0.06, 0.08, 2.6, 5), Transform3D(Basis(), p + Vector3(0, 1.3, 0)), c("iron"))
 	_add(_cyl(0.0, 0.28, 0.28, 4), Transform3D(Basis(), p + Vector3(0, 3.08, 0)), c("iron"))
 	lanterns.append(p)
+
+
+## The lamp circuits' iron rails: a flat strip set in the paving, a rivet plate every two cells.
+func _rails() -> void:
+	for r in map.d.get("rails", []):
+		var a: Vector2 = Vector2(r[1], r[2])
+		var b: Vector2 = Vector2(r[3], r[4])
+		_rect_box(Rect2(a, Vector2.ZERO).expand(b).grow(2.5), 0.04, c("iron"))
+		var n := int(a.distance_to(b) / 48.0)
+		for k in n + 1:
+			var at: Vector2 = a.lerp(b, float(k) / maxf(1.0, n))
+			_rect_box(Rect2(at - Vector2(4, 4), Vector2(8, 8)), 0.06, c("iron").lightened(0.15))
 
 
 func _lantern_nodes() -> void:

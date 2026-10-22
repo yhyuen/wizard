@@ -128,7 +128,7 @@ the big gaps:
 | --- | --- | --- |
 | Three regions, six maps: camp, city + halls + undercroft, fields + east road | Two maps (camp, halls); the Mill fields region is a card | [world.md](world.md) |
 | The drain from the undercroft to the market cellar, kept open in later lives | Only the camp's free north stair to the halls | [world.md](world.md) |
-| 24 Market lamps on 4 iron rail circuits meeting at the great lamp | 28 lamps in `street`, `lane` and `broken` groups; no rails | [world.md](world.md) |
+| The camp re-dressed: new places, enterable inn, smithy and Guild workshop, 24 Market lamps on 4 iron rail circuits meeting at the great lamp | Built (N-7.1.1): places, four buildings, the great lamp and its open coupling, the circuits as iron cells that carry lightning. Not yet: the cellar grate going anywhere, the broken wall's climb-down, the gate cart and the oil shed, the straw targets and workroom moved, a bridge to join two circuits, the cascade | [world.md](world.md) |
 | Twelve gates up to grade II, each with a second route; three Ring 2 locks | Three built doors in the halls (rune, burnt, collapsed stair) | [world.md](world.md) |
 | 16 placed fights over 16 enemy kinds and a rival, 2 bosses (Kiln Warden, Lightdrinker), each with 2–3 terrain hooks | The patrol, four halls fights and the Warden | [combat.md](combat.md) |
 
