@@ -5,14 +5,17 @@ extends RefCounted
 ## In the halls, embers rush and lunge, and the Kiln Warden never moves: its fight is reading its rhythm.
 
 const Brigands := preload("res://scripts/brigands.gd")
+const Hollows := preload("res://scripts/hollows.gd")
 
 var A
 var brig  # brigands' minds, guard, keg and net (N-6.3)
+var hollows  # the Lantern-eater, the Choir and the Husk (N-6.3)
 
 
 func _init(arena) -> void:
 	A = arena
 	brig = Brigands.new(arena, self)
+	hollows = Hollows.new(arena, self)
 
 
 func update(u: Unit, dt: float) -> void:
@@ -22,7 +25,15 @@ func update(u: Unit, dt: float) -> void:
 		if u.state_t <= 0.0:
 			u.state = "move"
 		return
-	if u.locked() or A.player.dead or A.phase in ["won", "lost"]:
+	if A.phase in ["won", "lost"]:
+		return
+	# Morale (N-6.4): people who give up run or kneel.
+	if u.flags.has("fleeing"):
+		A.morale.flee(u, dt)
+		return
+	if A.morale.check(u):
+		return
+	if u.locked() or A.player.dead:
 		return
 	# A burning husk panics: it runs from you, lighting what it passes (enemy spec §5.2).
 	if u.burn_t > 0.0 and str(A.D["enemies"][u.kind].get("faction", "")) in A.D["foes"]["states"]["panic"]:
@@ -32,7 +43,7 @@ func update(u: Unit, dt: float) -> void:
 	if u.flags.get("dummy", false):
 		_step(u, A.player.pos - u.pos, dt, 0.3 if u.pos.distance_to(A.player.pos) > 30.0 else 0.0)
 		return
-	if brig.mind(u, dt):
+	if brig.mind(u, dt) or hollows.mind(u, dt):
 		return
 	match u.kind:
 		"hollow":
@@ -75,7 +86,12 @@ func focus(u: Unit) -> int:
 ## A hit above its Focus breaks a wind-up: the telegraph goes away, a cracked sigil puffs over it,
 ## and the attack comes back at half its cooldown.
 func interrupt(u: Unit) -> void:
-	if u.state in ["windup", "spark", "lance"]:
+	if u.state == "hum":
+		hollows.hush(u)  # the Choir falls quiet
+		A.fx("clink", u.pos + Vector2(0, -12), {"life": 0.35})
+		A.stats["interrupts"] = int(A.stats.get("interrupts", 0)) + 1
+		return
+	if u.state in ["windup", "spark", "lance", "smother"]:
 		A.cancel_zones(u.id)
 		u.state = "move"
 		u.state_t = 0.4

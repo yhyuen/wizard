@@ -152,6 +152,15 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   Backward Slinger (`inverted`: rises from the dead, its stones fly home), embers from cracks,
   the Kiln Warden (anchored guardian, two phases), Silas Vane (Storm rival). Hollows won't step
   into a lit lamp's pool unless the encounter sets `light_shy: false` ([world.md](world.md)).
+- **More Hollows** (N-6.3, enemy spec §8.1, `scripts/hollows.gd`, husk bodies): the
+  **Lantern-eater** (Soldier) walks to a lit lamp within 240 px and smothers it over 1.6 s (a hit
+  above its Focus 1 stops it), then fights like a Hollow; the **Hollow Choir** (Elite, no attack)
+  keeps 120 px off and **hums**: Hollows within 90 px get +1 Poise and ×1.3 speed (`poise_of`); a
+  hit above its Focus hushes it for 2.5 s; the **Overdrawn Husk** (Elite) throws a wild Ember Bolt
+  (up to 0.35 rad off its aim; the telegraph line shows where it really goes), and when Broken
+  **leaks** a violet pool of 20 Aether, 12/s to you while you stand in it, for 5 s. Encounter
+  `lamp_night` is the Lantern-eater and Choir with Hollows, then the Husk; like the toll, only the
+  fight tests play it until its places are built (N-7.1).
 - **Brigands** (N-6.3, enemy spec §8.2; minds, guard, keg and net in `scripts/brigands.gd`, flesh
   bodies): the **Cutthroat** (Minion) stabs with a lunge and backs off; the **Crossbowman**
   (Soldier) keeps 170 px off, shoots a bolt (Impact 2, the Ward stops it) and stands reloading 3 s
@@ -164,6 +173,13 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   gets you out) and every 8 s calls a **volley** (his ready Crossbowmen shoot together, past the
   director). Encounter `toll` (the bridge toll, places spec F13) is the group; until the east road
   is built (N-7.1.5) only the fight tests play it, in the camp yard.
+- **Morale** (N-6.4, enemy spec §6.5, `foes.morale`, `scripts/morale.gd`): people yield, Hollows,
+  constructs, embers and Silas don't (only `brigands` so far). Once a side's leader is dead or half
+  of it is out of the fight, any of it at 25% HP or less gives up: a Minion runs for 2.5 s and is
+  gone (not a kill); the rest **kneel**, out of the fight (team 2: spells, AI and the win check pass
+  them by) and give their XP and wells as if beaten. The leader going down toasts that the rest lose
+  heart. Win, and everyone kneeling is **spared**: `Run.life["spared"]` counts them by faction for
+  the reputation to read later. Losing to people isn't lethal (the toll sets `lethal: false`).
 - `scripts/bot.gd` plays the wizard for tests and F2 autoplay: one committed spell at a time, waiting
   for Aether rather than Overdrawing, the Ward against shots, the staff when something is close.
 

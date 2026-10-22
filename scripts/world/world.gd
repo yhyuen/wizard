@@ -1028,6 +1028,12 @@ func _quench(z: Dictionary) -> void:
 		events_log.append(["doused", "blaze"])
 
 
+## A Lantern-eater smothers a lamp (N-6.3): out, as if doused, till someone lights it again.
+func smother_lamp(l: Dictionary) -> void:
+	_douse_lamp(l)
+	events_log.append(["smothered", l.get("id", l["group"])])
+
+
 func _douse_lamp(l: Dictionary) -> void:
 	l["lit"] = false
 	l["by"] = "doused"

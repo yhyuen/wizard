@@ -135,7 +135,10 @@ grid, breaking and collapse, damage that lasts the life, owners and witnesses. W
 - **Cantrips** ([combat.md](combat.md)): Kindle acts on the world like Pillar's fire (lights lamps
   and braziers, sets props burning) and Douse like a splash all round its point (puts out props,
   lamps, braziers and burning patches). The **staff strike** shoves the prop in front of it.
-- A lit or flaring lamp's pool (`light_r` 38) keeps `light_shy` kinds out.
+- A lit or flaring lamp's pool (`light_r` 38) keeps `light_shy` kinds out (Hollows, Slingers,
+  Backward Slingers, embers, the Choir and the Husk). A **Lantern-eater** (N-6.3) isn't: it walks in
+  and **smothers** the lamp (`smother_lamp`: out as if doused, logged `smothered`) until someone
+  lights it again.
 - **Devices** (N-5.2, [combat.md](combat.md)): a Spark Flask's burst is a `flask` mark that acts
   like Pillar's fire (ground, props, lamps, braziers). A Tar Pot turns the cells under its pool to
   **oil** (`cells.gd` `tar`: catches at Fire I, burns 12 s); fire touching the pool lights it all.

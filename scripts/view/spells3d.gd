@@ -511,6 +511,10 @@ func _zones(glow_k: float) -> void:
 					r.position = _w(z["pos"] + o, 0.05)
 					r.scale = Vector3.ONE * 0.45
 					r.rotation = Vector3(a, a * 2.0, 0)
+			"leak":
+				# an Overdrawn Husk's spilled Aether, a violet glow on the ground while it lasts
+				if float(z["left"]) > 0.0:
+					halo(_w(z["pos"], 0.2), Color("9a7af0"), float(z["r"]) * view.S * 1.2, 1.2)
 			"pot":
 				# a Powder Monkey's pot arcing to its circle, once he has thrown it
 				if t >= float(z["fly_at"]):

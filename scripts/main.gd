@@ -348,7 +348,7 @@ func _on_fight_over(won: bool) -> void:
 		"fight":
 			mode = "world"
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-			slice.fight_done(won, int(arena.stats["kills"]))
+			slice.fight_done(won, int(arena.stats["kills"]) + int(arena.stats.get("yielded", 0)))  # a yield counts as beaten
 
 
 func _on_spell_leveled(id: String, old: int, new: int) -> void:

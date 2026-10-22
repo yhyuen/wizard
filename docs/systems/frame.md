@@ -76,6 +76,8 @@ Reach and Calendar tabs (§5.5).*
   impact per Sphere, stage layers and Force grades, material sounds, weather beds, buses, a
   24-voice pool with priority, `data/audio.json`, and music by power, region and season with
   calamity cues. The gaps are in [drift.md](drift.md).*
+- When a fight ends, `main.gd` hands the story its outcome and how many were beaten: kills plus
+  the ones who yielded ([combat.md](combat.md) 'Morale').
 - `scripts/game/build_id.gd` says which build this is; CI writes it before the web export.
 
 ## Checks before merging
