@@ -27,7 +27,25 @@
   keeps its own state for the rest of the loop while you are elsewhere (`_saved`).
 - **It never plays a scene itself:** it asks the game through `requests` (`talk`, `use`,
   `arrive`, `scene`, `cast`, `exit`, `period`); [story.md](story.md) answers.
-- `reach` 30 px to talk or use; Vitality regenerates at 5% a second out of fights.
+- `reach` 30 px to talk or use; Vitality regenerates out of fights (`spells.json`
+  `wizard.regen_out`, 2% a second), up to the Injured cap ([loop.md](loop.md)).
+- **The clock** only runs on walking when `world.json` `walk_clock` is true; it is false since
+  N-1.1, so only actions pass time ([loop.md](loop.md)).
+
+## Regions and travel (`data/world/regions.json`, `scripts/game/reach.gd`)
+
+- **Regions** group maps: the survivors' camp (`camp`) and the fallen city of Vellmar (`city`,
+  whose one map so far is the College halls, arriving at `landing`). Each has a name, ring, a
+  place on the chart (`pos`), its `maps` (the first is where travel arrives), `arrive` (the spot)
+  and a `blurb`. A region with no maps is a **card**: the Mill fields and east road (Ring 1) and
+  four Ring 2 regions show their blurb and cost no time (the Wuxia rule).
+- **Roads** `[a, b, days]`; a journey takes the cheapest roads' days (`days_between`). Walking
+  inside a region is free.
+- **The Reach** is the map's second tab (M, then 2): the chart, roads with their days, and a card
+  for the region picked. "Go to …" (from anywhere, with nothing hunting you) passes the days and
+  you arrive at the region's spot that morning, behind the loading card, not rested. If the
+  Eclipse falls on the road, it comes first.
+- The camp's north stair still leads straight down to the halls for free (the build's shortcut).
 
 ## People (`scripts/world/people.gd`, `data/world/people.json`)
 

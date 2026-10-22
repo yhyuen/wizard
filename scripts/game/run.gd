@@ -9,7 +9,14 @@ signal learned(id: String)
 const SAVE_PATH := "user://ruins.json"  # the ruins game; the open world's saves (slice.json) don't carry over
 const TIMES := ["morning", "noon", "afternoon", "dusk", "night"]
 const TIME_NAMES := ["Morning", "Noon", "Afternoon", "Dusk", "Night"]
-const LAST_DAY := 28
+const CALENDAR := "res://data/world/calendar.json"
+const LIVES := "res://data/world/lives.json"
+const MOON_DAYS := 28
+const MOONS := 13
+const LAST_DAY := MOON_DAYS * MOONS  # the Great Eclipse: Moon 13, day 28
+
+var cal: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(CALENDAR))
+var lives: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(LIVES))
 
 var mem := {}
 var lp := {}
@@ -29,7 +36,8 @@ func fresh_mem() -> Dictionary:
 
 
 func fresh_loop() -> Dictionary:
-	return {"day": 1, "time": 0, "flags": {}, "seen": {}, "learned": [], "dawn_done": false}
+	return {"day": 1, "time": 0, "flags": {}, "seen": {}, "learned": [], "dawn_done": false,
+		"injured": false, "losses": [], "region": str(JSON.parse_string(FileAccess.get_file_as_string("res://data/world/regions.json"))["start"])}
 
 
 ## A brand new month: forgets everything.
@@ -44,6 +52,28 @@ func end_loop(cause: String) -> void:
 	mem["deaths"][cause] = int(mem["deaths"].get(cause, 0)) + 1
 	mem["log"].append({"loop": loop(), "day": day(), "time": time_name(), "cause": cause, "learned": lp["learned"].duplicate()})
 	save()
+
+
+## Whether `cause` ends the life (data/world/lives.json "endings", or any calamity). Every other
+## loss wakes you injured (lives spec §3.2).
+func ends_life(cause: String) -> bool:
+	return cause in lives["endings"] or cause.begins_with("calamity:")
+
+
+## A loss that doesn't end the life: counted like a death, logged on this life's page. Returns the
+## days that pass before you wake: none if you already lost today (two losses don't stack).
+func lose(cause: String, wild := false) -> int:
+	mem["deaths"][cause] = int(mem["deaths"].get(cause, 0)) + 1
+	var w: Dictionary = lives["wake_injured"]
+	var again: bool = not lp["losses"].is_empty() and int(lp["losses"][-1]["day"]) == day()
+	var days: int = 0 if again else int(w["wild_days"] if wild else w["days"])
+	lp["losses"].append({"day": day(), "time": time_name(), "cause": cause, "learned": lp["learned"].size(), "days": days})
+	lp["injured"] = true
+	return days
+
+
+func injured() -> bool:
+	return bool(lp.get("injured", false))
 
 
 ## Wake on day 1 of the next loop: the loop state resets, the memory stays.
@@ -81,8 +111,43 @@ func advance_time() -> bool:
 	return true
 
 
+# --- the calendar (N-1.1) -------------------------------------------------------
+
+## 1..13
+func moon() -> int:
+	return (day() - 1) / MOON_DAYS + 1
+
+
+## 1..28, the day of the moon.
+func moon_day() -> int:
+	return (day() - 1) % MOON_DAYS + 1
+
+
+func moon_name(m := 0) -> String:
+	return str(cal["moons"][clampi((m if m > 0 else moon()) - 1, 0, MOONS - 1)]["name"])
+
+
+## The weekday's Sphere, {"sphere", "name", "color"}; weeks start on Sol's day.
+func weekday(d := 0) -> Dictionary:
+	return cal["weekdays"][((d if d > 0 else day()) - 1) % 7]
+
+
+## "Moon 3 · Day 17"
+func date_name(d := 0) -> String:
+	d = d if d > 0 else day()
+	return "Moon %d · Day %d" % [(d - 1) / MOON_DAYS + 1, (d - 1) % MOON_DAYS + 1]
+
+
+func day_of(m: int, md: int) -> int:
+	return (m - 1) * MOON_DAYS + md
+
+
+func days_left() -> int:
+	return LAST_DAY - day()
+
+
 func next_day() -> void:
-	lp["day"] = day() + 1
+	lp["day"] = mini(day() + 1, LAST_DAY)
 	lp["time"] = 0
 	lp["dawn_done"] = false
 

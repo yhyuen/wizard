@@ -6,8 +6,10 @@ extends SceneTree
 ## A bot (tools/tests/walker.gd) wakes on the cot, talks to Mira (C1) and Pell, and goes down the
 ## north stair to the halls' landing. It reads the rune door, which is sealed, and climbs back out,
 ## which costs the day: it sleeps and wakes on day 2. Then it goes down again and takes the long
-## route (entrance hall, refectory, lecture gallery, antechamber) to the Kiln Warden, which kills
-## it (fights are settled by fight_resolver: the rooms are won, the Warden is lost on loop 1).
+## route (entrance hall, refectory, lecture gallery, antechamber) to the Kiln Warden, which beats
+## it (fights are settled by fight_resolver: the rooms are won, the Warden is lost on loop 1). A
+## lost fight doesn't end the life (lives spec §3.2): it wakes on its cot two days later, Injured,
+## goes back down and lets the loop go at the halls' shrine.
 ## Loop 2 wakes to its own scene with the Hours stirring and puts Rewind in its spellbook. Day 1
 ## it reads the dwarves' crate (H4), goes down, turns the great clock back with Rewind (H1), mends
 ## the collapsed stair with it (H5), walks through to the cistern and turns the sluice, and climbs
@@ -30,6 +32,7 @@ const PLAN_1 := {
 	1: [["talk:mira", "talk:pell"], ["talk:captain", "exit:north_stair", "go:entrance_hall", "use:rune_door",
 		"use:stair_back>Climb out"], [], [], ["sleep"]],
 	2: [["exit:north_stair"] + LONG, [], [], [], []],
+	4: [["exit:north_stair", "use:shrine>Let this loop go"], [], [], [], []],
 }
 const PLAN_2 := {
 	1: [["use:dwarf_crate", "talk:captain", "exit:north_stair", "go:entrance_hall", "use:great_clock", "cast:great_clock:rewind", "use:collapsed_stair",
@@ -54,6 +57,7 @@ var down_at := -1.0  # play seconds when this loop's descent reached the landing
 var fork_at := -1.0  # play seconds when it left the entrance hall, where the routes part
 var to_warden := {}  # loop -> play seconds from the fork to the Kiln hall
 var surfaced := ""  # where the day after the first climb out began
+var lost := {}  # the loss to the Warden: its day, and the day and state you woke to
 
 
 func _initialize() -> void:
@@ -84,6 +88,15 @@ func _process(_dt: float) -> bool:
 	_watch_loading()
 	_watch_route()
 	match slice.screen:
+		"hurt":
+			var l: Dictionary = run.lp["losses"][-1]
+			print("[route] loop %d: lost on day %d (%s), waking in %d days" % [run.loop(), run.day(), l["cause"], l["days"]])
+			lost = {"cause": l["cause"], "day": run.day()}
+			slice.wake()
+			lost["woke"] = run.day()
+			lost["injured"] = run.injured()
+			down_at = -1.0
+			fork_at = -1.0
 		"death":
 			var log: Dictionary = run.mem["log"][-1]
 			print("[route] loop %d ends on day %d (%s), learned %d" % [run.loop(), run.day(), log["cause"], log["learned"].size()])
@@ -168,8 +181,10 @@ func _report() -> bool:
 	var causes: Array = log.map(func(l): return l["cause"])
 	if not run.mem["log"].is_empty() and int(run.mem["log"][-1]["day"]) != 2:
 		failures.append("loop 2 should reach the end card on day 2 (the stair and the sluice took day 1)")
-	if causes != ["fight:warden", "first_playable_end"]:
-		failures.append("loop 1 must die to the Warden and loop 2 reach the end card, got %s" % str(causes))
+	if causes != ["shrine", "first_playable_end"]:
+		failures.append("loop 1 must end at the shrine and loop 2 reach the end card, got %s" % str(causes))
+	if lost.get("cause", "") != "fight:warden" or int(lost.get("woke", 0)) != int(lost.get("day", 0)) + 2 or not lost.get("injured", false):
+		failures.append("losing to the Warden on loop 1 should wake you Injured two days later: %s" % str(lost))
 	if surfaced != "camp/camp":
 		failures.append("climbing out should end the day and wake in the camp (day 2 began on %s)" % surfaced)
 	if not run.seen("wake_again"):
@@ -187,12 +202,12 @@ func _report() -> bool:
 	print("[route] about %.1f minutes of play, %d Ledger entries known, %d frames" % [bot.play_s / 60.0, run.known_ids().size(), frames])
 	var summary: String = slice.run_summary()
 	print("[route] run summary:\n" + summary)
-	for want in ["The Shattered Orrery, first playable · build", "Loop 1 died on day 2", "carried_out"]:
+	for want in ["The Shattered Orrery, first playable · build", "Loop 1 ended on Moon 1 · Day 4", "carried_out"]:
 		if not want in summary:
 			failures.append("the run summary has no \"%s\"" % want)
 	for f in failures:
 		print("[route] FAIL: " + f)
 	if failures.is_empty():
-		print("[route] loop 1 takes the long way and dies; loop 2 takes the short way to the end card")
+		print("[route] loop 1 takes the long way and loses; loop 2 takes the short way to the end card")
 	quit(1 if not failures.is_empty() else 0)
 	return true

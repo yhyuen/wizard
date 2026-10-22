@@ -39,6 +39,7 @@ var cant_charges := {}  # cantrip id -> charges
 var cant_t := {}  # cantrip id -> seconds toward the next charge
 var ghosts = {}  # spell id -> {"old": level before the level-up, "casts": casts left to show it}
 var denied = {}  # slot -> seconds left on the "not ready" flash
+var slow_start := 0.0  # Injured: extra wind-up on this fight's first spell (set by the arena)
 var aim = Vector2.ZERO
 var move = Vector2.ZERO
 
@@ -337,7 +338,8 @@ func begin(slot: String) -> void:
 		return
 	warding = false
 	var b := band(id)
-	wind = {"slot": slot, "id": id, "t": 0.0, "need": windup(id), "band": b, "commit": false}
+	wind = {"slot": slot, "id": id, "t": 0.0, "need": windup(id) + slow_start, "band": b, "commit": false}
+	slow_start = 0.0
 	holding = slot
 	hold_t = 0.0
 

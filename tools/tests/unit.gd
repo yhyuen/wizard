@@ -118,6 +118,7 @@ func _run() -> void:
 	_kit(P)
 	_growth(P)
 	_world()
+	_year()
 	print("[unit] %d check(s), %d failed" % [checks, fails])
 	quit(1 if fails > 0 else 0)
 
@@ -460,3 +461,36 @@ func _world() -> void:
 	ok(w.lamps[0]["lit"], "a halls lamp lit there is still lit after going up and back")
 	w.reset_loop()
 	ok(w.map_id == "camp" and not w.lamps[0]["lit"], "a new loop wakes in the camp with its lamps out")
+
+
+## The year (N-1.1), losses that don't end a life (N-1.3) and the roads between regions (N-1.4).
+func _year() -> void:
+	var R = root.get_node("Run")
+	R.new_run()
+	ok(R.LAST_DAY == 364 and R.moon() == 1 and R.moon_day() == 1, "a life is 13 moons of 28 days and starts on Moon 1, day 1")
+	R.lp["day"] = R.day_of(3, 17)
+	ok(R.moon() == 3 and R.moon_day() == 17 and R.date_name() == "Moon 3 · Day 17", "day 73 is Moon 3, day 17")
+	ok(R.moon_name() == "Seedmoon" and R.weekday(1)["sphere"] == "sol" and R.weekday(9)["sphere"] == "luna", "moon names, and weekdays by Sphere from Sol's day")
+	R.lp["day"] = R.LAST_DAY
+	R.next_day()
+	ok(R.day() == R.LAST_DAY, "the year stops at the Great Eclipse")
+	# Losses (lives spec §3.2)
+	R.new_run()
+	ok(R.ends_life("eclipse") and R.ends_life("shrine") and R.ends_life("calamity:lantern_night"), "the Eclipse, the shrine and calamities end a life")
+	ok(not R.ends_life("fight:warden") and not R.ends_life("patrol"), "other lost fights don't")
+	ok(R.lose("fight:warden") == 2 and R.injured(), "a loss costs two days and leaves you Injured")
+	ok(R.lose("patrol") == 0, "a second loss the same day costs no more days")
+	ok(R.lose("patrol", true) == 0 and R.died_of("patrol") == 2, "losses are counted like deaths")
+	R.lp["day"] = 5
+	ok(R.lose("patrol", true) == 3, "alone in the wild it costs three")
+	# The Reach
+	var Reach = load("res://scripts/game/reach.gd")
+	var reach = Reach.new(R, null)
+	ok(reach.region_of("camp") == "camp" and reach.region_of("halls") == "city", "each map belongs to a region")
+	ok(reach.days_between("camp", "city") == 1 and reach.days_between("mill", "archive") == 3, "travel costs the cheapest road's days")
+	ok(reach.built("city") and not reach.built("mill"), "a region with no maps is a card")
+	R.new_run()
+	var t: Array = reach.rest_targets()
+	ok(not t.is_empty() and t[0]["id"] == "moon" and int(t[0]["day"]) == 29 and t[-1]["id"] == "eclipse", "rest targets: the next moon first, the Great Eclipse last")
+	ok(t.filter(func(e): return e["id"] == "calamity_1").is_empty(), "a calamity you don't know of isn't on the calendar")
+	R.new_run()

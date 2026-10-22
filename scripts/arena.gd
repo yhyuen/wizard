@@ -27,6 +27,8 @@ var ai
 var rng := RandomNumberGenerator.new()
 
 var player: Unit
+var hp_cap := 1.0  # Injured: the share of Vitality the wizard can hold
+var slow_start := 0.0  # Injured: extra wind-up on the first spell of a fight
 var units: Array = []
 var projs: Array = []
 var zones: Array = []
@@ -188,7 +190,7 @@ func start_world(map, the_town, at: Vector2) -> void:
 	player.radius = float(D["wizard"]["radius"])
 	player.speed = float(D["wizard"]["speed"])
 	player.max_hp = Progression.max_hp()
-	player.hp = player.max_hp
+	player.hp = player.max_hp * hp_cap
 	player.hp_lag = player.hp
 	_add(player)
 	kit.reset()
@@ -196,6 +198,15 @@ func start_world(map, the_town, at: Vector2) -> void:
 	phase_t = 0.0
 	leash = {}
 	crack_glow = {}
+
+
+## Injured (lives spec §3.2): Vitality held to `cap` of its most, and `windup` seconds more on
+## the first spell of each fight. Cleared by a full night's sleep (scripts/game/slice.gd).
+func set_injured(on: bool, cap: float, windup: float) -> void:
+	hp_cap = cap if on else 1.0
+	slow_start = windup if on else 0.0
+	if player:
+		player.hp = minf(player.hp, player.max_hp * hp_cap)
 
 
 ## A slice fight where the wizard stands (data/slice/encounters.json): its enemies come from
@@ -213,6 +224,7 @@ func begin_encounter(enc: Dictionary, spawns: Array) -> void:
 	duel_hits = [0, 0]
 	duel_hit_t = [0.0, 0.0]
 	stats = {"casts": 0, "damage_taken": 0.0, "kills": 0, "by_spell": {}}
+	kit.slow_start = slow_start
 	set_phase("intro")
 
 
@@ -229,7 +241,7 @@ func resume_explore() -> void:
 	crack_glow = {}
 	encounter = {}
 	player.dead = false
-	player.hp = maxf(player.hp, player.max_hp * 0.5)
+	player.hp = minf(maxf(player.hp, player.max_hp * 0.5), player.max_hp * hp_cap)
 	player.reaction = ""
 	player.reaction_t = 0.0
 	phase = "explore"
@@ -592,7 +604,7 @@ func _physics_process(dt: float) -> void:
 		guard += 1
 	units = units.filter(func(u): return not (u.dead and u.death_t <= 0.0 and u != player))
 	if phase == "explore" and not player.dead:
-		player.hp = minf(player.max_hp, player.hp + player.max_hp * float(D["wizard"]["regen_out"]) * dt)
+		player.hp = minf(player.max_hp * hp_cap, player.hp + player.max_hp * float(D["wizard"]["regen_out"]) * dt)
 	if town != null:
 		town.tick(dt)
 	hover = null
