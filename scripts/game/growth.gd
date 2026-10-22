@@ -51,6 +51,12 @@ func school_rank(sid := "") -> int:
 	return int(school_ranks().get(sid, {}).get("rank", -1))
 
 
+## A school reached Master (data/schools.json combined.rank) in this life or an earlier one.
+func mastered(sid: String) -> bool:
+	var need := int(prog.schools["combined"]["rank"])
+	return school_rank(sid) >= need or int(school_best().get(sid, -1)) >= need
+
+
 func rank_name(r: int) -> String:
 	var ranks: Array = prog.schools["ranks"]
 	return str(ranks[clampi(r, 0, ranks.size() - 1)]["name"]) if r >= 0 else "untrained"
@@ -60,7 +66,7 @@ func rank_name(r: int) -> String:
 ## faster below the best rank an earlier life reached, and insight adds to it as to all Practice.
 func _on_practised(id: String, amount: float) -> void:
 	var sid := school()
-	if sid == "" or prog.school_of(id) != sid:
+	if sid == "" or not sid in prog.schools_of(id):
 		return
 	var e: Dictionary = school_ranks()[sid]
 	var ranks: Array = prog.schools["ranks"]
@@ -111,7 +117,7 @@ func charge_cost(id: String) -> Dictionary:
 	for k in prog.spell(id)["reagents"]:
 		cost[k] = int(prog.spell(id)["reagents"][k])
 	var sid: String = prog.school_of(id)
-	if sid == school() or int(school_best().get(sid, -1)) >= int(prog.schools["outside"]["free_rank"]):
+	if school() in prog.schools_of(id) or int(school_best().get(sid, -1)) >= int(prog.schools["outside"]["free_rank"]):
 		return cost
 	if school_ranks().has(sid) or school_best().has(sid):
 		var first: String = cost.keys()[0]
@@ -255,7 +261,14 @@ func tier_ring(id: String) -> int:
 
 
 func can_cast(id: String) -> bool:
-	return ring() >= tier_ring(id) and needs_met(id)
+	return ring() >= tier_ring(id) and needs_met(id) and schools_met(id)
+
+
+## A combined spell (spell spec §8) needs both its schools mastered.
+func schools_met(id: String) -> bool:
+	if not prog.spell(id).get("combined", false):
+		return true
+	return (prog.schools_of(id) as Array).all(func(sid): return mastered(sid))
 
 
 ## A spell's prerequisites (spell spec §6.5): [[spell, stage]] reached this life.

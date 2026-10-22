@@ -487,6 +487,14 @@ func _zones(glow_k: float) -> void:
 				o.scale = Vector3.ONE * 0.6
 				var col: Color = PixelArt.STORM if z["device"] == "arc_rod" else (PixelArt.FIRE if z["device"] == "spark_flask" else PixelArt.PAPER)
 				paint(o, col, _glow(glow_k, 0.8, 1.6))
+			"lantern":
+				# the Star Lantern hangs at head height, a gold light (N-5.3)
+				var o := take("orb")
+				o.position = _w(z["pos"], 1.5 + 0.08 * sin(t * 2.0))
+				o.scale = Vector3.ONE * 0.9
+				paint(o, PixelArt.GOLD, _glow(glow_k, 1.4, 2.4))
+				halo(o.position, PixelArt.GOLD, 1.6, 1.0)
+				view.want_light(o.position, PixelArt.GOLD, 1.6, 5.0)
 			"arc_rod":
 				var r := take("rod")
 				r.position = _w(z["pos"])

@@ -111,6 +111,11 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   slows anyone in it (as gravel does) and turns the ground under it to oil; any fire touching the
   pool (an ember, a flask, Kindle, Pillar, a burning cell) sets it all alight at once. The HUD shows
   a device's charges where a spell shows its Aether.
+- **Star Lantern** (N-5.3, the first combined spell, [growth.md](growth.md) "Combined spells"): a
+  device of both schools (range 100, 1 charge spent, cooldown 2 s). It hangs where it lands for
+  12 s, a gold light with a 40 px ring of turning stars: any spell you **begin** standing inside the
+  ring is Aligned (×1.3 reach) at once, whatever its school and without standing still
+  (`artifice.gd` `in_lantern`), and its light keeps light-shy enemies out like a lamp's pool.
 - **Mastery in a fight** ([growth.md](growth.md)): a spell's stage sets its Force grade
   (`Progression.grade`, I–IV, capped by Ring) and grows its `minor` axis ×1.2 per stage. Pillar's
   and the meteor's zones draw a ring of sigils per stage (`arena.gd` `_sigils`). Signatures need

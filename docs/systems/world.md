@@ -139,6 +139,8 @@ grid, breaking and collapse, damage that lasts the life, owners and witnesses. W
 - **Devices** (N-5.2, [combat.md](combat.md)): a Spark Flask's burst is a `flask` mark that acts
   like Pillar's fire (ground, props, lamps, braziers). A Tar Pot turns the cells under its pool to
   **oil** (`cells.gd` `tar`: catches at Fire I, burns 12 s); fire touching the pool lights it all.
+- **The Star Lantern** (N-5.3) is a light: while it hangs, its ring is a pool like a lit lamp's
+  (`_light_pools`), so light-shy enemies won't step in.
 - **Salvage** (`props.json` `salvage`, `salvage_reach` 80): a prop that breaks within 80 px of you
   leaves reagents you pick up at once (a toast): crate 1 glass, barrel 1 oil, cart 1 copper wire.
   It ignores who owned it (owners and witnesses are N-4.4).

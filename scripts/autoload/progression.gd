@@ -149,6 +149,13 @@ func school_of(id: String) -> String:
 	return str(spell(id).get("school", "")) if data["spells"].has(id) else ""
 
 
+## A combined spell's schools (both of them); any other spell's one.
+func schools_of(id: String) -> Array:
+	if not data["spells"].has(id):
+		return []
+	return spell(id).get("schools", [school_of(id)])
+
+
 func school_name(sid: String) -> String:
 	return str(schools["schools"].get(sid, {}).get("name", "no school"))
 
@@ -163,7 +170,7 @@ func school() -> String:
 ## one you never trained. Outside the slice's rules, ×1.
 func school_k(id: String) -> float:
 	var sid := school_of(id)
-	if rules.is_empty() or sid == "" or sid == school():
+	if rules.is_empty() or sid == "" or school() in schools_of(id):
 		return 1.0
 	var o: Dictionary = schools["outside"]
 	var best := int(rules.get("school_best", {}).get(sid, -1))

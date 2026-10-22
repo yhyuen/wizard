@@ -324,6 +324,17 @@
         "radius": {"label": "Pool", "base": 26, "per": 0.6},
         "life": {"label": "Lasts", "base": 12, "per": 0.3, "fmt": "%.0f s"}
       }
+    },
+    "star_lantern": {
+      "school": "spark_artifice", "schools": ["astral_rite", "spark_artifice"], "combined": true, "needs": [["spark_flask", 2], ["ember_bolt", 2]],
+      "device": true, "ring": 1, "name": "Star Lantern", "element": "fire", "slot": "control", "cast": "swift", "windup": 0.0, "aether": 0,
+      "blurb": "A lamp with a star chart for a shade. It hangs where it lands: inside its ring every spell you begin is Aligned, and its light keeps the shy things out.",
+      "cooldown": 2.0, "impact": 0, "xp_hit": 0, "xp_cast": 2, "range": 100, "flight": 0.4,
+      "reagents": {"oil": 1, "glass": 1, "wire": 1},
+      "stats": {
+        "radius": {"label": "Ring", "base": 40, "per": 1.0},
+        "life": {"label": "Lasts", "base": 12, "per": 0.4, "fmt": "%.0f s"}
+      }
     }
   },
   "magicks": {

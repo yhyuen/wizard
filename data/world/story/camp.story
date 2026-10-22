@@ -212,6 +212,7 @@ repeat: true
 The Lamplighters' bench: a vice, a spirit lamp, racks of empty flasks and coils of copper wire.
 [not k("model_spark_flask")] A Lamplighter looks up from her soldering. "Want to see how a flask is packed? Oil, a spark in the stopper, and keep it away from your face."
 [not k("model_spark_flask")] + model spark_flask
+* Ask about the lantern with the star-chart shade [mastered("astral_rite") and mastered("spark_artifice") and not k("model_star_lantern")] -> bench_lantern
 * Fill your devices (it takes a while) -> bench_fill
 * Ask for spare stock [not f("bench_stock")] -> bench_stock
 * Leave
@@ -219,6 +220,11 @@ The Lamplighters' bench: a vice, a spirit lamp, racks of empty flasks and coils 
 === bench_fill
 You pour, stopper, wind wire and wipe your hands.
 + bench
+
+=== bench_lantern
+The Lamplighter turns the lantern so its shade throws stars across the bench. "College work and ours, in one glass. Only someone who knows both trades can hang it right."
+She shows you how the chart lines up with the wick.
++ model star_lantern
 
 === bench_stock
 The Lamplighter pushes a crate of oil and empty vials across the bench. "Bring me back the glass."
