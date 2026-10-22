@@ -58,6 +58,8 @@ func _kit_ruin() -> void:
 				_watchtower(at, float(cr[2]), float(cr[3]))
 			"furnace":
 				_furnace(at, float(cr[2]), float(cr[3]))
+			"sluice_wheel":
+				_sluice_wheel(at, float(cr[2]))
 	for pit: Rect2 in map.pits:
 		_pit(pit)
 	for st in map.d.get("stairwells", []):
@@ -148,6 +150,23 @@ func _furnace(at2: Vector2, r_px: float, h_px: float) -> void:
 	_add(_cyl(r * 0.55, r, h, 8), Transform3D(Basis(), at + Vector3(0, h * 0.5, 0)), c("wall_stone").darkened(0.2))
 	_add(_cyl(r * 0.2, r * 0.25, h * 0.5, 6), Transform3D(Basis(), at + Vector3(0, h * 1.2, 0)), c("char"))
 	_box(Vector3(r * 0.6, h * 0.3, 0.1), at + Vector3(0, h * 0.2, r * 0.9), c("ember").darkened(0.3), 0.0, true)
+
+
+## The undercroft's sluice wheel: an iron wheel set upright in the wall, its chains going down.
+func _sluice_wheel(at2: Vector2, r_px: float) -> void:
+	var at: Vector3 = view.to_world(at2)
+	var r: float = r_px * view.S
+	var rim := TorusMesh.new()
+	rim.inner_radius = r * 0.85
+	rim.outer_radius = r
+	rim.rings = 12
+	rim.ring_segments = 4
+	_add(rim, Transform3D(Basis(Vector3.RIGHT, PI / 2.0), at + Vector3(0, r + 0.1, 0)), c("iron"))
+	var spoke := BoxMesh.new()
+	spoke.size = Vector3(r * 1.8, 0.1, 0.1)
+	for k in 4:
+		_add(spoke, Transform3D(Basis(Vector3.FORWARD, k * PI / 4.0), at + Vector3(0, r + 0.1, 0)), c("iron").darkened(0.2))
+	_box(Vector3(0.3, r * 2.2, 0.3), at + Vector3(0, r * 1.1, -0.2), c("timber").darkened(0.3))
 
 
 ## A heap of fallen stone: a dark base, faceted stones piled higher toward its middle, and some

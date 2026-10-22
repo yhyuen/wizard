@@ -37,6 +37,7 @@ var lanterns: Array = []  # one per map lamp: where its post stands (Vector3)
 var lantern_mi := {}  # "lit", "dark", "pools" -> MeshInstance3D
 var brazier_fires: Array = []  # MeshInstance3D per brazier
 var wheel: Node3D  # the mill wheel (the town kit only)
+var water_nodes: Array = []  # [MeshInstance3D, Rect2]: water a sluice can drain, hidden while drained
 
 
 func build(the_view, the_map, config: Dictionary) -> void:
@@ -473,7 +474,8 @@ func _mill() -> void:
 
 ## The millrace: running water, stone banks, and the footbridge.
 func _water() -> void:
-	for w: Rect2 in map.water:
+	for wa in map.water_all:
+		var w: Rect2 = wa[0]
 		var a: Vector3 = view.to_world(w.position)
 		var b: Vector3 = view.to_world(w.end)
 		var pm := PlaneMesh.new()
@@ -484,6 +486,8 @@ func _water() -> void:
 		mi.position = Vector3((a.x + b.x) * 0.5, -0.12, (a.z + b.z) * 0.5)
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(mi)
+		if wa[1] != "":
+			water_nodes.append([mi, w])  # a sluice can drain it
 		for x in [w.position.x - 3.0, w.end.x + 3.0]:
 			var y := w.position.y
 			while y < w.end.y:

@@ -4,6 +4,8 @@ extends SceneTree
 ##
 ##   godot --headless --fixed-fps 60 --script res://tools/tests/world_magic.gd
 ##
+## (WM_FROM=n in the environment skips the cases before index n.)
+##
 ## OW1: an Ember Bolt lights a street lamp and sets a hay bale burning; Splash puts the bale out
 ## and the lamp too; a Pebble shoves a crate.
 ## OW2: a Spark flares an iron lamp and charges a puddle that then shocks a Hollow in it; Rewind
@@ -43,6 +45,9 @@ extends SceneTree
 ## mirrors turned right by day open the loft and teach the fuse, and fire on the fuse opens it
 ## again; the Old Watch felled bridges the square's broken edge; Splash on the Archive gate's
 ## plaque washes the soot off.
+## N-7.1.3 (the undercroft): the sluice drains the long channel (its water and wet cells go) and
+## fills it again; shoving the counterweight crate opens the drain grate for good, and its exit up
+## to the camp (and the camp's down) works from then on.
 
 const BOOK := ["ember_bolt", "pebble", "splash", "undertow"]
 const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt"]
@@ -137,6 +142,8 @@ func _initialize() -> void:
 		["the glassworks' mirrors turned right by day open the loft and teach the fuse; fire on the fuse opens it", _mirror_setup, _mirrored],
 		["felling the Old Watch bridges the Sunken Square's broken edge", _watch_setup, _bridged],
 		["Splash on the Archive gate's plaque washes its soot off", _plaque_setup, _plaque_clean],
+		["in the undercroft, the sluice drains the long channel and fills it again", _sluice_setup, _sluiced],
+		["shoving the counterweight opens the drain grate for good (a soul memory): its exits up and down work", _weight_setup, _weighted],
 	]
 
 
@@ -178,6 +185,9 @@ func _next() -> bool:
 		done = true
 		quit(1 if not failures.is_empty() else 0)
 		return true
+	# WM_FROM=n runs only the cases from index n on (while working on the last few)
+	if OS.get_environment("WM_FROM") != "" and i < int(OS.get_environment("WM_FROM")):
+		return _next()
 	cases[i][1].call()
 	return false
 
@@ -1333,3 +1343,46 @@ func _plaque_setup() -> void:
 
 func _plaque_clean() -> bool:
 	return run.flag("plaque_clean") and run.knows("archive_key")
+
+
+# --- the undercroft (N-7.1.3) -------------------------------------------------------------------
+
+func _sluice_setup() -> void:
+	world.load_map("undercroft")
+	slice.set_screen("world")
+	main.enter_world(world.map.spots["drain_stair"])
+	_clear_enemies()
+	state["mid"] = Vector2(690, 516)
+	state["wet"] = world.map.in_water(state["mid"]) and world.cells.material_at(state["mid"]) == "water"
+	run.set_flag("channel_dry")
+	state["phase"] = 0
+
+
+func _sluiced() -> bool:
+	var dry: bool = not world.map.in_water(state["mid"]) and world.cells.material_at(state["mid"]) != "water"
+	if state["phase"] == 0:
+		if not dry:
+			return false
+		state["phase"] = 1
+		run.life["flags"].erase("channel_dry")
+		return false
+	return state["wet"] and world.map.in_water(state["mid"]) and world.cells.material_at(state["mid"]) == "water"
+
+
+func _weight_setup() -> void:
+	state["shut"] = not world.exit_open("grate_up")
+	var crate := _city_prop("counterweight")
+	state["crate"] = crate
+	world.shove(crate, Vector2.LEFT, 4.0)
+	state["phase"] = 0
+
+
+func _weighted() -> bool:
+	if not run.knows("drain_open"):
+		var crate: Dictionary = state["crate"]
+		if crate["vel"].length() < 1.0 and state["phase"] < 20:
+			state["phase"] += 1
+			world.shove(crate, (Vector2(1135, 620) - crate["pos"]).normalized(), 2.0)
+		return false
+	var camp_side: bool = world.get_map("camp").exits["drain_down"]["opened_by"] == "drain_open"
+	return state["shut"] and world.exit_open("grate_up") and camp_side and run.knows("drain_open")

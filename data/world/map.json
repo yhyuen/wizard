@@ -136,7 +136,7 @@
   "inn": [1868, 930],
   "smith": [1476, 1150],
   "infirmary": [855, 880],
-  "market_cellar": [900, 1060],
+  "market_cellar": [900, 1060], "cellar_top": [900, 1110],
   "board": [1675, 925],
   "shrine": [1600, 960],
   "watch_post": [1000, 880],
@@ -185,7 +185,7 @@
   [870, 468, 54, 30, 16], [1380, 700, 60, 40, 22]
  ],
  "stairwells": [[1072, 222, 56, 38]],
- "exits": [{"id": "north_stair", "rect": [1072, 222, 56, 38], "to": "halls", "at": "landing"}],
+ "exits": [{"id": "drain_down", "rect": [878, 1046, 44, 28], "to": "undercroft", "at": "grate_under", "opened_by": "drain_open"}, {"id": "north_stair", "rect": [1072, 222, 56, 38], "to": "halls", "at": "landing"}],
  "tents": [
   [990, 1160, 0, "canvas", true], [860, 1000, 0, "canvas2"], [1190, 1136, 0, "canvas"],
   [940, 1120, 90, "canvas2"], [1720, 960, 90, "canvas2"], [1720, 1130, 0, "canvas"],

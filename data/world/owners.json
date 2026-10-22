@@ -12,6 +12,7 @@
   "camp": {"default": "watch", "places": {"market": "traders", "great_lamp": "guild", "guild_bench": "guild", "mill": "miller", "mill_lane": "miller",
    "yard": "college", "college_tents": "college", "duel_ring": "college", "college": "", "broken_wall": "", "archive": "", "observatory": "", "stairs": "", "gate": "", "north_door": "", "hill": "", "road": ""}},
   "halls": {"default": ""},
+  "undercroft": {"default": ""},
   "city": {"default": "", "places": {"wick_lane": "watch", "bell_street": "watch", "wall_gap": "watch", "sunken_square": "watch", "lamp_depot": "guild", "college_steps": "college", "archive_gate": "college"}}
  },
  "repair_days": {"hay": 1, "crate": 1, "barrel": 2, "cart": 3, "post": 2},

@@ -260,6 +260,12 @@ func player_pos() -> Vector2:
 	return arena.player.pos
 
 
+## Whether exit `eid` of this map can be taken: one `opened_by` a soul memory waits for it.
+func exit_open(eid: String) -> bool:
+	var by: String = map.exits[eid].get("opened_by", "")
+	return by == "" or run.knows(by)
+
+
 func request(r: Dictionary) -> void:
 	for q in requests:
 		if q == r:
@@ -295,6 +301,8 @@ func tick(dt: float) -> void:
 	people.update(dt)
 	deeds.update(dt)
 	gates.update()
+	if map.set_drained(run.flag):
+		_fresh_cells()  # a sluice turned: the channel drains (or floods) and its cells with it
 	_props(dt)
 	_cache_movers()
 	_magic()
@@ -310,6 +318,8 @@ func tick(dt: float) -> void:
 			request({"t": "arrive", "place": now})
 	# An exit asks once as you step into it; step out and back in to ask again.
 	var ex: String = map.exit_at(player_pos())
+	if ex != "" and not exit_open(ex):
+		ex = ""  # a shortcut you haven't opened yet (the drain grate)
 	if ex != _in_exit:
 		_in_exit = ex
 		if ex != "" and exploring:
