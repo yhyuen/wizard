@@ -1,0 +1,22 @@
+{
+ "_doc": "The region map (design/gdd/06-presentation-and-tech.md, design/world/world-and-story.md §1; build item N-1.4). Walking inside a region is free; travel between regions costs days. regions: name, ring, pos (where it sits on the chart, 0..1 of the chart's width and height), maps (the walkable maps that belong to it; the first is where travel arrives), arrive (the spot travel arrives at), and blurb. A region with no maps is not built yet: it shows as a card and costs no time (the Wuxia rule). roads: [a, b, days].",
+ "start": "camp",
+ "regions": {
+  "camp": {"name": "The survivors' camp", "ring": 1, "pos": [0.42, 0.62], "maps": ["camp"], "arrive": "cot",
+   "blurb": "Tents and lanterns at the plateau's edge, a mile from the fallen city."},
+  "city": {"name": "The fallen city of Vellmar", "ring": 1, "pos": [0.5, 0.36], "maps": ["halls"], "arrive": "landing",
+   "blurb": "The College of Hours lies broken at its heart. Its halls are the part you can reach so far."},
+  "mill": {"name": "The Mill fields and east road", "ring": 1, "pos": [0.7, 0.58], "maps": [],
+   "blurb": "Wheat gone to seed, a mill that still turns, and the road east off the plateau. Not built yet; it comes with Ring 1's next release."},
+  "archive": {"name": "The Archive district", "ring": 2, "pos": [0.22, 0.2], "maps": [],
+   "blurb": "The College's library quarter, half under water. Comes with Ring 2."},
+  "mirror": {"name": "Mirror Lake", "ring": 2, "pos": [0.16, 0.48], "maps": [],
+   "blurb": "A still lake over the Drowned Observatory. Comes with Ring 2."},
+  "iron_gate": {"name": "The Iron Gate", "ring": 2, "pos": [0.78, 0.22], "maps": [],
+   "blurb": "The Knights' fortress on the north road. Comes with Ring 2."},
+  "holds": {"name": "The Deep Holds", "ring": 2, "pos": [0.86, 0.78], "maps": [],
+   "blurb": "The dwarves' sealed halls under the rim. Comes with Ring 2."}
+ },
+ "roads": [["camp", "city", 1], ["camp", "mill", 1], ["city", "mill", 2], ["city", "archive", 1], ["camp", "mirror", 2],
+  ["city", "iron_gate", 2], ["mill", "holds", 2]]
+}

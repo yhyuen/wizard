@@ -14,6 +14,7 @@ signal screen_changed(screen: String)
 const Story := preload("res://scripts/game/story.gd")
 const Growth := preload("res://scripts/game/growth.gd")
 const World := preload("res://scripts/world/world.gd")
+const Reach := preload("res://scripts/game/reach.gd")
 const BuildId := preload("res://scripts/game/build_id.gd")
 ## Where playtesters send their notes (design/slice/README.md §5, M5).
 const FEEDBACK_URL := "https://claude.ai/artifact/HryjwPHEs8S6swcQYFam6c"
@@ -35,13 +36,16 @@ var run  # the Run autoload
 var story
 var growth  # scripts/game/growth.gd: wells, Rings, Practice, the spellbook
 var world  # scripts/world/world.gd
+var reach  # scripts/game/reach.gd: regions, roads, the calendar's events
 var encounters: Dictionary = {}
 var ledger: Dictionary = {}  # data/world/ledger.json "entries"
 var death_texts: Dictionary = {}
 
-var screen := "title"  # title, world, loading (the card between maps), death
+var screen := "title"  # title, world, loading (the card between maps), death, hurt (a lost fight)
 var load_to := {}  # while the loading card is up: {"map", "spot", "t"}
 var overlay := ""  # over the town: "", "map", "book", "ledger"
+var map_tab := 0  # in the map: 0 here, 1 the Reach (the region map), 2 the calendar
+var reach_pick := ""  # the region picked on the region map
 var ledger_tab := 0
 var ledger_q := ""  # the question picked in the Questions tab
 var ledger_note := ""  # feedback on a wrong deduction, shown in the Ledger
@@ -83,6 +87,7 @@ func setup(the_main) -> void:
 	ledger = ld["entries"]
 	death_texts = ld["deaths"]
 	world = World.new(run, story)
+	reach = Reach.new(run, story)
 	world.busy = busy
 	run.learned.connect(_on_learned)
 
@@ -138,6 +143,7 @@ func begin_day() -> void:
 	cur = {}
 	main.enter_world(world.map.spots["cot"])
 	main.arena.kit.rest()  # a night's sleep: full Aether, no Strain
+	_hurt_state()
 	world.reset_day()
 	set_screen("world")
 	dawn_t = 0.0
@@ -180,20 +186,48 @@ func wait() -> void:
 
 
 ## Night falls, or you climb out of the ruin (a descent costs the day): sleep, and wake on the cot.
+## A full night's sleep ends being Injured.
 func end_day() -> void:
 	cur = {}
-	if world.map_id != world.CAMP:
-		world.load_map(world.CAMP)
-		main.enter_world(world.map.spots["cot"])
-	if run.day() >= run.LAST_DAY:
-		play("eclipse")  # the second blast
+	_to_camp()
+	run.lp["injured"] = false
+	if not pass_days(1):
 		return
-	growth.end_fight()
-	run.next_day()
 	begin_day()
 
 
+func _to_camp() -> void:
+	if world.map_id != world.CAMP:
+		world.load_map(world.CAMP)
+		main.enter_world(world.map.spots["cot"])
+
+
+## `n` days go by (asleep, travelling, resting or hurt). Returns false if the Eclipse came first:
+## then you are in the camp and its scene is playing.
+func pass_days(n: int) -> bool:
+	for i in n:
+		if run.day() >= run.LAST_DAY:
+			_to_camp()
+			play("eclipse")  # the second blast
+			return false
+		growth.end_fight()
+		run.next_day()
+	return true
+
+
+## Being Injured (lives spec §3.2): Vitality held below its most, and a slower first spell each
+## fight, until a full night's sleep.
+func _hurt_state() -> void:
+	var w: Dictionary = run.lives["wake_injured"]
+	main.arena.set_injured(run.injured(), float(w["vitality"]), float(w["windup"]))
+
+
+## A lost fight or a story loss: the life ends only for a calamity, the Eclipse or a Turning
+## (Run.ends_life); anything else knocks you down and you wake injured a few days later.
 func end_loop(cause: String) -> void:
+	if not run.ends_life(cause):
+		_lose(cause)
+		return
 	Sfx.play("death")
 	growth.end_fight()
 	growth.loop_over()
@@ -205,13 +239,99 @@ func end_loop(cause: String) -> void:
 	set_screen("death")
 
 
+func _lose(cause: String) -> void:
+	Sfx.play("death")
+	growth.end_fight()
+	run.lose(cause, bool(world.map_def().get("wild", false)))
+	cur = {}
+	pending = {}
+	after = []
+	lines = []
+	_stop_talking()
+	set_screen("hurt")
+
+
+## From the hurt screen: the days pass and you wake on your cot, Injured.
+func wake_hurt() -> void:
+	if screen != "hurt":
+		return
+	cur = {}
+	set_screen("world")
+	_to_camp()
+	if not pass_days(int(run.lp["losses"][-1]["days"])):
+		return
+	begin_day()
+
+
 ## From the death screen: wake on day 1 of the next loop, everything in town as it was.
 func wake() -> void:
+	if screen == "hurt":
+		wake_hurt()
+		return
 	if screen != "death":
 		return
 	run.wake()
 	world.reset_loop()
 	begin_day()
+
+
+## The region you are in (data/world/regions.json).
+func region() -> String:
+	return reach.region_of(world.map_id)
+
+
+## Why you can't travel or rest just now, or "" if you can.
+func _cant_go() -> String:
+	if screen != "world" or not cur.is_empty() or main.mode != "world":
+		return "Not now."
+	if world.threatened():
+		return "Not with something hunting you."
+	return ""
+
+
+## Travel to region `id` on the region map (N-1.4): its days pass on the road and you arrive there
+## in the morning. A region that isn't built yet only shows its card and costs no time.
+func travel(id: String) -> bool:
+	var days: int = reach.days_between(region(), id)
+	if id == region() or days < 0 or not reach.built(id):
+		return false
+	var why := _cant_go()
+	if why != "":
+		toast(why)
+		return false
+	overlay = ""
+	if not pass_days(days):
+		return true
+	var to: Dictionary = reach.region(id)
+	growth.end_fight()
+	run.lp["time"] = 0
+	run.save()
+	growth.begin_fight()
+	world.reset_day()
+	dawn_t = 0.0
+	go_map(str(to["maps"][0]), str(to["arrive"]))
+	return true
+
+
+## Rest in the camp until a day on the calendar (GDD 04 §4.2: one step, naming the event; nothing
+## moves you without asking). You wake on your cot that morning, rested.
+func rest_until(day: int) -> bool:
+	if day <= run.day() or day > run.LAST_DAY:
+		return false
+	var why := _cant_go()
+	if why == "" and region() != reach.d["start"]:
+		why = "You can only rest that long in the camp."
+	if why != "":
+		toast(why)
+		return false
+	overlay = ""
+	cur = {}
+	_to_camp()
+	run.lp["injured"] = false
+	if not pass_days(day - run.day()):
+		return true
+	begin_day()
+	return true
 
 
 ## Through the loading card to `spot` on map `id`: the world switches its state, the arena and
@@ -394,6 +514,8 @@ func _effect(op: String, arg: String) -> bool:
 				gain_wells(int(arg))
 				if op == "meditate" and main != null:
 					main.arena.kit.rest()  # meditating is a rest: full Aether, no Strain
+				if op == "meditate":
+					after.append("period")  # only actions cost time (GDD 04 §4.2)
 			else:
 				toast("You've already meditated today. It doesn't come twice.")
 		"train":
@@ -403,6 +525,7 @@ func _effect(op: String, arg: String) -> bool:
 				for id in got:
 					parts.append("%s %d" % [growth.prog.spell(id)["name"], growth.level(id)])
 				toast("Practice: " + ", ".join(parts))
+				after.append("period")
 			else:
 				toast("Your hands are done for today.")
 		"move":
@@ -511,6 +634,8 @@ func finish_scene() -> void:
 		end_day()
 	elif "book" in a:
 		overlay = "book"
+	elif "period" in a and world.map_def().get("clock", true):
+		world.request({"t": "period"})
 
 
 # --- fights in place ---------------------------------------------------------------------
@@ -661,7 +786,7 @@ func toast(s: String) -> void:
 
 
 func toggle_ledger() -> void:
-	if screen in ["world", "death"]:
+	if screen in ["world", "death", "hurt"]:
 		overlay = "" if overlay == "ledger" else "ledger"
 
 
@@ -707,7 +832,9 @@ func run_summary() -> String:
 	out.append("This loop / ever: " + (", ".join(reached) if not reached.is_empty() else "nothing yet"))
 	out.append("Now: %s" % str(world.map_def().get("name", world.map_id)))
 	for d in run.mem["log"]:
-		out.append("Loop %d died on day %d, %s: %s (%d learned)" % [d["loop"], d["day"], str(d["time"]).to_lower(), d["cause"], d["learned"].size()])
+		out.append("Loop %d ended on %s, %s: %s (%d learned)" % [d["loop"], run.date_name(int(d["day"])), str(d["time"]).to_lower(), d["cause"], d["learned"].size()])
+	for l in run.lp["losses"]:
+		out.append("This loop: lost on %s, %s: %s; woke Injured %d days later" % [run.date_name(int(l["day"])), str(l["time"]).to_lower(), l["cause"], int(l["days"])])
 	var f: Dictionary = run.mem.get("fps", {})
 	if int(f.get("n", 0)) > 0:
 		out.append("In town: %d fps on average, %d at worst · graphics %s%s" % [roundi(float(f["sum"]) / int(f["n"])), int(f["min"]),
@@ -750,6 +877,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 		overlay = ""
 	elif overlay == "ledger" and k >= KEY_1 and k <= KEY_4:
 		ledger_tab = k - KEY_1
+	elif overlay == "map" and k >= KEY_1 and k <= KEY_3:
+		map_tab = k - KEY_1
 	elif (dlg or overlay == "book") and k >= KEY_1 and k <= KEY_9:
 		press_key(k - KEY_0)
 	elif k == KEY_G and screen == "world" and not dlg and overlay == "" and main.mode == "world":
@@ -763,7 +892,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 			overlay = ""
 		else:
 			match screen:
-				"death":
+				"death", "hurt":
 					wake()
 				"title":
 					if run.has_save():
@@ -798,6 +927,9 @@ func _draw() -> void:
 		"death":
 			draw_rect(Rect2(0, 0, 960, 540), NIGHT)
 			_draw_death()
+		"hurt":
+			draw_rect(Rect2(0, 0, 960, 540), NIGHT)
+			_draw_hurt()
 		"loading":
 			draw_rect(Rect2(0, 0, 960, 540), NIGHT)
 			_draw_loading()
@@ -840,7 +972,7 @@ func _draw_title() -> void:
 	text(Vector2(0, 210), "The Orrery fell last night and took most of Vellmar with it. Wren is somewhere below.", 13, DIM, HORIZONTAL_ALIGNMENT_CENTER, 960)
 	var y := 250.0
 	if run.has_save() and not run.known_ids().is_empty():
-		button(Rect2(370, y, 220, 34), "Continue  (loop %d, day %d)" % [run.loop(), run.day()], continue_month, 1, 15)
+		button(Rect2(370, y, 220, 34), "Continue  (loop %d, %s)" % [run.loop(), run.date_name()], continue_month, 1, 15)
 		y += 44.0
 		button(Rect2(370, y, 220, 34), "Begin a new month", new_month, 2, 15)
 	else:
@@ -896,7 +1028,7 @@ func _draw_world() -> void:
 	var card_s := float(world.cfg["dawn_card_s"])
 	if dawn_t < card_s:
 		var a := clampf(card_s - dawn_t, 0.0, 1.0) * clampf(dawn_t * 3.0, 0.0, 1.0)
-		var left: int = 28 - run.day()
+		var left: int = run.days_left()
 		var sub := "Dawn over the camp."
 		if run.day() == 1 and run.loop() == 1:
 			sub = "The morning after the Orrery fell."
@@ -904,7 +1036,10 @@ func _draw_world() -> void:
 			sub = "The morning after, again. You remember everything; your hands don't."
 		elif run.time() == 4:
 			sub = "Night."
-		title(Vector2(0, 170), "Day %d" % run.day(), 40, Color(GOLD, a), HORIZONTAL_ALIGNMENT_CENTER, 960)
+		title(Vector2(0, 170), "%s, day %d" % [run.moon_name(), run.moon_day()], 40, Color(GOLD, a), HORIZONTAL_ALIGNMENT_CENTER, 960)
+		text(Vector2(0, 222), "%s  ·  %s" % [run.date_name(), run.weekday()["name"]], 13, Color(HAIR, a * 0.8), HORIZONTAL_ALIGNMENT_CENTER, 960)
+		if run.injured():
+			sub = "You wake stiff and sore. You're Injured until you next sleep a full night."
 		text(Vector2(0, 200), "%s  %d day%s to the Eclipse." % [sub, left, "" if left == 1 else "s"], 15, Color(PAPER, a), HORIZONTAL_ALIGNMENT_CENTER, 960)
 	elif place_t < 3.0 and _place != "" and not dlg and main.mode == "world":
 		var a := clampf(3.0 - place_t, 0.0, 1.0) * clampf(place_t * 3.0, 0.0, 1.0)
@@ -984,13 +1119,36 @@ func _draw_dialogue() -> void:
 			run.mem["hints"]["talk"] = true
 
 
-## The map (M): the town in Star Atlas lines, its places, you, the people you know, and the
-## events you know are coming today. Click a place to walk there.
+const MAP_TABS := ["Here", "The Reach", "Calendar"]
+
+
+## The map (M), in three tabs (1–3): this map, the Reach (the region map) and the calendar.
 func _draw_map() -> void:
 	draw_rect(Rect2(0, 0, 960, 540), Color(0, 0, 0, 0.72))
 	draw_rect(MAP_RECT, NIGHT)
 	panel(MAP_RECT, Color(GOLD, 0.6))
-	var when := "Day %d, %s" % [run.day(), run.time_name().to_lower()] if world.map_def().get("clock", true) else "Day %d" % run.day()
+	var x := MAP_RECT.position.x
+	for i in MAP_TABS.size():
+		var tr := Rect2(x, MAP_RECT.position.y - 32, 130, 26)
+		var on := i == map_tab
+		draw_rect(tr, Color(GOLD, 0.25) if on else Color(0, 0, 0, 0.5))
+		draw_rect(tr, Color(GOLD, 0.8 if on else 0.3), false, 1.0)
+		text(tr.position + Vector2(10, 18), "%d  %s" % [i + 1, MAP_TABS[i]], 13, GOLD if on else PAPER)
+		buttons.append({"r": tr, "act": func(): map_tab = i, "key": 0})
+		x += 138.0
+	match map_tab:
+		1:
+			_draw_reach()
+		2:
+			_draw_calendar()
+		_:
+			_draw_here()
+
+
+## This map in Star Atlas lines, its places, you, the people you know, and the events you know
+## are coming today. Click a place to walk there.
+func _draw_here() -> void:
+	var when: String = "%s, %s" % [run.date_name(), run.time_name().to_lower()] if world.map_def().get("clock", true) else run.date_name()
 	title(MAP_RECT.position + Vector2(20, 22), "%s  ·  %s" % [world.map_def().get("name", "Vellmar"), when], 15, GOLD)
 	var xf := map_xf()
 	var k := float(xf[1])
@@ -1043,7 +1201,127 @@ func _draw_map() -> void:
 		for q in main.controls.route:
 			draw_line(prev, to_map(q), Color(0.5, 0.75, 1.0, 0.5), 1.0)
 			prev = to_map(q)
-	text(Vector2(MAP_RECT.position.x, MAP_RECT.end.y - 10), "Click a place to walk there  ·  M or Esc closes", 12, DIM, HORIZONTAL_ALIGNMENT_CENTER, MAP_RECT.size.x)
+	text(Vector2(MAP_RECT.position.x, MAP_RECT.end.y - 10), "Click a place to walk there  ·  2 the Reach, 3 the calendar  ·  M or Esc closes", 12, DIM, HORIZONTAL_ALIGNMENT_CENTER, MAP_RECT.size.x)
+
+
+## The Reach (N-1.4): the regions as an engraved chart, roads with their day costs, unbuilt places
+## as cards. Pick a region to see its card; travel asks once, naming the days and the arrival.
+func _draw_reach() -> void:
+	title(MAP_RECT.position + Vector2(20, 22), "The Reach  ·  %s, %s" % [run.date_name(), run.time_name().to_lower()], 15, GOLD)
+	var chart := Rect2(MAP_RECT.position + Vector2(20, 36), Vector2(560, MAP_RECT.size.y - 60))
+	var at := func(id: String) -> Vector2:
+		var p: Array = reach.region(id)["pos"]
+		return chart.position + Vector2(float(p[0]) * chart.size.x, float(p[1]) * chart.size.y)
+	var here := region()
+	for road in reach.d["roads"]:
+		var a: Vector2 = at.call(road[0])
+		var b: Vector2 = at.call(road[1])
+		var lit: bool = reach.built(road[0]) and reach.built(road[1])
+		draw_line(a, b, Color(HAIR, 0.5 if lit else 0.2), 1.0)
+		text((a + b) * 0.5 + Vector2(-30, -4), "%d day%s" % [road[2], "" if int(road[2]) == 1 else "s"], 10, Color(HAIR, 0.7 if lit else 0.35), HORIZONTAL_ALIGNMENT_CENTER, 60)
+	var mouse := get_local_mouse_position()
+	for id in reach.regions():
+		var g: Dictionary = reach.region(id)
+		var c: Vector2 = at.call(id)
+		var hot: bool = c.distance_to(mouse) < 22.0 or id == reach_pick
+		var col: Color = GOLD if reach.built(id) else Color(PAPER, 0.45)
+		if hot:
+			col = GOLD
+		star(c, 7.0 if id == here else (5.5 if hot else 4.0), col)
+		if id == here:
+			draw_arc(c, 11.0, 0, TAU, 20, Color(0.5, 0.75, 1.0, 0.8), 1.5)
+		text(c + Vector2(-80, 20), str(g["name"]), 11, col, HORIZONTAL_ALIGNMENT_CENTER, 160)
+		if int(g.get("ring", 1)) > 1:
+			text(c + Vector2(-80, 33), "Ring %d" % int(g["ring"]), 10, DIM, HORIZONTAL_ALIGNMENT_CENTER, 160)
+		buttons.append({"r": Rect2(c - Vector2(24, 18), Vector2(48, 44)), "act": func(): reach_pick = id, "key": 0})
+	# the card of the region picked
+	var card := Rect2(MAP_RECT.position.x + 600, MAP_RECT.position.y + 40, 260, MAP_RECT.size.y - 70)
+	draw_rect(card, Color(0, 0, 0, 0.35))
+	draw_rect(card, Color(GOLD, 0.35), false, 1.0)
+	var pick := reach_pick if reach_pick != "" else here
+	var g: Dictionary = reach.region(pick)
+	if g.is_empty():
+		return
+	var y := para(card.position + Vector2(16, 28), str(g["name"]), card.size.x - 32, 16, GOLD) + 8.0
+	y = para(Vector2(card.position.x + 16, y), str(g.get("blurb", "")), card.size.x - 32, 13, PAPER) + 12.0
+	var days: int = reach.days_between(here, pick)
+	if pick == here:
+		text(Vector2(card.position.x + 16, y), "You are here.", 13, Color(0.5, 0.75, 1.0))
+	elif not reach.built(pick):
+		text(Vector2(card.position.x + 16, y), "Not built yet. Going costs no time.", 13, DIM)
+	elif days < 0:
+		text(Vector2(card.position.x + 16, y), "No road leads there yet.", 13, DIM)
+	else:
+		var arrive: int = mini(run.day() + days, run.LAST_DAY)
+		y = para(Vector2(card.position.x + 16, y), "%d day%s on the road. Arrive %s, Morning." % [days, "" if days == 1 else "s", run.date_name(arrive)],
+			card.size.x - 32, 13, PAPER) + 10.0
+		var why := _cant_go()
+		if why != "":
+			text(Vector2(card.position.x + 16, y + 4), why, 12, DANGER)
+		else:
+			button(Rect2(card.position.x + 16, y, card.size.x - 32, 30), "Go to %s" % str(g["name"]).trim_prefix("The "), travel.bind(pick), 0, 13)
+	text(Vector2(MAP_RECT.position.x, MAP_RECT.end.y - 10), "Click a region for its card  ·  Walking inside a region is free; roads cost days", 12, DIM,
+		HORIZONTAL_ALIGNMENT_CENTER, MAP_RECT.size.x)
+
+
+## The calendar (N-1.1): the year's 13 moons, this moon's four weeks by their weekday Spheres,
+## the dates you know, and Rest until… for the next of them.
+func _draw_calendar() -> void:
+	title(MAP_RECT.position + Vector2(20, 22), "%s  ·  %s  ·  %s, %s" % [run.moon_name(), run.cal["moons"][run.moon() - 1]["season"], run.date_name(),
+		run.weekday()["name"]], 15, GOLD)
+	var events: Array = reach.events()
+	var known_on := {}
+	for e in events:
+		if e["known"]:
+			known_on[int(e["day"])] = e
+	# the year: one row of moons
+	var x0 := MAP_RECT.position.x + 30.0
+	for m in run.MOONS:
+		var c := Vector2(x0 + 22 + m * 62.0, MAP_RECT.position.y + 62)
+		var now: bool = m + 1 == run.moon()
+		var past: bool = m + 1 < run.moon()
+		draw_circle(c, 9.0, Color("dfe4f2", 0.75 if now else (0.18 if past else 0.4)))
+		if now:
+			draw_arc(c, 13.0, 0, TAU, 24, HAIR, 1.0)
+		for e in events:
+			if e["known"] and (int(e["day"]) - 1) / run.MOON_DAYS == m:
+				draw_circle(c + Vector2(8, -8), 4.0, Color(0, 0, 0))
+				draw_arc(c + Vector2(8, -8), 4.5, 0, TAU, 12, Color(GOLD, 0.8), 1.0)
+		text(c + Vector2(-31, 26), run.moon_name(m + 1), 10, GOLD if now else DIM, HORIZONTAL_ALIGNMENT_CENTER, 62)
+	# this moon: four weeks of seven days
+	var gx := MAP_RECT.position.x + 40.0
+	var gy := MAP_RECT.position.y + 120.0
+	for wd in 7:
+		var w: Dictionary = run.weekday(wd + 1)
+		text(Vector2(gx + wd * 62.0, gy), str(w["sphere"]).capitalize(), 11, Color(w["color"]), HORIZONTAL_ALIGNMENT_CENTER, 58)
+	var first: int = run.day_of(run.moon(), 1)
+	for i in run.MOON_DAYS:
+		var d: int = first + i
+		var cell := Rect2(gx + (i % 7) * 62.0, gy + 10 + (i / 7) * 52.0, 58, 46)
+		var w: Dictionary = run.weekday(d)
+		draw_rect(cell, Color(Color(w["color"]), 0.12 if d == run.day() else 0.04))
+		draw_rect(cell, Color(HAIR, 0.8 if d == run.day() else 0.18), false, 1.0)
+		text(cell.position + Vector2(6, 15), str(i + 1), 12, PAPER if d >= run.day() else DIM)
+		if known_on.has(d):
+			draw_circle(cell.position + Vector2(44, 12), 5.0, Color(0, 0, 0))
+			draw_arc(cell.position + Vector2(44, 12), 5.5, 0, TAU, 14, GOLD, 1.0)
+			para(cell.position + Vector2(4, 30), str(known_on[d]["name"]), 54, 9, GOLD)
+	# Rest until…
+	var rx := MAP_RECT.position.x + 490.0
+	var ry := gy
+	title(Vector2(rx, ry + 4), "Rest until…", 15, GOLD)
+	ry += 16.0
+	var can: bool = _cant_go() == "" and region() == reach.d["start"]
+	for t in reach.rest_targets().slice(0, 5):
+		var n: int = int(t["day"]) - run.day()
+		var label := "%s  ·  %s  (%d day%s)" % [t["name"], run.date_name(int(t["day"])), n, "" if n == 1 else "s"]
+		button(Rect2(rx, ry, 360, 28), label, rest_until.bind(int(t["day"])), 0, 12, can)
+		ry += 34.0
+	text(Vector2(rx, ry + 12), "%d days to the Great Eclipse." % run.days_left(), 13, PAPER)
+	if not can:
+		text(Vector2(rx, ry + 32), "You can rest that long only in the camp, with nothing hunting you.", 12, DIM)
+	text(Vector2(MAP_RECT.position.x, MAP_RECT.end.y - 10), "Only actions cost time: waiting (Z), training, meditating, sleeping, the road", 12, DIM,
+		HORIZONTAL_ALIGNMENT_CENTER, MAP_RECT.size.x)
 
 
 ## Which place an event's person or item belongs to, for the map.
@@ -1118,7 +1396,7 @@ func _draw_death() -> void:
 	var the_end := cause == "first_playable_end"
 	title(r.position + Vector2(0, 46), "The end of the first playable" if the_end else "Loop %d ends" % run.loop(), 28,
 		GOLD if the_end else HOURS, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-	text(r.position + Vector2(0, 76), why if the_end else "Day %d, %s.  %s" % [run.day(), run.time_name().to_lower(), why], 14, PAPER,
+	text(r.position + Vector2(0, 76), why if the_end else "%s, %s.  %s" % [run.date_name(), run.time_name().to_lower(), why], 14, PAPER,
 		HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 	title(r.position + Vector2(32, 120), "What you learned this loop", 15, GOLD)
 	var y := r.position.y + 146.0
@@ -1135,6 +1413,37 @@ func _draw_death() -> void:
 	if learned.size() > 11:
 		text(Vector2(r.position.x + 50, y), "and %d more, in the Ledger" % (learned.size() - 11), 13, DIM)
 	text(Vector2(0, r.end.y - 52), "Your body and your skill reset. Everything you know stays.", 13, DIM, HORIZONTAL_ALIGNMENT_CENTER, 960 - 0.0)
+	button(Rect2(r.position.x + 170, r.end.y - 42, 180, 32), "Wake", wake, 1, 15)
+	button(Rect2(24, 500, 120, 28), "Ledger  (L)", toggle_ledger, 0, 13)
+	_draw_playtest_buttons()
+
+
+## A lost fight that doesn't end the life (lives spec §3.2): what happened, what you learned, and
+## the days that pass before you wake on your cot, Injured.
+func _draw_hurt() -> void:
+	var r := Rect2(220, 70, 520, 400)
+	panel(r, Color(DANGER, 0.5))
+	var loss: Dictionary = run.lp["losses"][-1] if not run.lp["losses"].is_empty() else {}
+	var cause: String = str(loss.get("cause", ""))
+	var why: String = death_texts.get(cause, death_texts.get(cause.split(":")[0], "You go down."))
+	title(r.position + Vector2(0, 46), "You go down", 28, PAPER, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+	para(r.position + Vector2(40, 76), "%s, %s.  %s" % [run.date_name(), run.time_name().to_lower(), why], r.size.x - 80, 14, PAPER)
+	title(r.position + Vector2(32, 150), "What you learned", 15, GOLD)
+	var y := r.position.y + 176.0
+	var losses: Array = run.lp["losses"]
+	var from: int = int(losses[-2]["learned"]) if losses.size() > 1 else 0
+	var learned: Array = run.lp["learned"].slice(from).filter(func(id): return ledger.has(id) and ledger[id]["kind"] != "trial")
+	if learned.is_empty():
+		text(Vector2(r.position.x + 32, y), "Nothing new this time.", 14, DIM)
+	for id in learned.slice(0, 8):
+		star(Vector2(r.position.x + 38, y - 5), 4.0, GOLD)
+		text(Vector2(r.position.x + 50, y), ledger[id]["title"], 14, PAPER, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 80)
+		y += 20.0
+	var days: int = int(loss.get("days", 0))
+	var wake_line := "Someone carries you back to camp. %d days pass; you wake on your cot, Injured until you next sleep a full night." % days
+	if days == 0:
+		wake_line = "You come round on your cot the same day, still Injured."
+	para(Vector2(r.position.x + 40, r.end.y - 92), wake_line, r.size.x - 80, 13, DIM)
 	button(Rect2(r.position.x + 170, r.end.y - 42, 180, 32), "Wake", wake, 1, 15)
 	button(Rect2(24, 500, 120, 28), "Ledger  (L)", toggle_ledger, 0, 13)
 	_draw_playtest_buttons()

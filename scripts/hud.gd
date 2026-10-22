@@ -3,8 +3,8 @@ extends Control
 ## Cormorant small caps, planetary glyphs. The spellbook is a constellation of four star rings,
 ## then the two cantrips and the Ward's diamond (the stand-in bar of the UI spec §10); Vitality
 ## and Aether are fine lines, with Strain as a red end on Aether, and your Focus beside them;
-## Cadence is four stars at the reticle and a wind-up fills a ring round it; a row of 28 moon
-## phases ends in the Eclipse, with the time of day under it. Also the level-up toasts and the
+## Cadence is four stars at the reticle and a wind-up fills a ring round it; the calendar row
+## shows the 13 moons and this moon's days, ending in the Eclipse, with a dial for the time of day. Also the level-up toasts and the
 ## milestone picker. The game's own screens are scripts/game/slice.gd.
 
 const Tris := preload("res://scripts/ui/tris.gd")
@@ -20,7 +20,6 @@ const STARS := [Vector2(300, 476), Vector2(383, 458), Vector2(466, 476), Vector2
 const CANT_AT := [Vector2(636, 478), Vector2(690, 478)]
 const CANT_R := 14.0
 const WARD_AT := Vector2(790, 470)
-const LOOP_DAYS := 28
 
 var main
 var arena
@@ -222,9 +221,11 @@ func _draw_fight() -> void:
 	wx = 1.0 if ri == 0 or ri + 1 >= need.size() else float(g.wells() - int(need[ri])) / float(int(need[ri + 1]) - int(need[ri]))
 	_g.line(Vector2(20, 36), Vector2(214, 36), Color(HAIR, 0.15), 1.0)
 	_g.line(Vector2(20, 36), Vector2(20 + 194 * clampf(wx, 0, 1), 36), Color(HAIR, 0.6), 1.0)
-	_text(Vector2(20, 53), "Vitality", 11, Color(VITAL, 0.8))
+	_text(Vector2(20, 53), "Vitality" + ("  ·  Injured" if arena.hp_cap < 1.0 else ""), 11, Color(VITAL, 0.8) if arena.hp_cap >= 1.0 else PixelArt.DANGER)
 	_text(Vector2(20, 53), "%d / %d" % [ceili(maxf(P.hp, 0.0)), int(P.max_hp)], 11, Color(VITAL, 0.8), HORIZONTAL_ALIGNMENT_RIGHT, 194)
 	_meter(Vector2(20, 59), 194, maxf(P.hp, 0.0) / P.max_hp, VITAL if P.hp > P.max_hp * 0.3 else PixelArt.DANGER, P.hp_lag / P.max_hp)
+	if arena.hp_cap < 1.0:  # Injured: the part of the line you can't fill until you sleep
+		_g.line(Vector2(20 + 194 * arena.hp_cap, 59), Vector2(214, 59), Color(PixelArt.DANGER, 0.6), 2.0)
 	# Aether: the pool, and Strain (from Overdraw) as a red end that rest clears.
 	var pool: float = maxf(1.0, Progression.max_aether())
 	_text(Vector2(20, 76), "Aether", 11, Color(AETHER, 0.9))
@@ -281,49 +282,80 @@ func _draw_fight() -> void:
 	_draw_book()
 
 
-## Top centre: the loop's 28 days as moon phases, today ringed, ending in the Eclipse's black
-## sun; this run's numbers under it. (The prototype's fight is always the loop's first day.)
+## Top centre: the calendar row (UI spec §3.2): the year's 13 moons, then this moon's 28 days as
+## four weeks of seven, each in its weekday Sphere's colour, today ringed, known calamities as dark
+## discs, the Great Eclipse as a black sun at the end, and a dial for the time of day. In a fight
+## it collapses to one line.
 func _draw_moons() -> void:
 	var run = main.slice.run
-	var today: int = run.day() - 1
-	var loop_n: int = run.loop()
-	_g.cached(get_canvas_item(), "moons", today, _moon_shapes.bind(today))
+	var known := ""
+	for e in main.slice.reach.events():
+		known += "1" if e["known"] else "0"
+	var key := "%d/%d/%s" % [run.day(), run.time(), known]
+	_g.cached(get_canvas_item(), "moons", key, _moon_shapes.bind(run.day(), run.time()))
 	if main.mode == "fight":
 		var t: float = arena.fight_time
-		_title(Vector2(0, 48), "Loop %d   ·   Day %d   ·   %d:%02d   ·   %d casts   ·   %d taken   ·   %d down" % [
-			loop_n, today + 1, int(t) / 60, int(t) % 60, int(arena.stats["casts"]),
+		_title(Vector2(0, 48), "%s   ·   %s   ·   %d:%02d   ·   %d casts   ·   %d taken   ·   %d down" % [
+			run.date_name(), run.time_name(), int(t) / 60, int(t) % 60, int(arena.stats["casts"]),
 			int(arena.stats["damage_taken"]), int(arena.stats["kills"])], 11, Color(HAIR, 0.85), HORIZONTAL_ALIGNMENT_CENTER, 960)
 		return
-	# The time of day, and a fine line for how much of it is left (the clock stops while you talk).
 	var w = main.world
-	_title(Vector2(0, 48), "Loop %d   ·   Day %d   ·   %s   ·   %s" % [loop_n, today + 1, run.time_name(), w.map.place_name(w.here)],
+	_title(Vector2(0, 48), "%s   ·   %s   ·   %s   ·   %s" % [run.moon_name(), run.date_name(), run.weekday()["name"], w.map.place_name(w.here)],
 		12, Color(HAIR, 0.9), HORIZONTAL_ALIGNMENT_CENTER, 960)
-	_g.line(Vector2(400, 55), Vector2(560, 55), Color(HAIR, 0.15), 1.0)
-	_g.line(Vector2(400, 55), Vector2(400 + 160 * w.period_left(), 55), Color(HAIR, 0.6), 1.0)
 
 
-## The 28 moons and the Eclipse (cached: they only change at dawn).
-func _moon_shapes(today: int) -> void:
-	var step := 12.5
-	var x0 := 480.0 - (LOOP_DAYS + 1) * step / 2.0 + step / 2.0
-	var strip := Rect2(x0 - 12, 10, (LOOP_DAYS + 1) * step + 12, 22)
+const MOON_STEP := 10.0
+const DAY_STEP := 7.0
+const WEEK_GAP := 4.0
+
+
+## The calendar row's shapes (cached: they change with the time of day and what you know).
+func _moon_shapes(day: int, time: int) -> void:
+	var run = main.slice.run
+	var moon: int = run.moon()
+	var width: float = run.MOONS * MOON_STEP + 10.0 + run.MOON_DAYS * DAY_STEP + 3 * WEEK_GAP + 20.0 + 26.0
+	var x0 := 480.0 - width / 2.0
+	var strip := Rect2(x0 - 8, 10, width + 16, 22)
 	_g.rect(strip, Color(BG, 0.55))
 	_g.line(strip.position + Vector2(0, strip.size.y), strip.end, Color(HAIR, 0.3), 1.0)
-	var r := 4.2
-	for i in LOOP_DAYS:
-		var c := Vector2(x0 + i * step, 21)
-		var lit := Color("dfe4f2", 0.8 if i == today else 0.45)
-		_g.circle(c, r, lit)
-		# the shadow slides across: new moon on day 0, full on day 14
-		var dx := -2.0 * r * i / 14.0 if i <= 14 else 2.0 * r * (LOOP_DAYS - i) / 14.0
-		if absf(dx) < 2.0 * r:
-			_g.circle(c + Vector2(dx, 0), r + 0.3, Color(0.05, 0.07, 0.14))
-		_g.arc(c, r, 0, TAU, 16, Color(lit, 0.35), 1.0)
-		if i == today:
-			_g.arc(c, r + 3.0, 0, TAU, 20, HAIR, 1.0)
-	var ec := Vector2(x0 + LOOP_DAYS * step + 2.0, 21)
+	var calamity := {}
+	for e in main.slice.reach.events():
+		if e["known"] and e["kind"] == "calamity":
+			calamity[int(e["day"])] = true
+	# the 13 moons: past ones dim, this one bright and ringed
+	for m in run.MOONS:
+		var c := Vector2(x0 + m * MOON_STEP + 4.0, 21)
+		var a := 0.85 if m + 1 == moon else (0.2 if m + 1 < moon else 0.45)
+		_g.circle(c, 3.4, Color("dfe4f2", a))
+		if m + 1 == moon:
+			_g.arc(c, 5.6, 0, TAU, 16, HAIR, 1.0)
+		for d in calamity:
+			if (int(d) - 1) / run.MOON_DAYS == m:
+				_g.circle(c + Vector2(2.5, 0), 3.0, Color(0, 0, 0))
+	# this moon's 28 days in four weeks, each dot in its weekday Sphere's colour
+	var dx0: float = x0 + run.MOONS * MOON_STEP + 10.0
+	var first: int = run.day_of(moon, 1)
+	for i in run.MOON_DAYS:
+		var d: int = first + i
+		var c := Vector2(dx0 + i * DAY_STEP + (i / 7) * WEEK_GAP, 21)
+		var col := Color(run.weekday(d)["color"])
+		if calamity.has(d):
+			_g.circle(c, 3.0, Color(0, 0, 0))
+			_g.arc(c, 3.2, 0, TAU, 12, Color(PixelArt.GOLD, 0.7), 1.0)
+		else:
+			_g.circle(c, 2.6 if d == day else 1.8, Color(col, 0.95 if d == day else (0.2 if d < day else 0.45)))
+		if d == day:
+			_g.arc(c, 4.6, 0, TAU, 16, HAIR, 1.0)
+	# the Great Eclipse: a black sun at the row's end
+	var ec := Vector2(dx0 + run.MOON_DAYS * DAY_STEP + 3 * WEEK_GAP + 8.0, 21)
 	_g.arc(ec, 6.5, 0, TAU, 24, Color(PixelArt.GOLD, 0.8), 1.5)
 	_g.circle(ec, 5.5, Color(0, 0, 0))
+	# the time of day: a small dial, Morning to Night left to right over the top
+	var dc := Vector2(ec.x + 22.0, 25)
+	_g.arc(dc, 7.0, PI, TAU, 12, Color(HAIR, 0.4), 1.0)
+	var ang := PI + PI * float(time) / 4.0
+	_g.line(dc, dc + Vector2.from_angle(ang) * 7.0, HAIR, 1.5)
+	_g.circle(dc + Vector2.from_angle(ang) * 7.0, 1.8, Color(PixelArt.GOLD, 0.9))
 
 
 func _diamond(c: Vector2, r: float, col: Color, filled := true) -> void:

@@ -49,6 +49,8 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   release to cast. Let go early: cancelled, nothing spent, except a **Swift** spell (or any spell
   under League smart cast), which is committed and fires when its wind-up ends. Blink cancels a
   wind-up or recovery. Arc Lance still charges with how long it is held.
+- **Injured** ([loop.md](loop.md)): the first spell of each fight winds up +0.2 s longer
+  (`arena.set_injured`, `kit.slow_start`), and Vitality stays at or below 75%.
 - **Focus** (N-2.1, `casting.focus` 1): while winding up, a hit with Impact at or below Focus
   causes no reaction; above it, the cast breaks (a cracked puff, "Cast broken") and half its Aether
   is lost. **Enemies** have Focus too (`enemies.<kind>.focus`, default Poise + 1, the old "stagger

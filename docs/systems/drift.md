@@ -8,7 +8,7 @@ tracker's `needs`.*
 ## The direction moved on; the build is the ruins first playable
 
 - **What's built** is the ruins first playable (GDD v2, 2026-10-19; milestones R1 and R2, PRs
-  #23–#26): the survivors' camp, the College halls, a 28-day loop to the Eclipse.
+  #23–#26): the survivors' camp, the College halls, and since N-1 a year of 13 moons to the Eclipse.
 - **What's meant now** is the long-loop open-world RPG (Harold, 2026-10-20 and 2026-10-22: a
   year-long loop of 13 moons, many factions and schools, magic taken seriously and touching the
   world, the same person every life taking a different road). GDD v3 and its roadmap are being
@@ -80,18 +80,21 @@ saving and the screen. Each has a "today vs target" section; the big gaps:
 
 | Target says | As built | Where |
 | --- | --- | --- |
-| A life is a year (13 × 28 days); it ends only in a calamity, at the Great Eclipse, or by turning back the Hours after a calamity; other losses wake you injured 2 days later | A 28-day loop; any lethal fight, the shrine, the Eclipse or a story effect ends it | [loop.md](loop.md) |
+| A life is a year (13 × 28 days); it ends only in a calamity, at the Great Eclipse, or by turning back the Hours after a calamity; other losses wake you injured 2 days later | The year and waking injured are built (N-1.1, N-1.3). The shrine still lets a loop go at any time, without a passed calamity (no calamity is built yet; the Turning's rule comes with N-1.2) | [loop.md](loop.md) |
+| Wake injured at the nearest shrine or camp you rested at this life | Always on your cot in the camp (it's the only rest point built) | [loop.md](loop.md) |
+| Fixed events per moon; missed ones run their default and become appointments | Only the four calamities are dated, and only the Eclipse is known from the start; days you rest or travel past skip the camp's day scenes (N-1.5) | [loop.md](loop.md) |
+| Ring 1: camp, fallen city, Mill fields as regions with their own maps | The fallen city's one map is the College halls (also reached by the camp's north stair, free); the Mill fields and Ring 2 are cards | [world.md](world.md) |
 | `soul` / `life`; carry table with insight, bonds, roads, shortcuts, caches; school rank and Comprehension relearn | `mem` / `lp`; the Echo on spells and wells, revisions, Fluency | [loop.md](loop.md), [growth.md](growth.md) |
 | End card, then the Ledger's life page on the first morning | Death screen listing what you learnt | [loop.md](loop.md), [frame.md](frame.md) |
 | Three slots; soul, life, per-map damage files and meta; atomic writes, checksums, a crash-proof Turning, versions | One `user://ruins.json`, plain overwrite, no versions | [loop.md](loop.md) |
-| Four-star bar with stage rings, Focus and Overdraw, a 13-moon calendar, Codex, region map | Six-star bar, Cadence, 28-moon row, Ledger, map | [frame.md](frame.md) |
+| Four-star bar with stage rings, Focus and Overdraw, a 13-moon calendar with pins, Codex, region map | Four-star stand-in bar, Cadence, the calendar row (moons, weekday dots, calamity discs, time dial; no gold or silver pins yet), Ledger, map with the Reach and calendar tabs | [frame.md](frame.md) |
 
 ## Known differences inside the build
 
 | Doc says | As built | Where |
 | --- | --- | --- |
 | Root README 'The design decisions, as built': spell levels carry over, the wizard level halves each loop | True only for the old Mill fight (`Progression`). The ruins game's loop resets Practice, wells and Ring, with the Echo making relearning faster (Harold 2026-10-15) | [growth.md](growth.md) |
-| Root README 'Not in this prototype': days 8 to 28 | The loop runs all 28 days; the content is in the camp and halls only | [loop.md](loop.md) |
+| Root README 'Not in this prototype': days 8 to 28 | The year runs all 364 days; the content is in the camp and halls only | [loop.md](loop.md) |
 | GDD 02: seven Spheres | Four Spheres plus the Hours (Rewind) | [combat.md](combat.md) |
 | GDD 03: Magicks in the loadout | Retired with the combat weight pass (N-2): no key casts them; discovery and tomes run only in the old Mill fight | [combat.md](combat.md) |
 

@@ -1,0 +1,34 @@
+{
+ "_doc": "The year (design/gdd/04-lives-and-progression.md §4.2, design/world/world-and-story.md §7.1; build item N-1.1). A life is 13 moons of 28 days: day 1 of the year is Moon 1, day 1, and the Great Eclipse is day 364 (Moon 13, day 28). Each moon is four weeks of seven days; the weekdays are ruled by the Spheres in order (weekdays: sphere id, name, glyph colour). events: the year's fixed dates the calendar can pin and skip to (id, name, moon, day, kind calamity or fixed, known: a story condition that pins it, or true). The fixed events of each moon come with N-1.5.",
+ "days_per_moon": 28,
+ "moons": [
+  {"name": "Ashmoon", "season": "Spring"},
+  {"name": "Thaw", "season": "Spring"},
+  {"name": "Seedmoon", "season": "Spring"},
+  {"name": "Blossom", "season": "Summer"},
+  {"name": "Brightmoon", "season": "Summer"},
+  {"name": "Highsun", "season": "Summer"},
+  {"name": "Embermoon", "season": "Summer"},
+  {"name": "Harvest", "season": "Autumn"},
+  {"name": "Reaping", "season": "Autumn"},
+  {"name": "Leaf-fall", "season": "Autumn"},
+  {"name": "Frostmoon", "season": "Winter"},
+  {"name": "Long Night", "season": "Winter"},
+  {"name": "Eclipse moon", "season": "Winter"}
+ ],
+ "weekdays": [
+  {"sphere": "sol", "name": "Sol's day", "color": "f2c45a"},
+  {"sphere": "luna", "name": "Luna's day", "color": "c9d4ea"},
+  {"sphere": "mars", "name": "Mars's day", "color": "e0603a"},
+  {"sphere": "mercury", "name": "Mercury's day", "color": "8fd0e8"},
+  {"sphere": "jupiter", "name": "Jupiter's day", "color": "b48ae0"},
+  {"sphere": "venus", "name": "Venus's day", "color": "7cc48a"},
+  {"sphere": "saturn", "name": "Saturn's day", "color": "9a8f7a"}
+ ],
+ "events": [
+  {"id": "calamity_1", "name": "Lantern Night", "moon": 3, "day": 28, "kind": "calamity", "known": "k(\"lantern_night\")"},
+  {"id": "calamity_2", "name": "The High Tide", "moon": 6, "day": 14, "kind": "calamity", "known": "k(\"high_tide\")"},
+  {"id": "calamity_3", "name": "The Ashen Purge", "moon": 9, "day": 21, "kind": "calamity", "known": "k(\"ashen_purge\")"},
+  {"id": "eclipse", "name": "The Great Eclipse", "moon": 13, "day": 28, "kind": "calamity", "known": true}
+ ]
+}

@@ -1,6 +1,7 @@
 {
- "_doc": "The open world's rules (design/open-world/interactions.md). period_s: seconds of walking per time of day (the clock stops while you talk, read, look at the map or fight). reach: how close (sim px) you must be to talk or use. walk_speed: people's walking pace. bark_range: how close you must be to hear a bark; bark_every: seconds between a person's barks [min, max]; bark_life: seconds a bark stays up. regen: Vitality per second out of fights, as a share of the most. draw_m: people further than this many metres are not drawn.",
+ "_doc": "The open world's rules (design/open-world/interactions.md). period_s: seconds of walking per time of day, when walk_clock is true (the clock stops while you talk, read, look at the map or fight). walk_clock: false since N-1.1: only actions cost time (waiting, training, meditating, sleeping, travel; GDD 04 §4.2), so walking and fighting are free. reach: how close (sim px) you must be to talk or use. walk_speed: people's walking pace. bark_range: how close you must be to hear a bark; bark_every: seconds between a person's barks [min, max]; bark_life: seconds a bark stays up. regen: Vitality per second out of fights, as a share of the most. draw_m: people further than this many metres are not drawn.",
  "period_s": 40,
+ "walk_clock": false,
  "reach": 30,
  "walk_speed": 40,
  "bark_range": 170,

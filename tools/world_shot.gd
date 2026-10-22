@@ -2,7 +2,7 @@ extends SceneTree
 ## Screenshots of the first playable for review, with draw calls and frame time at each (needs a
 ## display, not --headless): the title, waking in the camp, the yard and the captain's cordon,
 ## the market at noon, the lane at dusk, the camp at night, a patrol fight, a burning hay bale,
-## the camp's map and the spellbook; then the loading card, the halls' landing and shrine, the
+## the camp's map, the Reach and the calendar, and the spellbook; then the loading card, the halls' landing and shrine, the
 ## entrance hall, the rune door, the halls' map, a crack glowing and the embers out of it, the
 ## refectory, the dark gallery, the bell passage, the burnt door, the cistern's sluice, the Kiln
 ## Warden's rings and vents, and the end card.
@@ -121,6 +121,13 @@ func _process(_dt: float) -> bool:
 			slice.overlay = "map"
 		560:
 			_shot("10_camp_map")
+			slice.map_tab = 1
+		563:
+			_shot("10a_the_reach")
+			slice.map_tab = 2
+		566:
+			_shot("10b_calendar")
+			slice.map_tab = 0
 			slice.overlay = "book"
 		570:
 			_shot("11_book")

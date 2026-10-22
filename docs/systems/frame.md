@@ -29,13 +29,24 @@ M0-1 (these specs and the spec check).*
 *Target: the [UI and HUD spec](/mnt/project-files/design/ui/ui-hud-spec.md) (tracker M0-12): four-star spellbook bar with stage rings, Focus
 diamonds and Overdraw, a 13-moon calendar with pins, fight and explore modes, and every screen
 (spellbook, character, Ledger, Codex, region map and calendar, end of a life, title slots); visual page [Lives, Saves and HUD Atlas](https://claude.ai/artifact/7H3xpu7YpYVzGmtDRUq8fK).
-Not built yet; the spellbook bar below is its §10 stand-in.*
+Built so far: its §10 stand-in spellbook bar, the calendar row (§3.2, without pins) and the map's
+Reach and Calendar tabs (§5.5).*
 
 
 - `scripts/hud.gd`: the Star Atlas HUD (spellbook constellation of four stars, two cantrip rings
   with their charges, the Ward diamond; Vitality and Aether lines with Strain as a red end, Focus;
-  a wind-up ring at the reticle; field-object caps, Cadence stars, the 28-moon row, the duelist's
-  plate, toasts, milestone picker, Orrery menu). The spellbook bar is the UI spec's stand-in
+  a wind-up ring at the reticle; field-object caps, Cadence stars, the calendar row, the duelist's
+  plate, toasts, milestone picker, Orrery menu). "Injured" by the Vitality line, with the part it
+  can't fill drawn red.
+- **The calendar row** (top centre): the 13 moons (this one ringed, past ones dim), then this
+  moon's 28 days as four weeks of dots in their weekday Sphere's colour, today ringed, known
+  calamities as dark discs, the Great Eclipse as a black sun, and a dial for the time of day. Under
+  it: moon name, date, weekday and place; in a fight, the date and the fight's numbers.
+- **The map** (M, `scripts/game/slice.gd`) has three tabs (1–3, or click): **Here** (this map,
+  as built), **The Reach** (the region map and travel, [world.md](world.md)) and **Calendar**
+  (the year's moons, this moon's weeks by weekday, known dates, Rest until…, [loop.md](loop.md)).
+- **Screens:** title, loading card, the death screen (a loop ends) and the hurt screen (a fall
+  that wakes you Injured, [loop.md](loop.md)). The spellbook bar is the UI spec's stand-in
   (`/mnt/project-files/design/ui/ui-hud-spec.md` §10) until its §3.1 bar is built. Shapes are drawn as one triangle batch
   (`scripts/ui/tris.gd`); panels and buttons come from `scripts/ui/atlas.gd`.
 - `scripts/autoload/sfx.gd` plays the synthesised sounds (`tools/sfx/make_sfx.py` → `assets/sfx/`).

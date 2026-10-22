@@ -207,7 +207,7 @@ func tick(dt: float) -> void:
 	if arena == null:
 		return
 	var exploring: bool = arena.phase == "explore"
-	if exploring and not (busy.is_valid() and busy.call()) and map_def().get("clock", true):
+	if exploring and bool(cfg.get("walk_clock", true)) and not (busy.is_valid() and busy.call()) and map_def().get("clock", true):
 		clock += dt
 		if clock >= period_s():
 			clock = period_s()
