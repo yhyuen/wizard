@@ -590,6 +590,16 @@ func _world() -> void:
 	run.life["day"] = 90
 	w.people.think(true)
 	ok(in_seed and not cass.on, "Cass is in the camp through Seedmoon and gone after it")
+	# N-7.2.3: the Knights hold the picket only once they've ridden in (Ashmoon 2, dusk).
+	var dun = w.people.get_person("dunmore")
+	w.load_map("east_road")
+	w.people.think(true)
+	var early: bool = dun.on
+	run.set_flag("knights_camped")
+	w.people.think(true)
+	ok(not early and dun.on and dun.pos == w.map.spots["knights_picket"], "Dunmore keeps the picket only after the Knights arrive")
+	run.life["flags"].erase("knights_camped")
+	w.load_map("camp")
 	run.life["day"] = 2
 	var life := {}
 	for deed in ["a", "b", "c", "d"]:
@@ -902,6 +912,9 @@ func _events(R) -> void:
 	R.life["day"] = 40
 	var due: Array = R.due_events().map(func(e): return e["id"])
 	ok("knights_arrive" in due and "iron_gate_shuts" in due, "events whose hour has gone by are due")
+	var bt: Array = fx.filter(func(e): return e["id"] == "brogan_trapped")
+	ok(bt.size() == 1 and int(bt[0]["at_day"]) == 38 and bt[0]["time"] == "night" and bt[0]["appointment"],
+		"the dwarf under Cinder Row is a fixed event on Thaw 10 at Night, an appointment if missed")
 	var ig: Dictionary = fx.filter(func(e): return e["id"] == "iron_gate_shuts")[0]
 	ok(R.settle_event(ig, "missed") and not R.settle_event(ig, "missed"), "a missed loss becomes an appointment, once")
 	ok(R.soul["appointments"]["iron_gate_shuts"]["region"] == "iron_gate" and R.soul["dates"].has("iron_gate_shuts"), "the appointment keeps the place, and the date is known")

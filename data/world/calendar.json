@@ -26,10 +26,12 @@
   {"sphere": "saturn", "name": "Saturn's day", "color": "9a8f7a"}
  ],
  "events": [
-  {"id": "knights_arrive", "name": "The Knights reach the camp", "moon": 1, "day": 12, "kind": "fixed", "time": "noon", "region": "camp",
+  {"id": "knights_arrive", "name": "The Knights reach the camp", "moon": 1, "day": 2, "kind": "fixed", "time": "dusk", "region": "camp",
    "who": "The Knights of the Iron Oath", "scene": "knights_arrive", "missed": ["set knights_camped"], "appointment": false},
-  {"id": "iron_gate_shuts", "name": "The Iron Gate shuts", "moon": 2, "day": 7, "kind": "fixed", "time": "morning", "region": "iron_gate",
+  {"id": "iron_gate_shuts", "name": "The Iron Gate shuts", "moon": 2, "day": 2, "kind": "fixed", "time": "morning", "region": "iron_gate",
    "who": "The Knights of the Iron Oath", "scene": "", "missed": ["set iron_gate_shut"], "appointment": true},
+  {"id": "brogan_trapped", "name": "A voice under Cinder Row", "moon": 2, "day": 10, "kind": "fixed", "time": "night", "region": "city",
+   "who": "A dwarf salvager", "scene": "brogan_voice", "missed": ["set brogan_lost"], "appointment": true},
   {"id": "calamity_1", "name": "Lantern Night", "moon": 3, "day": 28, "kind": "calamity", "known": "k(\"lantern_night\")"},
   {"id": "calamity_2", "name": "The High Tide", "moon": 6, "day": 14, "kind": "calamity", "known": "k(\"high_tide\")"},
   {"id": "calamity_3", "name": "The Ashen Purge", "moon": 9, "day": 21, "kind": "calamity", "known": "k(\"ashen_purge\")"},

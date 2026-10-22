@@ -100,9 +100,14 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
   Calendar tab and the Rest until… list. A missed event marked `appointment` (missing it costs
   something) goes into `soul.appointments` (name, date, time, place, who, the life) with a toast;
   it's pinned in **silver** and listed in the Ledger's **Appointments** tab (5).
-- Built: **The Knights reach the camp** (Ashmoon 12, noon, the camp; teaches "Riders at the
-  fence") and **The Iron Gate shuts** (Thaw 7, morning, the Iron Gate, an appointment; the Iron
-  Gate is a card, so for now it is always missed). Moons 1–3's people and events are N-7.2.
+- Built: **The Knights reach the camp** (Ashmoon 2, dusk, the camp; Dunmore asks for the names
+  of wizards who cast fire, and from then on the Knights keep the east road's picket), **The Iron
+  Gate shuts** (Thaw 2, morning, the Iron Gate, an appointment; the Iron Gate is a card, so for now
+  it is always missed) and **A voice under Cinder Row** (Thaw 10, Night, anywhere in the fallen
+  city; an appointment: Brogan, trapped under a beam in the sliced bakery's cellar, freed with a
+  lever or by digging, then sits in the camp's market and owes you a road; missed, he's lost).
+  The Ring 1 story's other dated beats are people's scenes (N-7.2.3): Sister Nobody's fire from
+  Ashmoon 4, Cass's portrait from Ashmoon 20. The main line's are N-7.3.
 - Story conditions `attended(id)` and `missed(id)` (this life, or an appointment from before).
 
 ## The main line (`data/world/main_line.json`, UI spec §3.4)

@@ -313,9 +313,15 @@ The light has no colour, and this time it doesn't stop at the College.
 
 === knights_arrive
 backdrop: east_gate
-Hooves on the east road. A column of riders in grey iron comes up to the camp's edge and stops at the gate, banners furled.
-Captain Halloway walks out to meet them alone. Words pass that you can't hear. The riders don't get down from their horses.
-By evening their tents stand a bowshot from the fence, and nobody in the camp sleeps well.
+Six knights in lead-sealed plate ride up the east road at dusk and pitch grey tents a bowshot from the wagons.
+Their captain walks the last stretch alone, helmet under his arm, and stops at the edge of the light.
+Dunmore: Knight-Captain Osric Dunmore, of the Iron Oath, on the Commander's business. We'll keep to our side of the fence.
+Dunmore: We'll need the names of every wizard in the camp who casts fire. For your safety. You understand.
+Behind him, a knight with very tired eyes is looking at you, and at nobody else.
+[loop > 1] Maud: (to Dunmore, not to you) That one.
+[loop > 1] Dunmore: (mildly) That one what, Dame Maud?
+[loop > 1] Maud: ...Nothing. I thought I knew the face.
 + learn knights_camp
++ learn dunmore
 + set knights_camped
 * Watch them a while
