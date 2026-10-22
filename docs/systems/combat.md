@@ -152,6 +152,18 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   Backward Slinger (`inverted`: rises from the dead, its stones fly home), embers from cracks,
   the Kiln Warden (anchored guardian, two phases), Silas Vane (Storm rival). Hollows won't step
   into a lit lamp's pool unless the encounter sets `light_shy: false` ([world.md](world.md)).
+- **Brigands** (N-6.3, enemy spec §8.2; minds, guard, keg and net in `scripts/brigands.gd`, flesh
+  bodies): the **Cutthroat** (Minion) stabs with a lunge and backs off; the **Crossbowman**
+  (Soldier) keeps 170 px off, shoots a bolt (Impact 2, the Ward stops it) and stands reloading 3 s
+  after; the **Shieldman** (Soldier) has a **Guard**: a hit from within 60° of his front up to
+  Impact 2 is blocked, a heavier one goes through, and fire on the shield burns it away (he
+  staggers); the **Powder Monkey** (Soldier) lobs a powder pot (a circle that lands 0.9 s after his
+  throw, Impact 3, lights the ground) and carries a **keg**: fire on him, or him burning, blows it
+  (30 damage, Impact 3, 34 px, to everyone near, and it sets off other kegs); the **Brigand
+  Captain** (Champion, a Leader) swings with Impact 2, throws a **net** (it roots you 1.2 s; Blink
+  gets you out) and every 8 s calls a **volley** (his ready Crossbowmen shoot together, past the
+  director). Encounter `toll` (the bridge toll, places spec F13) is the group; until the east road
+  is built (N-7.1.5) only the fight tests play it, in the camp yard.
 - `scripts/bot.gd` plays the wizard for tests and F2 autoplay: one committed spell at a time, waiting
   for Aether rather than Overdrawing, the Ward against shots, the staff when something is close.
 

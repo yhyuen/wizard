@@ -4,11 +4,15 @@ extends RefCounted
 ## skill-shot Spark, a charged Arc Lance line and Storm Call circles, and blinks out of Pillars.
 ## In the halls, embers rush and lunge, and the Kiln Warden never moves: its fight is reading its rhythm.
 
+const Brigands := preload("res://scripts/brigands.gd")
+
 var A
+var brig  # brigands' minds, guard, keg and net (N-6.3)
 
 
 func _init(arena) -> void:
 	A = arena
+	brig = Brigands.new(arena, self)
 
 
 func update(u: Unit, dt: float) -> void:
@@ -27,6 +31,8 @@ func update(u: Unit, dt: float) -> void:
 		return
 	if u.flags.get("dummy", false):
 		_step(u, A.player.pos - u.pos, dt, 0.3 if u.pos.distance_to(A.player.pos) > 30.0 else 0.0)
+		return
+	if brig.mind(u, dt):
 		return
 	match u.kind:
 		"hollow":

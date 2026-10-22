@@ -704,6 +704,10 @@ func _update_unit(u: Unit, dt: float) -> void:
 			u.reaction = ""
 	u.stun = maxf(0.0, u.stun - dt)
 	u.slow_t = maxf(0.0, u.slow_t - dt)
+	if u.flags.has("net_t"):
+		u.flags["net_t"] -= dt
+		if u.flags["net_t"] <= 0.0:
+			u.flags.erase("net_t")
 	u.wet_t = maxf(0.0, u.wet_t - dt)
 	if u.pips > 0:
 		u.pip_timer -= dt
@@ -746,6 +750,8 @@ func _update_unit(u: Unit, dt: float) -> void:
 
 
 func move_speed(u: Unit) -> float:
+	if u.flags.has("net_t"):
+		return 0.0  # in a brigand's net
 	var s := u.speed
 	if u.slow_t > 0.0:
 		s *= 1.0 - float(D["field"]["gravel_slow"])
@@ -816,10 +822,15 @@ func hit(u: Unit, dmg: float, impact: int, dir: Vector2, knock := 0.0, quiet := 
 			dmg *= float(u.flags.get("vuln_mult", 2.0))
 		if u.broken_t > 0.0:
 			dmg *= float(D["foes"]["break"]["broken_damage"])
+		var fire: bool = _src_kind == "fire" or town != null and town.fire_proj.has(_src_kind)
+		# A Shieldman's shield takes a hit from the front (fire burns it away instead).
+		if not quiet and ai.brig.guards(u, dir, impact, fire):
+			return false
 		if not quiet and impact > 0:
 			_add_break(u, impact, dir)
-		if _src_kind == "fire" or town != null and town.fire_proj.has(_src_kind):
+		if fire:
 			catch_fire(u)
+			ai.brig.on_fire(u)  # a Powder Monkey's keg
 	u.hp -= dmg
 	u.flash = 0.08
 	if u == player:
@@ -948,6 +959,7 @@ func _burn_tick(u: Unit, dt: float) -> void:
 	u.burn_tick = float(S["tick"])
 	var dmg := float(S["burn_dps"]) * float(S["tick"]) * (float(S["oil_k"]) if u.oil_t > 0.0 else 1.0)
 	hit(u, dmg, 0, Vector2.ZERO, 0.0, true)
+	ai.brig.on_fire(u)  # a burning Powder Monkey's keg goes up
 	if town != null:
 		town.burn_ground(u.pos, 0.0, 1)
 	for o in enemies():
@@ -1175,6 +1187,8 @@ func _enemy_proj(p: Dictionary) -> void:
 	if not player.dead and player.pos.distance_to(p["pos"]) < player.radius + float(p["r"]):
 		if hit(player, float(p["dmg"]), int(p.get("impact", 1)), p["vel"].normalized(), 20.0):
 			fx("burst", p["pos"], {"color": p["color"], "r": 5.0, "life": 0.2})
+			if p.has("root"):
+				ai.brig.netted()
 		projs.erase(p)
 
 
@@ -1265,7 +1279,9 @@ func _detonate(z: Dictionary) -> void:
 			fx("swipe", o.pos, {"dir": z["dir"], "r": z["reach"], "life": 0.15})
 			var to := player.pos - o.pos
 			if to.length() < z["reach"] + player.radius and absf(to.angle_to(z["dir"])) < z["arc"] * 0.5:
-				hit(player, z["dmg"], 1, to.normalized(), 40.0)
+				hit(player, z["dmg"], int(z.get("impact", 1)), to.normalized(), 40.0)
+		"pot":
+			ai.brig.pot(z)
 		"rline":
 			# Inverted: the stone appears behind you and flies home to the Slinger's hand.
 			var o := unit_by_id(z["owner"])
@@ -1282,10 +1298,7 @@ func _detonate(z: Dictionary) -> void:
 			var o := unit_by_id(z["owner"])
 			if z.get("visual", false) or o == null or o.dead:
 				return
-			var dir: Vector2 = (z["b"] - z["a"]).normalized()
-			var e: Dictionary = D["enemies"]["slinger"]
-			spawn_proj({"kind": "rock", "team": 1, "pos": z["a"], "vel": dir * float(e["shot_speed"]), "r": float(e["shot_radius"]),
-				"dmg": float(e["damage"]), "impact": 1, "life": 1.6, "color": PixelArt.DANGER})
+			spawn_proj(ai.brig.shot(o, z))  # a stone, a bolt or a net, by who threw it
 
 
 # --- lodestones -------------------------------------------------------------
@@ -1466,10 +1479,11 @@ func screen_pos(p: Vector2, h := 0.0) -> Vector2:
 
 
 func _draw_unit(u: Unit) -> void:
-	var frames: Array = _tex[u.kind]
+	var key: String = u.kind if _tex.has(u.kind) else "slinger"  # kinds drawn only in 3D stand in as a figure
+	var frames: Array = _tex[key]
 	var tex: Texture2D = frames[1] if u.moving and int(u.anim * 6.0) % 2 == 1 else frames[0]
 	if u.flash > 0.0:
-		tex = _tex[u.kind + "_flash"]
+		tex = _tex[key + "_flash"]
 	var size := tex.get_size()
 	var lift := u.lift()
 	var top_left := (u.pos - Vector2(size.x / 2.0, size.y - 1.0 + lift)).round()
@@ -1639,7 +1653,12 @@ func _draw_zone(z: Dictionary) -> void:
 			draw_polyline(pts, Color(PixelArt.DANGER, 0.8), 1.0)
 		"line":
 			var k := clampf(t / z["delay"], 0.0, 1.0)
-			draw_line(z["a"], z["b"], Color(PixelArt.DANGER, 0.3 + 0.5 * k), 1.0)
+			draw_line(z["a"], z["b"], Color(PixelArt.PAPER if z.get("net", false) else PixelArt.DANGER, 0.3 + 0.5 * k), 1.0)
+		"pot":
+			# a Powder Monkey's pot: the circle where it lands fills as it comes
+			var k := clampf(t / z["delay"], 0.0, 1.0)
+			draw_arc(z["pos"], z["r"], 0, TAU, 28, PixelArt.DANGER, 1.0, false)
+			draw_circle(z["pos"], z["r"] * k, Color(PixelArt.FIRE, 0.25), true, -1.0, false)
 		"ring":
 			# The Warden's fire ring: while the grate glows a thin circle marks the gap; then the
 			# band runs out, open where the gap is.

@@ -67,10 +67,10 @@ M0-7) is how enemies should fight under the combat spec. Its §15 is the full ta
 
 | Target says | As built | Where |
 | --- | --- | --- |
-| Tiers Minion to Boss; a Break meter and Guard arcs beside Poise; Focus on enemy casters, and enemies that interrupt you | Tiers and the Break meter built (N-6.1); the built kinds keep their numbers (the Dust Hollow has 22 HP, a Minion's range is 10–16). Not yet: Guard arcs, armour taking double Break, enemies that interrupt you | [combat.md](combat.md) |
+| Tiers Minion to Boss; a Break meter and Guard arcs beside Poise; Focus on enemy casters, and enemies that interrupt you | Tiers and the Break meter built (N-6.1); the built kinds keep their numbers (the Dust Hollow has 22 HP, a Minion's range is 10–16). A Guard arc on the Shieldman (N-6.3). Not yet: Guard on other kinds, armour taking double Break, enemies that interrupt you | [combat.md](combat.md) |
 | Body and armour materials with grades; states on units last half as long as on props | Bodies built with burning, oil, panic and spread (N-6.2). Not yet: armour layers and sundering, frost and lightning states on units, husks resisting lightning, unit grades | [combat.md](combat.md), [world.md](world.md) |
 | A fight director (attack tokens, telegraph and interrupt budgets) and four AI tiers that use and fear terrain | Attack tokens and the reach rule built (N-6.1; distance stands in for "off-screen"); no telegraph or interrupt budget yet, minds still per kind | [combat.md](combat.md) |
-| `data/enemies.json` with factions; encounters name 2–3 terrain hooks and a knowledge route | `data/enemies.json` with faction, role, tier, body and lesson (N-6.1); encounters are still waves, timers, leash and cracks | [combat.md](combat.md) |
+| `data/enemies.json` with factions; encounters name 2–3 terrain hooks and a knowledge route | `data/enemies.json` with faction, role, tier, body and lesson (N-6.1); brigands built (N-6.3), their `toll` fight has no place until the east road (N-7.1.5); encounters are still waves, timers, leash and cracks. Not yet: the cult, the new Hollows (Lantern-eater, Choir, Overdrawn Husk), the Knights | [combat.md](combat.md) |
 | Regions keep a fixed tier; Unmoored counter-pick your last life; a Field Guide that carries over | Fixed per encounter; no bestiary | [combat.md](combat.md), [loop.md](loop.md) |
 
 ## Lives, saves and HUD: the target vs the build

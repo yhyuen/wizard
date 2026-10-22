@@ -1,7 +1,7 @@
 extends SceneTree
 ## Screenshots of the first playable for review, with draw calls and frame time at each (needs a
 ## display, not --headless): the title, waking in the camp, the yard and the captain's cordon,
-## the market at noon, the lane at dusk, the camp at night, a patrol fight, a burning hay bale,
+## the market at noon, the lane at dusk, the camp at night, a patrol fight, the brigands' toll fight, a burning hay bale,
 ## a grass fire and a charged wet patch, the leaning gallery coming down, the camp's map, the Reach and the calendar, and the
 ## spellbook; then the loading card, the halls' landing and shrine, the
 ## entrance hall, the rune door, the halls' map, a crack glowing and the embers out of it, the
@@ -112,12 +112,26 @@ func _process(_dt: float) -> bool:
 			_shot("08_patrol_fight")
 			main.arena.resume_explore()
 			main.mode = "world"
+			# Brigands (N-6.3): the bridge toll, fought in the yard until the east road is built.
+			_go(sp["yard_c"] + Vector2(0, 40), 2, 2)
+			slice._start_fight("toll")
+		590:
+			# bring them in round you, so the frame shows the shield, the keg and the Captain
+			var P: Vector2 = main.arena.player.pos
+			var kinds := ["cutthroat", "shieldman", "brigand_captain", "powder_monkey", "crossbowman", "cutthroat"]
+			for k in kinds.size():
+				var u = main.arena.spawn(kinds[k], P + Vector2.from_angle(-PI * 0.95 + k * PI * 0.38) * 70.0)
+				u.state = "move"
+		606:
+			_shot("08a_brigands")
+			main.arena.resume_explore()
+			main.mode = "world"
 			_go(sp["mill_east"] + Vector2(-60, 120), 2, 2)
 			for p in W.props:
 				if p["kind"] == "hay" and p["pos"].distance_to(main.arena.player.pos) < 260.0:
 					W.ignite(p)
 					break
-		540:
+		640:
 			_shot("09_mill_fire")
 			# The ground (N-4.2): a grass fire spreading, and a wet patch beside it taking a Spark.
 			var c = W.cells
@@ -130,13 +144,13 @@ func _process(_dt: float) -> bool:
 					W.wet_ground(p + Vector2(110, 40), 40.0)
 					W.strike_ground(p + Vector2(80, 40), p + Vector2(130, 40), 3)
 					break
-		552:
+		652:
 			_shot("09a_ground_fire")
 			# The leaning gallery (N-4.3): a post breaks, and it shakes before it comes down.
 			var st: Dictionary = W.structures[0]
 			_go(st["rect"].get_center() + Vector2(-40, 110), 2, 1)
 			W._break(st["supports"][0])
-		557:
+		657:
 			_shot("09b_gallery_falls")
 			# Spark Artifice (N-5.2): a tar pool going up under a flask, an arc rod and a smoke cloud.
 			_go(sp["market_c"] + Vector2(0, -20), 2, 4)
@@ -147,72 +161,72 @@ func _process(_dt: float) -> bool:
 			K.ar.detonate({"kind": "throw", "device": "arc_rod", "pos": main.arena.player.pos + Vector2(-60, -30), "r": 50.0})
 			K.ar.detonate({"kind": "throw", "device": "smoke_jar", "pos": main.arena.player.pos + Vector2(-20, 60), "r": 28.0})
 			K.ar.detonate({"kind": "throw", "device": "star_lantern", "pos": main.arena.player.pos + Vector2(-90, 40), "r": 40.0})
-		559:
+		659:
 			_shot("09c_devices")
 			slice.overlay = "map"
-		560:
+		660:
 			_shot("10_camp_map")
 			slice.map_tab = 1
-		563:
+		663:
 			_shot("10a_the_reach")
 			slice.map_tab = 2
 			slice.weather.forecast("camp")  # asked Aldous: tomorrow's glyph shows
 			for d in range(3, 15):
 				slice.weather.note("camp", d)  # days lived in an earlier life, in the Almanac
-		566:
+		666:
 			_shot("10b_calendar")
 			slice.map_tab = 0
 			slice.overlay = "ledger"
 			slice.ledger_tab = 6
 			slice.deeds.earn("first_ring")
-		568:
+		668:
 			_shot("10c_deeds")
 			slice.ledger_tab = 4
 			slice.run.settle_event(slice.run.fixed_events().filter(func(e): return e["id"] == "iron_gate_shuts")[0], "missed")
-		569:
+		669:
 			_shot("10d_appointments")
 			slice.ledger_tab = 0
 			slice.growth.practice()["pebble"].merge({"level": 10, "stage": 1, "xp": 20.0, "hits": 30}, true)  # at the Master wall, one trial short
 			slice.growth.practice()["ember_bolt"].merge({"level": 7, "stage": 1}, true)
 			slice.book_slot = slice.growth.book().find("pebble")
 			slice.overlay = "book"
-		570:
+		670:
 			_shot("11_book")
 			slice.overlay = ""
 			_go(sp["north_in"], 2, 0)
-		600:
+		700:
 			_shot("12_north_stair")
 			slice.go_map("halls", "landing")
-		606:
+		706:
 			_shot("13_loading")
-		690:
+		790:
 			_close()
-		700:
+		800:
 			_shot("14_halls_landing")
 			main.place_player(W.map.spots["hall_c"] + Vector2(0, 120))
-		740:
+		840:
 			_shot("15_entrance_hall")
 			main.place_player(W.map.items["rune_door"]["at"] + Vector2(-60, 0))
-		780:
+		880:
 			_shot("16_rune_door")
 			slice.overlay = "map"
-		800:
+		900:
 			_shot("17_halls_map")
 			slice.overlay = ""
 			main.place_player(W.map.spots["hall_s"] if W.map.spots.has("hall_s") else Vector2(1100, 1620))
 			main.start_world_cutscene("path:sighting", main.arena.player.pos)
-		900:
+		1000:
 			_shot("17a_sighting_still")
-		990:
+		1090:
 			_shot("17b_sighting_backwards")
-		1060:
+		1160:
 			main.mode = "world"
 			main.arena.cutscene = null
 			main.arena.phase = "explore"
 			main.arena.units = main.arena.units.filter(func(u): return u.team != 2)
 			main.place_player(W.map.items["great_clock"]["at"] + Vector2(-40, 0))
 			main.start_world_cutscene("path:provost_eclipse", main.arena.player.pos)
-		1260:
+		1360:
 			_shot("17c_provost_replay")
 			main.mode = "world"
 			main.arena.cutscene = null
@@ -220,40 +234,40 @@ func _process(_dt: float) -> bool:
 			main.arena.units = main.arena.units.filter(func(u): return u.team != 2)
 			main.place_player(W.map.spots["hall_c"] + Vector2(-260, -40))
 			slice._start_fight("hall_fight")
-		1400:
+		1500:
 			_shot("18_crack_glow")
-		1530:
+		1630:
 			_shot("19_hall_embers")
 			_end_fight()
 			_go(W.map.spots["refectory_c"], 2, 0)
-		1570:
+		1670:
 			_shot("20_refectory")
 			_go(W.map.spots["gallery_c"], 2, 0)
-		1610:
+		1710:
 			_shot("21_gallery_dark")
 			_go(W.map.spots["passage_c"] + Vector2(0, 60), 2, 0)
-		1650:
+		1750:
 			_shot("22_bell_passage")
 			_go(W.map.spots["ante_s"] + Vector2(0, -60), 2, 0)
-		1690:
+		1790:
 			_shot("23_burnt_door")
 			_go(W.map.spots["cistern_c"] + Vector2(120, 40), 2, 0)
-		1730:
+		1830:
 			_shot("24_cistern_sluice")
 			_go(W.map.spots["kiln_s"], 2, 0)
 			slice._start_fight("warden")
-		2040:
+		2140:
 			main.arena.player.hp = main.arena.player.max_hp
 			_shot("25_warden_rings")
 			var w = main.arena.enemies().filter(func(u): return u.kind == "warden")
 			if not w.is_empty():
 				w[0].hp = w[0].max_hp * 0.5
-		2240:
+		2340:
 			main.arena.player.hp = main.arena.player.max_hp
 			_shot("26_warden_vents")
 			_end_fight()
 			slice.end_loop("first_playable_end")
-		2260:
+		2360:
 			_shot("27_end_card")
 			var f := FileAccess.open(out.path_join("stats.txt"), FileAccess.WRITE)
 			f.store_string("\n".join(stats) + "\n")

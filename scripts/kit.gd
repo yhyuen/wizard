@@ -515,6 +515,7 @@ func blink() -> void:
 	A.fx("trail", P.pos + Vector2(0, -6), {"to": dest + Vector2(0, -6), "color": element_color(last_element), "life": 0.3})
 	A.fx("dust", P.pos, {"r": 6.0, "life": 0.3})
 	P.pos = dest
+	P.flags.erase("net_t")  # out of a brigand's net (N-6.3)
 	P.iframes = maxf(P.iframes, 0.18)
 	blink_charges -= 1
 
