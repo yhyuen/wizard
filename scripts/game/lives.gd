@@ -34,6 +34,11 @@ static func carry(soul: Dictionary, life: Dictionary, cause: String, rules: Dict
 		if int(p.get("level", 1)) > was:
 			raised[id] = int(p.get("level", 1))
 		s["echo"][id] = maxi(was, int(p.get("level", 1)))
+		# Breakthroughs are remembered: the next life breaks through without the trials (§6.7).
+		if int(p.get("stage", 0)) > 0:
+			if not s.has("broken"):
+				s["broken"] = {}
+			s["broken"][id] = maxi(int(s["broken"].get(id, 0)), int(p["stage"]))
 		var muts: Dictionary = p.get("muts", {})
 		if not muts.is_empty():
 			var r: Dictionary = s["revisions"].get(id, {})

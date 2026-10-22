@@ -32,7 +32,8 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
   `Run.loop()` is the life's number.
 - **The Turning** (`Run.end_life(cause)`): `scripts/game/lives.gd` `carry(soul, life, cause)` is a
   pure function that returns the new soul (deaths, insight +1 up to `insight.cap`, the Echo and
-  revisions from the life's Practice, the most wells held, the life's page). Nothing else carries.
+  revisions from the life's Practice, the most wells held, each spell's highest stage as `broken` so
+  its breakthrough trials are waived next life ([growth.md](growth.md)), the life's page). Nothing else carries.
 - **Save** (save spec §2, §5; one slot, `user://slot1/`): `soul.json`, `life.json` and
   `meta.json`, each written beside a `.tmp` copy and swapped in. Saved at each dawn, after a loss
   and on waking. The Turning writes in order: `meta.json` with `turning` (the ended life), the new

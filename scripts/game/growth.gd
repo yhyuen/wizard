@@ -52,9 +52,31 @@ func ring() -> int:
 	var r := 1
 	var need: Array = d["ring_wells"]
 	for i in range(2, need.size()):
-		if wells() >= int(need[i]):
+		if wells() >= int(need[i]) and _stages_for_ring(i):
 			r = i
+		else:
+			break
 	return r
+
+
+## The spells at stage a Ring needs (spell spec §6.6: the 2nd Ring four at Adept, the 3rd one at
+## Master, the 4th two at Master).
+func _stages_for_ring(r: int) -> bool:
+	var want: Array = d.get("ring_stages", [])[r] if r < d.get("ring_stages", []).size() else [0, 0]
+	var n := 0
+	for id in practice():
+		if int(practice()[id].get("stage", 0)) >= int(want[1]):
+			n += 1
+	return n >= int(want[0])
+
+
+## What the next Ring still needs in spells at stage ("" if nothing).
+func ring_stage_need() -> String:
+	var r := ring() + 1
+	var rs: Array = d.get("ring_stages", [])
+	if r < 2 or r >= rs.size() or _stages_for_ring(r):
+		return ""
+	return "%d spell%s at %s" % [int(rs[r][0]), "" if int(rs[r][0]) == 1 else "s", prog.stage_name(int(rs[r][1]))]
 
 
 func ring_name(r := -1) -> String:
@@ -97,7 +119,39 @@ func tier_ring(id: String) -> int:
 
 
 func can_cast(id: String) -> bool:
-	return ring() >= tier_ring(id)
+	return ring() >= tier_ring(id) and needs_met(id)
+
+
+## A spell's prerequisites (spell spec §6.5): [[spell, stage]] reached this life.
+func needs_met(id: String) -> bool:
+	for n in prog.spell(id).get("needs", []):
+		if int(practice()[n[0]].get("stage", 0)) < int(n[1]):
+			return false
+	return true
+
+
+## The prerequisites still missing, as "Ember Bolt at Adept".
+func needs_missing(id: String) -> Array:
+	var out: Array = []
+	for n in prog.spell(id).get("needs", []):
+		if int(practice()[n[0]].get("stage", 0)) < int(n[1]):
+			out.append("%s at %s" % [prog.spell(n[0])["name"], prog.stage_name(int(n[1]))])
+	return out
+
+
+## Meditating on a Sphere's day is the meditation trial for every spell of that Sphere waiting at a
+## breakthrough (spell spec §6.4). Returns the spells it counted for.
+func meditate_trials() -> Array:
+	var sphere: String = str(run.weekday()["sphere"])
+	var was_lent := lent
+	begin_fight()
+	var out: Array = []
+	for id in prog.data["spells"]:
+		if prog.element_sphere(prog.spell(id)["element"]) == sphere and prog.at_wall(id) and prog.pass_trial(id, "meditation"):
+			out.append(id)
+	if not was_lent:
+		end_fight()
+	return out
 
 
 ## Once-a-day actions (meditating, training): true if `op` can still be done today, and marks it.
@@ -199,7 +253,9 @@ func rules() -> Dictionary:
 		open.append(slot_spell(i) != "")
 	return {"hp": max_hp(), "aether": max_aether(), "blinks": blinks(), "open": open,
 		"echo": echo().duplicate(), "echo_mult": float(d["echo_mult"]), "fluency": fluency(),
-		"revisions": run.soul.get("revisions", {}).duplicate(true)}
+		"revisions": run.soul.get("revisions", {}).duplicate(true),
+		"walls": true, "grade_cap": int(d["grade_cap"][ring()]), "broken": run.soul.get("broken", {}).duplicate(),
+		"known": run.soul.get("known", {})}
 
 
 ## Lends Progression this loop's Practice, spellbook and rules (for a fight, training, or in
@@ -271,7 +327,7 @@ func train() -> Dictionary:
 	var was_lent := lent
 	begin_fight()
 	for id in before:
-		prog.add_xp(id, float(d["train_share"]) * prog.xp_needed(prog.level(id)))
+		prog.add_xp(id, float(d["train_share"]) * prog.xp_needed(prog.level(id)), false)
 	if not was_lent:
 		end_fight()
 	var out := {}

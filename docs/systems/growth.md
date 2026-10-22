@@ -2,7 +2,7 @@
 
 *Detail: [design/slice/systems.md](/mnt/project-files/design/slice/systems.md) §2 (the rules
 these numbers came from). Design: GDD 04 (progression and the loop). Tracker: S-1 (slice M3),
-C-1 (spell levels and milestones).*
+C-1 (spell levels and milestones), N-3 (mastery).*
 
 *Target for the long-loop direction: what carries between lives (spells known, best levels and
 the Echo, remembered trials, Sphere Comprehension, school rank, insight) is the carry table in the
@@ -37,16 +37,37 @@ There are two layers, and the ruins game uses the first on top of the second.
   slots, echo, `fluency` (the insight bonus), no Magicks); `end_fight()` takes them back. A book saved with six slots
   keeps its first four.
 
-## Spell levels (`scripts/autoload/progression.gd`, `data/spells.json` `progression`)
+## Spell levels and mastery (`scripts/autoload/progression.gd`, `data/spells.json` `progression`)
 
-- A spell levels from its own hits: XP needed `xp_base` 8 + `xp_step` 4 per level, max 15.
-- **Milestones** at 5, 10 and 15 pause the fight for a pick between two mutations; re-picks only
-  at the Orrery shrine. A stat is `base + per × (level − 1)` (`floor`, `min`, `max`).
+- A spell levels from its own hits: XP needed `xp_base` 8 + `xp_step` 4 per level, max 20.
+- **Stages** (spell spec §6, N-3): Novice 1–5, Adept 6–10, Master 11–15, Perfected 16–20
+  (`stages`, `stage_top`). Under the slice's rules (`rules.walls`) a spell stops at the top of its
+  stage (the **wall**); XP keeps filling up to one level's worth (`xp_bank` 1.0) and is spent the
+  moment it breaks through.
+- **Breakthrough trials** (`breakthrough_trials` 1/2/3 of them for Adept/Master/Perfected), from:
+  a **feat** (land it on a foe 15/45/100 times this life, `feats`; training doesn't count), an
+  **insight** (any Ledger entry naming the spell in `insight`, none written yet) and a
+  **meditation** (meditate on the day of the spell's Sphere: each element has a `sphere`, the
+  weekday's Sphere comes from the calendar; `growth.meditate_trials()`). Perfected also needs a
+  best-ever level of 11+ (the Echo). A stage reached in an earlier life (`soul.broken`, written by
+  `lives.gd` `carry`) counts as remembered: you still climb, but the trial is waived.
+- A breakthrough emits `breakthrough(id, stage)`, toasts "Breakthrough: …", and offers the stage's
+  Revision pick (the old milestone picks at 5, 10, 15 now come at each breakthrough).
+- **What a stage changes:** the Force grade (`grade_by_stage` I–IV, capped by Ring `grade_cap`
+  1/2/2/3/3), and each spell's `minor` axis grows ×1.2 per stage (`minor_step`). A stat is still
+  `base + per × (level − 1)` (`floor`, `min`, `max`) on its main axis.
+- **Prerequisites** (`needs`, spell spec §6.5): Pyroclasm needs Ember Bolt and Pillar at Adept,
+  Storm Call Spark and Arc Lance at Adept, Maelstrom Undertow at Master, Avalanche Pebble and Fling
+  at Adept, this life. Until then the book lists it "(not yet)" and it can't be slotted.
+- **Rings need stages too** (`ring_stages`): the 2nd Ring four spells at Adept, the 3rd one at
+  Master, the 4th two at Master, on top of the wells.
+- The book shows each slot's stage and grade, and the selected slot's next trials with ticks.
 - **Wizard level** and the halving rule (`loop_wizard_level_keep` 0.5), mastery and tome hints
   belong to the old Mill fight; the ruins game's loop doesn't use them (see [drift.md](drift.md)).
+  Without `rules.walls` (the old Mill fight) spells level straight to 20 as before.
 - Saves to `user://progress.json`, apart from the run ([loop.md](loop.md)).
 
 ## Tests
 
 `tools/tests/relearn.gd` (loop 3 is back to loop 1's wells and Practice by day 3),
-`tools/tests/unit.gd`.
+`tools/tests/unit.gd` (walls, trials, banking, remembered stages, prerequisites, Ring stages).
