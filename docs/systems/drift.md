@@ -71,6 +71,19 @@ M0-7) is how enemies should fight under the combat spec. Its §15 is the full ta
 | `data/enemies.json` with factions; encounters name 2–3 terrain hooks and a knowledge route | `spells.json` `enemies`; encounters are waves, timers, leash and cracks | [combat.md](combat.md) |
 | Regions keep a fixed tier; Unmoored counter-pick your last life; a Field Guide that carries over | Fixed per encounter; no bestiary | [combat.md](combat.md), [loop.md](loop.md) |
 
+## Lives, saves and HUD: the target vs the build
+
+The [lives, carry-over and achievements spec](/mnt/project-files/design/lives/lives-and-carryover-spec.md) (M0-10), [save system spec](/mnt/project-files/design/lives/save-spec.md) (M0-11) and [UI and HUD spec](/mnt/project-files/design/ui/ui-hud-spec.md) (M0-12), 2026-10-22, are the design for lives,
+saving and the screen. Each has a "today vs target" section; the big gaps:
+
+| Target says | As built | Where |
+| --- | --- | --- |
+| A life is a year (13 × 28 days); it ends only in a calamity, at the Great Eclipse, or by turning back the Hours after a calamity; other losses wake you injured 2 days later | A 28-day loop; any lethal fight, the shrine, the Eclipse or a story effect ends it | [loop.md](loop.md) |
+| `soul` / `life`; carry table with insight, bonds, roads, shortcuts, caches; school rank and Comprehension relearn | `mem` / `lp`; the Echo on spells and wells, revisions, Fluency | [loop.md](loop.md), [growth.md](growth.md) |
+| End card, then the Ledger's life page on the first morning | Death screen listing what you learnt | [loop.md](loop.md), [frame.md](frame.md) |
+| Three slots; soul, life, per-map damage files and meta; atomic writes, checksums, a crash-proof Turning, versions | One `user://ruins.json`, plain overwrite, no versions | [loop.md](loop.md) |
+| Four-star bar with stage rings, Focus and Overdraw, a 13-moon calendar, Codex, region map | Six-star bar, Cadence, 28-moon row, Ledger, map | [frame.md](frame.md) |
+
 ## Known differences inside the build
 
 | Doc says | As built | Where |

@@ -4,6 +4,11 @@
 these numbers came from). Design: GDD 04 (progression and the loop). Tracker: S-1 (slice M3),
 C-1 (spell levels and milestones).*
 
+*Target for the long-loop direction: what carries between lives (spells known, best levels and
+the Echo, remembered trials, Sphere Comprehension, school rank, insight) is the carry table in the
+[lives, carry-over and achievements spec](/mnt/project-files/design/lives/lives-and-carryover-spec.md) §4 (tracker M0-10); spell growth itself is the
+[spell and combat spec](/mnt/project-files/design/combat/spell-and-combat-spec.md) §6. Not built yet.*
+
 There are two layers, and the ruins game uses the first on top of the second.
 
 ## The loop's growth (`scripts/game/growth.gd`, `data/slice/progression.json`)

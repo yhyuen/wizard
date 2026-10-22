@@ -24,6 +24,12 @@ M0-1 (these specs and the spec check).*
 
 ## HUD and UI
 
+*Target: the [UI and HUD spec](/mnt/project-files/design/ui/ui-hud-spec.md) (tracker M0-12): four-star spellbook bar with stage rings, Focus
+diamonds and Overdraw, a 13-moon calendar with pins, fight and explore modes, and every screen
+(spellbook, character, Ledger, Codex, region map and calendar, end of a life, title slots); visual page [Lives, Saves and HUD Atlas](https://claude.ai/artifact/7H3xpu7YpYVzGmtDRUq8fK).
+Not built yet; N-2 and N-3 use a stand-in HUD (its §10).*
+
+
 - `scripts/hud.gd`: the Star Atlas HUD (spellbook constellation, Magick diamond or Ward, Vitality
   and Aether lines, field-object caps, Cadence stars, the 28-moon row, the duelist's plate,
   toasts, milestone picker, Orrery menu). Shapes are drawn as one triangle batch
