@@ -2,7 +2,7 @@ extends SceneTree
 ## Screenshots of the first playable for review, with draw calls and frame time at each (needs a
 ## display, not --headless): the title, waking in the camp, the yard and the captain's cordon,
 ## the market at noon, the lane at dusk, the camp at night, a patrol fight, a burning hay bale,
-## a grass fire and a charged wet patch, the camp's map, the Reach and the calendar, and the
+## a grass fire and a charged wet patch, the leaning gallery coming down, the camp's map, the Reach and the calendar, and the
 ## spellbook; then the loading card, the halls' landing and shrine, the
 ## entrance hall, the rune door, the halls' map, a crack glowing and the embers out of it, the
 ## refectory, the dark gallery, the bell passage, the burnt door, the cistern's sluice, the Kiln
@@ -132,6 +132,12 @@ func _process(_dt: float) -> bool:
 					break
 		552:
 			_shot("09a_ground_fire")
+			# The leaning gallery (N-4.3): a post breaks, and it shakes before it comes down.
+			var st: Dictionary = W.structures[0]
+			_go(st["rect"].get_center() + Vector2(-40, 110), 2, 1)
+			W._break(st["supports"][0])
+		557:
+			_shot("09b_gallery_falls")
 			slice.overlay = "map"
 		560:
 			_shot("10_camp_map")

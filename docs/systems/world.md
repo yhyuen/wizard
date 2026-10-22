@@ -137,6 +137,25 @@ grid, breaking and collapse, damage that lasts the life, owners and witnesses. W
   lamps, braziers and burning patches). The **staff strike** shoves the prop in front of it.
 - A lit or flaring lamp's pool (`light_r` 38) keeps `light_shy` kinds out.
 
+### Supports and collapse (`data/world/structures.json`)
+
+*N-4.3, spec §6.4. Not built: ceilings, bridges and towers in the halls, broken meshes per prop
+kind, grade gates in map data, people clearing rubble over days, Time mending a fallen structure.*
+
+- **A structure** stands on **posts**: `structures.json` lists, per map, its rect (what it falls
+  on), its deck height and its supports. The camp has one, **the leaning gallery** in the ruined
+  yard, on two posts. Each support is a prop of kind `post` (wood, hp 3, breaks at Impact II, so
+  one grade I Pebble cracks it and the next breaks it; it burns for 20 s).
+- **A post breaks or burns to ash** and the structure groans: a red-orange telegraph on its rect
+  that fills, dust falling and the deck shaking, for `telegraph_s` 1.5 s (never less than the
+  fair-dodge delay for its size). Then it **comes down**: Impact 3 and 30 damage to everyone under
+  it (foes and you), the same Impact on the props there, its other posts break, and its cells
+  become **rubble**.
+- **Rubble** (a cell state, grey blots on the ground): anyone on it moves 30% slower; it smothers
+  a fire on its cell; an Impact shot at grade II or more clears the rubble it lands on.
+- A fallen structure stays down for the life (it stands again when you wake). Rewind mends a
+  post but not what it held.
+
 ### Fire, water and charge on the ground (`data/world/ground.json`, `scripts/world/cells.gd`)
 
 *N-4.2, spec §5. Not built: water flowing by height, smoke that blocks sight or drifts, cold and

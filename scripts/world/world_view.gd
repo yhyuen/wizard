@@ -33,6 +33,7 @@ var _people := {}  # person id -> {"node", "rot", "t"}
 var _marker: MeshInstance3D  # the gold mark over whoever you're talking to
 var _prop_nodes: Array = []  # one per world prop
 var _prop_mats := {}
+var _decks: Array = []  # one per world structure (W.structures): its deck of planks
 var _scorch_root: Node3D
 var _scorch_key := ""
 var _lamp_key := "-"
@@ -104,6 +105,7 @@ func _build_map() -> void:
 	town.build(self, W.map, tc)
 	_prop_nodes = []
 	_build_props()
+	_build_decks()
 	_scorch_root = Node3D.new()
 	_map_root.add_child(_scorch_root)
 	_people = {}
@@ -266,7 +268,7 @@ func _build_marks_window() -> void:
 func _build_props() -> void:
 	var pal: Dictionary = wc["town"]["palette"]
 	var col := {"hay": Color("b8984a"), "crate": Color(str(pal["timber"])).lightened(0.25), "barrel": Color(str(pal["timber"])).lightened(0.1),
-		"cart": Color(str(pal["timber"])).lightened(0.15)}
+		"cart": Color(str(pal["timber"])).lightened(0.15), "post": Color(str(pal["timber"]))}
 	for k in col:
 		_prop_mats[k] = Figure.finish(Figure.mat(col[k]), "prop")
 		_prop_mats[k + "_burning"] = Figure.finish(Figure.mat(col[k].darkened(0.55)), "prop")
@@ -280,6 +282,49 @@ func _build_props() -> void:
 		n.material_override = _prop_mats.get(p["kind"], _prop_mats["crate"])
 		_map_root.add_child(n)
 		_prop_nodes.append(n)
+
+
+## Each structure's deck: planks across its rect at its height, on its posts (the props).
+func _build_decks() -> void:
+	_decks = []
+	for st in W.structures:
+		var rc: Rect2 = st["rect"]
+		var st_mesh := SurfaceTool.new()
+		st_mesh.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var n_planks := maxi(3, int(rc.size.x / 14.0))
+		for i in n_planks:
+			var bm := BoxMesh.new()
+			bm.size = Vector3(rc.size.x * S / n_planks * 0.92, 0.12, rc.size.y * S * (1.0 if i % 3 else 0.86))
+			st_mesh.append_from(bm, 0, Transform3D(Basis(), Vector3((i + 0.5 - n_planks * 0.5) * rc.size.x * S / n_planks, 0, 0)))
+		var beam := BoxMesh.new()
+		beam.size = Vector3(rc.size.x * S * 1.04, 0.22, 0.22)
+		for sz in [-0.45, 0.45]:
+			st_mesh.append_from(beam, 0, Transform3D(Basis(), Vector3(0, -0.12, sz * rc.size.y * S)))
+		var n := MeshInstance3D.new()
+		n.mesh = st_mesh.commit()
+		n.material_override = _prop_mats["post"]
+		_map_root.add_child(n)
+		_decks.append(n)
+
+
+## The decks: up while they stand, shaking while they fall, a slanted wreck on the ground after.
+func _sync_decks() -> void:
+	for i in mini(_decks.size(), W.structures.size()):
+		var st: Dictionary = W.structures[i]
+		var n: MeshInstance3D = _decks[i]
+		var rc: Rect2 = st["rect"]
+		n.visible = rc.get_center().distance_to(arena.player.pos) < float(wc["draw_m"]) / S
+		match st["state"]:
+			"":
+				n.position = to_world(rc.get_center(), float(st["h"]))
+				n.rotation = Vector3.ZERO
+			"falling":
+				var k := 1.0 - clampf(float(st["t"]) / float(st["fall_s"]), 0.0, 1.0)
+				n.position = to_world(rc.get_center(), float(st["h"]) - 0.25 * k)
+				n.rotation = Vector3(0.05 * k * sin(Time.get_ticks_msec() * 0.04), 0, 0.04 * k)
+			"down":
+				n.position = to_world(rc.get_center(), 0.35)
+				n.rotation = Vector3(0.12, 0, 0.18)
 
 
 func _prop_mesh(kind: String) -> Mesh:
@@ -331,6 +376,13 @@ func _prop_mesh(kind: String) -> Mesh:
 			shaft.size = Vector3(r * 1.4, 0.08, 0.08)
 			for sz in [-0.3, 0.3]:
 				put.call(shaft, Transform3D(Basis(), Vector3(r * 1.5, h * 0.45, sz * r)))
+		"post":
+			var pm := BoxMesh.new()
+			pm.size = Vector3(r * 1.1, h, r * 1.1)
+			put.call(pm, Transform3D(Basis(), Vector3(0, h * 0.5, 0)))
+			var brace := BoxMesh.new()
+			brace.size = Vector3(r * 0.5, h * 0.45, r * 0.5)
+			put.call(brace, Transform3D(Basis(Vector3.FORWARD, 0.6), Vector3(r * 0.9, h * 0.75, 0)))
 		_:
 			var bm := BoxMesh.new()
 			bm.size = Vector3(r * 1.5, h, r * 1.5)
@@ -443,6 +495,7 @@ func _process(delta: float) -> void:
 	if warm > 0:
 		_warm_up()
 	_sync_props()
+	_sync_decks()
 	_sync_lamps()
 	_sync_town(delta)
 	_place_lights()

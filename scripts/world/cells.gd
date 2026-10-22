@@ -23,6 +23,7 @@ var smoke := PackedFloat32Array()
 var steam := PackedFloat32Array()
 var active := {}  # cell index -> true while any timer runs
 var ash := {}  # burnt-out cells, for the scar on the ground
+var rubble := {}  # cells under a fallen structure (slow to cross; Impact II clears them)
 var burning := {}  # cell index -> the order it caught (oldest first burns faster when capped)
 var _order := 0
 var rng := RandomNumberGenerator.new()
@@ -115,6 +116,16 @@ func within(p: Vector2, r: float) -> Array:
 			if i == c or centre(i).distance_to(p) <= r + size * 0.5:
 				out.append(i)
 	return out
+
+
+## A structure fell here: the cell is rubble, and whatever was burning on it is smothered.
+func make_rubble(i: int) -> void:
+	if i < 0 or mats[mat[i]] == "water":
+		return
+	rubble[i] = true
+	if burn[i] > 0.0:
+		burn[i] = 0.0
+		burning.erase(i)
 
 
 func is_wet(i: int) -> bool:
