@@ -112,9 +112,19 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
 
 ## The main line (`data/world/main_line.json`, UI spec §3.4)
 
-- One gold step under the vitals, outside fights: the first step whose `when` holds. Three cover
-  the first playable (who carried you out, the way to the Kiln, past the Kiln); the story threads
-  write the rest.
+- One gold step under the vitals, outside fights: the first step whose `when` holds. The
+  Apprentice road's opening (N-7.3.1): Crane's first lesson (Ashmoon 3, or 4) and Marrow's
+  (Ashmoon 5, or 6), then the first playable's two (the way to the Kiln, past the Kiln) until the
+  rest of the road replaces them.
+- **The Apprentice road's opening** (`apprentice.story`, SEALED story content): the first morning
+  (life 1: Wren at the tent flap, the Ledger under the pillow; sitting up fast faints you; every
+  later life: the same morning, the Hours, Wren's answers to what the soul knows, the Omens, and
+  the backward hand's line for lives 2–4), the glass note at the camp's edge (the hill), Crane's
+  lesson (the Kindle's seven doors, one choice per stroke; how many are right decides how it
+  lights; a soul that knows them draws them at once) and Marrow's (stand still on the star stone).
+  The lessons are board events at the College tents (`known: true`). Four sealed story
+  achievements: fainting on the first morning, all seven doors, carrying Brogan home, sitting for
+  Cass.
 
 ## Achievements (`data/world/achievements.json`, `scripts/game/achievements.gd`, lives spec §7)
 

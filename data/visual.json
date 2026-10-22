@@ -63,6 +63,8 @@
     "silas": {"model": "swordsman", "scale": 1.02, "facet": 0.7, "colors": {"7d8aa0": "3e5560", "c4cbd6": "8fe8ff", "3d4552": "2a2f33", "8c7a5a": "6b5a45"}, "hat": {"kind": "frontier", "color": "3a3029", "band": "8fe8ff"}},
     "aldous": {"model": "bandit", "scale": 1.1, "facet": 0.7, "tint": ["d8d2c4", 0.6]},
     "pell": {"model": "elder", "scale": 0.88, "facet": 0.7, "colors": {"5e5a62": "34489a", "8a8690": "8a8690", "3a3640": "5a3a22", "3a3840": "22263a"}},
+    "crane": {"model": "elder", "scale": 0.86, "facet": 0.7, "colors": {"5e5a62": "2e4a8a", "8a8690": "c8a050", "3a3640": "3a2a22", "3a3840": "1e2234"}, "hat": {"kind": "wizard", "color": "243a6a", "band": "c8a050"}},
+    "marrow": {"model": "elder", "scale": 0.94, "facet": 0.7, "colors": {"5e5a62": "4a3a5a", "8a8690": "d8d0e8", "3a3640": "2a2230", "3a3840": "1a1620"}, "hat": {"kind": "hood", "color": "3a2e48", "band": "d8d0e8"}},
     "fennick": {"model": "bandit", "scale": 1.02, "facet": 0.7, "tint": ["6a5030", 0.55], "hat": {"kind": "frontier", "color": "3a2a1a", "band": "c8a050"}},
     "bett": {"model": "elder", "scale": 0.9, "facet": 0.7, "colors": {"5e5a62": "8a5a3a", "8a8690": "d8ccb0", "3a3640": "4a3426", "3a3840": "2a2420"}},
     "tam": {"model": "elder", "scale": 0.66, "facet": 0.7, "colors": {"5e5a62": "7a6a4a", "8a8690": "c0a070", "3a3640": "4a3a2a", "3a3840": "2a2420"}},

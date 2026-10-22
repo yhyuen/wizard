@@ -113,6 +113,9 @@
   ]
  },
  "spots": {
+  "wren_wagon": [1240, 600],
+  "crane_tent": [1300, 470],
+  "marrow_wagon": [1150, 560],
   "kitchen": [1560, 1060],
   "jory": [990, 1150],
   "kestrel_market": [830, 1080],

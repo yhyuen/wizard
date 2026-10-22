@@ -5,29 +5,6 @@
 
 # --- waking ------------------------------------------------------------------------
 
-=== wake_first
-arrive: tent
-when: loop == 1
-priority: 20
-You wake on a cot under a sheet of canvas. Smoke, wet ash, someone crying a long way off.
-You remember the Orrery: the great brass rings turning wrong, Wren a step ahead of you on the gallery, then a light that had no colour.
-Nothing after that. Nothing at all.
-+ learn orrery_light
-Your spellbook lies beside the cot, its pages scorched at the edges.
-* Get up
-
-=== wake_again
-arrive: tent
-when: loop > 1
-priority: 20
-You wake on the cot under the canvas. The same smoke, the same crying a long way off.
-You've woken here before.
-[not k("hours_stirs")] Something has come back with you that wasn't there the first time: a slow tick under your ribs, the College's own Sphere. The Hours.
-[not k("hours_stirs")] + learn hours_stirs
-[not k("model_rewind")] + model rewind
-* Read the year's omens [omens_offered()] -> omens
-* Get up
-
 # Omens (lives spec §6.4): curses taken for the whole life, read before you rise on the first
 # morning of life 2 onwards. Their numbers are in data/world/lives.json "omens".
 === omens
@@ -117,7 +94,7 @@ talk: pell
 priority: 10
 when: not k("wren_cipher")
 Pell: You're from the College! You're alive! Anything you need, I'll find it. Rope, chalk, lamp oil. Anything.
-Pell: You knew Wren, didn't you? Everyone knew Wren. Always scribbling in that star cipher of the College's. A hobby, Wren said.
+Pell: You know Wren, don't you? Everyone knows Wren. Always scribbling in that star cipher of the College's. A hobby, Wren says.
 Pell: Notes to people, in stars. I never could read them.
 + learn pell
 + learn wren_cipher
