@@ -22,9 +22,9 @@ and its layout data `ring1-layout.json` beside it (M0-16).*
 
 ## Counts (2026-10-22)
 
-- Maps: 6 (camp, city, halls, undercroft, fields, east road). People: 19 (the Ring 1 roster in
-  [world.md](world.md) 'People'; 17 in the camp, 2 at the east road's picket).
-- Story: `camp.story`, `people.story`, `city.story`, `halls.story`, `undercroft.story`, `fields.story` and `east_road.story`.
+- Maps: 6 (camp, city, halls, undercroft, fields, east road). People: 22 (the Ring 1 roster in
+  [world.md](world.md) 'People'; 20 in the camp, 2 at the east road's picket).
+- Story: `camp.story`, `apprentice.story`, `people.story`, `city.story`, `halls.story`, `undercroft.story`, `fields.story` and `east_road.story`.
 
 ## Conventions
 

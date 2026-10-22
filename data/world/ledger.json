@@ -4,7 +4,7 @@
   "orrery_light": {
    "kind": "clue",
    "title": "The light in the Orrery",
-   "text": "The last thing I remember: the great rings turning wrong, Wren a step ahead of me on the gallery, and a light with no colour."
+   "text": "The last thing I remember: the lowest gallery, a polishing cloth in my hand, the great rings turning above me. Then a cot in a tent, and glass from the eighth lens under my nails."
   },
   "carried_out": {
    "kind": "clue",
@@ -19,7 +19,7 @@
   "wren_cipher": {
    "kind": "clue",
    "title": "Wren's hobby",
-   "text": "Pell says the College's old star cipher was Wren's hobby. Wren wrote notes to people in it."
+   "text": "Pell says the College's old star cipher is Wren's hobby. Wren writes notes to people in it."
   },
   "knights_camp": {
    "kind": "clue",
@@ -86,6 +86,13 @@
   "umbral_taste": {"kind": "insight", "title": "A name that wasn't mine", "text": "At Sister Nobody's fire I whispered a name I didn't know. My shadow lifted, and a torch burned backward into a new candle. It cost a little of me."},
   "cass_fades": {"kind": "clue", "title": "The portrait", "text": "Cass drew me in Seedmoon. By the end of it she didn't know me, and looked at her own drawing as if a stranger had made it."},
   "brogan": {"kind": "person", "title": "Brogan Tallowmere", "text": "Dwarf salvager, came for the Orrery's ring-metal. I got him out from under a beam in the sliced bakery. He says he owes me a road."},
+  "wren": {"kind": "person", "title": "Wren", "text": "My closest friend. College archivist, ash to the elbows, a pencil behind each ear. Counts things when frightened."},
+  "crane": {"kind": "person", "title": "Magister Crane", "text": "Acting head of the College. Small, sixty, a burned hem and eight fingers. Doesn't say good morning."},
+  "marrow": {"kind": "person", "title": "Lector Marrow", "text": "My master. Blinded on the night; reads the sky by pinpricks, faster than she ever did sighted. Calls me Observer."},
+  "ledger_found": {"kind": "clue", "title": "A book I don't own", "text": "Under my pillow: black boards, seven rings and an empty eighth on the spine, eleven pages in no alphabet I know. On the twelfth, in my own hand: \"Don't trust the morning.\" I didn't write it."},
+  "glass_note": {"kind": "clue", "title": "The glass note", "text": "From the camp's edge I heard one Sphere clearly for the first time: a dry note, like a fingernail round a glass rim. It came from the crater."},
+  "seven_doors": {"kind": "insight", "title": "Seven doors", "text": "The Kindle's seven strokes are doors for air. A Model is an argument you make to the world, and the world does exactly what you argued."},
+  "alignment": {"kind": "insight", "title": "One honest second", "text": "Stand still on a star stone for one honest second and the figure sharpens: the spell runs further and straighter. Marrow teaches on the Sun's day."},
   "fennick": {"kind": "person", "title": "Fennick Brass", "text": "Guild artificer up from Lantern Quay. Runs the Lantern Market and sells everything, out of forty pockets."},
   "bett": {"kind": "person", "title": "Bett", "text": "Aldous's wife. Runs the camp kitchen and feeds whoever comes."},
   "tam": {"kind": "person", "title": "Tam", "text": "Aldous's youngest, ten. Carries the water. Can't make a Kindle light yet."},
@@ -113,8 +120,8 @@
   "model_tar_pot": {"kind": "model", "title": "Tar Pot (device)", "text": "Pitch for the ground. It holds feet, and it holds a flame longer."},
   "q_wren": {
    "kind": "question",
-   "title": "Where is Wren?",
-   "text": "Wren was ahead of me in the Orrery when the light came.",
+   "title": "What broke the Orrery?",
+   "text": "It broke, and the city fell in around it. That's the whole of what anyone knows.",
    "opens": ["orrery_light"],
    "clues": ["orrery_light", "the_halls"]
   },

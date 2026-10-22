@@ -79,6 +79,39 @@
    "schedule": {"morning": "dog_square", "noon": "dog_square", "afternoon": "dog_square", "dusk": "dog_square", "night": ""},
    "barks": [{"text": "Wuff."}, {"times": "morning", "text": "(sniffs at your boots)"}]
   },
+  "wren": {
+   "name": "Wren",
+   "kind": "full",
+   "figure": "wren",
+   "rows": [
+    {"slot": "morning,noon", "at": "college_tents", "doing": "work"},
+    {"slot": "afternoon,dusk", "at": "wren_wagon"},
+    {"slot": "night", "at": "college_tents", "doing": "sleep"}
+   ],
+   "busy_line": "Found, found, not found. Sorry. Later?",
+   "barks": [{"text": "Two hundred and six. Two hundred and seven?"}, {"text": "Dry books here. Wet books there. Burnt books, don't."}]
+  },
+  "crane": {
+   "name": "Magister Crane",
+   "kind": "light",
+   "figure": "crane",
+   "rows": [
+    {"slot": "morning,noon,afternoon", "at": "crane_tent"},
+    {"slot": "dusk,night", "at": ""}
+   ],
+   "barks": [{"text": "Palms up. Don't draw yet."}, {"text": "Nine Magisters. Two hundred of you. Arithmetic is not on our side."}]
+  },
+  "marrow": {
+   "name": "Lector Marrow",
+   "kind": "full",
+   "figure": "marrow",
+   "rows": [
+    {"weekdays": ["sol"], "slot": "morning,noon", "at": "college_tents", "doing": "work"},
+    {"slot": "morning,noon,afternoon,dusk", "at": "marrow_wagon"},
+    {"slot": "night", "at": ""}
+   ],
+   "barks": [{"text": "Mars is loud tonight. Or I am old."}, {"text": "Observer. I can hear you fidgeting."}]
+  },
   "fennick": {
    "name": "Fennick Brass",
    "kind": "full",

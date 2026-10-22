@@ -252,8 +252,8 @@ tiers, gifts and tastes, companions, sworn friends; what of them carries across 
 [people and side activities spec](/mnt/project-files/design/people/people-and-side-activities-spec.md)
 §3–5 (tracker M0-17; visual: [Folk and Pastimes Atlas](https://claude.ai/artifact/H9gh2FHhiCZ6Sm8iu7zkvS)).*
 
-- **The Ring 1 roster** (N-7.2.2, people spec §21.1): 19 people, each with a `kind` (full, light
-  or role; spec §3.1). In the camp: Mira, Pell, Fennick Brass (Guild bench by day, the great lamp
+- **The Ring 1 roster** (N-7.2.2, people spec §21.1): 22 people, each with a `kind` (full, light
+  or role; spec §3.1). In the camp: Wren (the College tents, the archive wagon), Magister Crane, Lector Marrow (the practice ground on Sol's day, her star-chart wagon), Mira, Pell, Fennick Brass (Guild bench by day, the great lamp
   at dusk, the inn at night), Aldous, Bett (the kitchen), Tam (with his father in the fields on
   work days), Captain Halloway (the College cordon by day, the east gate at dusk), Sister
   Nobody (the grief circle at Night only, from Ashmoon 4; Pell sits there too), Silas Vane
@@ -264,8 +264,7 @@ tiers, gifts and tastes, companions, sworn friends; what of them carries across 
   picket once they've ridden in on Ashmoon 2 (Maud at the camp's east gate in the afternoon).
   Brogan Tallowmere at the smithy (the inn at night) once freed (N-7.2.3). Each but
   Pip has a first talk that puts them in the Ledger (`people.story`); a person's `busy_line`
-  replaces the shared one. Mira has the first "notices" line (life 2+). Wren, Crane and Marrow
-  come with the main line (N-7.3), Red Annet with the toll's talk route.
+  replaces the shared one. Mira has the first "notices" line (life 2+). Red Annet comes with the toll's talk route.
 - **Their scenes in moons 1–3** (N-7.2.3, the Ring 1 story's Q-S2, Q-S3, Q-S6): sitting at Sister
   Nobody's fire (once a night; Pell says his children's names; the third night she asks you to
   whisper a name), Cass's portrait (asked from Ashmoon 20, sat in Seedmoon, and from Seedmoon 26 she
