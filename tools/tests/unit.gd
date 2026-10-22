@@ -119,6 +119,7 @@ func _run() -> void:
 	_kit(P)
 	_growth(P)
 	_schools(P)
+	_powers(P)
 	_devices(P)
 	_combined(P)
 	_world()
@@ -656,6 +657,29 @@ func _year() -> void:
 
 ## Schools (spell spec §5.1, §7, §8; N-5.1): every spell names a school, the outside-school cost,
 ## school rank from Practice with the Echo below the best, the carry, and Astral Rite's Alignment.
+## The powers (powers spec §3-4, N-7.3.3): standing starts, the road's power, merit, the Adept rows.
+func _powers(P) -> void:
+	var R = root.get_node("Run")
+	R.new_run()
+	var G = load("res://scripts/game/growth.gd").new(R, P)
+	var W = load("res://scripts/game/powers.gd").new(R, G)
+	ok(W.power() == "college" and W.rank("college") == 0 and W.rank("guild") == -1, "life 1's road makes you an Initiate of the College, and nothing else")
+	ok(W.standing("college") == 20 and W.standing("knights") == -15 and W.tier("college") == "Friendly" and W.tier("knights") == "Wary",
+		"the first morning's standings: your road's power Friendly, the Knights Wary")
+	ok(not W.examine("college") and W.missing(1).size() >= 3, "an exam with the Adept rows unmet gives no rank (%s)" % str(W.missing(1)))
+	W.add_standing("college", 5)
+	W.add_merit(30)
+	R.set_flag("ring1")
+	for id in G.known_models():
+		if P.school_of(id) == "astral_rite":
+			G.practice()[id]["stage"] = 1
+			break
+	ok(W.missing(1).is_empty(), "standing 25, the 1st Ring, three school spells, one at Adept and 30 merit meet the rows (%s)" % str(W.missing(1)))
+	ok(W.examine("college") and W.rank("college") == 1 and W.rank_name(1) == "Adept", "then the exam makes you Adept")
+	ok(not W.examine("college"), "Master's rows are a long way off")
+	R.new_run()
+
+
 func _schools(P) -> void:
 	var R = root.get_node("Run")
 	R.new_run()

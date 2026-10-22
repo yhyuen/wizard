@@ -219,18 +219,24 @@ The figure steadies, stroke by stroke, as if each one had been waiting to be tol
 Crane: (a long look) Hm. Again tomorrow. Don't get proud; it's a coal.
 + set doors_all
 + learn seven_doors
++ merit 10
++ standing college 3
 * Leave
 
 === crane_lean
 The flame catches and leans away from the doors you got wrong, like a plant away from a cold window.
 Crane: See where it leans? That's your mistake, drawn for you. Fix it before supper.
 + learn seven_doors
++ merit 5
++ standing college 3
 * Leave
 
 === crane_burn
 The figure closes in on itself. The coal flares white and your palm stings.
 Crane: There. Now you know something the primer couldn't tell you. Again.
 + learn seven_doors
++ merit 5
++ standing college 3
 * Leave
 
 === crane
@@ -274,6 +280,8 @@ The chalk circle at your feet sharpens, as if someone had drawn it again with a 
 Marrow: There. That's Alignment. One honest second. Most wizards die without managing one.
 Marrow: I teach on the Sun's day. Come every week, or don't come.
 + learn alignment
++ merit 5
++ standing college 2
 * Leave
 
 === marrow
@@ -357,6 +365,12 @@ Marrow: (to the vellum, not to you) You hold the figure like someone who has bee
 + set exam_passed_thaw
 + deed exam_thaw
 + learn thaw_passed
++ exam college
+* Leave [rank("college") < 1]
+* Wait for Crane [rank("college") >= 1] -> thaw_adept
+
+=== thaw_adept
+Crane: (closing the book) Adept, then. Of the College of Hours, such as it is. Don't make me regret the ink.
 * Leave
 
 === thaw_fail

@@ -165,7 +165,7 @@ func _initialize() -> void:
 				problems.append("achievement %s: no %s" % [id, key])
 	# Conditions: they parse, run, and name things that exist.
 	var re := RegEx.new()
-	re.compile("(k|f|seen|died|count|omen|ended|attended|missed)\\(\"([a-z0-9_]+)\"\\)")
+	re.compile("\\b(k|f|seen|died|count|omen|ended|attended|missed)\\(\"([a-z0-9_]+)\"\\)")
 	for pair in conds:
 		var e := Expression.new()
 		if e.parse(pair[0], ["loop", "day", "time", "ring"]) != OK:

@@ -132,7 +132,7 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
   stops); the patient way hangs a lamp an aisle on three different days and saves the seed. Both
   write a word on the Ledger's next page. **The Thaw examination** (Thaw 21, Morning, a board
   event at the College tents): read Marrow's chart right and know Alignment to pass (`deed
-  exam_thaw`). **Wren's book** (S7): Wren asks you in Seedmoon; said yes, the Archive stair past
+  exam_thaw`; with the College's Adept rows met it also makes you Adept, growth.md Powers). **Wren's book** (S7): Wren asks you in Seedmoon; said yes, the Archive stair past
   the Kiln offers the climb on Seedmoon 11 (a scene, not a room yet); the stair ages on the way
   down and the story knocks you down three days (`downed 3 fall`), so the watch on Seedmoon 12
   goes by without you, and you wake to Mira and the news. **Two on the watch** (S8) plays at the

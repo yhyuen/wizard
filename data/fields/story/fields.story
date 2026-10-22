@@ -169,6 +169,8 @@ Aldous: There's seed in the east barn. Not enough. (He puts the buckets down ver
 + set mill_burned
 + deed burned_mill
 + remember aldous mill_burned
++ merit 5
++ standing miller -10
 + learn page_why
 * Leave
 
@@ -208,6 +210,8 @@ Aldous: (looking at the sacks, not at you) Three days. I'd have said one torch a
 Aldous: (He picks up a handful of barley and lets it run through his fingers.) Bread for Highsun.
 Aldous: Tam. Fetch the good lantern back up. Leave the others. (To you.) I'm leaving the others.
 + remember aldous seed_saved
++ merit 15
++ standing miller 10
 * Leave
 
 

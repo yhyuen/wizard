@@ -14,7 +14,8 @@
       "docs": ["docs/systems/growth.md"],
       "paths": [
         "scripts/game/growth.gd", "scripts/autoload/progression.gd",
-        "data/slice/progression.json", "data/spells.json", "data/schools.json"
+        "data/slice/progression.json", "data/spells.json", "data/schools.json",
+        "scripts/game/powers.gd", "data/world/powers.json"
       ]
     },
     "loop": {

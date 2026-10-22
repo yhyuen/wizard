@@ -32,11 +32,11 @@ It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `c
   `use:`; `cast: hours` is Rewind's shard on the item).
 - **Conditions** are Godot expressions over `k(id)` (remembered), `f(id)` (flag this loop),
   `seen(id)`, `died(cause)`, `can_turn()` (a calamity has passed, so the Hours can be turned back),
-  `count(prefix)`, `done(op)`, `since(op)`, `remembers(who, deed)` (days since `today op`, 9999 if never), and `loop`, `day`, `time`, `ring`. A
+  `count(prefix)`, `done(op)`, `since(op)` (days since `today op`, 9999 if never), `remembers(who, deed)`, `rank(power)`, `standing(power)`, and `loop`, `day`, `time`, `ring`. A
   line, effect or outcome can start with `[condition]`.
 - **Effects:** `learn`, `set`, `clear`, `fight`, `wells`, `train`, `meditate`, `goto`, `end_loop`,
   `model`, `trial`, `sound`, `cutscene`, `move`, `take`, `sleep`, `book`, `today` (a once-a-day
-  action, for `done(op)`), `go <map> <spot>` or `go <exit>`, `open <door>` (that door stands open for the life, even a gate whose prop still stands), `ignite <place>` (everything that burns in the current map's place rect catches, and the ground under it; not counted as unseen damage), `downed <days> <cause>` (when the scene closes: the hurt screen with the death text for `cause`, then `days` pass and you wake on your cot, Injured; not counted as a death), `remember <who> <deed>` (a person's memory of you, [world.md](world.md) People), `play_path <id>`, `road <id>` (take a road
+  action, for `done(op)`), `go <map> <spot>` or `go <exit>`, `open <door>` (that door stands open for the life, even a gate whose prop still stands), `ignite <place>` (everything that burns in the current map's place rect catches, and the ground under it; not counted as unseen damage), `downed <days> <cause>` (when the scene closes: the hurt screen with the death text for `cause`, then `days` pass and you wake on your cot, Injured; not counted as a death), `standing <power> <n>`, `merit <n>` and `exam <power>` (the next rank in your road's power if its rows are met; [growth.md](growth.md) Powers), `remember <who> <deed>` (a person's memory of you, [world.md](world.md) People), `play_path <id>`, `road <id>` (take a road
   for this life, [loop.md](loop.md)), `deed <id>` (a soul flag the Turning keeps; SEALED deeds
   open roads), `omen <id>` (take an Omen for this life), `forecast <who>` (that person says
   tomorrow's weather, [world.md](world.md)), `bench` (work at a bench: fill your devices from

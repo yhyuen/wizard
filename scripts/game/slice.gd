@@ -13,6 +13,7 @@ signal screen_changed(screen: String)
 
 const Story := preload("res://scripts/game/story.gd")
 const Growth := preload("res://scripts/game/growth.gd")
+const Powers := preload("res://scripts/game/powers.gd")
 const World := preload("res://scripts/world/world.gd")
 const Reach := preload("res://scripts/game/reach.gd")
 const Weather := preload("res://scripts/world/weather.gd")
@@ -39,6 +40,7 @@ var main  # scripts/main.gd: the arena, the 3D view, input
 var run  # the Run autoload
 var story
 var growth  # scripts/game/growth.gd: wells, Rings, Practice, the spellbook
+var powers  # scripts/game/powers.gd: standing, and rank and merit in your road's power
 var world  # scripts/world/world.gd
 var reach  # scripts/game/reach.gd: regions, roads, the calendar's events
 var weather  # scripts/world/weather.gd: each region's weather, the Almanac
@@ -88,6 +90,8 @@ func setup(the_main) -> void:
 	story = Story.new(run)
 	growth = Growth.new(run, main.get_node("/root/Progression"))
 	story.ctx.growth = growth
+	powers = Powers.new(run, growth)
+	story.ctx.powers = powers
 	story.load_all()
 	for e in story.errors:
 		push_error("story: " + str(e))
@@ -637,6 +641,14 @@ func _effect(op: String, arg: String) -> bool:
 			after.append(op)
 		"downed":
 			after.append("downed " + arg)
+		"standing":
+			var sw: PackedStringArray = arg.split(" ", false)
+			powers.add_standing(sw[0], int(sw[1]))
+		"merit":
+			powers.add_merit(int(arg))
+		"exam":
+			if powers.examine(arg):
+				toast("You are %s of %s." % [powers.rank_name(powers.rank(arg)), powers.power_name(arg)], true)
 		"go":
 			after.append("go " + arg)
 		"today":
@@ -1520,6 +1532,10 @@ func _draw_book() -> void:
 	title(r.position + Vector2(40, 40), "Your spellbook", 22, GOLD)
 	var at := Vector2(r.position.x + 40, r.position.y + 70)
 	var sch: String = "no school yet" if growth.school() == "" else "%s %s" % [growth.prog.school_name(growth.school()), growth.rank_name(growth.school_rank())]
+	if powers.power() != "":
+		var pw: String = powers.power()
+		text(Vector2(r.position.x + 300, r.position.y + 36), "%s of %s  ·  %s  ·  merit %d" % [powers.rank_name(powers.rank(pw)),
+			powers.power_name(pw), powers.tier(pw), powers.merit()], 13, GOLD, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 340)
 	var line := "%s  ·  %s  ·  %d wells  ·  Vitality %d  ·  Aether %d" % [growth.ring_name(), sch, growth.wells(), int(growth.max_hp()), int(growth.max_aether())]
 	title(at, line, 15, HAIR)
 	var next := "The yard trial opens the 1st Ring." if growth.ring() == 0 else ""
