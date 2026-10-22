@@ -6,6 +6,13 @@ rule (a telegraph's size, a light that changes what enemies do), that rule belon
 system's spec. Detail: the root [README.md](../../README.md) 'The look'. Design: GDD 06 §6.3
 (moody night), §6.6 (Star Atlas UI). Tracker: V-1, V-2.*
 
+*Target look for spells (not built yet): [spell visuals and VFX](/mnt/project-files/design/vfx/spell-visuals-spec.md)
+(tracker M0-5), drawn as the [Spell Light Atlas](https://claude.ai/artifact/DUFcUrXiWNc6dTnDdBCUwS): the six beats of a
+cast, sigil rings per mastery stage, Force-grade hits, a look per Sphere and per school's casting
+act, material states, and the web VFX budget (4 real lights, faked pools, ≤ 300 particles). The
+rules it draws come from the [spell and combat spec](/mnt/project-files/design/combat/spell-and-combat-spec.md).
+[drift.md](drift.md) lists the gaps.*
+
 ## Where it lives
 
 | What | Files |

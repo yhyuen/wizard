@@ -32,6 +32,18 @@ table; the big gaps:
 | Combined spells from two mastered schools | Magicks (old Mill fight only) | [combat.md](combat.md) |
 | Spells grow on seven visible axes over 20 levels in four stages, with breakthrough trials, Force grades I–V and prerequisite spells | 15 levels, stat numbers, milestone picks at 5/10/15, no prerequisites | [growth.md](growth.md) |
 
+## Spell look: the target vs the build
+
+The [spell visuals and VFX](/mnt/project-files/design/vfx/spell-visuals-spec.md) design (2026-10-22,
+tracker M0-5) is how spells should look under the combat spec. The big gaps:
+
+| Target says | As built | Where |
+| --- | --- | --- |
+| Six beats: intent cue, a telegraph that fills during the wind-up, release flash, travel, impact, a scar that stays | Telegraph marks and spell shapes; no intent cue, no fill, no lasting scars | [art.md](art.md) |
+| Sigil rings on the telegraph (one per stage), Force-grade notches, per-stage body, light and trail | One look per spell, whatever its level | [art.md](art.md) |
+| One SDF telegraph shader; one MultiMesh per particle kind; a light manager giving 4 real lights to the strongest spells, pools for the rest | Marks drawn by the view; pooled shapes in `spells3d.gd`; spell lights capped at 4 | [art.md](art.md) |
+| A look per Sphere (shape, motion, light) and per school's casting act; material state looks | Colours per Sphere; fire, water, lightning prop effects only | [art.md](art.md), [world.md](world.md) |
+
 ## Known differences inside the build
 
 | Doc says | As built | Where |
