@@ -15,6 +15,7 @@ const Story := preload("res://scripts/game/story.gd")
 const Growth := preload("res://scripts/game/growth.gd")
 const Powers := preload("res://scripts/game/powers.gd")
 const Calamity := preload("res://scripts/game/calamity.gd")
+const Bonds := preload("res://scripts/game/bonds.gd")
 const World := preload("res://scripts/world/world.gd")
 const Reach := preload("res://scripts/game/reach.gd")
 const Weather := preload("res://scripts/world/weather.gd")
@@ -43,6 +44,7 @@ var story
 var growth  # scripts/game/growth.gd: wells, Rings, Practice, the spellbook
 var powers  # scripts/game/powers.gd: standing, and rank and merit in your road's power
 var calamity  # scripts/game/calamity.gd: signs, the Eve, the Onset, the Dawn tally
+var bonds  # scripts/game/bonds.gd: each person's lamp and tier, gifts and tastes
 var world  # scripts/world/world.gd
 var reach  # scripts/game/reach.gd: regions, roads, the calendar's events
 var weather  # scripts/world/weather.gd: each region's weather, the Almanac
@@ -97,6 +99,8 @@ func setup(the_main) -> void:
 	story.ctx.powers = powers
 	calamity = Calamity.new(run)
 	story.ctx.calamity = calamity
+	bonds = Bonds.new(run)
+	story.ctx.bonds = bonds
 	story.load_all()
 	for e in story.errors:
 		push_error("story: " + str(e))
@@ -617,6 +621,7 @@ func talk(id: String, scene := "") -> void:
 	if scene == "":
 		return
 	talking = id
+	bonds.gain(id, "first_talk")  # a first talk makes you Warm (people spec §4.2)
 	world.set_talking(id, true)
 	if main.view != null:
 		main.view.talk_to = id
@@ -783,6 +788,22 @@ func _effect(op: String, arg: String) -> bool:
 		"omen":
 			if run.take_omen(arg):
 				toast("Omen taken: %s." % run.lives["omens"][arg]["name"])
+		"bond":
+			# bond <who> <source> [key] [amount] (people spec §4.2)
+			var bw: PackedStringArray = arg.split(" ", false)
+			bonds.gain(bw[0], bw[1], bw[2] if bw.size() > 2 else "", int(bw[3]) if bw.size() > 3 else 0)
+		"bond_cross":
+			if bonds.cross(arg):
+				toast("%s: %s." % [str(bonds.people[arg]["name"]), bonds.tier_name(bonds.tier(arg))], true)
+		"betray":
+			bonds.betray(arg)
+		"gift":
+			var gw: PackedStringArray = arg.split(" ", false)
+			var how: String = bonds.gift(gw[0], gw[1])
+			if how == "":
+				toast("You've given %s something this week already." % str(bonds.people[gw[0]]["name"]))
+			else:
+				toast("%s %s it." % [str(bonds.people[gw[0]]["name"]), {"love": "loves", "like": "likes", "plain": "takes", "dislike": "doesn't care for", "cant_bear": "can't bear"}[how]])
 		"remember":
 			var rw: PackedStringArray = arg.split(" ", false)
 			preload("res://scripts/world/people.gd").remember(run.life, rw[0], rw[1], int(world.people.d["memories_max"]))
@@ -1850,7 +1871,14 @@ func _draw_ledger() -> void:
 			for id in ids:
 				var e: Dictionary = ledger[id]
 				text(Vector2(r.position.x + 28, y), e["title"], 14, GOLD)
-				y = para(Vector2(r.position.x + 250, y), e["text"], w - 230, 12, Color(PAPER, 0.85), 1.2) + 4.0
+				var body: String = e["text"]
+				if ledger_tab == 2 and bonds.cap(id) >= 0:
+					# the people page (people spec §4.3, §5): your bond this life and every taste learned
+					body += "  ·  " + bonds.tier_name(bonds.tier(id))
+					var tk: Dictionary = bonds.tastes_known(id)
+					for item in tk:
+						body += "  ·  %s: %s" % [str(item).replace("_", " "), str(tk[item]).replace("_", " ")]
+				y = para(Vector2(r.position.x + 250, y), body, w - 230, 12, Color(PAPER, 0.85), 1.2) + 4.0
 				if y > r.end.y - 30:
 					text(Vector2(r.position.x + 28, r.end.y - 14), "…", 13, DIM)
 					break

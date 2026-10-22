@@ -135,6 +135,15 @@ func _initialize() -> void:
 				"omen":
 					if not root.get_node("Run").lives.get("omens", {}).has(arg):
 						problems.append("%s: no omen %s in data/world/lives.json" % [where, arg])
+				"bond", "gift", "bond_cross", "betray":
+					var bp := arg.split(" ")
+					var bd: Dictionary = _json("res://data/world/bonds.json")
+					if not people.has(bp[0]) or str(people[bp[0]].get("kind", "full")) == "role":
+						problems.append("%s: %s %s names nobody with a bond track" % [where, st["op"], arg])
+					elif st["op"] == "bond" and (bp.size() < 2 or not bd["sources"].has(bp[1])):
+						problems.append("%s: bond %s has no source from data/world/bonds.json" % [where, arg])
+					elif st["op"] == "gift" and bp.size() < 2:
+						problems.append("%s: gift %s names no item" % [where, arg])
 				"sound":
 					if not FileAccess.file_exists("res://assets/sfx/%s.wav" % arg):
 						problems.append("%s: no sound assets/sfx/%s.wav" % [where, arg])
@@ -178,7 +187,7 @@ func _initialize() -> void:
 				problems.append("achievement %s: no %s" % [id, key])
 	# Conditions: they parse, run, and name things that exist.
 	var re := RegEx.new()
-	re.compile("\\b(k|f|seen|died|count|omen|ended|attended|missed)\\(\"([a-z0-9_]+)\"\\)")
+	re.compile("\\b(k|f|seen|died|count|omen|ended|attended|missed|bond|bond_ready)\\(\"([a-z0-9_]+)\"\\)")
 	for pair in conds:
 		var e := Expression.new()
 		if e.parse(pair[0], ["loop", "day", "time", "ring"]) != OK:
@@ -194,6 +203,8 @@ func _initialize() -> void:
 				problems.append("%s: k(\"%s\") is not a Ledger id" % [pair[1], id])
 			elif fn == "f" and not flags_set.has(id):
 				problems.append("%s: flag %s is never set" % [pair[1], id])
+			elif fn in ["bond", "bond_ready"] and not people.has(id):
+				problems.append("%s: %s(\"%s\") is nobody in data/world/people.json" % [pair[1], fn, id])
 			elif fn == "seen" and not story.scenes.has(id):
 				problems.append("%s: seen(\"%s\") is not a scene" % [pair[1], id])
 			elif fn == "omen" and not run.lives.get("omens", {}).has(id):

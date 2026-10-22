@@ -46,7 +46,8 @@ const MAPS := "res://data/world/maps.json"
 const HEADER_KEYS := ["place", "days", "times", "when", "force", "priority", "repeat", "known", "title", "slot", "backdrop",
 	"talk", "use", "arrive", "cast"]
 const EFFECTS := ["learn", "set", "clear", "fight", "wells", "train", "meditate", "goto", "end_loop",
-	"model", "trial", "sound", "cutscene", "move", "take", "sleep", "book", "today", "go", "open", "play_path", "road", "deed", "omen", "forecast", "bench", "remember", "ignite", "downed", "standing", "merit", "exam", "sign", "prep", "calamity_onset", "calamity_dawn"]
+	"model", "trial", "sound", "cutscene", "move", "take", "sleep", "book", "today", "go", "open", "play_path", "road", "deed", "omen", "forecast", "bench", "remember", "ignite", "downed", "standing", "merit", "exam", "sign", "prep", "calamity_onset", "calamity_dawn",
+	"bond", "bond_cross", "betray", "gift"]
 
 var scenes := {}  # id -> scene dictionary
 var errors: Array = []  # parse errors, for the linter
@@ -60,6 +61,7 @@ class Ctx:
 	var growth  # scripts/game/growth.gd, when the slice has one: gives the real Ring
 	var powers  # scripts/game/powers.gd, when the slice has one: standing and rank in the powers
 	var calamity  # scripts/game/calamity.gd, when the slice has one
+	var bonds  # scripts/game/bonds.gd, when the slice has one
 
 	## A once-a-day action (meditate, train) already done today.
 	func done(op: String) -> bool:
@@ -147,6 +149,14 @@ class Ctx:
 	## Days until calamity `id` comes (0 on its day; after the Early Bell, a moon sooner).
 	func calamity_in(id: String) -> int:
 		return calamity.days_to(id) if calamity != null else 9999
+
+	## Your bond tier with a person (0 Stranger .. 5 Sworn; people spec §4.1).
+	func bond(who: String) -> int:
+		return bonds.tier(who) if bonds != null else 0
+
+	## Their lamp is full for this tier, and only a crossing scene opens the next.
+	func bond_ready(who: String) -> bool:
+		return bonds.ready_to_cross(who) if bonds != null else false
 
 	## Its later-lives variant this life (0 before it has been Held).
 	func calamity_variant(id: String) -> int:

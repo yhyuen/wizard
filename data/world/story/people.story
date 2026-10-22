@@ -310,6 +310,7 @@ You wedge the rack under the beam and scrape the rubble away from his legs, a ha
 Brogan: (testing his legs, swearing in a language that sounds like gravel) Good. Good. One works.
 Brogan: Get me to your camp. Then get me home. The Holds are west. The Holds are always west.
 + set brogan_freed
++ bond brogan kindness beam
 + learn brogan
 * Leave
 
