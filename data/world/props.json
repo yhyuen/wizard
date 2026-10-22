@@ -1,19 +1,16 @@
 {
- "_doc": "Things in Vellmar that spells can change (design/open-world/interactions.md §5). r: radius in sim px (it blocks walking); h: height in metres; mass: how far a shove sends it (lighter goes further); roll: keeps rolling (barrels); burns: seconds a fire lasts before it leaves ash; spread: sim px within which a fire catches other burnable things. Lamps and braziers are lit by fire and put out by water. A burning prop hurts enemies standing in it (dps).",
+ "_doc": "Things in Vellmar that spells can change (design/open-world/interactions.md §5). r: radius in sim px (it blocks walking); h: height in metres; mass: how far a shove sends it (lighter goes further); roll: keeps rolling (barrels); burns: seconds a fire lasts before it leaves ash; spread: sim px within which a fire catches other burnable things. Lamps and braziers are lit by fire and put out by water. A burning prop hurts enemies standing in it (dps). material (data/materials.json) and hp (structure: an Impact at or above the break grade takes its impact off, and at 0 it breaks); break and fire override the material's grades (N-4.1).",
  "kinds": {
-  "hay":    {"r": 11, "h": 0.9, "mass": 0, "burns": 12.0, "spread": 34, "dps": 10},
-  "crate":  {"r": 9, "h": 0.8, "mass": 1.0, "burns": 14.0, "spread": 26, "dps": 8},
-  "barrel": {"r": 8, "h": 0.9, "mass": 0.7, "roll": true, "burns": 0, "spread": 0, "dps": 0},
-  "cart":   {"r": 16, "h": 1.2, "mass": 2.5, "burns": 18.0, "spread": 30, "dps": 8}
+  "hay":    {"r": 11, "h": 0.9, "mass": 0, "burns": 12.0, "spread": 34, "dps": 10, "material": "cloth", "hp": 2},
+  "crate":  {"r": 9, "h": 0.8, "mass": 1.0, "burns": 14.0, "spread": 26, "dps": 8, "material": "wood", "hp": 4},
+  "barrel": {"r": 8, "h": 0.9, "mass": 0.7, "roll": true, "burns": 16.0, "spread": 24, "dps": 8, "material": "wood", "hp": 5, "break": 2, "fire": 2,
+   "_doc": "iron-banded staves: breaks at Impact II, catches only at Fire II (grade I smoulders it)"},
+  "cart":   {"r": 16, "h": 1.2, "mass": 2.5, "burns": 18.0, "spread": 30, "dps": 8, "material": "wood", "hp": 8, "break": 2}
  },
  "shove": {"speed": 260, "friction": 4.0, "roll_friction": 1.2},
- "fire_spells": ["ember", "pyro", "pillar", "column"],
- "water_spells": ["splash", "undertow", "puddle", "whirl"],
- "force_spells": ["pebble", "stone", "undertow"],
  "lamp_reach": 14,
- "_ow2_doc": "OW2 (interactions.md §5). Lightning (storm_zaps: the fx a Spark or Arc Lance leaves) flares the iron lamps it passes for flare_s seconds and charges the puddles it touches for charge_s; a charged puddle shocks every enemy standing in it (shock_damage every shock_every seconds). rewind_r: how far round a Rewind's shard it mends burnt and shoved props back to how they were. light_r: a lit (or flaring) lamp's pool, which light_shy enemies won't step into.",
+ "_ow2_doc": "OW2 (interactions.md §5). Lightning (the zap or beam a Spark or Arc Lance leaves) flares the iron lamps it passes for flare_s seconds and charges the puddles it touches for charge_s; a charged puddle shocks every enemy standing in it (shock_damage every shock_every seconds). rewind_r: how far round a Rewind's shard it mends burnt and shoved props back to how they were. light_r: a lit (or flaring) lamp's pool, which light_shy enemies won't step into.",
  "iron_lamps": ["street", "lane"],
- "storm_zaps": ["zap", "beam"],
  "flare_s": 1.5,
  "charge_s": 4.0,
  "shock_every": 0.5,

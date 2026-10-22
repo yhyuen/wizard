@@ -15,6 +15,7 @@ extends RefCounted
 
 const Map := preload("res://scripts/world/map.gd")
 const People := preload("res://scripts/world/people.gd")
+const Matter := preload("res://scripts/world/matter.gd")
 const MAPS := "res://data/world/maps.json"
 const CAMP := "camp"
 
@@ -30,6 +31,7 @@ var run  # the Run autoload
 var story
 var cfg: Dictionary  # data/world/world.json
 var pd: Dictionary  # data/world/props.json
+var matter  # scripts/world/matter.gd: what a force does to a material
 var requests: Array = []
 var busy: Callable  # func() -> bool: the game is showing a scene or a menu
 
@@ -39,8 +41,7 @@ var lamps: Array = []  # {"pos", "group", "lit", "by"}
 var braziers: Array = []  # {"pos", "lit"}
 var props: Array = []  # {"kind", "pos", "vel", "rot", "home", "state" ("", "burning", "ash"), "burn_t", "embers"}
 var scorches: Array = []  # {"pos", "dir"}: star-shaped burns on walls
-var fire_proj := {}
-var water_kinds := {}
+var fire_proj := {}  # the marks that carry fire (data/materials.json carriers)
 var events_log: Array = []  # what magic did, for tests: [kind, what]
 var pools: Array = []  # where a lit or flaring lamp's light keeps Hollows off, rebuilt each tick
 var light_shy := {}
@@ -58,10 +59,9 @@ func _init(the_run, the_story) -> void:
 	map = get_map(map_id)
 	cfg = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/world.json"))
 	pd = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/props.json"))
-	for k in pd["fire_spells"]:
+	matter = Matter.new()
+	for k in matter.kinds_of("fire"):
 		fire_proj[k] = true
-	for k in pd["water_spells"]:
-		water_kinds[k] = true
 	for k in pd["light_shy"]:
 		light_shy[k] = true
 	map.movers = movers
@@ -135,7 +135,8 @@ func _fresh_props() -> void:
 	props = []
 	for p in map.d.get("props", []):
 		props.append({"kind": str(p[0]), "pos": Vector2(p[1], p[2]), "home": Vector2(p[1], p[2]), "vel": Vector2.ZERO,
-			"rot": float(p[3]), "spin": 0.0, "state": "", "burn_t": 0.0, "embers": []})
+			"rot": float(p[3]), "spin": 0.0, "state": "", "burn_t": 0.0, "embers": [],
+			"hp": float(prop_def(str(p[0])).get("hp", 1)), "integrity": "", "wet_t": 0.0, "heat_t": 0.0})
 
 
 ## Waking on day 1: everything the last loop burnt, shoved or took is back where it was, on
@@ -307,7 +308,7 @@ func _lightning(dt: float) -> void:
 
 
 ## Lightning along a segment: iron lamps it passes flare, puddles it touches take the charge.
-func _storm_line(a: Vector2, b: Vector2) -> void:
+func _storm_line(a: Vector2, b: Vector2, kind: String) -> void:
 	for l in lamps:
 		if l["iron"] and Geometry2D.get_closest_point_to_segment(l["pos"], a, b).distance_to(l["pos"]) < float(pd["lamp_reach"]):
 			l["flare_t"] = float(pd["flare_s"])
@@ -317,6 +318,9 @@ func _storm_line(a: Vector2, b: Vector2) -> void:
 				and Geometry2D.get_closest_point_to_segment(z["pos"], a, b).distance_to(z["pos"]) < float(z["r"]):
 			z["charge_t"] = float(pd["charge_s"])
 			events_log.append(["charged", "puddle"])
+	for pr in props:
+		if Geometry2D.get_closest_point_to_segment(pr["pos"], a, b).distance_to(pr["pos"]) < float(prop_def(pr["kind"])["r"]):
+			hit_prop(pr, kind)
 
 
 # --- props ----------------------------------------------------------------------------
@@ -337,7 +341,7 @@ func movers() -> Array:
 func _cache_movers() -> void:
 	_movers = []
 	for p in props:
-		if p["state"] != "ash":
+		if p["state"] != "ash" and p["integrity"] != "broken":
 			_movers.append([p["pos"], float(prop_def(p["kind"])["r"])])
 
 
@@ -367,12 +371,17 @@ func _props(dt: float) -> void:
 			p["spin"] += p["vel"].length() * dt * 0.08
 			for e in p["embers"]:
 				e["pos"] = p["pos"] + e["off"]
+		if p["wet_t"] > 0.0:
+			p["wet_t"] = maxf(0.0, p["wet_t"] - dt)
+		if p["heat_t"] > 0.0:
+			p["heat_t"] -= dt
+			if p["heat_t"] <= 0.0 and p["state"] in ["smoulder", "chilled", "brittle"]:
+				p["state"] = ""
 		if p["state"] == "burning":
 			p["burn_t"] -= dt
 			for q in props:
-				if q != p and q["state"] == "" and float(prop_def(q["kind"]).get("burns", 0)) > 0.0 \
-						and q["pos"].distance_to(p["pos"]) < float(def.get("spread", 0)):
-					ignite(q)
+				if q != p and q["state"] == "" and q["wet_t"] <= 0.0 and q["pos"].distance_to(p["pos"]) < float(def.get("spread", 0)):
+					apply_force(q, "fire", 1)  # a spreading fire is grade I: a barrel only smoulders
 			if p["burn_t"] <= 0.0:
 				_put_out(p)
 				p["state"] = "ash"
@@ -381,7 +390,7 @@ func _props(dt: float) -> void:
 
 func ignite(p: Dictionary) -> bool:
 	var def := prop_def(p["kind"])
-	if p["state"] != "" or float(def.get("burns", 0)) <= 0.0:
+	if p["state"] in ["burning", "ash"] or float(def.get("burns", 0)) <= 0.0:
 		return false
 	p["state"] = "burning"
 	p["burn_t"] = float(def["burns"])
@@ -402,6 +411,10 @@ func _put_out(p: Dictionary) -> void:
 
 
 func douse(p: Dictionary) -> bool:
+	if p["state"] == "smoulder":
+		p["state"] = ""
+		p["heat_t"] = 0.0
+		return true
 	if p["state"] != "burning":
 		return false
 	_put_out(p)
@@ -414,20 +427,107 @@ func douse(p: Dictionary) -> bool:
 func shove(p: Dictionary, dir: Vector2, power := 1.0) -> void:
 	var def := prop_def(p["kind"])
 	var mass := float(def.get("mass", 0))
-	if mass <= 0.0 or p["state"] == "ash":
+	if mass <= 0.0 or p["state"] == "ash" or p["integrity"] == "broken":
 		return
 	p["vel"] += dir.normalized() * float(pd["shove"]["speed"]) * power / mass
 	events_log.append(["shoved", p["kind"]])
 
 
+## A force at a grade on a prop (spec §4): the matter core says what it does to the prop's
+## material, and this does it. `impact` is the structure damage an Impact at or above the break
+## grade deals; `push` shoves it along `dir` too (Pebble, Fling, a wave). Returns the op.
+func apply_force(p: Dictionary, force: String, grade: int, impact := 1.0, dir := Vector2.ZERO, push := 0.0) -> String:
+	var def := prop_def(p["kind"])
+	if p["state"] == "ash" and force != "time":
+		return "none"
+	var op: String = matter.result(force, grade, str(def.get("material", "wood")), def)
+	match op:
+		"burn":
+			if p["wet_t"] > 0.0:
+				p["wet_t"] = 0.0  # fire on a wet thing dries it in a puff of steam; it won't burn yet
+				op = "steam"
+				arena.fx("dust", p["pos"], {"r": 8.0, "life": 0.5})
+			elif not ignite(p):
+				op = "none"
+		"smoulder", "scorch":
+			if p["state"] == "" and p["wet_t"] <= 0.0:
+				p["state"] = "smoulder"
+				p["heat_t"] = matter.state_s("smoulder")
+				arena.fx("dust", p["pos"], {"r": 6.0, "life": 0.6})
+			else:
+				op = "none"
+		"wet":
+			douse(p)
+			p["wet_t"] = matter.state_s("wet")
+		"chill", "brittle":
+			if p["state"] == "":
+				p["state"] = "chilled" if op == "chill" else "brittle"
+				p["heat_t"] = matter.state_s(p["state"])
+		"damage":
+			p["hp"] -= impact * (1.5 if p["state"] == "brittle" else 1.0)
+			if p["hp"] <= 0.0:
+				_break(p)
+				op = "broke"
+			elif p["integrity"] == "":
+				p["integrity"] = "cracked"
+		"crack":
+			if p["integrity"] == "cracked" or p["state"] == "brittle":
+				_break(p)  # cracked, the next hit one grade short breaks it
+				op = "broke"
+			elif p["integrity"] == "":
+				p["integrity"] = "cracked"
+			else:
+				op = "none"
+		"mend":
+			if not mend(p):
+				op = "none"
+	if push > 0.0 and dir != Vector2.ZERO:
+		shove(p, dir, push)
+	if op != "none":
+		events_log.append([op, p["kind"]])
+	return op
+
+
+func _break(p: Dictionary) -> void:
+	p["integrity"] = "broken"
+	p["hp"] = 0.0
+	p["vel"] = Vector2.ZERO
+	arena.fx("dust", p["pos"], {"r": float(prop_def(p["kind"])["r"]) * 1.4, "life": 0.5})
+
+
+## The Force grade a spell's mark carries (spell spec §6.3): its stage, capped by the Ring;
+## cantrips are grade I.
+func grade_of(kind: String) -> int:
+	var spell: String = str(matter.carrier(kind).get("spell", ""))
+	return maxi(1, _prog().grade(spell)) if spell != "" else 1
+
+
+func _prog() -> Node:
+	return Engine.get_main_loop().root.get_node("Progression")
+
+
+## Applies a spell mark's force (data/materials.json carriers) to a prop.
+func hit_prop(p: Dictionary, kind: String, dir := Vector2.ZERO) -> String:
+	var c: Dictionary = matter.carrier(kind)
+	if c.is_empty():
+		return "none"
+	var spell: String = str(c.get("spell", ""))
+	var imp: float = float(_prog().spell(spell).get("impact", 1)) if spell != "" else 1.0
+	return apply_force(p, str(c["force"]), grade_of(kind), imp, dir, float(c.get("shove", 0.0)))
+
+
 ## The prop nearest `at` within `r` (plus its own size), or {}.
 ## Rewind on a prop: back to how it was this morning, unburnt and where it stood.
 func mend(p: Dictionary) -> bool:
-	if p["state"] == "" and p["pos"].distance_to(p["home"]) < 2.0:
+	if p["state"] == "" and p["integrity"] == "" and p["pos"].distance_to(p["home"]) < 2.0:
 		return false
 	_put_out(p)
 	p["state"] = ""
 	p["burn_t"] = 0.0
+	p["hp"] = float(prop_def(p["kind"]).get("hp", 1))
+	p["integrity"] = ""
+	p["wet_t"] = 0.0
+	p["heat_t"] = 0.0
 	p["pos"] = p["home"]
 	p["vel"] = Vector2.ZERO
 	p["spin"] = 0.0
@@ -477,15 +577,15 @@ func _magic() -> void:
 					events_log.append(["lit", "brazier"])
 			var pr := prop_at(at, float(p["r"]))
 			if not pr.is_empty():
-				ignite(pr)
+				hit_prop(pr, k)
 				lit = true
 			if lit:
 				arena.projs.erase(p)
 				arena.fx("burst", at, {"color": PixelArt.FIRE, "r": 7.0, "life": 0.3})
-		elif k == "pebble":
+		elif matter.carrier(k).get("force", "") == "impact":
 			var pr := prop_at(at, float(p["r"]))
 			if not pr.is_empty():
-				shove(pr, p["vel"])
+				hit_prop(pr, k, p["vel"])
 				arena.projs.erase(p)
 				arena.fx("dust", at, {"r": 5.0, "life": 0.25})
 	# Splash: a spray cone, once, when it is cast. Lightning: along its line, once.
@@ -494,11 +594,11 @@ func _magic() -> void:
 			continue
 		f["_w"] = true
 		if f["kind"] == "spray":
-			_water_cone(f["pos"], f["dir"], float(f["cone"]), float(f["r"]))
+			_water_cone(f["pos"], f["dir"], float(f["cone"]), float(f["r"]), "spray")
 			if exploring:
 				people.flinch(f["pos"] + f["dir"] * float(f["r"]) * 0.5)
-		elif f.has("to") and f["kind"] in pd["storm_zaps"]:
-			_storm_line(f["pos"], f["to"])
+		elif f.has("to") and matter.carrier(f["kind"]).get("force", "") == "lightning":
+			_storm_line(f["pos"], f["to"], f["kind"])
 			if exploring:
 				people.flinch(f["to"])
 	# Undertow: the wave douses and carries what it passes.
@@ -509,9 +609,7 @@ func _magic() -> void:
 		for pr in props:
 			var to: Vector2 = pr["pos"] - w["pos"]
 			if absf(to.dot(w["dir"])) < 10.0 + float(prop_def(pr["kind"])["r"]) and absf(to.dot(n)) < float(w["w"]) * 0.5 + 6.0:
-				douse(pr)
-				if pr["vel"].length() < 60.0:
-					shove(pr, w["dir"], 0.35)
+				hit_prop(pr, "wave", w["dir"] if pr["vel"].length() < 60.0 else Vector2.ZERO)
 		for l in lamps:
 			if l["lit"] and l["pos"].distance_to(w["pos"]) < float(w["w"]) * 0.5 + 6.0:
 				_douse_lamp(l)
@@ -525,7 +623,7 @@ func _magic() -> void:
 			"column", "kindle":
 				for pr in props:
 					if pr["pos"].distance_to(z["pos"]) < float(z["r"]) + float(prop_def(pr["kind"])["r"]):
-						ignite(pr)
+						hit_prop(pr, z["kind"])
 				for l in lamps:
 					if l["pos"].distance_to(z["pos"]) < float(z["r"]) + 6.0:
 						light_lamp(l, "you")
@@ -535,20 +633,20 @@ func _magic() -> void:
 			"rewind_form":
 				for pr in props:
 					if pr["home"].distance_to(z["pos"]) < float(pd["rewind_r"]) or pr["pos"].distance_to(z["pos"]) < float(pd["rewind_r"]):
-						mend(pr)
+						hit_prop(pr, "rewind_form")
 				# The Hours on a thing in the ruin: the great clock's replay, the stair mended.
 				for iid in map.items:
 					if map.items[iid]["at"].distance_to(z["pos"]) < float(pd["rewind_r"]) + 10.0 and item_visible(iid):
 						request({"t": "cast", "item": iid, "element": "hours"})
 						break
 			"douse":
-				_water_cone(z["pos"], Vector2.RIGHT, TAU, float(z["r"]))
+				_water_cone(z["pos"], Vector2.RIGHT, TAU, float(z["r"]), "douse")
 			"puddle", "whirl":
 				if z.get("millrace", false):
 					continue
 				for pr in props:
 					if pr["pos"].distance_to(z["pos"]) < float(z["r"]) + float(prop_def(pr["kind"])["r"]):
-						douse(pr)
+						hit_prop(pr, z["kind"])
 				for bz in arena.zones:
 					if bz["kind"] == "blaze" and bz["pos"].distance_to(z["pos"]) < float(z["r"]) + float(bz["r"]):
 						quench.append(bz)
@@ -561,16 +659,16 @@ func _magic() -> void:
 		var pr := prop_at(s["pos"], 3.0)
 		if not pr.is_empty() and not s["hit"].has(pr["home"]):
 			s["hit"].append(pr["home"])
-			shove(pr, s["vel"], 0.8)
+			hit_prop(pr, "fling", s["vel"])
 
 
-func _water_cone(at: Vector2, dir: Vector2, cone: float, r: float) -> void:
+func _water_cone(at: Vector2, dir: Vector2, cone: float, r: float, kind: String) -> void:
 	var inside := func(p: Vector2, pad: float) -> bool:
 		var to := p - at
 		return to.length() <= r + pad and absf(dir.angle_to(to)) <= cone * 0.5 + 0.2
 	for pr in props:
 		if inside.call(pr["pos"], float(prop_def(pr["kind"])["r"])):
-			douse(pr)
+			hit_prop(pr, kind)
 			if prop_def(pr["kind"]).get("roll", false):
 				shove(pr, pr["pos"] - at, 0.25)
 	for l in lamps:

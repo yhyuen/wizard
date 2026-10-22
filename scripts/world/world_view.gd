@@ -270,6 +270,9 @@ func _build_props() -> void:
 	for k in col:
 		_prop_mats[k] = Figure.finish(Figure.mat(col[k]), "prop")
 		_prop_mats[k + "_burning"] = Figure.finish(Figure.mat(col[k].darkened(0.55)), "prop")
+		_prop_mats[k + "_wet"] = Figure.finish(Figure.mat(col[k].darkened(0.35).lerp(Color("4a6680"), 0.25)), "prop")
+		_prop_mats[k + "_scorched"] = Figure.finish(Figure.mat(col[k].darkened(0.4)), "prop")
+		_prop_mats[k + "_cold"] = Figure.finish(Figure.mat(col[k].lerp(Color("cfe6f2"), 0.45)), "prop")
 	_prop_mats["ash"] = Figure.finish(Figure.mat(Color(str(pal["ash"]))), "stone")
 	for p in W.props:
 		var n := MeshInstance3D.new()
@@ -624,9 +627,26 @@ func _sync_props() -> void:
 				n.material_override = _prop_mats.get(p["kind"] + "_burning", _prop_mats["ash"])
 				n.scale = Vector3.ONE * (0.92 + 0.08 * float(p["burn_t"]) / maxf(1.0, float(W.prop_def(p["kind"])["burns"])))
 				want_light(to_world(p["pos"], 1.2), PixelArt.FIRE, 0.9, 5.0)
-			_:
-				n.material_override = _prop_mats.get(p["kind"], _prop_mats["crate"])
+			"smoulder":
+				n.material_override = _prop_mats.get(p["kind"] + "_scorched", _prop_mats["ash"])
 				n.scale = Vector3.ONE
+			"chilled", "brittle":
+				n.material_override = _prop_mats.get(p["kind"] + "_cold", _prop_mats["crate"])
+				n.scale = Vector3.ONE
+			_:
+				var wet: bool = float(p.get("wet_t", 0.0)) > 0.0
+				n.material_override = _prop_mats.get(p["kind"] + ("_wet" if wet else ""), _prop_mats["crate"])
+				n.scale = Vector3.ONE
+		# Break stages (spec §6): cracked leans and sags a little; broken is a low heap of rubble.
+		match str(p.get("integrity", "")):
+			"cracked":
+				n.scale *= Vector3(1.04, 0.9, 1.04)
+				n.rotation.z = 0.08
+			"broken":
+				if p["state"] != "ash":
+					n.material_override = _prop_mats.get(p["kind"] + "_scorched", _prop_mats["ash"])
+				n.scale = Vector3(1.35, 0.22, 1.2)
+				n.rotation.z = 0.0
 		if W.prop_def(p["kind"]).get("roll", false) and p["vel"].length() > 4.0:
 			# a barrel rolls over on its side while it travels
 			var v: Vector2 = p["vel"].normalized()

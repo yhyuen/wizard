@@ -97,7 +97,7 @@ tiers, gifts and tastes, companions, sworn friends; what of them carries across 
 - They flinch and complain when you cast near them; the captain scolds fire in the College ruins;
   Mira walks the lane at dusk lighting lamps.
 
-## Magic meets the world (`data/world/props.json`)
+## Magic meets the world (`data/materials.json`, `scripts/world/matter.gd`, `data/world/props.json`)
 
 *Target design: [spells and the environment](/mnt/project-files/design/world/spells-and-environment-spec.md)
 (2026-10-22, tracker M0-6; visual: [World Matter Atlas](https://claude.ai/artifact/2kDFnWVKykbTzChnjmPNhD)):
@@ -106,12 +106,32 @@ grid, breaking and collapse, damage that lasts the life, owners and witnesses. W
 [seasons, weather and calamities spec](/mnt/project-files/design/seasons/seasons-and-calamities-spec.md) (M0-13). The gaps are in
 [drift.md](drift.md). What follows is the build today.*
 
-- **Fire** spells (`fire_spells`) light lamps and braziers and set hay, crates and carts burning
-  (`burns` s, `spread` px, `dps` to enemies standing in it, then ash). **Water** spells put them
-  out. **Force** spells shove crates and barrels (`mass`, `roll`, `shove`).
-- **Lightning** (`storm_zaps`) flares iron lamps for 1.5 s and charges puddles for 4 s; a charged
-  puddle shocks enemies in it (5 every 0.5 s).
-- **Rewind** mends burnt and shoved props within 34 px back to how they were.
+- **The matter core** (N-4.1, spec §2–§4): `data/materials.json` lists the 16 world materials and
+  the three unit ones (break grade, fire grade, fuel, conducts, floats, warded), and the force ×
+  material table: per material and force, the op at or above the grade and the weak version
+  below it (one grade short of breaking cracks, more only dents). `matter.gd` `result()` answers;
+  `world.gd` `apply_force(prop, force, grade, impact, dir, push)` carries it out on a prop. Only
+  props use it so far.
+- **Carriers** (`materials.json` `carriers`): each spell's mark in the world (projectile, zone or
+  effect kind) names its force and spell; the grade is the spell's Force grade (its stage, capped
+  by the Ring, [growth.md](growth.md)); cantrips are grade I.
+- **Props** (`props.json`) have a `material`, `hp` and their own `break`/`fire` grades: hay is
+  cloth; crates, carts and barrels are wood; the cart breaks only at Impact II, and the barrel
+  (iron-banded) breaks at II and catches only at Fire II.
+- **States on a prop:** heat (smoulder 10 s, burning, ash, chilled or brittle 6 s), moisture (wet
+  20 s) and integrity (cracked, broken). Fire below the grade only smoulders it (scorched look);
+  fire on a wet prop dries it in a puff of steam; water puts out burning and smouldering and wets
+  it (a darker, bluish look). Impact at the grade takes its `impact` off the hp (cracked, then
+  broken at 0); one grade short cracks it, and a cracked prop's next such hit breaks it. A broken
+  prop is a low heap that no longer blocks and can't be shoved. A burning prop lights props within
+  `spread` as a grade I fire, so a barrel beside burning hay only smoulders.
+- **Fire** spells light lamps and braziers too (`burns` s, `dps` to enemies in a burning prop).
+  **Water** spells put lamps and braziers out. **Pebble**, **Fling** and Undertow's wave shove
+  what they hit (`mass`, `roll`, `shove`).
+- **Lightning** flares iron lamps for 1.5 s, charges puddles for 4 s (a charged puddle shocks
+  enemies in it, 5 every 0.5 s), and acts on the props along its line: hay catches at grade I,
+  wood only at II.
+- **Rewind** (Time) mends burnt, broken and shoved props within 34 px back to how they were.
 - **Cantrips** ([combat.md](combat.md)): Kindle acts on the world like Pillar's fire (lights lamps
   and braziers, sets props burning) and Douse like a splash all round its point (puts out props,
   lamps, braziers and burning patches). The **staff strike** shoves the prop in front of it.
