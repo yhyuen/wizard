@@ -18,6 +18,7 @@ const Calamity := preload("res://scripts/game/calamity.gd")
 const Bonds := preload("res://scripts/game/bonds.gd")
 const Rumours := preload("res://scripts/game/rumours.gd")
 const Commissions := preload("res://scripts/game/commissions.gd")
+const Ladder := preload("res://scripts/game/ladder.gd")
 const World := preload("res://scripts/world/world.gd")
 const Reach := preload("res://scripts/game/reach.gd")
 const Weather := preload("res://scripts/world/weather.gd")
@@ -33,7 +34,7 @@ const HINTS := {
 	"talk": "Number keys or a click pick a choice; Space carries on. L opens the Ledger at any time.",
 	"death": "Death resets your power, never what you know. Everything in the Ledger comes with you.",
 }
-const LEDGER_TABS := ["Questions", "Clues", "People", "Insights", "Appointments", "Lives", "Deeds", "Guide", "Rumours", "Commissions"]
+const LEDGER_TABS := ["Questions", "Clues", "People", "Insights", "Appointments", "Lives", "Deeds", "Guide", "Rumours", "Work"]
 ## The Ledger entry that means you know a person well enough to find them on the map.
 const MAX_BARKS := 2  # speech bubbles shown at once
 const KNOWN_PEOPLE := {"mira": "mira", "aldous": "aldous", "pell": "pell", "captain": "captain"}
@@ -49,6 +50,7 @@ var calamity  # scripts/game/calamity.gd: signs, the Eve, the Onset, the Dawn ta
 var bonds  # scripts/game/bonds.gd: each person's lamp and tier, gifts and tastes
 var rumours  # scripts/game/rumours.gd: what you've heard, in any life
 var commissions  # scripts/game/commissions.gd: the board's paid jobs, and crowns
+var ladder  # scripts/game/ladder.gd: the camp's dueling ladder
 var world  # scripts/world/world.gd
 var reach  # scripts/game/reach.gd: regions, roads, the calendar's events
 var weather  # scripts/world/weather.gd: each region's weather, the Almanac
@@ -109,6 +111,8 @@ func setup(the_main) -> void:
 	story.ctx.rumours = rumours
 	commissions = Commissions.new(run, calamity)
 	story.ctx.commissions = commissions
+	ladder = Ladder.new(run)
+	story.ctx.ladder = ladder
 	story.load_all()
 	for e in story.errors:
 		push_error("story: " + str(e))
@@ -811,6 +815,13 @@ func _effect(op: String, arg: String) -> bool:
 				toast("A rumour, in the Ledger." + ("  The calendar marks the date." if rr.get("points_at", {}).has("event") else ""))
 		"commission":
 			_commission(arg)
+		"ladder":
+			if arg == "bout":
+				ladder.bout()
+			elif arg == "win":
+				var purse: int = ladder.win()
+				if purse > 0:
+					toast("You hold rung %d of the camp ladder. Purse: %d crowns." % [ladder.rung(), purse], true)
 		"bond_cross":
 			if bonds.cross(arg):
 				toast("%s: %s." % [str(bonds.people[arg]["name"]), bonds.tier_name(bonds.tier(arg))], true)
@@ -1981,13 +1992,22 @@ func _draw_rumours(r: Rect2) -> void:
 		para(Vector2(x, y - 12), "No rumours yet. Stand near people who are talking, and listen.", r.size.x - 56, 13, DIM)
 
 
-## The Commissions tab (people spec §6.2): the jobs you're doing, the ones posted, the ones paid
-## this life, and the crowns you've earned.
+## The Work tab (people spec §6.2, §7.1): the commissions you're doing, the ones posted, the ones
+## paid this life, the crowns you've earned, and your rung on the camp ladder with the books you know.
 func _draw_commissions(r: Rect2) -> void:
 	var x := r.position.x + 28.0
 	var y := r.position.y + 78.0
 	text(Vector2(r.end.x - 230, y), "Crowns this year: %d" % int(run.life.get("crowns", 0)), 13, GOLD)
 	var rows: Array = commissions.ledger()
+	# the camp ladder (people spec §7.1): your rung, and the books you know
+	var lr: int = ladder.rung()
+	var lt := "The camp ladder: " + ("no rung yet" if lr == 0 else "rung %d of %d" % [lr, ladder.size()]) + ("  ·  Champion" if lr == ladder.size() else "")
+	text(Vector2(x, r.end.y - 52), lt, 13, GOLD)
+	var bk: Array = ladder.books()
+	if not bk.is_empty():
+		text(Vector2(x, r.end.y - 34), "Books: " + ", ".join(bk.map(func(b): return str(b["name"]).get_slice(",", 0))), 12, Color(PAPER, 0.8),
+			HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 190)
+	r = Rect2(r.position, r.size - Vector2(0, 60))
 	if rows.is_empty():
 		para(Vector2(x, y - 12), "No commissions yet. The board in the square has work, most weeks.", r.size.x - 300, 13, DIM)
 		return

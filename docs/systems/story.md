@@ -37,7 +37,7 @@ It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `c
 - **Effects:** `learn`, `set`, `clear`, `fight`, `wells`, `train`, `meditate`, `goto`, `end_loop`,
   `model`, `trial`, `sound`, `cutscene`, `move`, `take`, `sleep`, `book`, `today` (a once-a-day
   action, for `done(op)`), `go <map> <spot>` or `go <exit>`, `open <door>` (that door stands open for the life, even a gate whose prop still stands), `ignite <place>` (everything that burns in the current map's place rect catches, and the ground under it; not counted as unseen damage), `downed <days> <cause>` (when the scene closes: the hurt screen with the death text for `cause`, then `days` pass and you wake on your cot, Injured; not counted as a death), `standing <power> <n>`, `merit <n>` and `exam <power>` (the next rank in your road's power if its rows are met; [growth.md](growth.md) Powers), `sign <calamity> <sign>`, `prep <calamity> <prep>` (takes the time of day), `calamity_onset <calamity>` and `calamity_dawn <calamity>` ([loop.md](loop.md) Calamities), `remember <who> <deed>` (a person's memory of you, [world.md](world.md) People), `bond <who>
-  <source> [key] [amount]`, `bond_cross <who>`, `betray <who>` and `gift <who> <item>` ([world.md](world.md) Bonds), `rumour <id>` (Rumours below), `commission <id> take|next|clean|lose|slow|work|pay` (Commissions below), `play_path <id>`, `road <id>` (take a road
+  <source> [key] [amount]`, `bond_cross <who>`, `betray <who>` and `gift <who> <item>` ([world.md](world.md) Bonds), `rumour <id>` (Rumours below), `commission <id> take|next|clean|lose|slow|work|pay` (Commissions below), `ladder bout|win` (The camp ladder below), `play_path <id>`, `road <id>` (take a road
   for this life, [loop.md](loop.md)), `deed <id>` (a soul flag the Turning keeps; SEALED deeds
   open roads), `omen <id>` (take an Omen for this life), `forecast <who>` (that person says
   tomorrow's weather, [world.md](world.md)), `bench` (work at a bench: fill your devices from
@@ -45,7 +45,7 @@ It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `c
   [growth.md](growth.md) "Devices"). Conditions also have `mastered(school)` (that school at Master in this life or an earlier
   one, N-5.3), `guide_found()` and `guide_mastered()` (Field Guide counts, N-6.5,
   [combat.md](combat.md)), `on_road(id)`,
-  `offered(id)`, `omen(id)`, `omens()`, `omens_offered()`, `ended(cause)`, `attended(id)` and `missed(id)` (fixed events, [loop.md](loop.md)), `rumour_heard(id)` (Rumours below), `commission_step(id)`, `commission_posted(id)`, `commission_done(id)`, `commission_known(id)`, `commission_lost(id)`, `commission_clean(id)` and `commission_board_empty()` (Commissions below), `bond(who)` (your bond tier with them, 0–5) and `bond_ready(who)` (lamp full, a crossing scene
+  `offered(id)`, `omen(id)`, `omens()`, `omens_offered()`, `ended(cause)`, `attended(id)` and `missed(id)` (fixed events, [loop.md](loop.md)), `rumour_heard(id)` (Rumours below), `commission_step(id)`, `commission_posted(id)`, `commission_done(id)`, `commission_known(id)`, `commission_lost(id)`, `commission_clean(id)` and `commission_board_empty()` (Commissions below), `rung()`, `ladder_open()` and `ladder_book(n)` (The camp ladder below), `bond(who)` (your bond tier with them, 0–5) and `bond_ready(who)` (lamp full, a crossing scene
   can open the next tier; [world.md](world.md) Bonds), `calamity_in(id)` (days until
   that calamity, after the Early Bell) and `calamity_variant(id)` (its later-lives variant, 0 before
   it has been Held; [loop.md](loop.md) Calamities) (only while a life's
@@ -98,10 +98,25 @@ It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `c
   choices in the scene (light the round's lamps, prop the beam, freeze or drain the flood).
 - **Crowns** are kept for the life (`Run.life.crowns`); nothing sells for them yet.
 - The HUD's **jobs line** (under the main line's gold step) shows the job taken last and its
-  step; the Ledger's **Commissions** tab (0) lists doing, posted and done, with the crowns earned.
+  step; the Ledger's **Work** tab (0) lists doing, posted and done, with the crowns earned.
 - **Data check** (story_lint): every commission is taken and paid by some scene, enough scenes
   move it on, every step's place is on its map, the hook's place is a step's, and no commission
   scene gives what the main line needs.
+
+## The camp ladder (`data/world/ladders/camp.json`, `scripts/game/ladder.gd`, people spec §7.1; N-7.6.4)
+
+- Six rungs in the chalk ring in the College yard, each a named duelist showing a style: a stave
+  brawler (no magic), a hedge-witch (oil on the ground), a Lamplighter journeyman (sparks, then a
+  long reload), a Knights' squire (shield), a Drowned novice (frost from far off) and, at the top,
+  Silas Vane. Their fights are `ladder_1`..`ladder_6` ([combat.md](combat.md)).
+- The **ladder slate** (`ladder_post`, in the ring) lists them. At Dusk, once a week (7 days
+  since the last bout), you may challenge the rung above yours; a bout costs no time. Win: you hold
+  the rung, its purse (10/15/20/30/40/60 crowns) and, for every later life, the duelist's
+  **book** (what they open with, their range, their tell), which their scene then says. Lose: you
+  pick yourself up, bruised, no days lost, your rung kept.
+- The rung (`Run.life.rung`) resets each life; books carry (`Run.soul.ladder_books`). The Work tab
+  shows the rung and the books; holding the top rung is the **Top of the Slate** achievement.
+- **Data check** (story_lint): every rung has a duel of its kind and a scene that fights it.
 
 ## Cutscenes (`scripts/game/cutscene.gd`)
 
@@ -112,4 +127,4 @@ It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `c
 ## Tests
 
 `tools/tests/story_lint.gd` (every scene against its own map's people, items, spots and exits;
-parse errors; the 7-day rumour check; the commissions' checks), `tools/tests/route.gd`, `tools/tests/people.gd`.
+parse errors; the 7-day rumour check; the commissions' and the ladder's checks), `tools/tests/route.gd`, `tools/tests/people.gd`.

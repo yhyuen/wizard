@@ -43,6 +43,8 @@ extends RefCounted
 ## N-7.6.3 adds `commission <id> take|next|clean|lose|slow|work|pay` (scripts/game/commissions.gd)
 ## and the conditions commission_step, commission_posted, commission_done, commission_known,
 ## commission_lost, commission_clean and commission_board_empty.
+## N-7.6.4 adds `ladder bout|win` (scripts/game/ladder.gd) and the conditions rung(), ladder_open()
+## and ladder_book(n).
 
 const FieldGuide := preload("res://scripts/field_guide.gd")
 const MAPS := "res://data/world/maps.json"
@@ -50,7 +52,7 @@ const HEADER_KEYS := ["place", "days", "times", "when", "force", "priority", "re
 	"talk", "use", "arrive", "cast"]
 const EFFECTS := ["learn", "set", "clear", "fight", "wells", "train", "meditate", "goto", "end_loop",
 	"model", "trial", "sound", "cutscene", "move", "take", "sleep", "book", "today", "go", "open", "play_path", "road", "deed", "omen", "forecast", "bench", "remember", "ignite", "downed", "standing", "merit", "exam", "sign", "prep", "calamity_onset", "calamity_dawn",
-	"bond", "bond_cross", "betray", "gift", "rumour", "commission"]
+	"bond", "bond_cross", "betray", "gift", "rumour", "commission", "ladder"]
 
 var scenes := {}  # id -> scene dictionary
 var errors: Array = []  # parse errors, for the linter
@@ -67,6 +69,7 @@ class Ctx:
 	var bonds  # scripts/game/bonds.gd, when the slice has one
 	var rumours  # scripts/game/rumours.gd, when the slice has one
 	var commissions  # scripts/game/commissions.gd, when the slice has one
+	var ladder  # scripts/game/ladder.gd, when the slice has one
 
 	## A once-a-day action (meditate, train) already done today.
 	func done(op: String) -> bool:
@@ -183,6 +186,17 @@ class Ctx:
 	## Nothing posted on the camp's board now (a quiet week, or a calamity's).
 	func commission_board_empty() -> bool:
 		return commissions.posted_at("board").is_empty() if commissions != null else true
+
+	## The camp ladder (people spec §7.1; N-7.6.4): the rung you hold (0 none, 6 champion), whether
+	## you may challenge the next one now, and whether you know rung n's book from an earlier life.
+	func rung() -> int:
+		return ladder.rung() if ladder != null else 0
+
+	func ladder_open() -> bool:
+		return ladder.open() if ladder != null else false
+
+	func ladder_book(n: int) -> bool:
+		return ladder.book_known(n) if ladder != null else false
 
 	## Your bond tier with a person (0 Stranger .. 5 Sworn; people spec §4.1).
 	func bond(who: String) -> int:

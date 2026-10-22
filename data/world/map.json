@@ -176,14 +176,14 @@
   ["crate", 478, 1002, 10], ["crate", 500, 1022, 40], ["barrel", 360, 1062, 0], ["barrel", 512, 1200, 0],
   ["crate", 1180, 244, 0], ["crate", 1208, 252, 15], ["crate", 1022, 250, 30]
  ],
- "items": {"board": {"name": "The commissions board", "at": [1675, 922], "verb": "Read", "reach": 30}, "duty_slate": {"name": "The duty slate", "at": [1000, 872], "verb": "Read", "reach": 26}, 
+ "items": {"ladder_post": {"name": "The ladder slate", "at": [784, 700], "verb": "Read", "reach": 26}, "board": {"name": "The commissions board", "at": [1675, 922], "verb": "Read", "reach": 30}, "duty_slate": {"name": "The duty slate", "at": [1000, 872], "verb": "Read", "reach": 26}, 
   "cot": {"name": "Your cot", "at": [990, 1160], "verb": "Use", "reach": 26},
   "dwarf_crate": {"name": "The dwarves' salvage crate", "at": [1188, 1066], "verb": "Look", "reach": 28},
   "targets": {"name": "The watch's straw targets", "at": [1745, 1050], "verb": "Train", "reach": 30},
   "bench": {"name": "The Lamplighters' bench", "at": [930, 966], "verb": "Work at", "reach": 28},
   "east_gate": {"name": "The east gate", "at": [2104, 1030], "verb": "Look", "reach": 34}
  },
- "spawns": {"patrol": {"ring": [150, 200]}, "toll": {"ring": [150, 210], "ring_n": 6}, "lamp_night": {"ring": [150, 210], "ring_n": 6}, "c1_peak": {"ring": [170, 240], "ring_n": 8}, "stair_test": {"ring": [150, 210], "ring_n": 6}, "picket": {"ring": [150, 210], "ring_n": 6}, "watch_cell": {"ring": [150, 210], "ring_n": 6}},
+ "spawns": {"ladder_1": {"points": [[740, 640]]}, "ladder_2": {"points": [[740, 640]]}, "ladder_3": {"points": [[740, 640]]}, "ladder_4": {"points": [[740, 640]]}, "ladder_5": {"points": [[740, 640]]}, "ladder_6": {"points": [[740, 640]]}, "patrol": {"ring": [150, 200]}, "toll": {"ring": [150, 210], "ring_n": 6}, "lamp_night": {"ring": [150, 210], "ring_n": 6}, "c1_peak": {"ring": [170, 240], "ring_n": 8}, "stair_test": {"ring": [150, 210], "ring_n": 6}, "picket": {"ring": [150, 210], "ring_n": 6}, "watch_cell": {"ring": [150, 210], "ring_n": 6}},
  "ruin_walls": [
   [560, 230, 300, 14, 92], [560, 230, 14, 190, 70], [846, 230, 14, 120, 54], [560, 406, 110, 14, 40],
   [770, 406, 90, 14, 30], [1300, 520, 160, 12, 48], [1448, 520, 12, 160, 40], [1300, 520, 12, 90, 34]

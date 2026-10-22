@@ -1,5 +1,5 @@
 {
- "_doc": "Every fight in place (design/ruins/content.md). R1 has the night patrol in the College ruins; R2 adds the halls. waves run one after another (the next starts when the yard is clear); with survive > 0 they arrive on a timer instead and the fight is won by lasting that many seconds. lethal: losing ends the loop. unkillable: kinds that are knocked down (for down_time seconds) instead of dying. hits: a duel won by the first to land that many hits of at least hit_min damage; trickle: in a survive fight, one more Hollow every that many seconds; tell: the rival always opens with his lance, and stands for lance_recover seconds after each one. leash: in the town, how far (sim px) the mist lets you stray from where the fight began (220 unless given). max_alive: the trickle waits while that many enemies are up. light_shy: false means the Hollows ignore lamplight (the tide is too many for it); otherwise they won't step into a lit lamp's pool. In the halls a group can come out of a named crack (\"crack\": it glows for glow seconds, 1 unless the encounter gives one, then its embers burst out one after another), wait \"at\" seconds into its wave, and give its units \"flags\". flooded_by: the once-a-day action (the sluice) that starts the guardian quenched; a \"guardian\" group is the one it floods. waived: the waves used once you know that trial (the Warden comes straight to its second phase). cause: what losing it ends the life with, when not fight:<id> (a calamity's Peak, N-7.5.1). shorter: {flag, survive}: with that life flag set the survive time is that instead (N-7.5.2). vigil (N-7.5.2, seasons spec §8.5): the people in the camp's circuit-lamp pools: `people` spread round the circuit lamps (`shelter`.n fewer with its life flag); a lamp that is dark with an enemy within `near_r` for `taken_s` s loses its people (Run.life calamity_lost); with the `helpers` flag a helper relights a dark circuit lamp with no enemy near every `every` s; with the `bribed` flag (and helpers), `at` s in one of them puts out `n` lit circuit lamps instead. toll (N-6.3): the brigands' bridge toll (enemy spec §13.1, places spec F13); it is placed at the east road's toll bridge (N-7.1.6). Losing to people isn't lethal (you wake injured). lamp_night (N-6.3): the new Hollows (Lantern-eater and Choir, then an Overdrawn Husk); its kinds are placed in the city's depot, square_choir and glassworks fights; this mixed group stays for the fight tests. picket (N-6.6): the Knights of the Iron Oath on the camp's edge (enemy spec \u00a78.3), two Shieldknights side by side with Squires and a Silencer behind; it is placed at the east road's picket and isn't lethal. watch_cell (N-6.7): the cult's cell in the Old Watch (places spec F8), three Acolytes and a Saboteur; it is placed in the Old Watch on Seedmoon nights and isn't lethal. place (N-7.1.6, places spec §10.2): [map, place, spot], where the fight is placed (a scene in that map's story arriving at the place starts it, with its times and refill) and the spot the fight tests start from. com_* (N-7.6.3, people spec §6.3): the commissions' fights, none lethal; a loss leaves the step open and a slower peaceful way.",
+ "_doc": "Every fight in place (design/ruins/content.md). R1 has the night patrol in the College ruins; R2 adds the halls. waves run one after another (the next starts when the yard is clear); with survive > 0 they arrive on a timer instead and the fight is won by lasting that many seconds. lethal: losing ends the loop. unkillable: kinds that are knocked down (for down_time seconds) instead of dying. hits: a duel won by the first to land that many hits of at least hit_min damage; trickle: in a survive fight, one more Hollow every that many seconds; tell: the rival always opens with his lance, and stands for lance_recover seconds after each one. leash: in the town, how far (sim px) the mist lets you stray from where the fight began (220 unless given). max_alive: the trickle waits while that many enemies are up. light_shy: false means the Hollows ignore lamplight (the tide is too many for it); otherwise they won't step into a lit lamp's pool. In the halls a group can come out of a named crack (\"crack\": it glows for glow seconds, 1 unless the encounter gives one, then its embers burst out one after another), wait \"at\" seconds into its wave, and give its units \"flags\". flooded_by: the once-a-day action (the sluice) that starts the guardian quenched; a \"guardian\" group is the one it floods. waived: the waves used once you know that trial (the Warden comes straight to its second phase). cause: what losing it ends the life with, when not fight:<id> (a calamity's Peak, N-7.5.1). shorter: {flag, survive}: with that life flag set the survive time is that instead (N-7.5.2). vigil (N-7.5.2, seasons spec §8.5): the people in the camp's circuit-lamp pools: `people` spread round the circuit lamps (`shelter`.n fewer with its life flag); a lamp that is dark with an enemy within `near_r` for `taken_s` s loses its people (Run.life calamity_lost); with the `helpers` flag a helper relights a dark circuit lamp with no enemy near every `every` s; with the `bribed` flag (and helpers), `at` s in one of them puts out `n` lit circuit lamps instead. toll (N-6.3): the brigands' bridge toll (enemy spec §13.1, places spec F13); it is placed at the east road's toll bridge (N-7.1.6). Losing to people isn't lethal (you wake injured). lamp_night (N-6.3): the new Hollows (Lantern-eater and Choir, then an Overdrawn Husk); its kinds are placed in the city's depot, square_choir and glassworks fights; this mixed group stays for the fight tests. picket (N-6.6): the Knights of the Iron Oath on the camp's edge (enemy spec \u00a78.3), two Shieldknights side by side with Squires and a Silencer behind; it is placed at the east road's picket and isn't lethal. watch_cell (N-6.7): the cult's cell in the Old Watch (places spec F8), three Acolytes and a Saboteur; it is placed in the Old Watch on Seedmoon nights and isn't lethal. place (N-7.1.6, places spec §10.2): [map, place, spot], where the fight is placed (a scene in that map's story arriving at the place starts it, with its times and refill) and the spot the fight tests start from. com_* (N-7.6.3, people spec §6.3): the commissions' fights, none lethal; a loss leaves the step open and a slower peaceful way. ladder_<n> (N-7.6.4, people spec §7.1): the camp ladder's six duels in the chalk ring, each to three clean hits (hit_min damage or Impact 3), a KO or a yield; a loss is a bruise, not an injury.",
  "encounters": {
   "patrol": {
    "title": "Hollows in the ruins",
@@ -213,6 +213,66 @@
    "faction": "beasts",
    "lethal": false,
    "waves": [[{"kind": "granary_rat", "n": 4}], [{"kind": "granary_rat", "n": 4}], [{"kind": "granary_rat", "n": 4}]]
+  },
+  "ladder_1": {
+   "title": "The ladder: the brawler",
+   "place": ["camp", "duel_ring", "duel_ring"],
+   "faction": "duelists",
+   "lethal": false,
+   "hits": 3,
+   "hit_min": 8,
+   "leash": 200,
+   "waves": [[{"kind": "stave_brawler", "n": 1}]]
+  },
+  "ladder_2": {
+   "title": "The ladder: the hedge-witch",
+   "place": ["camp", "duel_ring", "duel_ring"],
+   "faction": "duelists",
+   "lethal": false,
+   "hits": 3,
+   "hit_min": 8,
+   "leash": 200,
+   "waves": [[{"kind": "hedge_witch", "n": 1}]]
+  },
+  "ladder_3": {
+   "title": "The ladder: the journeyman",
+   "place": ["camp", "duel_ring", "duel_ring"],
+   "faction": "duelists",
+   "lethal": false,
+   "hits": 3,
+   "hit_min": 8,
+   "leash": 200,
+   "waves": [[{"kind": "journeyman", "n": 1}]]
+  },
+  "ladder_4": {
+   "title": "The ladder: the squire",
+   "place": ["camp", "duel_ring", "duel_ring"],
+   "faction": "duelists",
+   "lethal": false,
+   "hits": 3,
+   "hit_min": 8,
+   "leash": 200,
+   "waves": [[{"kind": "oath_squire", "n": 1}]]
+  },
+  "ladder_5": {
+   "title": "The ladder: the Drowned novice",
+   "place": ["camp", "duel_ring", "duel_ring"],
+   "faction": "duelists",
+   "lethal": false,
+   "hits": 3,
+   "hit_min": 8,
+   "leash": 200,
+   "waves": [[{"kind": "drowned_novice", "n": 1}]]
+  },
+  "ladder_6": {
+   "title": "The ladder: Silas Vane",
+   "place": ["camp", "duel_ring", "duel_ring"],
+   "faction": "duelists",
+   "lethal": false,
+   "hits": 3,
+   "hit_min": 8,
+   "leash": 200, "tell": true, "lance_recover": 1.2,
+   "waves": [[{"kind": "rival", "n": 1}]]
   },
   "warden": {
    "title": "The Kiln Warden",

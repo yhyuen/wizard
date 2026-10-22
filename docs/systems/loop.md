@@ -196,11 +196,12 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
   ended. Earning one keeps it in the soul (with life, moon and day), adds its title (worn at once
   if you wear none), lists it on the life's page under Opened, writes the soul, and copies it to
   the profile (`user://profile.json`, save spec §3). A gold toast names the deed and its title.
-- Six so far, none from the story: **The First Ring** (a Ring's trial), **A Cold Kiln** (the
+- Seven so far, none from the story: **The First Ring** (a Ring's trial), **A Cold Kiln** (the
   Kiln Warden), **To the Last Day** (a year to the Eclipse), **Under a Bad Sky** (hidden: a
   year finished, at the Eclipse or by turning, under an Omen), and from the Field Guide **Field
   Notes** (five kinds' weaknesses found, `guide_found()`) and **Old Hand** (three kinds mastered,
-  `guide_mastered()`).
+  `guide_mastered()`), and from the camp ladder **Top of the Slate** (hold the top rung,
+  `rung() >= 6`; title Champion of the Ring).
 - The Ledger's **Deeds** tab (7): the titles earned (click one to wear it), then every
   achievement: earned ones in gold with when, hidden ones as "?" and the hint, sealed (story) ones
   as "A deed not yet done". A road's `opens_by` may name an achievement as well as a deed.

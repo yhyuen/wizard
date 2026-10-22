@@ -14,7 +14,7 @@ func _init(arena, ai) -> void:
 
 
 func mind(u: Unit, dt: float) -> bool:
-	match u.kind:
+	match str(_rec(u).get("mind", u.kind)):
 		"acolyte":
 			_acolyte(u, dt)
 		"saboteur":
@@ -30,7 +30,7 @@ func _rec(u: Unit) -> Dictionary:
 
 func _acolyte(u: Unit, dt: float) -> void:
 	var e := _rec(u)
-	if not A.stats.has("runner_id") and not u.flags.has("caller"):
+	if e.has("alarm") and not A.stats.has("runner_id") and not u.flags.has("caller"):
 		A.stats["runner_id"] = u.id  # the first one runs for help
 		u.flags["runner"] = float(e["alarm"]["run_s"])
 	if u.flags.has("runner"):
