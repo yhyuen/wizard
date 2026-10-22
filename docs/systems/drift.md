@@ -18,7 +18,7 @@ tracker's `needs`.*
 ## Combat: the target spec vs the build
 
 The [spell and combat spec](/mnt/project-files/design/combat/spell-and-combat-spec.md) (2026-10-22,
-tracker M0-4) is the design for spells and fights in the long-loop direction. Its §14 is the full
+tracker M0-4) is the design for spells and fights in the long-loop direction. Its §15 is the full
 table; the big gaps:
 
 | Target spec says | As built | Where |
@@ -30,6 +30,7 @@ table; the big gaps:
 | Eight schools, each with its own casting act and rule | No schools; Spheres only | [combat.md](combat.md) |
 | One force × material table for props, tiles and units | Per-spell lists in `props.json` for fire, water, force, lightning | [world.md](world.md) |
 | Combined spells from two mastered schools | Magicks (old Mill fight only) | [combat.md](combat.md) |
+| Spells grow on seven visible axes over 20 levels in four stages, with breakthrough trials, Force grades I–V and prerequisite spells | 15 levels, stat numbers, milestone picks at 5/10/15, no prerequisites | [growth.md](growth.md) |
 
 ## Known differences inside the build
 
