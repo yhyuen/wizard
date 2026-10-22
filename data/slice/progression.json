@@ -5,7 +5,7 @@
  "ring_wells": [0, 0, 20, 40, 70],
  "_cap_doc": "The 4th Ring is as far as the slice goes: wells stop growing at well_cap.",
  "well_cap": 80,
- "slots": [2, 4, 4, 4, 6],
+ "slots": [2, 3, 3, 4, 4],
  "tier_ring": {"bolt": 0, "control": 1, "signature": 4},
  "hp_base": 100,
  "hp_per_well": 2,
@@ -19,6 +19,5 @@
  "fluency_per_loop": 0.1,
  "fluency_cap": 0.5,
  "fluency_day": 7,
- "start_models": ["ember_bolt", "pebble", "pillar", "fling"],
- "ward": {"charges": 2, "time": 1.2}
+ "start_models": ["ember_bolt", "pebble", "pillar", "fling"]
 }

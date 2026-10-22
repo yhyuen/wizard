@@ -10,8 +10,8 @@ extends SceneTree
 ## mends the shoved crate; a Hollow won't step into a lit lamp's pool; fire in the College ruins
 ## makes the watch captain flinch and scold; lighting Mira's lane gets her thanks.
 
-const BOOK := ["ember_bolt", "pebble", "splash", "undertow", "pillar", "fling"]
-const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt", "pebble", "undertow"]
+const BOOK := ["ember_bolt", "pebble", "splash", "undertow"]
+const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt"]
 const WAIT := 150  # frames a case may take
 const LIGHT_WAIT := 240  # the lamp-pool case watches a Hollow for this long
 
@@ -152,6 +152,7 @@ func _cast_at(target: Vector2, spell: String, dist := 50.0) -> void:
 			break
 	main.place_player(at)
 	main.arena.kit.aether = main.arena.kit.max_aether()
+	main.arena.player.cd.clear()  # each case casts fresh, whatever the last one cooled down
 	var slot: String = main.arena.kit.slot_of(spell)
 	if slot == "":
 		failures.append("%s is not in the spellbook" % spell)
@@ -163,15 +164,17 @@ func _intent(A) -> Dictionary:
 	if cast.is_empty() or cast["slot"] == "":
 		return out
 	out["aim"] = cast["aim"]
-	if cast["f"] == 0 and (A.kit.cast_t > 0.0 or A.hitstop > 0.0):
+	if cast["f"] == 0 and (not A.kit.wind.is_empty() or A.kit.recover_t > 0.0 or A.hitstop > 0.0):
 		return out  # the last spell is still being cast, or a hit froze the frame (input is lost then)
 	cast["f"] += 1
+	# Held through the spell's wind-up, then released.
+	var up := 2 + int(ceil(A.kit.windup(A.kit.slot_spell(cast["slot"])) * 60.0)) + 2
 	if cast["f"] == 2:
 		out["pressed"][cast["slot"]] = true
 		out["held"][cast["slot"]] = true
-	elif cast["f"] < 14:
+	elif cast["f"] < up:
 		out["held"][cast["slot"]] = true
-	elif cast["f"] == 14:
+	elif cast["f"] == up:
 		out["released"][cast["slot"]] = true
 	return out
 
@@ -295,6 +298,7 @@ func _captain_setup() -> void:
 	var p = world.people.get_person("captain")
 	main.place_player(p.pos + Vector2(0, -40))
 	main.arena.kit.aether = main.arena.kit.max_aether()
+	main.arena.player.cd.clear()
 	cast = {"slot": main.arena.kit.slot_of("ember_bolt"), "aim": p.pos, "f": 0}
 
 

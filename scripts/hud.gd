@@ -1,20 +1,25 @@
 extends Control
 ## Interface at 960×540 in the Star Atlas style (GDD 6.6): navy glass panels with gold hairlines,
-## Cormorant small caps, planetary glyphs. The spellbook is a constellation of six star rings
-## with the Magick as a gold diamond; Vitality and Aether are fine lines; Cadence is four stars at
-## the reticle; a row of 28 moon phases ends in the Eclipse, with the time of day under it. Also
-## the level-up toasts and the milestone picker. The game's own screens are scripts/game/slice.gd.
+## Cormorant small caps, planetary glyphs. The spellbook is a constellation of four star rings,
+## then the two cantrips and the Ward's diamond (the stand-in bar of the UI spec §10); Vitality
+## and Aether are fine lines, with Strain as a red end on Aether, and your Focus beside them;
+## Cadence is four stars at the reticle and a wind-up fills a ring round it; a row of 28 moon
+## phases ends in the Eclipse, with the time of day under it. Also the level-up toasts and the
+## milestone picker. The game's own screens are scripts/game/slice.gd.
 
 const Tris := preload("res://scripts/ui/tris.gd")
-const SLOTS := ["slot1", "slot2", "slot3", "slot4", "slot5", "slot6", "magick"]
+const SLOTS := ["slot1", "slot2", "slot3", "slot4"]
+const CANTRIPS := ["cant1", "cant2"]
 const AETHER := Color("b48cff")
 const BG := Color(0.035, 0.055, 0.125, 0.8)  # navy glass
 const HAIR := Color("d8c27a")  # gold hairline
 const VITAL := Color("e8e4d8")
 const RING_R := 22.0
-## The six stars of the spellbook, then the Magick's diamond (HUD coordinates).
-const STARS := [Vector2(273, 476), Vector2(356, 458), Vector2(439, 476), Vector2(522, 458), Vector2(605, 476), Vector2(688, 458)]
-const MAGICK_AT := Vector2(800, 470)
+## The four stars of the spellbook, the two cantrips, then the Ward's diamond (HUD coordinates).
+const STARS := [Vector2(300, 476), Vector2(383, 458), Vector2(466, 476), Vector2(549, 458)]
+const CANT_AT := [Vector2(636, 478), Vector2(690, 478)]
+const CANT_R := 14.0
+const WARD_AT := Vector2(790, 470)
 const LOOP_DAYS := 28
 
 var main
@@ -220,12 +225,19 @@ func _draw_fight() -> void:
 	_text(Vector2(20, 53), "Vitality", 11, Color(VITAL, 0.8))
 	_text(Vector2(20, 53), "%d / %d" % [ceili(maxf(P.hp, 0.0)), int(P.max_hp)], 11, Color(VITAL, 0.8), HORIZONTAL_ALIGNMENT_RIGHT, 194)
 	_meter(Vector2(20, 59), 194, maxf(P.hp, 0.0) / P.max_hp, VITAL if P.hp > P.max_hp * 0.3 else PixelArt.DANGER, P.hp_lag / P.max_hp)
+	# Aether: the pool, and Strain (from Overdraw) as a red end that rest clears.
+	var pool: float = maxf(1.0, Progression.max_aether())
 	_text(Vector2(20, 76), "Aether", 11, Color(AETHER, 0.9))
-	_text(Vector2(20, 76), "%d / %d" % [int(kit.aether), int(kit.max_aether())], 11, Color(AETHER, 0.9), HORIZONTAL_ALIGNMENT_RIGHT, 194)
-	_meter(Vector2(20, 82), 194, kit.aether / kit.max_aether(), AETHER)
+	var strain_s: String = "  ·  Strain %d" % int(kit.strain) if kit.strain >= 1.0 else ""
+	_text(Vector2(20, 76), "%d / %d%s" % [int(kit.aether), int(kit.max_aether()), strain_s], 11, Color(AETHER, 0.9), HORIZONTAL_ALIGNMENT_RIGHT, 194)
+	_meter(Vector2(20, 82), 194, kit.aether / pool, AETHER)
+	if kit.strain > 0.0:
+		var sx: float = 20.0 + 194.0 * clampf(kit.max_aether() / pool, 0.0, 1.0)
+		_g.line(Vector2(sx, 82), Vector2(214, 82), PixelArt.DANGER, 2.0)
 	_text(Vector2(20, 100), "Blink", 11, Color(VITAL, 0.7))
 	for i in Progression.blink_charges():
 		star(Vector2(58 + i * 12, 96), 4.0, VITAL if i < kit.blink_charges else Color(VITAL, 0.18))
+	_text(Vector2(20, 100), "Focus %d" % kit.focus(), 11, Color(VITAL, 0.7), HORIZONTAL_ALIGNMENT_RIGHT, 194)
 	# One row of field-object diamonds per sphere in the book that has one.
 	for row in rows.size():
 		var f: Dictionary = field_count(rows[row])
@@ -256,23 +268,16 @@ func _draw_fight() -> void:
 	if banner != "" and banner_t < 3.2:
 		var a := clampf(3.2 - banner_t, 0.0, 1.0) * clampf(banner_t * 4.0, 0.0, 1.0)
 		_title(Vector2(0, 84), banner, 20, Color(PixelArt.PAPER, a), HORIZONTAL_ALIGNMENT_CENTER, 960)
-	# Hover: hits to kill with your current Bolt (design doc §4.4) and Poise.
+	# Hover: the enemy's Poise and Focus (Impact above Focus breaks its wind-up).
 	var h: Unit = arena.hover
 	if h and main.mode in ["world", "fight"]:
 		var sp: Vector2 = arena.screen_pos(h.pos, 1.8 if arena.view else 15.0) + Vector2(14, 0)
-		var bolt := ""
-		for s in kit.SLOTS:
-			if kit.is_bolt(kit.slot_spell(s)):
-				bolt = kit.slot_spell(s)
-				break
-		if bolt != "":
-			var hits := ceili(h.hp / (Progression.stat(bolt, "damage") * kit.dull(bolt)))
-			_text(sp, "×%d" % hits, 13, kit.element_color(Progression.spell(bolt)["element"]))
-		_text(sp + Vector2(0, 13), "Poise %d" % h.poise, 10, Color(1, 1, 1, 0.75))
+		_text(sp + Vector2(0, 13), "Poise %d  ·  Focus %d" % [h.poise, arena.ai.focus(h)], 10, Color(1, 1, 1, 0.75))
 	if main.slice.in_dialogue():
 		return  # the dialogue panel sits where the spellbook row is
 	if main.mode in ["world", "fight"]:
 		_draw_cadence_stars()
+		_draw_windup()
 	_draw_book()
 
 
@@ -350,6 +355,18 @@ func _draw_cadence_stars() -> void:
 		_title(at + Vector2(0, 14), "Resonant", 10, PixelArt.GOLD)
 
 
+## A wind-up: a ring round the reticle fills until the spell can be released.
+func _draw_windup() -> void:
+	var kit = arena.kit
+	if kit.wind.is_empty():
+		return
+	var at: Vector2 = arena.screen_pos(arena.mouse, 0.0)
+	var k: float = kit.wind_k()
+	var col: Color = PixelArt.PAPER if k >= 1.0 else kit.element_color(Progression.spell(kit.wind["id"])["element"])
+	_g.arc(at, 13.0, 0, TAU, 32, Color(col, 0.2), 1.0)
+	_g.arc(at, 13.0, -PI / 2.0, -PI / 2.0 + TAU * k, 32, col, 2.0)
+
+
 ## The field-object row for an element: its name, how many are out and the cap (design doc §4.3).
 func field_count(element: String) -> Dictionary:
 	var F: Dictionary = arena.D["field"]
@@ -369,26 +386,45 @@ func _zones_of(kind: String) -> int:
 	return arena.zones.filter(func(z): return z["kind"] == kind).size()
 
 
-## The spellbook as a constellation: the six stars joined by fine gold lines over a long arc,
-## each a ring in its sphere's colour with the planet's glyph; the Magick is the diamond.
+## The spellbook as a constellation: the four stars joined by fine gold lines over a long arc,
+## each a ring in its sphere's colour with the planet's glyph; then the cantrips and the Ward.
 func _draw_book() -> void:
 	var kit = arena.kit
 	# The rings, the constellation and the level arcs change rarely: drawn from a cache.
 	var key: Array = []
-	for i in 6:
+	for i in SLOTS.size():
 		key.append(_ring_key(SLOTS[i], kit.slot_spell(SLOTS[i])))
 	_g.cached(get_canvas_item(), "book", key, _book_shapes)
 	var hover := ""
 	var mouse := get_local_mouse_position()
-	for i in 6:
+	for i in SLOTS.size():
 		var slot: String = SLOTS[i]
 		var id: String = kit.slot_spell(slot)
 		_draw_star_slot(STARS[i], slot, id)
 		if mouse.distance_to(STARS[i]) < RING_R + 4.0:
 			hover = id
-	_draw_magick(MAGICK_AT, "magick", kit.slot_spell("magick"))
+	for i in CANTRIPS.size():
+		_draw_cantrip(CANT_AT[i], CANTRIPS[i], kit.slot_spell(CANTRIPS[i]))
+	_draw_ward(WARD_AT, 20.0)
 	if hover != "" and main.mode in ["world", "fight"]:
 		_draw_spell_tip(hover, mouse)
+
+
+## A cantrip: a small ring with its glyph, its charges as dots under it.
+func _draw_cantrip(c: Vector2, slot: String, id: String) -> void:
+	if id == "":
+		return
+	var kit = arena.kit
+	var cd: Dictionary = kit.cantrip(id)
+	var col: Color = kit.element_color(cd["element"])
+	var n: int = int(kit.cant_charges.get(id, 0))
+	_g.circle(c, CANT_R + 1.0, Color(0.03, 0.045, 0.1, 0.9))
+	_g.arc(c, CANT_R, 0, TAU, 28, PixelArt.DANGER if kit.denied.has(slot) else (col if n > 0 else Color(col, 0.35)), 1.5)
+	_text(c + Vector2(-20, 6), _glyph(cd["element"]), 15, col if n > 0 else Color(col, 0.35), HORIZONTAL_ALIGNMENT_CENTER, 40)
+	_title(c + Vector2(-30, -CANT_R - 6), main.controls.key(slot), 10, Color(HAIR, 0.85), HORIZONTAL_ALIGNMENT_CENTER, 60)
+	_text(c + Vector2(-40, CANT_R + 13), cd["name"], 11, PixelArt.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 80)
+	for i in int(cd["charges"]):
+		_g.circle(c + Vector2((i - (int(cd["charges"]) - 1) / 2.0) * 7.0, CANT_R + 20), 2.0, col if i < n else Color(col, 0.2))
 
 
 ## What a slot's ring looks like: its spell, colour, width and level arc.
@@ -419,7 +455,7 @@ func _book_shapes() -> void:
 	_g.polyline(arc, Color(HAIR, 0.25), 1.0)
 	for i in STARS.size() - 1:
 		_g.line(STARS[i], STARS[i + 1], Color(HAIR, 0.3), 1.0)
-	for i in 6:
+	for i in SLOTS.size():
 		var c: Vector2 = STARS[i]
 		var k: Array = _ring_key(SLOTS[i], arena.kit.slot_spell(SLOTS[i]))
 		if k[0] == "":
@@ -462,68 +498,20 @@ func _draw_star_slot(c: Vector2, slot: String, id: String) -> void:
 		star(c + Vector2(_text_w(label, 12) / 2.0 + 6, RING_R + 10), 3.0)
 	var cost: float = kit.aether_cost(id)
 	if cost > 0.0:
-		_text(c + Vector2(-50, RING_R + 27), "%d aether" % int(cost), 9, AETHER if kit.aether >= cost else PixelArt.DANGER, HORIZONTAL_ALIGNMENT_CENTER, 100)
-	var d: float = kit.dull(id)
-	if d < 0.999:
-		_text(c + Vector2(RING_R - 4, -RING_R + 4), "×%.2f" % d, 10, PixelArt.DANGER)
+		_text(c + Vector2(-50, RING_R + 27), "%d aether  ·  %s" % [int(cost), kit.band(id).capitalize()], 9, AETHER if kit.aether >= cost else PixelArt.DANGER, HORIZONTAL_ALIGNMENT_CENTER, 100)
 
 
-## The Magick: a gold diamond. Unknown Magicks show a tome's hint if one was read (design doc §5).
-func _draw_magick(c: Vector2, slot: String, id: String) -> void:
-	var kit = arena.kit
-	var r := 20.0
-	if Progression.rules.has("ward"):
-		_draw_ward(c, r)
-		return
-	_title(c + Vector2(-50, -r - 8), "C  ·  Magick", 10, Color(HAIR, 0.85), HORIZONTAL_ALIGNMENT_CENTER, 100)
-	var border := Color(HAIR, 0.8)
-	if id == "":
-		_diamond(c, r, Color(HAIR, 0.25), false)
-		_text(c + Vector2(-70, r + 15), "None for these spheres", 11, Color(1, 1, 1, 0.5), HORIZONTAL_ALIGNMENT_CENTER, 140)
-		return
-	var m: Dictionary = arena.D["magicks"][id]
-	var known := Progression.knows(id)
-	if glow.has(id):
-		border = PixelArt.GOLD if int(glow[id] * 8.0) % 2 == 0 else PixelArt.PAPER
-	if kit.denied.has(slot):
-		border = PixelArt.DANGER
-	_diamond(c, r + 1.0, Color(0.03, 0.045, 0.1, 0.9))
-	_diamond(c, r, border if known else Color(border, 0.4), false)
-	_diamond(c, r - 4.0, Color(border, 0.25 if known else 0.1), false)
-	var el: Dictionary = arena.D["elements"]
-	var g := "%s%s" % [_glyph(m["pair"][0]), _glyph(m["pair"][1])]
-	var left: float = arena.player.cooldown(id)
-	if left > 0.0:
-		_text(c + Vector2(-30, 6), "%.1f" % left, 15, PixelArt.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 60)
-	else:
-		_text(c + Vector2(-30, 6), g, 15, PixelArt.GOLD if known else Color(1, 1, 1, 0.35), HORIZONTAL_ALIGNMENT_CENTER, 60)
-	if not known:
-		_text(c + Vector2(-80, r + 15), "Unknown Magick", 12, Color(1, 1, 1, 0.6), HORIZONTAL_ALIGNMENT_CENTER, 160)
-		var hint: String = " ".join(m["hint_card"]) if Progression.has_hint(id) else "Make %s and %s meet." % [el[m["pair"][0]]["name"], el[m["pair"][1]]["name"]]
-		_text(c + Vector2(-80, r + 28), hint, 9, Color(1, 1, 1, 0.45), HORIZONTAL_ALIGNMENT_CENTER, 160)
-		return
-	_text(c + Vector2(-80, r + 15), "%s  ·  Lv %d" % [m["name"], Progression.magick_level(id)], 12, PixelArt.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 160)
-	var cost: float = kit.aether_cost(id)
-	if cost > 0.0:
-		_text(c + Vector2(-80, r + 27), "%d aether" % int(cost), 9, AETHER if kit.aether >= cost else PixelArt.DANGER, HORIZONTAL_ALIGNMENT_CENTER, 160)
-	if kit.resonant_for(id):
-		_diamond(c, r + 6.0, Color(PixelArt.GOLD, 0.6), false)
-
-
-## The slice's cantrip on C: Ward, with its charges as stars.
+## The Ward (always there): a diamond, lit while it is up, red while it is broken.
 func _draw_ward(c: Vector2, r: float) -> void:
 	var kit = arena.kit
-	_title(c + Vector2(-50, -r - 8), "%s  ·  Ward" % main.controls.key("magick"), 10, Color(HAIR, 0.85), HORIZONTAL_ALIGNMENT_CENTER, 100)
-	var up: bool = kit.ward_t > 0.0
-	var border: Color = PixelArt.DANGER if kit.denied.has("magick") else (PixelArt.GOLD if up else Color(HAIR, 0.8 if kit.ward_charges > 0 else 0.3))
+	_title(c + Vector2(-50, -r - 8), "%s  ·  Ward" % main.controls.key("ward"), 10, Color(HAIR, 0.85), HORIZONTAL_ALIGNMENT_CENTER, 100)
+	var up: bool = kit.warding
+	var border: Color = PixelArt.DANGER if kit.ward_broken() else (PixelArt.GOLD if up else Color(HAIR, 0.8))
 	_diamond(c, r + 1.0, Color(0.03, 0.045, 0.1, 0.9))
 	_diamond(c, r, border, false)
 	if up:
 		_diamond(c, r - 4.0, Color(PixelArt.GOLD, 0.35))
-	var n := int(Progression.rules["ward"]["charges"])
-	for i in n:
-		star(c + Vector2((i - (n - 1) / 2.0) * 12.0, 0), 4.0, PixelArt.GOLD if i < kit.ward_charges else Color(PixelArt.GOLD, 0.18))
-	_text(c + Vector2(-80, r + 15), "stops one shot", 11, Color(1, 1, 1, 0.55), HORIZONTAL_ALIGNMENT_CENTER, 160)
+	_text(c + Vector2(-80, r + 15), "hold: %d aether/s" % int(arena.D["ward"]["drain"]), 11, Color(1, 1, 1, 0.55), HORIZONTAL_ALIGNMENT_CENTER, 160)
 
 
 ## Hovering a star shows the spell's numbers and mutations, as the old cards did.

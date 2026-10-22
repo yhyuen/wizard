@@ -1,14 +1,15 @@
-# Combat: the fight, spells, enemies, Magicks (as built)
+# Combat: the fight, spells, enemies (as built)
 
-*Detail: the root [README.md](../../README.md) ('Spellbook, Aether and Cadence', 'The four
+*Detail: the root [README.md](../../README.md) ('Controls', 'Spellbook, Aether and Cadence', 'The four
 spheres', 'What to look for'). Design: GDD 02 (magic) and 03 (combat) in
-`/mnt/project-files/design/gdd/`, [Readable Arsenal](/mnt/project-files/design/readable-arsenal.md)
-where the GDD is silent. Tracker: C-1 to C-5.*
+`/mnt/project-files/design/gdd/`. Tracker: C-1 to C-5; the weight pass is N-2 (N-2.1 to N-2.3).*
 
 *Target for the long-loop direction: [spell and combat spec](/mnt/project-files/design/combat/spell-and-combat-spec.md)
 (tracker M0-4): cast wind-ups and interrupts, scarce Aether, a 4-spell book, eight schools, a
-force × material table, and spell mastery with visible growth, breakthroughs and prerequisites. Nothing of it is built yet; its §15 lists today vs target, and
-[drift.md](drift.md) has the summary. Fighting enemies (tiers, Poise/Break/Focus/Guard, armour
+force × material table, and spell mastery with visible growth, breakthroughs and prerequisites. Its
+first step, the **weight pass** (§17.1: wind-ups, Focus, scarce Aether, Overdraw and Strain, the
+4-spell book, cantrips, staff strike, held Ward), is built and described below; the rest is not yet.
+Its §15 lists today vs target, and [drift.md](drift.md) has the summary. Fighting enemies (tiers, Poise/Break/Focus/Guard, armour
 grades, AI and the fight director, eleven factions, bosses, scaling, rewards, worked fights) is in the
 [enemy combat spec](/mnt/project-files/design/combat/enemy-combat-spec.md) (tracker M0-7; visual
 page [Enemy Field Guide](https://claude.ai/artifact/NfkV4YFAufXzUP1pBuGcAK)). Until code lands, this page is right about the game.*
@@ -31,26 +32,57 @@ page [Enemy Field Guide](https://claude.ai/artifact/NfkV4YFAufXzUP1pBuGcAK)). Un
 
 ## The wizard's kit (`scripts/kit.gd`, `scripts/spells/`)
 
-- **Spellbook:** six slots (LMB, RMB, Q, E, R, F; League: Q W E R D F), any known spells from any
-  sphere, changed only at an Orrery shrine (in the ruins game, at dawn and from the story's `book`
-  effect). C is the Magick (the old fight) or the Ward (the ruins game: `ward` 2 charges, each
-  stops one shot). Space blinks.
-- **Bolts** fire while held; every other spell shows its telegraph while held and casts on release.
-- **Aether** (`spells.json` `aether`): 100, regen 12/s; costs bolt 0, control 20, signature 45,
-  magick 50. **Overdraw**: short on Aether, the missing part costs 0.5 HP each and locks the spell
-  10 s.
-- **Cadence** (`cadence`): the same spell again in a row loses 15% a time, down to 55%; switching
-  (unless both are Bolts) adds a note and refunds 10 Aether; 4 notes make the next non-Bolt
-  spell Resonant (×1.3 size, +1 bounce/strike/chain). Notes fade after 3 s.
+All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `aether`,
+`overdraw`, `cadence`, and each spell's `cast`, `windup`, `cooldown`, `aether`).
+
+- **Spellbook:** four slots (Q E R F; League Q W E R), any known spells from any sphere, changed at
+  your desk (the story's `book` effect; the old fight's Orrery shrine). In the ruins game the Ring
+  opens 2/3/3/4/4 of them ([growth.md](growth.md)). Always there: the **staff strike** (LMB; League
+  right-click an enemy or A), the **Ward** (hold RMB; League C), two **cantrips** (1 2; League D F)
+  and **Blink** (Space). There is no Magick key: Magicks are retired (their code stays in
+  `fire_earth.gd`/`storm_water.gd` until combined spells replace it, but nothing casts them).
+- **Cast phases** (N-2.1): every spell winds up, releases, recovers. Speed bands `casting`:
+  **Swift** (the old Bolts, wind-up 0.4–0.5 s, walk at 70%, recovery 0.25 s), **Weave** (Pillar,
+  Fling, Arc Lance, Undertow, Rewind: 0.8–0.9 s, 40%, 0.4 s), **Incant** (Pyroclasm, Avalanche,
+  Storm Call, Maelstrom: 1.5–1.8 s, rooted, 0.6 s). Recovery walks at 80%. Cooldowns: Swift 3–3.5 s,
+  Weave 6–7 s, Incant 12–14 s. Hold to wind up (the telegraph shows; a ring at the reticle fills),
+  release to cast. Let go early: cancelled, nothing spent, except a **Swift** spell (or any spell
+  under League smart cast), which is committed and fires when its wind-up ends. Blink cancels a
+  wind-up or recovery. Arc Lance still charges with how long it is held.
+- **Focus** (N-2.1, `casting.focus` 1): while winding up, a hit with Impact at or below Focus
+  causes no reaction; above it, the cast breaks (a cracked puff, "Cast broken") and half its Aether
+  is lost. **Enemies** have Focus too (`enemies.<kind>.focus`, default Poise + 1, the old "stagger
+  breaks a wind-up" rule): above it their wind-up breaks, its telegraph goes, and the attack comes
+  back at half its cooldown (`ai.gd` `interrupt`).
+- **Aether** (N-2.2, `aether`): 100 (wells add to it). In a fight (`arena.fighting()`) it comes back
+  at 3/s; out of one at 15/s, but only up to 60% of the pool. **Rest** fills it and clears Strain:
+  waking at dawn and the story's `meditate` effect (`kit.rest()`); every test fight starts rested.
+  Costs per spell: Swift 12–16, Weave 22–28, Incant 45–50, cantrips 4.
+- **Overdraw** (`overdraw`): short on Aether, a spell still casts; each missing point costs 1 HP and
+  adds 1 **Strain**, which lowers max Aether one for one until rest. An Overdraw at 50+ Strain
+  backlashes: a 2 s stun.
+- **Staff strike** (N-2.3, `staff`): free, instant, every 0.6 s, a 24 px arc in front, 3 damage,
+  Impact 1; it shoves the prop in front of it. Not a way to win a fight.
+- **Ward** (N-2.3, `ward`): hold to raise a shield arc (about 140°) toward the cursor; drains 6
+  Aether/s and 8 per hit stopped; stops any hit from the front (shots, slashes, the Warden's ring);
+  Impact 3+ breaks it and staggers you; it drops when Aether runs out and can't be raised for 1 s.
+  You walk at 70% behind it. Replaces the 2-charge Ward on C.
+- **Cantrips** (N-2.3, `cantrips`, `start_cantrips`): instant, 4 Aether, 2 charges back every 6 s,
+  at the cursor within 70 px. **Kindle**: lights lamps and braziers, sets props burning, singes
+  enemies there (2 damage) and adds a flame pip. **Douse**: puts out fires and lamps, soaks enemies
+  (Wet 4 s). The world reads their short `kindle`/`douse` zones ([world.md](world.md)).
+- **Cadence** (`cadence`): a spell different from the last adds a note and refunds 4 Aether; 4
+  notes make the next spell Resonant (×1.3 size, +1 bounce/strike/chain). Notes fade after 4 s.
+  Repeating a spell no longer dulls it (cooldowns stop repeats).
+- **Vitality** out of a fight comes back at 2% of max a second (`wizard.regen_out`).
 - **Fair telegraphs** (`dodge.reaction` 0.25): a circle never lands faster than
   0.25 s + (radius + body) ÷ wizard speed (`Progression.fair_delay`).
 - **Spheres and spells:** Mars (`fire_earth.gd`: Ember Bolt pips → Ignite, Pillar, Pyroclasm,
   embers), Jupiter (Pebble lodestones, Fling, Avalanche), Mercury (`storm_water.gd`: Spark, Arc
   Lance, Storm Call, rods), Luna (Splash Wet, Undertow puddles, Maelstrom), Hours (`hours.gd`:
   Rewind, `from_loop` 2, `ring` 0). Field caps and lives are `spells.json` `field`.
-- **Magicks** (`magicks`): Meteor (Mars + Jupiter, found by fire touching a lodestone), Conductor
-  (Mercury + Luna, found by lightning on a wet enemy). Hint tomes in the old fight; the ruins
-  game turns Magicks off (`Progression.rules`).
+- **Magicks** (`magicks`): Meteor and Conductor are retired: no key casts them. Discovery and hint
+  tomes still run in the old Mill fight.
 
 ## Hits and enemies
 
@@ -60,9 +92,12 @@ page [Enemy Field Guide](https://claude.ai/artifact/NfkV4YFAufXzUP1pBuGcAK)). Un
   Backward Slinger (`inverted`: rises from the dead, its stones fly home), embers from cracks,
   the Kiln Warden (anchored guardian, two phases), Silas Vane (Storm rival). Hollows won't step
   into a lit lamp's pool unless the encounter sets `light_shy: false` ([world.md](world.md)).
-- `scripts/bot.gd` plays the wizard for tests and F2 autoplay.
+- `scripts/bot.gd` plays the wizard for tests and F2 autoplay: one committed spell at a time, waiting
+  for Aether rather than Overdrawing, the Ward against shots, the staff when something is close.
 
 ## Tests
 
 `tools/tests/encounters.gd` (every encounter, fresh and strong, frame time p95 under 8 ms),
-`tools/tests/unit.gd` (rules), `tools/tests/world_magic.gd` (spells against the world).
+`tools/tests/unit.gd` (rules, with `_kit`: wind-up, cancel and commit, Focus, Aether in and out of a
+fight, Overdraw and Strain, rest, the Ward, the staff, a cantrip), `tools/tests/world_magic.gd`
+(spells against the world).

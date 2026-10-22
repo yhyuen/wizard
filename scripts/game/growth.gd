@@ -122,17 +122,19 @@ func known_models() -> Array:
 	return prog.data["spells"].keys().filter(func(id): return knows_model(id))
 
 
-## Six spell ids. Only the first slots() of them are open; the rest wait for a higher Ring.
+## Four spell ids. Only the first slots() of them are open; the rest wait for a higher Ring.
 func book() -> Array:
 	if not run.lp.has("book"):
 		run.lp["book"] = _default_book()
+	elif (run.lp["book"] as Array).size() != prog.BOOK_SIZE:
+		run.lp["book"] = (run.lp["book"] as Array).slice(0, prog.BOOK_SIZE)  # a save from the six-slot book
 	return run.lp["book"]
 
 
 func _default_book() -> Array:
 	var b: Array = (d["start_models"] as Array).duplicate()
 	for id in prog.data["spells"]:
-		if b.size() >= 6:
+		if b.size() >= prog.BOOK_SIZE:
 			break
 		if not b.has(id):
 			b.append(id)
@@ -191,11 +193,11 @@ func fluency() -> float:
 ## What Progression needs to play by the slice's rules.
 func rules() -> Dictionary:
 	var open: Array = []
-	for i in 6:
+	for i in prog.BOOK_SIZE:
 		open.append(slot_spell(i) != "")
 	return {"hp": max_hp(), "aether": max_aether(), "blinks": blinks(), "open": open,
 		"echo": echo().duplicate(), "echo_mult": float(d["echo_mult"]), "fluency": fluency(),
-		"revisions": run.mem.get("revisions", {}).duplicate(true), "ward": d["ward"]}
+		"revisions": run.mem.get("revisions", {}).duplicate(true)}
 
 
 ## Lends Progression this loop's Practice, spellbook and rules (for a fight, training, or in
@@ -260,7 +262,7 @@ func _remember_practice() -> void:
 ## and Fluency). Returns {id: levels gained}.
 func train() -> Dictionary:
 	var before := {}
-	for i in 6:
+	for i in prog.BOOK_SIZE:
 		var id := slot_spell(i)
 		if id != "":
 			before[id] = level(id)

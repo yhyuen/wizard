@@ -6,16 +6,17 @@ func _ready() -> void:
 	_keys("move_down", [KEY_S, KEY_DOWN])
 	_keys("move_left", [KEY_A, KEY_LEFT])
 	_keys("move_right", [KEY_D, KEY_RIGHT])
-	# The six spellbook slots, then the Magick.
-	_mouse("slot1", MOUSE_BUTTON_LEFT)
-	_keys("slot1", [KEY_J])
-	_mouse("slot2", MOUSE_BUTTON_RIGHT)
-	_keys("slot2", [KEY_K])
-	_keys("slot3", [KEY_Q])
-	_keys("slot4", [KEY_E])
-	_keys("slot5", [KEY_R])
-	_keys("slot6", [KEY_F])
-	_keys("magick", [KEY_C])
+	# The staff strike, the Ward (held), the four spellbook slots and the two cantrips.
+	_mouse("staff", MOUSE_BUTTON_LEFT)
+	_keys("staff", [KEY_J])
+	_mouse("ward", MOUSE_BUTTON_RIGHT)
+	_keys("ward", [KEY_K])
+	_keys("slot1", [KEY_Q])
+	_keys("slot2", [KEY_E])
+	_keys("slot3", [KEY_R])
+	_keys("slot4", [KEY_F])
+	_keys("cant1", [KEY_1])
+	_keys("cant2", [KEY_2])
 	_keys("blink", [KEY_SPACE])
 	_keys("pick1", [KEY_1])
 	_keys("pick2", [KEY_2])
@@ -40,16 +41,18 @@ func _ready() -> void:
 	_keys("map", [KEY_M])
 	_keys("wait", [KEY_Z])
 	_keys("mute", [KEY_F8])
-	# The League-style scheme (scripts/controls.gd): right-click moves, Q W E R D F cast.
+	# The League-style scheme (scripts/controls.gd): right-click moves (and strikes an enemy),
+	# Q W E R cast, D F are the cantrips, hold C to Ward.
 	_mouse("lol_move", MOUSE_BUTTON_RIGHT)
 	_keys("lol_stop", [KEY_S])
 	_keys("lol_slot1", [KEY_Q])
 	_keys("lol_slot2", [KEY_W])
 	_keys("lol_slot3", [KEY_E])
 	_keys("lol_slot4", [KEY_R])
-	_keys("lol_slot5", [KEY_D])
-	_keys("lol_slot6", [KEY_F])
-	_keys("lol_magick", [KEY_C])
+	_keys("lol_cant1", [KEY_D])
+	_keys("lol_cant2", [KEY_F])
+	_keys("lol_ward", [KEY_C])
+	_keys("lol_staff", [KEY_A])
 
 
 func _ensure(action: String) -> void:

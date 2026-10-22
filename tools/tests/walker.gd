@@ -64,14 +64,15 @@ func intent(A) -> Dictionary:
 	if not route.is_empty():
 		out["move"] = (route[0] - P.pos).normalized()
 	if not _cast.is_empty():
-		# Pressed, held a moment (a bolt fires while held), then let go (other spells fire then).
+		# Pressed, held through the spell's wind-up, then let go.
 		out["aim"] = _cast["aim"]
 		_cast["f"] += 1
+		var up := int(ceil(main.arena.kit.windup(main.arena.kit.slot_spell(_cast["slot"])) * 60.0)) + 4
 		if _cast["f"] == 1:
 			out["pressed"][_cast["slot"]] = true
-		if _cast["f"] < 12:
+		if _cast["f"] < up:
 			out["held"][_cast["slot"]] = true
-		elif _cast["f"] == 12:
+		elif _cast["f"] == up:
 			out["released"][_cast["slot"]] = true
 	return out
 

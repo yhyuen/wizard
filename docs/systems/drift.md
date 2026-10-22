@@ -23,10 +23,12 @@ table; the big gaps:
 
 | Target spec says | As built | Where |
 | --- | --- | --- |
-| No free bolts: every spell has a wind-up, a cost and a cooldown; a weak staff strike is the only free attack | Bolts are free and fire while held | [combat.md](combat.md) |
-| Aether regen 3/s in a fight, refills fully only at rest; Overdraw adds Strain | 100 Aether, regen 12/s anywhere | [combat.md](combat.md) |
-| A 4-spell book plus 2 cantrips; Ward held on RMB | 6 slots; Ward on C with 2 charges | [combat.md](combat.md), [growth.md](growth.md) |
-| Focus: impact above it breaks a wind-up, for you and for enemies | No player interrupts | [combat.md](combat.md) |
+| Wind-up speeds Swift 0.4–0.6 s, Weave 0.8–1.2 s, Incant 1.5–2.5 s, Grand 3–5 s channelled | Swift, Weave and Incant built (0.4–1.8 s); no Grand spells yet | [combat.md](combat.md) |
+| Letting go early cancels a wind-up | Cancels, except a Swift spell (and any spell under smart cast), which a tap commits: a cancelled bolt on every tap felt broken | [combat.md](combat.md) |
+| Focus 2 by default, and "a flinch-level hit won't break you, a stagger will" | Focus 1, so the stagger rule holds under "Impact above Focus" (enemy hits are Impact 1–2 today); tune with the enemy pass (N-6) | [combat.md](combat.md) |
+| Ley points refill Aether at 10/s; rest at shrines, camp fires, home | No ley points yet (they come with Ring 1's regions, N-7.1); rest is waking at dawn and meditating | [combat.md](combat.md) |
+| Cantrips from the pool (Kindle, Douse, Lamplight, Stone Stair…), 2 slotted | Kindle and Douse only, fixed (`start_cantrips`) | [combat.md](combat.md) |
+| Rest points change the book | Your desk (the story's `book` effect) | [combat.md](combat.md) |
 | Eight schools, each with its own casting act and rule | No schools; Spheres only | [combat.md](combat.md) |
 | One force × material table for props, tiles and units | Per-spell lists in `props.json` for fire, water, force, lightning | [world.md](world.md) |
 | Combined spells from two mastered schools | Magicks (old Mill fight only) | [combat.md](combat.md) |
@@ -91,7 +93,7 @@ saving and the screen. Each has a "today vs target" section; the big gaps:
 | Root README 'The design decisions, as built': spell levels carry over, the wizard level halves each loop | True only for the old Mill fight (`Progression`). The ruins game's loop resets Practice, wells and Ring, with the Echo making relearning faster (Harold 2026-10-15) | [growth.md](growth.md) |
 | Root README 'Not in this prototype': days 8 to 28 | The loop runs all 28 days; the content is in the camp and halls only | [loop.md](loop.md) |
 | GDD 02: seven Spheres | Four Spheres plus the Hours (Rewind) | [combat.md](combat.md) |
-| GDD 03: Magicks in the loadout | Turned off in the ruins game (C is the Ward); Meteor and Conductor only in the old Mill fight | [combat.md](combat.md) |
+| GDD 03: Magicks in the loadout | Retired with the combat weight pass (N-2): no key casts them; discovery and tomes run only in the old Mill fight | [combat.md](combat.md) |
 
 ## Questions for Harold
 

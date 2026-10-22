@@ -144,6 +144,7 @@ func start(test_scene := "", enc := {}) -> void:
 	player.hp_lag = player.hp
 	_add(player)
 	kit.reset()
+	kit.rest()
 	duel_hits = [0, 0]
 	duel_hit_t = [0.0, 0.0]
 	if scene.begins_with("cutscene:"):
@@ -212,7 +213,6 @@ func begin_encounter(enc: Dictionary, spawns: Array) -> void:
 	duel_hits = [0, 0]
 	duel_hit_t = [0.0, 0.0]
 	stats = {"casts": 0, "damage_taken": 0.0, "kills": 0, "by_spell": {}}
-	kit.ward_charges = int(Progression.rules.get("ward", {}).get("charges", 0))
 	set_phase("intro")
 
 
@@ -357,7 +357,7 @@ func set_phase(p: String) -> void:
 			toast.emit("G at the Orrery: change elements or re-pick mutations", PixelArt.GOLD)
 			for id in Progression.spellbook():
 				if int(Progression.spell(id).get("from_loop", 1)) == Progression.loop():
-					toast.emit("Something came back with you: %s (%s)" % [Progression.spell(id)["name"], "slot 6"], PixelArt.HOURS)
+					toast.emit("Something came back with you: %s (%s)" % [Progression.spell(id)["name"], "slot 4"], PixelArt.HOURS)
 			if not echo_play.is_empty():
 				toast.emit("Someone in your robe is in the yard, walking backwards.", PixelArt.HOURS)
 		"wave1":
@@ -592,7 +592,7 @@ func _physics_process(dt: float) -> void:
 		guard += 1
 	units = units.filter(func(u): return not (u.dead and u.death_t <= 0.0 and u != player))
 	if phase == "explore" and not player.dead:
-		player.hp = minf(player.max_hp, player.hp + player.max_hp * 0.05 * dt)
+		player.hp = minf(player.max_hp, player.hp + player.max_hp * float(D["wizard"]["regen_out"]) * dt)
 	if town != null:
 		town.tick(dt)
 	hover = null
@@ -606,6 +606,11 @@ func _physics_process(dt: float) -> void:
 
 func _process(_dt: float) -> void:
 	queue_redraw()
+
+
+## A fight is on (Aether comes back slowly; outside one it refills to part of the pool).
+func fighting() -> bool:
+	return phase in ["intro", "wave1", "wave2", "duel", "sandbox", "enc"]
 
 
 # --- the echo ---------------------------------------------------------------
@@ -771,6 +776,13 @@ func hit(u: Unit, dmg: float, impact: int, dir: Vector2, knock := 0.0, quiet := 
 		return false
 	if encounter.has("hits") and not quiet and dmg >= float(encounter.get("hit_min", 1.0)) and phase == "enc":
 		_duel_hit(u)
+	# The Ward stops a hit from the front; a heavy one breaks it and staggers you.
+	if u == player and not quiet and kit.ward_stops(dir, impact):
+		if impact >= int(D["ward"]["breaks_at"]):
+			u.reaction = "stagger"
+			u.reaction_t = float(D["reaction_time"]["stagger"])
+			u.reaction_len = u.reaction_t
+		return false
 	if u.team == 1:
 		var e: Dictionary = D["enemies"][u.kind]
 		# Fire barely hurts what was born of Mars (embers); the flooded Kiln takes double for a while.
@@ -791,6 +803,12 @@ func hit(u: Unit, dmg: float, impact: int, dir: Vector2, knock := 0.0, quiet := 
 		hitstop = maxf(hitstop, clampf(pct * 0.35, 0.0, 0.08))
 		shake = maxf(shake, clampf(pct * 16.0, 0.0, 4.0))
 		var tier := clampi(impact - u.poise, 0, 4)
+		# Winding up a spell, your Focus is your Poise: a hit above it breaks the cast.
+		if u == player and not kit.wind.is_empty():
+			if impact > kit.focus():
+				kit.interrupt()
+			else:
+				tier = 0
 		if tier >= 1:
 			var name: String = REACTIONS[tier]
 			var length := float(D["reaction_time"][name])
@@ -800,7 +818,7 @@ func hit(u: Unit, dmg: float, impact: int, dir: Vector2, knock := 0.0, quiet := 
 				u.reaction = name
 				u.reaction_t = length
 				u.reaction_len = length
-			if tier >= 2 and u.team == 1:
+			if u.team == 1 and impact > ai.focus(u):
 				ai.interrupt(u)
 			u.vel += dir * knock
 		else:
@@ -1025,9 +1043,6 @@ func _enemy_proj(p: Dictionary) -> void:
 		projs.erase(p)
 		return
 	if not player.dead and player.pos.distance_to(p["pos"]) < player.radius + float(p["r"]):
-		if kit.ward_blocks():
-			projs.erase(p)
-			return
 		if hit(player, float(p["dmg"]), int(p.get("impact", 1)), p["vel"].normalized(), 20.0):
 			fx("burst", p["pos"], {"color": p["color"], "r": 5.0, "life": 0.2})
 		projs.erase(p)
@@ -1051,7 +1066,7 @@ func _update_zones(dt: float) -> void:
 	for z in zones.duplicate():
 		z["t"] += dt
 		match z["kind"]:
-			"ember", "gravel", "column", "rod", "puddle", "blaze":
+			"ember", "gravel", "column", "rod", "puddle", "blaze", "kindle", "douse":
 				if z["t"] >= z["life"]:
 					zones.erase(z)
 			"ring":
@@ -1086,8 +1101,7 @@ func _fire_ring(z: Dictionary) -> void:
 		if absf(to.length() - r) < float(z["w"]) * 0.5 + player.radius \
 				and absf(angle_difference(to.angle(), float(z["gap_a"]))) > float(z["gap"]) * 0.5:
 			z["hit_done"] = true
-			if not kit.ward_blocks():
-				hit(player, float(z["dmg"]), 1, to.normalized(), 40.0)
+			hit(player, float(z["dmg"]), 1, to.normalized(), 40.0)
 	if r > float(z["max"]):
 		zones.erase(z)
 

@@ -16,9 +16,11 @@ M0-1 (these specs and the spec check).*
   loading (the card between maps), death. First-loop hints show until done once. The title and
   death screens have **Copy run summary** and **Feedback form** (the playtest notes artifact).
 - **Input** becomes an intent dictionary each physics frame (`scripts/controls.gd`), so tests and
-  F2 autoplay drive the same code. Schemes: Classic (WASD), League (right-click move/attack, QWERDF)
-  and League smart cast; Tab cycles any time; kept in `user://settings.cfg`. `scripts/autoload/input_setup.gd`
-  registers the actions in code.
+  F2 autoplay drive the same code. Schemes: Classic (WASD; LMB staff, hold RMB Ward, Q E R F
+  spells, 1 2 cantrips), League (right-click move, right-click an enemy or A to strike it with the
+  staff, Q W E R spells, D F cantrips, hold C Ward) and League smart cast (a spell commits on the
+  key going down); Tab cycles any time; kept in `user://settings.cfg`.
+  `scripts/autoload/input_setup.gd` registers the actions in code ([combat.md](combat.md) has the kit).
 - **Graphics:** the 3D renders at most 1280 px wide; below 40 fps for 4 s graphics drop to low
   (F4 toggles, low draws the 3D at 3/4 size); kept in `user://settings.json`. F8 mutes.
 
@@ -27,12 +29,14 @@ M0-1 (these specs and the spec check).*
 *Target: the [UI and HUD spec](/mnt/project-files/design/ui/ui-hud-spec.md) (tracker M0-12): four-star spellbook bar with stage rings, Focus
 diamonds and Overdraw, a 13-moon calendar with pins, fight and explore modes, and every screen
 (spellbook, character, Ledger, Codex, region map and calendar, end of a life, title slots); visual page [Lives, Saves and HUD Atlas](https://claude.ai/artifact/7H3xpu7YpYVzGmtDRUq8fK).
-Not built yet; N-2 and N-3 use a stand-in HUD (its §10).*
+Not built yet; the spellbook bar below is its §10 stand-in.*
 
 
-- `scripts/hud.gd`: the Star Atlas HUD (spellbook constellation, Magick diamond or Ward, Vitality
-  and Aether lines, field-object caps, Cadence stars, the 28-moon row, the duelist's plate,
-  toasts, milestone picker, Orrery menu). Shapes are drawn as one triangle batch
+- `scripts/hud.gd`: the Star Atlas HUD (spellbook constellation of four stars, two cantrip rings
+  with their charges, the Ward diamond; Vitality and Aether lines with Strain as a red end, Focus;
+  a wind-up ring at the reticle; field-object caps, Cadence stars, the 28-moon row, the duelist's
+  plate, toasts, milestone picker, Orrery menu). The spellbook bar is the UI spec's stand-in
+  (`/mnt/project-files/design/ui/ui-hud-spec.md` §10) until its §3.1 bar is built. Shapes are drawn as one triangle batch
   (`scripts/ui/tris.gd`); panels and buttons come from `scripts/ui/atlas.gd`.
 - `scripts/autoload/sfx.gd` plays the synthesised sounds (`tools/sfx/make_sfx.py` → `assets/sfx/`).
 - `scripts/game/build_id.gd` says which build this is; CI writes it before the web export.
