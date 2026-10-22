@@ -19,6 +19,7 @@ const Bonds := preload("res://scripts/game/bonds.gd")
 const Rumours := preload("res://scripts/game/rumours.gd")
 const Commissions := preload("res://scripts/game/commissions.gd")
 const Ladder := preload("res://scripts/game/ladder.gd")
+const Games := preload("res://scripts/game/minigames/games.gd")
 const World := preload("res://scripts/world/world.gd")
 const Reach := preload("res://scripts/game/reach.gd")
 const Weather := preload("res://scripts/world/weather.gd")
@@ -51,6 +52,14 @@ var bonds  # scripts/game/bonds.gd: each person's lamp and tier, gifts and taste
 var rumours  # scripts/game/rumours.gd: what you've heard, in any life
 var commissions  # scripts/game/commissions.gd: the board's paid jobs, and crowns
 var ladder  # scripts/game/ladder.gd: the camp's dueling ladder
+var games  # scripts/game/minigames/games.gd: Star-charts and Sparks, and what carries
+var game  # the match being played (star_charts.gd or sparks.gd), or null
+var game_who := ""
+var game_mode := ""  # free or work
+var game_out := {}  # the match's result once it's over (games.gd finish)
+var game_easy := false  # F1 in a game: tells shown, a wrong answer struck out
+var spark_more := 0  # Sparks: dice added to the fewest you may bid
+var game_resolver: Callable  # tests: plays the match (the core) and returns whether you won
 var world  # scripts/world/world.gd
 var reach  # scripts/game/reach.gd: regions, roads, the calendar's events
 var weather  # scripts/world/weather.gd: each region's weather, the Almanac
@@ -113,6 +122,8 @@ func setup(the_main) -> void:
 	story.ctx.commissions = commissions
 	ladder = Ladder.new(run)
 	story.ctx.ladder = ladder
+	games = Games.new(run, bonds, rumours, commissions)
+	story.ctx.games = games
 	story.load_all()
 	for e in story.errors:
 		push_error("story: " + str(e))
@@ -860,6 +871,14 @@ func _effect(op: String, arg: String) -> bool:
 		"fight", "end_loop":
 			pending = {"op": op, "arg": arg}
 			return true
+		"game":
+			var gp: PackedStringArray = arg.split(" ", false)
+			if gp.size() > 1 and gp[1] == "coin":
+				var got: Dictionary = games.finish(gp[0], "coin", true)
+				toast("%s pays up without a game: %d crowns." % [games.opp(gp[0])["name"], int(got["crowns"])])
+				return false
+			pending = {"op": "game", "arg": arg}
+			return true
 		_:
 			push_warning("story effect not handled yet: " + op)
 	return false
@@ -930,6 +949,8 @@ func pending_label() -> String:
 	match pending.get("op", ""):
 		"fight":
 			return "Fight"
+		"game":
+			return "Play"
 		"end_loop":
 			return "…"
 	return "Continue"
@@ -949,6 +970,8 @@ func advance() -> void:
 				play(p["arg"])
 			"fight":
 				_start_fight(p["arg"])
+			"game":
+				_start_game(p["arg"])
 			"end_loop":
 				end_loop(p["arg"])
 		return
@@ -993,7 +1016,8 @@ func finish_scene() -> void:
 	elif "book" in a:
 		overlay = "book"
 	elif "period" in a and world.map_def().get("clock", true):
-		world.request({"t": "period"})
+		for k in a.count("period"):
+			world.request({"t": "period"} if k == 0 else {"t": "period", "n": k})  # work at a minigame is two (half a day)
 
 
 # --- fights in place ---------------------------------------------------------------------
@@ -1070,6 +1094,77 @@ func fight_done(won: bool, kills := 0) -> void:
 		end_loop(str(encounters[fight_id].get("cause", "fight:" + fight_id)))
 		return
 	_run_steps()
+
+
+# --- minigames (people spec §9; N-7.6.5) ----------------------------------------------------
+
+## `game <who> free|work`: the match starts in its panel; the scene waits for it.
+func _start_game(arg: String) -> void:
+	var gp: PackedStringArray = arg.split(" ", false)
+	game_who = gp[0]
+	game_mode = gp[1] if gp.size() > 1 else "free"
+	game_out = {}
+	spark_more = 0
+	if game_mode == "work":
+		after.append_array(["period", "period"])  # half a day
+	game = games.start(game_who, game_mode, game_easy)
+	if game_resolver.is_valid():
+		_game_over(bool(game_resolver.call(game)))
+		game_close()
+		return
+	overlay = "game"
+
+
+## After each move: once the match is over, settle it (the panel shows the result).
+func _game_check() -> void:
+	if game != null and game.over() and game_out.is_empty():
+		_game_over(game.won())
+
+
+func _game_over(won: bool) -> void:
+	game_out = games.finish(game_who, game_mode, won, game, region())
+	for r in game_out["heard"]:
+		toast("You hear: " + str(rumours.rec(r)["text"]))
+
+
+## The first win's pick (spec §9.1): the most useful unheard rumour of that kind.
+func game_pick(kind: String) -> void:
+	var r: String = games.pick(kind, region())
+	game_out["pick"] = []
+	if r != "":
+		game_out["heard"].append(r)
+		toast("You hear: " + str(rumours.rec(r)["text"]))
+
+
+## Gives up the match: a loss.
+func game_concede() -> void:
+	if game != null and game_out.is_empty():
+		_game_over(false)
+
+
+## The panel closes: the scene carries on, by `? won` or `? lost` if it has them.
+func game_close() -> void:
+	if game_out.is_empty():
+		return
+	overlay = ""
+	game = null
+	var key := "won" if bool(game_out["won"]) else "lost"
+	var outs: Dictionary = cur.get("outcomes", {})
+	if outs.has(key):
+		play(outs[key])
+		return
+	_run_steps()
+
+
+## F1 in a game: easy mode (tells always shown, a wrong answer struck out), for this match and later ones.
+func toggle_easy() -> void:
+	game_easy = not game_easy
+	if game != null:
+		game.easy = game_easy
+		game.tell = game_easy or games.tell_known(game_who)
+		if game.has_method("_strike"):
+			game._strike()
+	toast("Easy mode on (F1)" if game_easy else "Easy mode off (F1)")
 
 
 # --- the spellbook (from your desk) ---------------------------------------------------------
@@ -1235,6 +1330,19 @@ func _unhandled_input(ev: InputEvent) -> void:
 		return
 	var k: int = ev.physical_keycode
 	var dlg := in_dialogue()
+	if overlay == "game":
+		if k == KEY_F1:
+			toggle_easy()
+		elif k == KEY_0:
+			game_concede()
+		elif k >= KEY_1 and k <= KEY_9:
+			press_key(k - KEY_0)
+		elif k == KEY_SPACE or k == KEY_ENTER or k == KEY_KP_ENTER:
+			press_key(9)
+		else:
+			return
+		get_viewport().set_input_as_handled()
+		return
 	if k == KEY_L:
 		toggle_ledger()
 	elif k == KEY_F8:
@@ -1320,6 +1428,9 @@ func _draw() -> void:
 		"book":
 			begin_buttons()
 			_draw_book()
+		"game":
+			begin_buttons()
+			_draw_game()
 	if overlay != "ledger":
 		_draw_toasts()
 	end_buttons()
@@ -1819,6 +1930,118 @@ func _draw_book() -> void:
 	button(Rect2(r.position.x + r.size.x / 2.0 - 80, r.end.y - 48, 160, 32), "Close  (Space)", func(): overlay = "", 0, 14)
 
 
+## The minigame panel (people spec §9): the match, then its result and the first win's pick.
+## Keys: the numbers on the buttons, Space for the default, F1 easy mode.
+func _draw_game() -> void:
+	if game == null:
+		return
+	draw_rect(Rect2(0, 0, 960, 540), Color(0, 0, 0, 0.6))
+	var r := Rect2(150, 70, 660, 400)
+	draw_rect(r, NIGHT)
+	panel(r, Color(GOLD, 0.6))
+	var o: Dictionary = games.opp(game_who)
+	title(r.position + Vector2(32, 38), "%s  ·  %s" % [Games.NAMES[games.game_of(game_who)], o["name"]], 20, GOLD)
+	text(Vector2(r.end.x - 232, r.position.y + 36), ("Work  ·  " if game_mode == "work" else "") + ("Easy (F1)" if game_easy else "F1: easy"), 12, DIM, HORIZONTAL_ALIGNMENT_RIGHT, 200)
+	if not game_out.is_empty():
+		_draw_game_over(r, o)
+	elif games.game_of(game_who) == "star_charts":
+		_draw_charts(r, o)
+	else:
+		_draw_sparks(r, o)
+
+
+func _draw_charts(r: Rect2, o: Dictionary) -> void:
+	var x := r.position.x + 32.0
+	var y := r.position.y + 70.0
+	var rd: Dictionary = game.riddle()
+	text(Vector2(x, y), "Riddle %d of %d  ·  You %d  ·  %s %d  ·  %s" % [game.i + 1, game.order.size(), game.you, o["name"], game.them, str(rd["kind"]).capitalize()], 13, HAIR)
+	y += 30.0
+	for c in game.clues():
+		y = para(Vector2(x, y), c, r.size.x - 64, 15, PAPER) + 6.0
+	if game.remembered():
+		text(Vector2(x, y + 4), "You've read this sky before.", 13, GOLD)
+	if game.sign() != "":
+		text(Vector2(r.end.x - 332, y + 4), game.sign(), 13, HOURS, HORIZONTAL_ALIGNMENT_RIGHT, 300)
+	var by := r.position.y + 250.0
+	var op: Array = game.options()
+	for k in op.size():
+		var lbl := str(op[k]) + ("  (struck out)" if k == game.struck else "")
+		var br := Rect2(x + (k % 2) * 300, by + (k / 2) * 36, 290, 30)
+		if game.remembered() and str(op[k]) == str(rd["answer"]):
+			draw_rect(br.grow(2), Color(GOLD, 0.3))
+		button(br, lbl, func(): game.answer(k); _game_check(), k + 1, 14, k != game.struck)
+	button(Rect2(x, r.end.y - 50, 200, 30), "Next clue" if game.stage < 3 else "Wait", func(): game.wait(); _game_check(), 5, 14)
+	button(Rect2(r.end.x - 152, r.end.y - 50, 120, 30), "Concede  (0)", game_concede, 0, 13)
+	if game.said != "":
+		text(Vector2(x, r.end.y - 64), game.said, 13, DIM)
+
+
+func _draw_sparks(r: Rect2, o: Dictionary) -> void:
+	var x := r.position.x + 32.0
+	var y := r.position.y + 70.0
+	text(Vector2(x, y), "Lamps (1s) count as any face. Out of dice, out of the game.", 13, HAIR)
+	y += 30.0
+	text(Vector2(x, y), "Your cup", 12, DIM)
+	text(Vector2(x + 300, y), "%s's cup" % o["name"], 12, DIM)
+	y += 8.0
+	_dice(Vector2(x, y), game.mine)
+	if game.phase != "you":
+		_dice(Vector2(x + 300, y), game.theirs)
+	else:
+		text(Vector2(x + 300, y + 26), "%d dice under the brass" % game.n_theirs, 13, DIM)
+	y += 64.0
+	var bid: String = "No bid yet." if game.bid.is_empty() else "%s bid %s." % ["You" if game.by_you else str(o["name"]), game.bid_name(game.bid[0], game.bid[1])]
+	text(Vector2(x, y), bid, 16, GOLD)
+	if game.sign() != "":
+		text(Vector2(r.end.x - 332, y), game.sign(), 13, HOURS, HORIZONTAL_ALIGNMENT_RIGHT, 300)
+	if game.said != "":
+		para(Vector2(x, y + 24), game.said, r.size.x - 64, 13, DIM)
+	var by := r.position.y + 250.0
+	if game.phase == "reveal":
+		button(Rect2(x, by, 220, 32), "Next round", func(): game.next_round(); _game_check(), 9, 14)
+	else:
+		for f in range(1, 7):
+			var n: int = game.min_on(f) + spark_more
+			var br := Rect2(x + ((f - 1) % 3) * 200, by + ((f - 1) / 3) * 36, 190, 30)
+			button(br, "Bid %s" % game.bid_name(n, f), func(): game.raise_to(n, f); spark_more = 0; _game_check(), f, 14, game.legal(n, f))
+		button(Rect2(x, by + 80, 150, 30), "One more" if spark_more == 0 else "+%d (again: back)" % spark_more, func(): spark_more = (spark_more + 1) % 3, 7, 13)
+		button(Rect2(x + 200, by + 80, 190, 30), "Call dark", func(): game.call_dark(); _game_check(), 8, 14, not game.bid.is_empty() and not game.by_you)
+	button(Rect2(r.end.x - 152, r.end.y - 50, 120, 30), "Concede  (0)", game_concede, 0, 13)
+
+
+## Dice as brass squares; lamps (ones) in gold.
+func _dice(at: Vector2, cup: Array) -> void:
+	for k in cup.size():
+		var dr := Rect2(at + Vector2(k * 48, 0), Vector2(40, 40))
+		var lamp: bool = int(cup[k]) == 1
+		draw_rect(dr, Color(GOLD, 0.35) if lamp else Color(HAIR, 0.15))
+		draw_rect(dr, Color(GOLD, 0.8), false, 1.0)
+		text(dr.position + Vector2(0, 28), str(cup[k]), 20, GOLD if lamp else PAPER, HORIZONTAL_ALIGNMENT_CENTER, 40)
+
+
+func _draw_game_over(r: Rect2, o: Dictionary) -> void:
+	var x := r.position.x + 32.0
+	var y := r.position.y + 84.0
+	var won := bool(game_out["won"])
+	title(Vector2(x, y), "You win." if won else "%s wins." % o["name"], 22, GOLD if won else PAPER)
+	y += 34.0
+	var c := int(game_out["crowns"])
+	var money := ("Wage: %d crowns." % c) if game_mode == "work" else ("+%d crowns." % c if c > 0 else ("%d crowns." % c if c < 0 else "Nothing changes hands."))
+	text(Vector2(x, y), money, 15, PAPER)
+	y += 28.0
+	if str(game_out["tell"]) != "":
+		y = para(Vector2(x, y), "You've learned a tell: " + str(game_out["tell"]), r.size.x - 64, 13, HOURS) + 8.0
+	for h in game_out["heard"]:
+		y = para(Vector2(x, y), "You hear: " + str(rumours.rec(h)["text"]), r.size.x - 64, 13, Color(PAPER, 0.85)) + 6.0
+	var pick: Array = game_out["pick"]
+	if not pick.is_empty():
+		text(Vector2(x, r.end.y - 96), "A first win this season. Ask about one thing:", 13, GOLD)
+		for k in pick.size():
+			var kind: String = pick[k][0]
+			button(Rect2(x + k * 150, r.end.y - 84, 140, 30), str(pick[k][1]), func(): game_pick(kind), k + 1, 14)
+	button(Rect2(r.end.x - 152, r.end.y - 50, 120, 30), "Done", game_close, 9, 14)
+
+
 func _draw_death() -> void:
 	# The end card (lives spec §3.3, UI spec §5.6): one quiet line for how the life ended; what it
 	# kept and opened is on its page in the Ledger, read on the first morning.
@@ -1992,8 +2215,9 @@ func _draw_rumours(r: Rect2) -> void:
 		para(Vector2(x, y - 12), "No rumours yet. Stand near people who are talking, and listen.", r.size.x - 56, 13, DIM)
 
 
-## The Work tab (people spec §6.2, §7.1): the commissions you're doing, the ones posted, the ones
-## paid this life, the crowns you've earned, and your rung on the camp ladder with the books you know.
+## The Work tab (people spec §6.2, §7.1, §9): the commissions you're doing, the ones posted, the ones
+## paid this life, the crowns you've earned, your rung on the camp ladder with the books you know,
+## and who you've beaten at games.
 func _draw_commissions(r: Rect2) -> void:
 	var x := r.position.x + 28.0
 	var y := r.position.y + 78.0
@@ -2007,7 +2231,12 @@ func _draw_commissions(r: Rect2) -> void:
 	if not bk.is_empty():
 		text(Vector2(x, r.end.y - 34), "Books: " + ", ".join(bk.map(func(b): return str(b["name"]).get_slice(",", 0))), 12, Color(PAPER, 0.8),
 			HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 190)
-	r = Rect2(r.position, r.size - Vector2(0, 60))
+	# minigames (people spec §9): who you've beaten, in any life (their tells are yours)
+	var bt: Array = games.beaten()
+	if not bt.is_empty():
+		text(Vector2(x, r.end.y - 70), "Beaten at games (tells known): " + ", ".join(bt.map(func(w): return str(games.opp(w)["name"]))), 12, Color(PAPER, 0.8),
+			HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 190)
+	r = Rect2(r.position, r.size - Vector2(0, 78 if not bt.is_empty() else 60))
 	if rows.is_empty():
 		para(Vector2(x, y - 12), "No commissions yet. The board in the square has work, most weeks.", r.size.x - 300, 13, DIM)
 		return

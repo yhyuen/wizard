@@ -291,6 +291,8 @@ repeat: true
 priority: -10
 [time == "night"] Marrow: Hush. Mars is up, and he's in a temper.
 [time != "night"] Marrow: Observer. Stand still when you talk to me. There. Better.
+* A round of Star-charts [(time == "dusk" or time == "night") and game_open("marrow")] -> charts_marrow
+* Star-charts for coin [(time == "dusk" or time == "night") and game_coin("marrow")] -> charts_marrow_coin
 * Leave
 
 === wren
@@ -298,6 +300,8 @@ talk: wren
 repeat: true
 priority: -10
 Wren: (not looking up) Found, found, not found. Found. Sorry. What?
+* A round of Star-charts [(time == "dusk" or time == "night") and game_open("wren")] -> charts_wren
+* Star-charts for coin [(time == "dusk" or time == "night") and game_coin("wren")] -> charts_wren_coin
 * Leave
 
 # --- S4, the cellar thing (the Mill) ------------------------------------------------------------

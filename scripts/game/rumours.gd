@@ -55,13 +55,13 @@ func pool_now(region: String) -> String:
 
 
 ## Draws from `pool`: the unheard rumour pointing at the soonest event still ahead, else any
-## unheard one; "" when the pool is dry.
-func draw(pool: String) -> String:
+## unheard one; "" when the pool is dry. `kind` (date, person or lead) keeps to that kind.
+func draw(pool: String, kind := "") -> String:
 	var best := ""
 	var best_day := 99999
 	for id in d["rumours"]:
 		var r: Dictionary = d["rumours"][id]
-		if str(r.get("pool", "")) != pool or heard(id):
+		if str(r.get("pool", "")) != pool or heard(id) or (kind != "" and str(r["kind"]) != kind):
 			continue
 		var at := 99998
 		var ev := str(r.get("points_at", {}).get("event", ""))

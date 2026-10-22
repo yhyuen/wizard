@@ -37,7 +37,7 @@ It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `c
 - **Effects:** `learn`, `set`, `clear`, `fight`, `wells`, `train`, `meditate`, `goto`, `end_loop`,
   `model`, `trial`, `sound`, `cutscene`, `move`, `take`, `sleep`, `book`, `today` (a once-a-day
   action, for `done(op)`), `go <map> <spot>` or `go <exit>`, `open <door>` (that door stands open for the life, even a gate whose prop still stands), `ignite <place>` (everything that burns in the current map's place rect catches, and the ground under it; not counted as unseen damage), `downed <days> <cause>` (when the scene closes: the hurt screen with the death text for `cause`, then `days` pass and you wake on your cot, Injured; not counted as a death), `standing <power> <n>`, `merit <n>` and `exam <power>` (the next rank in your road's power if its rows are met; [growth.md](growth.md) Powers), `sign <calamity> <sign>`, `prep <calamity> <prep>` (takes the time of day), `calamity_onset <calamity>` and `calamity_dawn <calamity>` ([loop.md](loop.md) Calamities), `remember <who> <deed>` (a person's memory of you, [world.md](world.md) People), `bond <who>
-  <source> [key] [amount]`, `bond_cross <who>`, `betray <who>` and `gift <who> <item>` ([world.md](world.md) Bonds), `rumour <id>` (Rumours below), `commission <id> take|next|clean|lose|slow|work|pay` (Commissions below), `ladder bout|win` (The camp ladder below), `play_path <id>`, `road <id>` (take a road
+  <source> [key] [amount]`, `bond_cross <who>`, `betray <who>` and `gift <who> <item>` ([world.md](world.md) Bonds), `rumour <id>` (Rumours below), `commission <id> take|next|clean|lose|slow|work|pay` (Commissions below), `ladder bout|win` (The camp ladder below), `game <who> free|work|coin` (Minigames below), `play_path <id>`, `road <id>` (take a road
   for this life, [loop.md](loop.md)), `deed <id>` (a soul flag the Turning keeps; SEALED deeds
   open roads), `omen <id>` (take an Omen for this life), `forecast <who>` (that person says
   tomorrow's weather, [world.md](world.md)), `bench` (work at a bench: fill your devices from
@@ -45,7 +45,7 @@ It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `c
   [growth.md](growth.md) "Devices"). Conditions also have `mastered(school)` (that school at Master in this life or an earlier
   one, N-5.3), `guide_found()` and `guide_mastered()` (Field Guide counts, N-6.5,
   [combat.md](combat.md)), `on_road(id)`,
-  `offered(id)`, `omen(id)`, `omens()`, `omens_offered()`, `ended(cause)`, `attended(id)` and `missed(id)` (fixed events, [loop.md](loop.md)), `rumour_heard(id)` (Rumours below), `commission_step(id)`, `commission_posted(id)`, `commission_done(id)`, `commission_known(id)`, `commission_lost(id)`, `commission_clean(id)` and `commission_board_empty()` (Commissions below), `rung()`, `ladder_open()` and `ladder_book(n)` (The camp ladder below), `bond(who)` (your bond tier with them, 0–5) and `bond_ready(who)` (lamp full, a crossing scene
+  `offered(id)`, `omen(id)`, `omens()`, `omens_offered()`, `ended(cause)`, `attended(id)` and `missed(id)` (fixed events, [loop.md](loop.md)), `rumour_heard(id)` (Rumours below), `commission_step(id)`, `commission_posted(id)`, `commission_done(id)`, `commission_known(id)`, `commission_lost(id)`, `commission_clean(id)` and `commission_board_empty()` (Commissions below), `rung()`, `ladder_open()` and `ladder_book(n)` (The camp ladder below), `game_open(who)`, `game_work(who)`, `game_coin(who)` and `minigame_beaten(who)` (Minigames below), `bond(who)` (your bond tier with them, 0–5) and `bond_ready(who)` (lamp full, a crossing scene
   can open the next tier; [world.md](world.md) Bonds), `calamity_in(id)` (days until
   that calamity, after the Early Bell) and `calamity_variant(id)` (its later-lives variant, 0 before
   it has been Held; [loop.md](loop.md) Calamities) (only while a life's
@@ -71,7 +71,7 @@ It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `c
   1 has seven: the Knights' arrival, the Iron Gate, the voice under Cinder Row, the east fence,
   the Market's lighting, and two about people.
 - The Ledger's **Rumours** tab (9) lists them by kind; one heard in an earlier life says so.
-- `draw(pool)` takes the unheard rumour pointing at the soonest event still ahead (for minigames
+- `draw(pool, kind)` (kind optional) takes the unheard rumour pointing at the soonest event still ahead (for minigames
   and companions, later).
 - **Data check** (story_lint): every fixed event that is an appointment has a rumour pointing at
   it, from a scene that can play at least 7 days before.
@@ -117,6 +117,35 @@ It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `c
 - The rung (`Run.life.rung`) resets each life; books carry (`Run.soul.ladder_books`). The Work tab
   shows the rung and the books; holding the top rung is the **Top of the Slate** achievement.
 - **Data check** (story_lint): every rung has a duel of its kind and a scene that fights it.
+
+## Minigames (`data/world/minigames/*.json`, `scripts/game/minigames/`, people spec §9; N-7.6.5)
+
+- Two games in the camp, offered in each opponent's talk scene (`data/world/story/minigames.story`
+  holds the matches). `game <who> free|work` stops the scene like a fight (button "Play") and
+  opens the game panel; `? won` / `? lost` carry on after it. F1 in the panel is easy mode (tells
+  always shown, one wrong answer struck out); 0 concedes.
+- **Star-charts** (Wren, Brogan, Lector Marrow; Dusk and Night only): best of three sky riddles
+  (a constellation, a moon phase or a Sphere). Clues come one at a time; answer or wait. Wait past
+  the opponent's buzz (seeded per riddle) and they answer first, right with their `sure` chance; a
+  wrong answer gives the riddle away. A riddle answered right is remembered for every life (its
+  answer is marked, `Run.soul.charts`); the Lantern's answer also gives a date rumour.
+- **Sparks** (Mira, Pell, Kestrel): liar's dice, four brass dice each, ones (lamps) wild. Raise
+  (more dice, or as many on a higher face) or call dark; whoever was wrong loses a die. Opponents
+  call by `nerve` and bluff by `bluff`.
+- **Rules** (`games.gd`): free play once a week per opponent, costing no time; a win pays the
+  stake and a loss costs it (if you have it); either is the `minigame_win`/`minigame_loss` bond.
+  **Work** (Kestrel's market table): half a day (two times of day), a wage, and a rumour every time.
+  The **first win** against someone each season picks a rumour (When, Who or Where: the most useful
+  unheard one of that kind). The first win also learns their **tell** for every life
+  (`Run.soul.tells`): the panel then shows its sign when it means something (Star-charts: they'll
+  answer if you wait; Sparks: their bid is a bluff). Beaten in a past life (`Run.soul.games_beaten`),
+  a Star-charts opponent will **pay for coin** without a game (the stake, no rumour, no bond; it
+  takes the week's game); never at dice. No games in a calamity's week. The Work tab lists who
+  you've beaten.
+- **Data check** (story_lint): `game` args (work only where there is work, never coin at dice, both
+  outcomes), every opponent is a person with a scene that plays them, every riddle has three clues
+  and its answer among the options, and each opponent has riddles enough. `people.gd` plays both
+  cores alone with bots, and the frame through the slice.
 
 ## Cutscenes (`scripts/game/cutscene.gd`)
 
