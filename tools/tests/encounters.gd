@@ -78,6 +78,8 @@ func _process(_dt: float) -> bool:
 	if frames > 30 and last_us > 0:
 		frame_ms.append((now - last_us) / 1000.0)
 	last_us = now
+	if i >= cases.size():
+		return false  # all done: quitting
 	# A calamity's Peak lasts longer than any other fight: its own time, and a little more.
 	var limit: int = maxi(LIMIT, int((float(encounters[cases[i]["id"]].get("survive", 0)) + 30.0) * 60.0))
 	if frames > limit:
