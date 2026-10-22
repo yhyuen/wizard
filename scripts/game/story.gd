@@ -46,7 +46,7 @@ const MAPS := "res://data/world/maps.json"
 const HEADER_KEYS := ["place", "days", "times", "when", "force", "priority", "repeat", "known", "title", "slot", "backdrop",
 	"talk", "use", "arrive", "cast"]
 const EFFECTS := ["learn", "set", "clear", "fight", "wells", "train", "meditate", "goto", "end_loop",
-	"model", "trial", "sound", "cutscene", "move", "take", "sleep", "book", "today", "go", "open", "play_path", "road", "deed", "omen", "forecast", "bench", "remember", "ignite", "downed"]
+	"model", "trial", "sound", "cutscene", "move", "take", "sleep", "book", "today", "go", "open", "play_path", "road", "deed", "omen", "forecast", "bench", "remember", "ignite", "downed", "standing", "merit", "exam"]
 
 var scenes := {}  # id -> scene dictionary
 var errors: Array = []  # parse errors, for the linter
@@ -58,6 +58,7 @@ class Ctx:
 	var run  # the Run autoload
 	var ring := 0
 	var growth  # scripts/game/growth.gd, when the slice has one: gives the real Ring
+	var powers  # scripts/game/powers.gd, when the slice has one: standing and rank in the powers
 
 	## A once-a-day action (meditate, train) already done today.
 	func done(op: String) -> bool:
@@ -77,6 +78,14 @@ class Ctx:
 
 	func f(id: String) -> bool:
 		return run.flag(id)
+
+	## Your rank in power `id` (-1 not a member, 0 Initiate, 1 Adept; powers spec §4; N-7.3.3).
+	func rank(id: String) -> int:
+		return powers.rank(id) if powers != null else -1
+
+	## Standing with power `id` (powers spec §3).
+	func standing(id: String) -> int:
+		return powers.standing(id) if powers != null else 0
 
 	## `who` remembers you did `deed` to them this life (people spec §3.3; N-7.2.1).
 	func remembers(who: String, deed: String) -> bool:

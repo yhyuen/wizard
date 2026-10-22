@@ -242,6 +242,8 @@ Something settles in you as well: a Ring closes round your power.
 + set ring1
 + set warden_down
 + trial warden
++ merit 10
++ standing college 5
 Beyond it, the Archive stair goes up into the dark.
 
 === archive_stair

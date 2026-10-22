@@ -1,0 +1,28 @@
+{
+ "_doc": "The powers you stand with and rank in (design/powers/powers-and-reputation-spec.md §3-4; build item N-7.3.3). powers: each power's name, its road (data/world/lives.json roads; the power you join by taking that road), its school, and start: its standing on the first morning (§3.2). Your road's power starts at road_start instead. Standing is start plus this life's bumps (Run.life standing, written by deeds.gd and the story's standing effect), held to -100..100; tiers name its bands by their lowest value (§3.1). ranks: the ladder in your road's power; you are its first rank from taking the road, and each later rank is taken at an examination (the story's exam effect) once its rows are met: standing with the power, the Ring, school spells known (spells), staged [n, stage]: n of them at that spell stage or above (1 Adept, 2 Master, 3 Perfected; Grandmaster's Grand spell is approximated by a Perfected one), and merit (earned only as a member, from the story's merit effect). Only Initiate and Adept are reachable in Ring 1; Master and Grandmaster show as rows to come.",
+ "powers": {
+  "college": {"name": "the College of Hours", "road": "apprentice", "school": "astral_rite", "start": 5},
+  "guild": {"name": "the Lamplighters' Guild", "road": "lamplighter", "school": "spark_artifice", "start": 0},
+  "watch": {"name": "the Watch", "start": 5},
+  "knights": {"name": "the Knights of the Iron Oath", "start": -15},
+  "traders": {"name": "the market traders", "start": 0},
+  "miller": {"name": "the Mill", "start": 0},
+  "dwarves": {"name": "the dwarves", "start": 0}
+ },
+ "road_start": 20,
+ "tiers": [
+  {"name": "Hunted", "from": -100},
+  {"name": "Hostile", "from": -74},
+  {"name": "Wary", "from": -39},
+  {"name": "Neutral", "from": -9},
+  {"name": "Friendly", "from": 10},
+  {"name": "Trusted", "from": 40},
+  {"name": "Honoured", "from": 75}
+ ],
+ "ranks": [
+  {"name": "Initiate"},
+  {"name": "Adept", "standing": 25, "ring": 1, "spells": 3, "staged": [1, 1], "merit": 30},
+  {"name": "Master", "standing": 50, "ring": 3, "spells": 3, "staged": [2, 2], "merit": 100},
+  {"name": "Grandmaster", "standing": 80, "ring": 5, "spells": 3, "staged": [1, 3], "merit": 250}
+ ]
+}

@@ -40,8 +40,8 @@ There are two layers, and the ruins game uses the first on top of the second.
 ## Schools (`data/schools.json`; N-5.1)
 
 *Spell spec §5.1, §7, §8. Built: the frame, Astral Rite's rule and Spark Artifice's devices.
-Not yet: the other six schools, a power's rank ladder with merit, standing and an exam (N-7.3),
-school quest lines, combined spells, Grand spells needing the school's Adept rank.*
+Not yet: the other six schools, school quest lines, Grand spells needing the school's Adept rank.
+A power's rank ladder is under Powers below.*
 
 - **Every spell names its school** (`spells.json` `school`): the 13 spells are all **Astral
   Rite** (the College). Each road names its school (`lives.json` `roads`): Apprentice → Astral
@@ -102,6 +102,28 @@ school quest lines, combined spells, Grand spells needing the school's Adept ran
 - **Learning it:** once both schools are mastered, the Lamplighters' bench offers "Ask about the
   lantern with the star-chart shade" (story condition `mastered(<school>)`), which teaches the Model
   (kept across lives).
+
+## Powers: standing and rank (`data/world/powers.json`, `scripts/game/powers.gd`; N-7.3.3)
+
+*Powers spec §3-4. Built: standing with each power, membership through your road, the rank
+ladder's rows, merit, and the College's examination. Not yet: duty boards (merit from duties),
+the daily cap, allies and rivals, Associates, leaving and betraying, a voice at fixed events,
+rank grants (tier-2 spells, stipend, titles), past-life ranks easing the rows, rivals' exam duels.*
+
+- **Standing** with a power is its start on the first morning (the College +5, the Watch +5, the
+  Knights −15, the rest 0; your road's power +20) plus this life's bumps, −100..100, in seven
+  tiers from Hunted to Honoured (Friendly from +10). The bumps are `Run.life.standing`, shared
+  with the owners' reaction ladder (world.md); the story moves them with `standing <power> <n>`.
+- **Your road joins you to its power** (the Apprentice road the College, the Lamplighter road the
+  Guild) as an **Initiate**. **Merit** is earned only as a member, from the story's `merit <n>`:
+  Crane's lesson (+10 with every door right, else +5), Marrow's (+5), the Mill cellar (+15 the
+  patient way, +5 by fire), the Kiln Warden (+10).
+- **Adept** is taken at the power's examination (the story's `exam <power>`) if its rows are met:
+  standing 25, the 1st Ring, three spells of its school known, one of them at Adept stage, and 30
+  merit. The College examines at the Thaw examination (Thaw 21); passing it with the rows met
+  makes you Adept. Master and Grandmaster have rows but nothing examines them yet.
+- Story conditions `rank(power)` (−1 not a member, 0 Initiate, 1 Adept) and `standing(power)`.
+  The spellbook shows your rank, the power, its tier and your merit. All of it resets each life.
 
 ## Spell levels and mastery (`scripts/autoload/progression.gd`, `data/spells.json` `progression`)
 
