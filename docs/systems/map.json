@@ -28,7 +28,7 @@
       "docs": ["docs/systems/world.md"],
       "paths": [
         "scripts/world/map.gd", "scripts/world/world.gd", "scripts/world/people.gd",
-        "data/world/maps.json", "data/world/world.json", "data/world/props.json",
+        "data/world/maps.json", "data/world/world.json", "data/world/props.json", "data/world/owners.json", "scripts/world/deeds.gd",
         "data/world/regions.json", "scripts/game/reach.gd",
         "scripts/world/weather.gd", "data/world/weather.json", "scripts/world/matter.gd", "data/materials.json",
         "scripts/world/cells.gd", "data/world/ground.json", "data/world/structures.json"

@@ -57,8 +57,8 @@ The [spells and environment](/mnt/project-files/design/world/spells-and-environm
 | States in three lanes (moisture, heat, integrity) with timers | On props: smoulder, burning, ash, chilled, brittle, wet, cracked, broken; plus charged puddle and flared lamp | [world.md](world.md) |
 | Fire spreads on a 24 px cell grid with wind; water flows by height; charge fills a network by grade | Built (N-4.2): fire spreads on 24 px cells with wind, rain and a cap; water wets and puts out; lightning fills wet and metal networks by grade. Water doesn't flow; smoke doesn't block sight or drift; no cold or mud on cells; arena puddles are still their own zones beside the cells | [world.md](world.md) |
 | Break stages, supports and telegraphed collapse; warded things never break | Props crack and break by Impact grade and hp (a flattened heap, no broken meshes). Supports and collapse built (N-4.3) for one structure, the camp's leaning gallery; rubble slows and Impact II clears it. No ceilings, bridges or towers yet, no grade gates in map data, rubble isn't cleared by people over days | [world.md](world.md) |
-| Changes last the life; people and nature repair over days; Time mends by grade | Every reaction resets when you wake; Rewind mends within 34 px | [world.md](world.md) |
-| Owners, values, witnesses, a reaction ladder, faction temperaments | People flinch and complain; the captain scolds fire | [world.md](world.md) |
+| Changes last the life; people and nature repair over days; Time mends by grade | Changes last the life and owners mend their props after 1–3 dawns (N-4.4); nature doesn't regrow burned ground yet; Rewind mends within 34 px, not by grade | [world.md](world.md) |
+| Owners, values, witnesses, a reaction ladder, faction temperaments | Owners, values, witnesses and the ladder's three steps built (N-4.4); the guards are a toast and a standing cost; fires enemies start are blamed on you like your own; no faction temperaments yet | [world.md](world.md) |
 
 ## Enemies: the target vs the build
 
@@ -116,7 +116,7 @@ design (2026-10-22, tracker M0-15) is how money, gear and repairs should work. I
 | Refilling takes one hour on the clock | It takes the time of day (the clock has no hours yet) | [growth.md](growth.md) |
 | Taking salvage from owned debris is theft if witnessed | Salvage ignores ownership until owners and witnesses (N-4.4) | [world.md](world.md) |
 | Commissions board, homes, rent | None (N-7.6) | [world.md](world.md) |
-| Repair crews rebuild owned props over days from town stock | Every reaction resets when you wake (N-4.4) | [world.md](world.md) |
+| Repair crews rebuild owned props over days from town stock | Owners put their props back after 1–3 dawns, with no crew walking out and no stock spent (N-4.4) | [world.md](world.md) |
 
 ## Ring 1 places and fights: the target vs the build
 
@@ -156,7 +156,7 @@ table; none of it is built:
 | Standing −100 to +100 per power in seven tiers, moved by one deed stream (temperaments, duties, damage), with ripples to allies and feuds | No powers or standing | [story.md](story.md), [world.md](world.md) |
 | A road power with ranks Initiate to Grandmaster: merit, standing, Ring, school mastery and a dated exam; one Associate power | No ranks or exams | [story.md](story.md) |
 | Fame and infamy from witnessed deeds only, news travelling by road days, nicknames | No fame | [world.md](world.md) |
-| The reaction ladder with numbers, suspicion for unwitnessed damage, amends within 3 days, fines and bounties | People flinch and complain; the captain scolds fire | [world.md](world.md) |
+| The reaction ladder with numbers, suspicion for unwitnessed damage, amends within 3 days, fines and bounties | The ladder with numbers, suspicion, fame and infamy counted in `Run.life` (N-4.4); no amends, fines or bounties, and fame doesn't travel | [world.md](world.md) |
 | One named rival per road who duels you before each rank exam | No rivals | [story.md](story.md) |
 
 ## People and side activities: the target spec vs the build

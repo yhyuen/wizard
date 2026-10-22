@@ -33,6 +33,9 @@ extends SceneTree
 ## doesn't burn; a Silencer's bell stops a spell inside its ring, and a heavy blow breaks it.
 ## N-6.7 (the cult's first cell): the first Acolyte runs for help, and catching it keeps the alarm
 ## down while letting it go brings two more; Splash washes out a Saboteur's oil before it's lit.
+## N-4.4 (owners and witnesses): a crate broken in front of someone costs standing with its owner;
+## one broken unseen is found by the next person to pass; its owner puts it back after a dawn or
+## two; dousing someone's burning bale earns standing and fame.
 
 const BOOK := ["ember_bolt", "pebble", "splash", "undertow"]
 const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt"]
@@ -119,6 +122,8 @@ func _initialize() -> void:
 		["a Silencer's bell stops spells inside its ring, and a heavy blow breaks the bell", _bell_setup, _belled],
 		["the first Acolyte runs for help: caught, no alarm; left alone, the alarm brings two more", _runner_setup, _alarmed],
 		["Splash washes out a Saboteur's oil before it's lit; oil left alone goes up", _oil_setup, _oiled],
+		["breaking a crate someone sees costs standing; one nobody sees is found later; its owner mends it", _deeds_setup, _deeds],
+		["putting out a burning bale someone owns earns standing and fame", _good_setup, _good_deed],
 	]
 
 
@@ -1108,4 +1113,87 @@ func _oiled() -> bool:
 	var lit: bool = A.zones.any(func(z): return z["kind"] == "blaze" and z["pos"] == state["far"])
 	return fuses == 0 and lit and int(A.stats.get("defused", 0)) == state["defused"] + 1 \
 		and "defused" in run.soul["guide"]["saboteur"]["found"]
+
+
+# --- N-4.4: owners and witnesses -----------------------------------------------------------------
+
+## A prop of `kind` that someone owns, whole and unburnt, as far as can be from everyone.
+func _owned_prop(kind: String, far: bool) -> Dictionary:
+	var best := {}
+	var score := -INF
+	for p in world.props:
+		if p["kind"] != kind or p["state"] != "" or p["integrity"] != "" or world.deeds.owner_of(p) == "":
+			continue
+		var near := INF
+		for q in world.people.list:
+			if q.on:
+				near = minf(near, q.pos.distance_to(p["pos"]))
+		var sc: float = near if far else -near
+		if sc > score:
+			score = sc
+			best = p
+	return best
+
+
+func _someone() -> Object:
+	for q in world.people.list:
+		if q.on and not q.talking:
+			return q
+	return null
+
+
+func _deeds_setup() -> void:
+	_clear_enemies()
+	var D = world.deeds
+	var seen_crate := _owned_prop("crate", false)
+	var owner: String = D.owner_of(seen_crate)
+	var who = _someone()
+	who.pos = seen_crate["pos"] + Vector2(24, 0)
+	who.fade = 0.0
+	state["owner"] = owner
+	state["before"] = D.standing(owner)
+	world.apply_force(seen_crate, "impact", 4, 4.0)
+	state["seen"] = D.standing(owner) < state["before"] and who.bark != ""
+	# one nobody sees: everyone well away first
+	var lone := _owned_prop("crate", true)
+	for q in world.people.list:
+		if q.on and q.pos.distance_to(lone["pos"]) < 140.0:
+			q.pos = lone["pos"] + (q.pos - lone["pos"]).normalized() * 140.0
+	state["lone"] = lone
+	state["lone_owner"] = D.owner_of(lone)
+	state["unseen"] = (run.life.get("unseen", []) as Array).size()
+	world.apply_force(lone, "impact", 4, 4.0)
+	state["missed"] = (run.life.get("unseen", []) as Array).size() == state["unseen"] + 1
+	state["sus"] = int(run.life.get("suspicion", {}).get(state["lone_owner"], 0))
+	who.pos = lone["pos"] + Vector2(0, 30)  # someone comes by
+
+
+func _deeds() -> bool:
+	var D = world.deeds
+	if int(run.life.get("suspicion", {}).get(state["lone_owner"], 0)) <= state["sus"]:
+		return false
+	var lone: Dictionary = state["lone"]
+	run.life["day"] = run.day() + 3
+	D.new_day()
+	run.life["day"] = run.day() - 3
+	return state["seen"] and state["missed"] and lone["integrity"] == "" and not lone.has("broke_day")
+
+
+func _good_setup() -> void:
+	_clear_enemies()
+	var D = world.deeds
+	var bale := _owned_prop("hay", false)
+	state["bale"] = bale
+	state["bale_owner"] = D.owner_of(bale)
+	state["fame"] = int(run.life.get("fame", 0))
+	world.ignite(bale)
+	state["after_fire"] = D.standing(state["bale_owner"])
+	_cast_at(bale["pos"], "splash", 40.0)
+
+
+func _good_deed() -> bool:
+	var D = world.deeds
+	if state["bale"]["state"] == "burning":
+		return false
+	return D.standing(state["bale_owner"]) > state["after_fire"] and int(run.life.get("fame", 0)) == state["fame"] + 1
 
