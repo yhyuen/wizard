@@ -1,0 +1,14 @@
+{
+ "_doc": "Things that stand on supports and come down when a support goes (design/world/spells-and-environment-spec.md §6.4; build item N-4.3). maps: per map, each structure's id, name, rect [x, y, w, h] (sim px: what it falls on), h (metres up: the deck the view draws), and supports [[x, y], ...]: a prop of kind `post` stands at each. Break a post (Impact at its grade, or burn it to ash) and the structure collapses after telegraph_s (never less than the fair-dodge delay for its size): `impact` grade and `damage` to everyone under it, the same Impact on the props there, and its cells become rubble. rubble: a ground cell state; everyone on it moves rubble_slow slower, and an Impact at clear_grade or more on it clears it. Structures stand again only when you wake (a new life).",
+ "telegraph_s": 1.5,
+ "impact": 3,
+ "damage": 30,
+ "rubble_slow": 0.3,
+ "clear_grade": 2,
+ "maps": {
+  "camp": [
+   {"id": "yard_gallery", "name": "The leaning gallery", "rect": [1040, 500, 120, 60], "h": 2.6,
+    "supports": [[1046, 556], [1154, 556]]}
+  ]
+ }
+}

@@ -5,7 +5,9 @@
   "crate":  {"r": 9, "h": 0.8, "mass": 1.0, "burns": 14.0, "spread": 26, "dps": 8, "material": "wood", "hp": 4},
   "barrel": {"r": 8, "h": 0.9, "mass": 0.7, "roll": true, "burns": 16.0, "spread": 24, "dps": 8, "material": "wood", "hp": 5, "break": 2, "fire": 2,
    "_doc": "iron-banded staves: breaks at Impact II, catches only at Fire II (grade I smoulders it)"},
-  "cart":   {"r": 16, "h": 1.2, "mass": 2.5, "burns": 18.0, "spread": 30, "dps": 8, "material": "wood", "hp": 8, "break": 2}
+  "cart":   {"r": 16, "h": 1.2, "mass": 2.5, "burns": 18.0, "spread": 30, "dps": 8, "material": "wood", "hp": 8, "break": 2},
+  "post":   {"r": 5, "h": 2.6, "mass": 0, "burns": 20.0, "spread": 20, "dps": 8, "material": "wood", "hp": 3, "break": 2,
+   "_doc": "a timber prop holding up a structure (data/world/structures.json): breaks at Impact II (a grade I hit cracks it, the next breaks it); burnt to ash, it fails too"}
  },
  "shove": {"speed": 260, "friction": 4.0, "roll_friction": 1.2},
  "lamp_reach": 14,

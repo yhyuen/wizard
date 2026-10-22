@@ -739,6 +739,8 @@ func move_speed(u: Unit) -> float:
 	var s := u.speed
 	if u.slow_t > 0.0:
 		s *= 1.0 - float(D["field"]["gravel_slow"])
+	if town != null:
+		s *= town.ground_speed(u.pos)  # rubble
 	if world != null and u == player and world.in_water(u.pos) and not world.on_bridge(u.pos):
 		s *= 0.55  # wading the millrace
 	return s

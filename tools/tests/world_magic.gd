@@ -14,6 +14,8 @@ extends SceneTree
 ## barrel (catches at Fire II) and only steams wet hay; a Spark sets hay alight.
 ## N-4.2 (the ground, spec §5): Pillar on grass sets the ground burning and it spreads; Splash
 ## puts a ground fire out; a Spark on wet ground charges it.
+## N-4.3 (supports and collapse, spec §6.4): a Pebble breaks the leaning gallery's cracked post, and
+## after its telegraph the gallery comes down on a Hollow under it and leaves slow rubble.
 
 const BOOK := ["ember_bolt", "pebble", "splash", "undertow"]
 const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt"]
@@ -68,6 +70,7 @@ func _initialize() -> void:
 			func(): return world.events_log.any(func(e): return e[0] == "ground_doused")],
 		["a Spark on wet ground charges it", _wet_ground_setup,
 			func(): return world.events_log.any(func(e): return e[0] == "ground_charged")],
+		["a Pebble breaks the gallery's post and it comes down on a Hollow", _gallery_setup, _crushed],
 	]
 
 
@@ -407,3 +410,29 @@ func _wet_ground_setup() -> void:
 	var at := _dark_spot()
 	world.wet_ground(at, 40.0)
 	_cast_at(at, "spark", 40.0)
+
+
+func _gallery_setup() -> void:
+	_book(BOOK)
+	var st: Dictionary = world.structures[0]
+	state["gallery"] = st
+	state["long"] = true
+	var post: Dictionary = st["supports"][0]
+	post["integrity"] = "cracked"  # one Pebble already landed
+	state["hollow"] = main.arena.spawn("hollow", st["rect"].get_center())
+	state["hollow"].stun = 9.0
+	_cast_at(post["pos"], "pebble", 44.0)
+
+
+## The warning comes first (never shorter than the fair delay), then the crash and the rubble.
+func _crushed() -> bool:
+	var st: Dictionary = state["gallery"]
+	if st["state"] == "falling" and not state.has("warned"):
+		state["warned"] = float(st["t"])
+	if st["state"] != "down":
+		return false
+	var ok: bool = state.get("warned", 0.0) >= 1.4 and _logged("crushed", "hollow") \
+		and world.ground_speed(st["rect"].get_center()) < 1.0
+	_clear_enemies()
+	state.erase("long")
+	return ok

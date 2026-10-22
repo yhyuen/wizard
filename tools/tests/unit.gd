@@ -821,6 +821,21 @@ func _cells() -> void:
 	ok(n1 == 2 and n3 == 10, "a strike runs along the wet strip by grade (I: %d cells, III: %d)" % [n1, n3])
 	ok(g.strike(g.index(Vector2(12, 120)), 3).is_empty(), "dry grass doesn't carry lightning")
 	ok(g.strike(g.index(Vector2(230, 230)), 1).size() >= 1, "the pond conducts")
+	var rb: int = g.index(Vector2(60, 200))
+	g.fire(rb, 1)
+	g.make_rubble(rb)
+	g.make_rubble(g.index(Vector2(230, 230)))
+	ok(g.rubble.has(rb) and g.burn[rb] == 0.0 and not g.burning.has(rb) and not g.rubble.has(g.index(Vector2(230, 230))), "a fallen structure leaves rubble that smothers fire (not on water)")
+	var sd: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/structures.json"))
+	var pk: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/props.json"))["kinds"]
+	var P = root.get_node("Progression")
+	var bad: Array = []
+	for mid in sd["maps"]:
+		for st in sd["maps"][mid]:
+			if st["supports"].is_empty() or float(sd["telegraph_s"]) < P.fair_delay(0.0):
+				bad.append(st["id"])
+	ok(bad.is_empty() and pk.has("post") and M.result("impact", 1, "wood", pk["post"]) == "crack" and M.result("impact", 2, "wood", pk["post"]) == "damage",
+		"every structure stands on posts that a grade I Impact cracks and grade II breaks (%s)" % ", ".join(bad))
 
 
 ## Spell mastery in the slice (spell spec §6.4, N-3): walls, trials, breakthroughs, remembered

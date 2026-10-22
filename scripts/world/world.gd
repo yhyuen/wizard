@@ -34,6 +34,8 @@ var cfg: Dictionary  # data/world/world.json
 var pd: Dictionary  # data/world/props.json
 var matter  # scripts/world/matter.gd: what a force does to a material
 var gd: Dictionary  # data/world/ground.json
+var sd: Dictionary  # data/world/structures.json
+var structures: Array = []  # this map's {id, name, rect, h, supports, state ("", "falling", "down"), t, warn}
 var cells  # scripts/world/cells.gd: this map's ground, where fire, water and charge spread
 var sky := {}  # today's weather here (scripts/world/weather.gd `on`), set by the game
 var sky_kinds := {}  # data/world/weather.json "kinds"
@@ -69,6 +71,7 @@ func _init(the_run, the_story) -> void:
 	pd = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/props.json"))
 	matter = Matter.new()
 	gd = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/ground.json"))
+	sd = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/structures.json"))
 	for k in matter.kinds_of("fire"):
 		fire_proj[k] = true
 	for k in pd["light_shy"]:
@@ -102,7 +105,8 @@ func in_camp() -> bool:
 func load_map(id: String) -> void:
 	if id == map_id:
 		return
-	_saved[map_id] = {"props": props, "lamps": lamps, "braziers": braziers, "scorches": scorches, "cells": cells}
+	_saved[map_id] = {"props": props, "lamps": lamps, "braziers": braziers, "scorches": scorches, "cells": cells,
+		"structures": structures}
 	_drop_fire_zones()
 	map.movers = Callable()
 	map_id = id
@@ -114,6 +118,7 @@ func load_map(id: String) -> void:
 		scorches = []
 		_build_lamps()
 		_fresh_props()
+		_fresh_structures()
 		_fresh_cells()
 	else:
 		props = st["props"]
@@ -121,6 +126,7 @@ func load_map(id: String) -> void:
 		braziers = st["braziers"]
 		scorches = st["scorches"]
 		cells = st["cells"]
+		structures = st["structures"]
 	_apply_sky()
 	_in_exit = ""
 	here = ""
@@ -150,6 +156,22 @@ func _fresh_props() -> void:
 		props.append({"kind": str(p[0]), "pos": Vector2(p[1], p[2]), "home": Vector2(p[1], p[2]), "vel": Vector2.ZERO,
 			"rot": float(p[3]), "spin": 0.0, "state": "", "burn_t": 0.0, "embers": [],
 			"hp": float(prop_def(str(p[0])).get("hp", 1)), "integrity": "", "wet_t": 0.0, "heat_t": 0.0})
+
+
+## Each structure's posts join the props (they burn, crack and break like any prop).
+func _fresh_structures() -> void:
+	structures = []
+	for d in sd["maps"].get(map_id, []):
+		var r: Array = d["rect"]
+		var st := {"id": str(d["id"]), "name": str(d["name"]), "rect": Rect2(r[0], r[1], r[2], r[3]), "h": float(d["h"]),
+			"supports": [], "state": "", "t": 0.0, "warn": 0.0}
+		for at in d["supports"]:
+			var p := {"kind": "post", "pos": Vector2(at[0], at[1]), "home": Vector2(at[0], at[1]), "vel": Vector2.ZERO,
+				"rot": 0.0, "spin": 0.0, "state": "", "burn_t": 0.0, "embers": [], "hp": float(prop_def("post")["hp"]),
+				"integrity": "", "wet_t": 0.0, "heat_t": 0.0, "holds": st["id"]}
+			props.append(p)
+			st["supports"].append(p)
+		structures.append(st)
 
 
 func _fresh_cells() -> void:
@@ -192,6 +214,7 @@ func reset_loop() -> void:
 		map = get_map(CAMP)
 		map.movers = movers
 	_fresh_props()
+	_fresh_structures()
 	_fresh_cells()
 	_build_lamps()
 	scorches = []
@@ -264,6 +287,7 @@ func tick(dt: float) -> void:
 	_lamps_by_time()
 	_lightning(dt)
 	_ground(dt)
+	_structures(dt)
 	_light_pools()
 	var now: String = map.place_at(player_pos())
 	if now != here:
@@ -483,6 +507,81 @@ func _ground(dt: float) -> void:
 			arena.hit(me, fire_hit * float(sp["self_k"]), -1, Vector2.ZERO, 0.0, true)
 
 
+# --- structures: supports and collapse (spells-and-environment spec §6.4) -----------------
+
+func _structures(dt: float) -> void:
+	for st in structures:
+		match st["state"]:
+			"":
+				if st["supports"].any(func(p): return p["integrity"] == "broken" or p["state"] == "ash"):
+					_start_collapse(st)
+			"falling":
+				st["t"] -= dt
+				st["warn"] -= dt
+				if st["warn"] <= 0.0:
+					st["warn"] = 0.3
+					var rc: Rect2 = st["rect"]
+					arena.fx("dust", rc.position + Vector2(randf() * rc.size.x, randf() * rc.size.y), {"r": 6.0, "life": 0.6})
+				if st["t"] <= 0.0:
+					_collapse(st)
+
+
+## A support has gone: the structure groans, dust falls, and it comes down after the telegraph,
+## never sooner than a wizard could get out from under it (combat spec §10.2).
+func _start_collapse(st: Dictionary) -> void:
+	var rc: Rect2 = st["rect"]
+	st["state"] = "falling"
+	st["t"] = maxf(float(sd["telegraph_s"]), _prog().fair_delay(maxf(rc.size.x, rc.size.y) * 0.5))
+	st["fall_s"] = st["t"]
+	st["warn"] = 0.0
+	events_log.append(["collapse_warn", st["id"]])
+
+
+func _collapse(st: Dictionary) -> void:
+	var rc: Rect2 = st["rect"]
+	st["state"] = "down"
+	var dmg := float(sd["damage"])
+	var imp := int(sd["impact"])
+	for u in arena.enemies() + ([arena.player] if arena.player != null else []):
+		if not u.dead and rc.grow(u.radius).has_point(u.pos):
+			arena.hit(u, dmg, imp, Vector2.DOWN, 10.0)
+			events_log.append(["crushed", u.kind])
+	for p in props:
+		if p["state"] != "ash" and p["integrity"] != "broken" and rc.has_point(p["pos"]):
+			apply_force(p, "impact", imp, float(imp))
+	for sp in st["supports"]:
+		if sp["integrity"] != "broken" and sp["state"] != "ash":
+			_break(sp)
+	if cells != null:
+		for i in cells.within(rc.get_center(), rc.size.length() * 0.5):
+			if rc.has_point(cells.centre(i)):
+				cells.make_rubble(i)
+	for k in 6:
+		arena.fx("dust", rc.position + Vector2(randf() * rc.size.x, randf() * rc.size.y), {"r": 16.0, "life": 0.9})
+	events_log.append(["collapse", st["id"]])
+
+
+## How fast a unit at `p` walks over the ground (1 normally; rubble slows).
+func ground_speed(p: Vector2) -> float:
+	if cells == null:
+		return 1.0
+	return 1.0 - float(sd["rubble_slow"]) if cells.rubble.has(cells.index(p)) else 1.0
+
+
+## An Impact at `grade` within `r` of `at` clears the rubble there if strong enough.
+func clear_rubble(at: Vector2, r: float, grade: int) -> int:
+	if cells == null or cells.rubble.is_empty() or grade < int(sd["clear_grade"]):
+		return 0
+	var n := 0
+	for i in cells.within(at, r):
+		if cells.rubble.erase(i):
+			n += 1
+	if n > 0:
+		events_log.append(["cleared", n])
+		arena.fx("dust", at, {"r": r, "life": 0.5})
+	return n
+
+
 ## Keeps one flame in the arena for every burning cell (the arena draws and the view lights
 ## them; the arena forgets its zones when you change maps, so this puts them back).
 func _sync_fire_zones() -> void:
@@ -516,6 +615,19 @@ func draw_ground(g: CanvasItem, at: Vector2, r: float) -> void:
 		var c: Vector2 = cells.centre(i)
 		if c.distance_to(at) < r:
 			g.draw_circle(c, s * 0.7, Color(0.04, 0.03, 0.03, 0.45), true, -1.0, true)
+	for i in cells.rubble:
+		var c: Vector2 = cells.centre(i)
+		if c.distance_to(at) < r:
+			g.draw_circle(c, s * 0.6, Color(0.42, 0.38, 0.34, 0.55), true, -1.0, true)
+	for st in structures:
+		var rc: Rect2 = st["rect"]
+		if st["state"] == "":
+			g.draw_rect(rc, Color(0, 0, 0, 0.18))  # the gallery's shade on the ground
+		elif st["state"] == "falling":
+			# a telegraph like any spell's: red-orange outline, filling as it comes down
+			var k := 1.0 - clampf(float(st["t"]) / float(st["fall_s"]), 0.0, 1.0)
+			g.draw_rect(rc, Color(1.0, 0.42, 0.2, 0.12 + 0.3 * k))
+			g.draw_rect(rc, Color(1.0, 0.42, 0.2, 0.9), false, 1.5)
 	var now := Time.get_ticks_msec() * 0.001
 	for i in cells.active:
 		var c: Vector2 = cells.centre(i)
@@ -792,6 +904,7 @@ func _magic() -> void:
 				arena.projs.erase(p)
 				arena.fx("burst", at, {"color": PixelArt.FIRE, "r": 7.0, "life": 0.3})
 		elif matter.carrier(k).get("force", "") == "impact":
+			clear_rubble(at, float(p["r"]) + 6.0, grade_of(k))
 			var pr := prop_at(at, float(p["r"]))
 			if not pr.is_empty():
 				hit_prop(pr, k, p["vel"])
