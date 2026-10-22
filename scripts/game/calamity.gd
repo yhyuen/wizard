@@ -1,7 +1,8 @@
 extends RefCounted
 ## The calamities (seasons spec §6, §8; build item N-7.5.1): signs that pin a date, the Eve that
 ## stops rests short, the Onset that starts the Peak where you stand (or lets it pass without you),
-## the Dawn tally of stakes and tier, and the tier's aftermath. Data in data/world/calamities.json;
+## the Dawn tally of stakes and tier, and the tier's aftermath; after a Held life, the next life's
+## variant (N-7.5.3: soul "calamity_held"). Data in data/world/calamities.json;
 ## the dates are the calendar's. Everything here is the life's (Run.life "calamity" {id: state});
 ## the soul keeps the date once one has passed (Run.soul "dates").
 
@@ -32,15 +33,38 @@ func of_event(event_id: String) -> String:
 	return ""
 
 
-## Its day of the year (the calendar's moon and day; the Early Bell Omen moves it a moon sooner).
+## Its day of the year (the calendar's, Run.event_day: the Early Bell Omen moves it a moon sooner).
 func day(id: String) -> int:
 	for e in run.cal["events"]:
 		if e["id"] == rec(id)["event"]:
-			var early: int = 0
-			for o in run.omens():
-				early = maxi(early, int(run.lives["omens"].get(o, {}).get("calamity_early", 0)))
-			return run.day_of(int(e["moon"]), int(e["day"])) - early * run.MOON_DAYS
+			return run.event_day(e)
 	return -1
+
+
+## Days until it comes (0 on its day, negative after): what the story's `calamity_in` reads.
+func days_to(id: String) -> int:
+	return day(id) - run.day()
+
+
+## Its later-lives variant (seasons spec §9, N-7.5.3): one more for each life it was Held, up to
+## the record's `variants.max`; 0 before it has ever been Held.
+func variant(id: String) -> int:
+	var v: Dictionary = rec(id).get("variants", {})
+	if v.is_empty():
+		return 0
+	return mini(int(run.soul.get("calamity_held", {}).get(id, 0)), int(v["max"]))
+
+
+## This life's variant record ({} for none): an `onset` slot that replaces the calamity's, a
+## life `flag` set at the Onset unless the life flag `unless` is set.
+func variant_rec(id: String) -> Dictionary:
+	var n := variant(id)
+	return rec(id).get("variants", {}).get(str(n), {}) if n > 0 else {}
+
+
+## Its Onset slot this life (a variant may move it).
+func onset(id: String) -> String:
+	return str(variant_rec(id).get("onset", rec(id)["onset"]))
 
 
 func state(id: String) -> Dictionary:
@@ -94,7 +118,7 @@ func eve_before(to: int, known: Callable) -> String:
 func due() -> Array:
 	var out: Array = []
 	for id in ids():
-		var at: int = run.TIMES.find(str(rec(id)["onset"]))
+		var at: int = run.TIMES.find(onset(id))
 		var cd: int = day(id)
 		if state(id)["phase"] == "" and (cd < run.day() or (cd == run.day() and run.time() >= at)):
 			out.append(id)
@@ -103,7 +127,7 @@ func due() -> Array:
 
 ## Whether you stand in it now: its day and Onset slot, in one of its regions.
 func here_now(id: String, region: String) -> bool:
-	return day(id) == run.day() and run.time() == run.TIMES.find(str(rec(id)["onset"])) and region in rec(id)["regions"]
+	return day(id) == run.day() and run.time() == run.TIMES.find(onset(id)) and region in rec(id)["regions"]
 
 
 # --- Dawn: stakes, tier, aftermath ------------------------------------------------------------
@@ -155,6 +179,10 @@ func settle(id: String, t: String, lamps: int, lost: int, absent: bool) -> Dicti
 	run.learn(str(rec(id)["ledger"]))
 	run.soul["dates"][str(rec(id)["event"])] = true
 	run.pass_calamity(id)
+	if t == "held" and not absent:
+		if not run.soul.has("calamity_held"):
+			run.soul["calamity_held"] = {}
+		run.soul["calamity_held"][id] = int(run.soul["calamity_held"].get(id, 0)) + 1
 	var tally := {"id": id, "tier": t, "lamps": lamps, "lost": lost, "absent": absent, "line": str(af.get("line", ""))}
 	st["tally"] = tally
 	return tally

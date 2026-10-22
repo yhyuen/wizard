@@ -436,6 +436,18 @@ func _vigil(dt: float) -> void:
 			w["people"] = 0
 			arena.toast.emit("Someone in the dark: \"No, no, I'm in the light, I'm in the...\"", PixelArt.HOURS)
 	var hp: Dictionary = v.get("helpers", {})
+	var br: Dictionary = v.get("bribed", {})
+	if not hp.is_empty() and run.flag(str(hp["flag"])) and not br.is_empty() and run.flag(str(br["flag"])) and not vigil.has("bribed"):
+		vigil["bribed_t"] = float(vigil.get("bribed_t", 0.0)) + dt
+		if vigil["bribed_t"] >= float(br["at"]):
+			vigil["bribed"] = true  # one of your helpers was bought (a later-lives variant, N-7.5.3)
+			var n := 0
+			for w in vigil["lamps"]:
+				if w["l"]["lit"] and n < int(br["n"]):
+					_douse_lamp(w["l"])
+					n += 1
+			run.learn("bribed_helper")
+			arena.toast.emit("A helper, very quietly, as the wick goes out under their thumb: \"I'm sorry.\"", PixelArt.HOURS)
 	if not hp.is_empty() and run.flag(str(hp["flag"])):
 		vigil["help_t"] += dt
 		if vigil["help_t"] >= float(hp["every"]):

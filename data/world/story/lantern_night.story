@@ -9,8 +9,9 @@
 
 === sign_flicker
 place: market
-days: 77-83
+days: 1-364
 times: dusk
+when: calamity_in("lantern_night") <= 7 and calamity_in("lantern_night") > 0
 slot: free
 The lamps on the Gate circuit gutter as they come on, all six together, as if something had drawn a breath along the rail. Then they steady.
 Nobody else seems to notice. A child points, and is hushed.
@@ -20,7 +21,7 @@ Nobody else seems to notice. A child points, and is hushed.
 === mira_oil
 talk: mira
 priority: 9
-when: day >= 79 and day < 84
+when: calamity_in("lantern_night") <= 5 and calamity_in("lantern_night") > 0
 Mira: Smell that. (She holds a wick under your nose.) No. Properly.
 Mira: Like a snuffed candle. Good oil smells of nothing. That's how you know it's good.
 Mira: It's not the Guild's barrels. I checked the Guild's barrels. It's coming from somewhere else and getting into the lamps.
@@ -46,7 +47,7 @@ Mira: Do. Somebody should.
 === pell_oil
 talk: pell
 priority: 9
-when: day >= 77 and day < 84 and k("pell")
+when: calamity_in("lantern_night") <= 7 and calamity_in("lantern_night") > 0 and k("pell")
 Pell: Oil? I've oil. Cheapest in the camp, and it burns all night. Take a flask. No, take it. For the College.
 * Hold the flask up to the light -> pell_oil_look
 * Thank him
@@ -59,8 +60,9 @@ Pell: (quickly) It settles. Give it a shake.
 
 === sign_stair
 place: market, watch_post, streets
-days: 81-83
+days: 1-364
 times: night
+when: calamity_in("lantern_night") <= 3 and calamity_in("lantern_night") > 0
 Up from the city, on the north stair, a scrape of feet that don't lift. Four Hollows at the top step, testing it, the way a man tests ice.
 They stop at the edge of the lamplight and look at the lamps. Then they come on anyway.
 + sign lantern_night stair_test
@@ -76,7 +78,7 @@ The last of them goes back down the stair in pieces. The watch on the wall didn'
 === ready
 talk: mira
 priority: 8
-when: day >= 77 and day < 84 and seen("mira_oil")
+when: calamity_in("lantern_night") <= 7 and calamity_in("lantern_night") > 0 and seen("mira_oil")
 Mira: If something's coming for my lamps, I'd like it to find them ready. Got a pair of hands?
 * Re-wick a circuit with her [count("rewick_") < 4] -> ready_rewick
 * Clear the hay and awnings off the lamp posts [not f("hay_cleared")] -> ready_hay
@@ -103,6 +105,8 @@ Hay off the posts, awnings rolled, crates stacked away from the glass. Bett watc
 [standing("guild") >= 25 or standing("college") >= 25] Mira: You? People will come if you ask. Four, maybe. Tapers and buckets.
 [standing("guild") < 25 and standing("college") < 25] Mira: Ask around. Nobody knows you well enough yet to stand in the dark for you.
 + set helpers_asked
+[k("bribed_helper") and calamity_variant("lantern_night") == 3] One of the four won't meet your eye. You send them home with a job that keeps them there.
+[k("bribed_helper") and calamity_variant("lantern_night") == 3] + set helper_read
 [standing("guild") >= 25 or standing("college") >= 25] + set helpers_coming
 [standing("guild") >= 25 or standing("college") >= 25] + prep lantern_night helpers
 * Leave
@@ -110,7 +114,7 @@ Hay off the posts, awnings rolled, crates stacked away from the glass. Bett watc
 === ready_watch
 talk: captain
 priority: 8
-when: day >= 77 and day < 84 and f("pinned_calamity_1")
+when: calamity_in("lantern_night") <= 7 and calamity_in("lantern_night") > 0 and f("pinned_calamity_1")
 Captain: You've a face on you like you know something. Out with it.
 * "Warn the households near the Market. Have them sleep in the College tents on the 28th." [not f("sheltered")] -> ready_shelter
 * "Put braziers at the stair and the broken wall." [not f("braziers_set")] -> ready_braziers
@@ -133,7 +137,7 @@ Captain: Fire they won't cross. I'll grant you that much about the College.
 === ready_rails
 use: bench
 priority: 5
-when: day >= 77 and day < 84 and (on_road("lamplighter") or mastered("spark_artifice")) and not f("rails_bridged")
+when: calamity_in("lantern_night") <= 7 and calamity_in("lantern_night") > 0 and (on_road("lamplighter") or mastered("spark_artifice")) and not f("rails_bridged")
 A coil of copper on the bench, and an iron rail that ends a yard short of the next.
 * Bridge two of the Market's circuits -> ready_rails_do
 * Set flare charges at the posts [not f("flares_set")] -> ready_flares
@@ -154,7 +158,7 @@ Flask charges, wired at the foot of four posts: break one and it relights the la
 === brogan_rails
 talk: brogan
 priority: 8
-when: day >= 77 and day < 84 and f("pinned_calamity_1") and not f("rails_bridged")
+when: calamity_in("lantern_night") <= 7 and calamity_in("lantern_night") > 0 and f("pinned_calamity_1") and not f("rails_bridged")
 Brogan: Iron rails, between the lamps? Whoever laid them stopped a yard short on the north row. Sloppy. I could close it for you.
 * "Do." -> brogan_rails_do
 * "Not now."
@@ -170,7 +174,7 @@ Brogan closes the gap with a length of ring-metal and a hammer, humming the tin 
 === coupling_duty
 talk: fennick
 priority: 9
-when: on_road("lamplighter") and day >= 77 and day < 84 and not seen("coupling_duty")
+when: on_road("lamplighter") and calamity_in("lantern_night") <= 7 and calamity_in("lantern_night") > 0 and not seen("coupling_duty")
 Fennick: You're on the great lamp for the lighting. Stand at the platform, keep the crowd off the glass.
 * "Stand at the coupling yourself, at Dusk. Don't let anyone touch it." [k("pell_lips") or f("mira_sign_seat")] -> coupling_ask
 * "The stone isn't from a scavenger." [standing("guild") >= 25] -> coupling_stone
@@ -200,7 +204,9 @@ Old Jory's fiddle survived the Shattering. He knows four songs and plays them in
 [f("mill_burned")] Bett sells thin stew and barley cakes, and she doesn't charge Tam's friends.
 Wren finds you in the crowd and puts a cake in your hand without a word. That's how you know you're forgiven.
 + learn lantern_cakes
-* Find a place in the crowd [not f("fennick_guards")] -> lighting_lit
+* Find a place in the crowd [not f("fennick_guards") and calamity_variant("lantern_night") != 1] -> lighting_lit
+* Find a place in the crowd [not f("fennick_guards") and calamity_variant("lantern_night") == 1] -> lighting_decoy
+* Wait at the cellar grate instead [not f("fennick_guards") and calamity_variant("lantern_night") == 1 and k("drain_cut")] -> lighting_drain
 * Go to the platform, where Fennick is [f("fennick_guards")] -> lighting_invite
 
 === lighting_lit
@@ -211,6 +217,29 @@ Mira: So let's have some light.
 She touches the taper to the great lamp's vent. Blue-white flame leaps down the Market's lines, lamp to lamp to lamp, until the whole camp is drawn in light on the dark plateau like a figure on a page.
 Everyone looks up. You don't. You're looking at Pell.
 * Look -> lighting_pell
+
+=== lighting_decoy
+Mira lights the great lamp, and the blue-white flame runs down the rails, and you look for Pell.
+Pell is at the coupling, as always. His hands are in his pockets. His lips aren't moving.
+He sees you see him, and smiles, and it's the saddest thing you've seen all year.
+Pell: Not me this time. Someone told her you'd be here.
+From under your feet, under the Market, from the cellar drain, the glass note.
++ learn pell_lips
++ learn drain_cut
+* Run for the cellar grate -> lighting_drain_late
+* Stay where you are
+
+=== lighting_drain_late
+You get to the grate as the note stops. Whoever was under it has gone down into the dark, and the lamps nearest you dim, and hold, for now.
++ set cut_delayed
+* Leave
+
+=== lighting_drain
+You don't watch the platform. You watch the grate in the cellar floor, with a taper in your hand, while the cheer goes up behind you.
+A hand comes up through the bars with something grey in it. You put the taper to the oil on its fingers. It goes back down very fast.
+Up in the Market the great lamp burns on. At the coupling Pell stands with his hands in his pockets, looking at nothing.
++ set cut_stopped
+* Leave
 
 === lighting_pell
 Pell, who runs the oil stall, who is kind, who has three children's names on his forearm.
@@ -263,11 +292,24 @@ He sits down on the ground, where he is, and puts his face in his hands.
 + set cut_stopped
 * Leave
 
+=== coupling_watch
+place: great_lamp
+days: 1-364
+times: afternoon
+when: calamity_in("lantern_night") == 0 and calamity_variant("lantern_night") == 2 and k("early_cut")
+Mira hasn't climbed the platform yet. Jory is still tuning. You sit down on the platform step with your back against the brass coupling, and you don't move.
+In the late afternoon Pell comes by with a can of oil. He sees you, and stops, and after a while he goes away again.
++ set cut_stopped
+* Leave
+
 # --- The Onset and the Peak (Seedmoon 28, Night) ----------------------------------------------
 
 === lantern_night_onset
-[not f("cut_stopped")] The lamps go out.
-[not f("cut_stopped")] Not all at once. One, at the end of the Gate row, then the next, then the next, a darkness running down the iron rail faster than a man can walk. Then the Market ring. Then the Square run. Then Mira's lane.
+[calamity_variant("lantern_night") == 2] Mira hasn't climbed the platform yet. Jory is still tuning. The light is still grey and ordinary.
+[calamity_variant("lantern_night") == 2 and not f("cut_stopped")] The lamps go out anyway, one after another, a dark line racing down the rail toward you.
+[calamity_variant("lantern_night") == 2 and not f("cut_stopped")] + learn early_cut
+[not f("cut_stopped") and calamity_variant("lantern_night") != 2] The lamps go out.
+[not f("cut_stopped") and calamity_variant("lantern_night") != 2] Not all at once. One, at the end of the Gate row, then the next, then the next, a darkness running down the iron rail faster than a man can walk. Then the Market ring. Then the Square run. Then Mira's lane.
 [not f("cut_stopped") and count("rewick_") > 0] Only the lamps you re-wicked hold, small and stubborn, like coins in the dark.
 [not f("cut_stopped")] At the great lamp, glass breaks. The blue-white light goes out of the Market. It doesn't come back.
 [f("cut_stopped")] The lamps hold. Every one, blue-white down the rails, and the great lamp burning over it all.
