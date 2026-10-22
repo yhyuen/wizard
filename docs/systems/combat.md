@@ -173,23 +173,45 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   gets you out) and every 8 s calls a **volley** (his ready Crossbowmen shoot together, past the
   director). Encounter `toll` (the bridge toll, places spec F13) is the group; until the east road
   is built (N-7.1.5) only the fight tests play it, in the camp yard.
+- **Armour** (N-6.6, enemy spec §5.3, `foes.armour`, `scripts/armour.gd`): a kind may wear a
+  layer over its body: leather (grade I, 15 HP), mail (II, 25) or plate (III, 40). A hit with
+  Impact at or above the grade goes fully through; a lighter one lets through only ¾ (leather),
+  ½ (mail) or ¼ (plate). Every hit wears the layer by its full damage (×2 while Broken); at 0 it is
+  **sundered**: it falls away, the wearer is plain flesh, and its Break meter gains half its size.
+  Mail and plate are metal: lightning goes straight through and counts as wet for a Spark's chain
+  (an extra hop); fire **heats** it for 3 s, 3 damage a second the armour doesn't stop (water
+  quenches it), and hot plate is −1 Poise. The first time a layer turns a light spell a toast says
+  so.
+- **The Knights' picket** (N-6.6, enemy spec §8.3, `scripts/knights.gd`, flesh in armour): the
+  **Oath Squire** (Soldier, mail) closes and swings; the **Shieldknight** (Soldier, plate) has an
+  **iron Guard** like the Shieldman's (60° each side of its front, up to Impact 2) that fire doesn't
+  burn and lightning goes through, but the heavy shield swings round after you at only 35° a second
+  (the Shieldman's always faces you), so you can get to its side; Shieldknights keep 34 px apart and
+  come on side by side. The **Silencer** (Elite, mail) keeps 80 px off and rings a **witch-bell**:
+  a 35 px circle (shown as it swings) lands after 0.8 s and for 2 s no spell can be begun inside it,
+  and a spell you were winding there breaks (`knights.hushed`, checked in `kit.begin`); it rings
+  every 6 s. A hit of Impact 3 or more, or Breaking it, breaks the bell, and then it fights with its
+  mace. Encounter `picket` (two Shieldknights, two Squires, a Silencer; not lethal) waits for its
+  place on the camp's edge (N-7.1); until then only the fight tests play it, in the camp yard.
 - **The Field Guide** (N-6.5, enemy spec §12.1, `foes.guide`, `scripts/field_guide.gd`): what
   you know of each kind, kept in the soul (`Run.soul["guide"]`), so it carries to every life. A
   kind is **Seen** when it spawns, **Beaten** when killed or it yields, its weakness **Found** the
   first time you do one of its `answers` to it (set it alight, Break it, break its wind-up or hum,
   catch the Crossbowman reloading, burn or go round the shield, fire on the keg, flood the kiln
-  first; a gold toast gives its lesson), and **Mastered** once beaten 10 times with its weakness
+  first, strip the armour, lightning or fire on the metal, break the bell; a gold toast gives its lesson), and **Mastered** once beaten 10 times with its weakness
   found. The Ledger's Guide tab shows it ([frame.md](frame.md)); achievements count it
   ([loop.md](loop.md)).
 - **Morale** (N-6.4, enemy spec §6.5, `foes.morale`, `scripts/morale.gd`): people yield, Hollows,
-  constructs, embers and Silas don't (only `brigands` so far). Once a side's leader is dead or half
+  constructs, embers and Silas don't (`brigands` and `knights` so far). Once a side's leader is dead or half
   of it is out of the fight, any of it at 25% HP or less gives up: a Minion runs for 2.5 s and is
   gone (not a kill); the rest **kneel**, out of the fight (team 2: spells, AI and the win check pass
   them by) and give their XP and wells as if beaten. The leader going down toasts that the rest lose
   heart. Win, and everyone kneeling is **spared**: `Run.life["spared"]` counts them by faction for
   the reputation to read later. Losing to people isn't lethal (the toll sets `lethal: false`).
 - `scripts/bot.gd` plays the wizard for tests and F2 autoplay: one committed spell at a time, waiting
-  for Aether rather than Overdrawing, the Ward against shots, the staff when something is close.
+  for Aether rather than Overdrawing, the Ward against shots, the staff when something is close. It
+  goes for a foe whose shield isn't facing it first and circles wider round one that is, and steps
+  out of a Silencer's ring.
 
 ## Tests
 

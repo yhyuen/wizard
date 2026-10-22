@@ -441,13 +441,23 @@ func _zones(glow_k: float) -> void:
 		if u.dead:
 			continue
 		# brigands' gear (N-6.3): a Shieldman's wooden shield toward you, a Powder Monkey's keg on his back
-		if u.kind == "shieldman" and not u.flags.get("shield_gone", false):
-			var front: Vector2 = (arena.player.pos - u.pos).normalized()
+		if u.kind in ["shieldman", "shieldknight"] and not u.flags.get("shield_gone", false):
+			# a Shieldknight's (N-6.6) is a taller iron one
+			var iron: bool = u.kind == "shieldknight"
+			var front: Vector2 = arena.ai.brig.shield_dir(u)
 			var sh := take("cube")
-			sh.position = _w(u.shown_pos() + front * 5.0, 0.75)
-			sh.look_at(_w(u.shown_pos() + front * 20.0, 0.75), Vector3.UP)
-			sh.scale = Vector3(4.6, 6.0, 0.7)
-			paint(sh, Color("6a4a2c"), 0.0)
+			var h := 0.8 if iron else 0.75
+			sh.position = _w(u.shown_pos() + front * 5.0, h)
+			sh.look_at(_w(u.shown_pos() + front * 20.0, h), Vector3.UP)
+			sh.scale = Vector3(5.0, 7.6, 0.7) if iron else Vector3(4.6, 6.0, 0.7)
+			paint(sh, Color("6e747c") if iron else Color("6a4a2c"), 0.0)
+		elif u.kind == "silencer" and not u.flags.get("bell_gone", false):
+			# the witch-bell held up in its hand, swinging as it rings
+			var swing := sin(u.anim * 16.0) * 0.4 if u.state == "windup" else 0.0
+			var bl := take("orb")
+			bl.position = _w(u.shown_pos() + Vector2(4.0 * u.facing, 0), 1.2 + swing * 0.2)
+			bl.scale = Vector3(0.5, 0.6, 0.5)
+			paint(bl, Color("c8a050"), 0.0)
 		elif u.kind == "powder_monkey" and not u.flags.get("keg_gone", false):
 			var back: Vector2 = (u.pos - arena.player.pos).normalized()
 			var kg := take("cube")

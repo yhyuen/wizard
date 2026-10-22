@@ -229,17 +229,27 @@ func pot(z: Dictionary) -> void:
 	Sfx.play("cast_fire", -2.0)
 
 
+## Where its shield faces: straight at you, or for a heavy one (with `turn`) wherever it has
+## swung round to so far.
+func shield_dir(u: Unit) -> Vector2:
+	return u.flags.get("guard_dir", (A.player.pos - u.pos).normalized())
+
+
 ## A Shieldman's guard: a hit from inside his shield's arc, no heavier than it stops, is blocked.
-## Fire on the shield burns it away instead. True if the shield took the hit.
-func guards(u: Unit, dir: Vector2, impact: int, fire: bool) -> bool:
+## Fire on the shield burns it away instead. A Shieldknight's iron shield doesn't burn, but
+## lightning runs through it. True if the shield took the hit.
+func guards(u: Unit, dir: Vector2, impact: int, fire: bool, storm := false) -> bool:
 	var g: Dictionary = _rec(u).get("guard", {})
 	if g.is_empty() or u.flags.get("shield_gone", false) or dir.length() < 0.1 or u.broken_t > 0.0:
 		return false
-	var front: Vector2 = (A.player.pos - u.pos).normalized()
+	var front: Vector2 = shield_dir(u)
 	if (-dir).dot(front) < cos(deg_to_rad(float(g["arc"]) * 0.5)):
 		A.guide.found(u, "flanked")
 		return false  # from the side or behind
-	if fire:
+	if storm and g.get("iron", false):
+		A.guide.found(u, "conducted")
+		return false
+	if fire and not g.get("iron", false):
 		u.flags["shield_gone"] = true
 		A.guide.found(u, "shield_burned")
 		A.fx("burst", u.pos + front * 6.0 + Vector2(0, -6), {"color": PixelArt.FIRE, "r": 9.0, "life": 0.5})

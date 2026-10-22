@@ -23,12 +23,14 @@ const Cutscene := preload("res://scripts/game/cutscene.gd")
 const Matter := preload("res://scripts/world/matter.gd")
 const Morale := preload("res://scripts/morale.gd")
 const FieldGuide := preload("res://scripts/field_guide.gd")
+const Armour := preload("res://scripts/armour.gd")
 
 var D: Dictionary  # data/spells.json
 var kit
 var ai
 var morale  # scripts/morale.gd: who yields or runs (N-6.4)
 var guide  # scripts/field_guide.gd: what you know of each kind (N-6.5)
+var armour  # scripts/armour.gd: leather, mail and plate (N-6.6)
 var rng := RandomNumberGenerator.new()
 
 var player: Unit
@@ -116,6 +118,7 @@ func _ready() -> void:
 	ai = Ai.new(self)
 	morale = Morale.new(self)
 	guide = FieldGuide.new(self)
+	armour = Armour.new(self)
 	start()
 
 
@@ -706,6 +709,7 @@ func _update_unit(u: Unit, dt: float) -> void:
 	if u.team == 1:
 		_break_tick(u, dt)
 		_burn_tick(u, dt)
+		armour.tick(u, dt)
 	if u.dead:
 		u.death_t -= dt
 		return
@@ -839,9 +843,13 @@ func hit(u: Unit, dmg: float, impact: int, dir: Vector2, knock := 0.0, quiet := 
 		if u.state == "reload" and not quiet:
 			guide.found(u, "reloading")  # caught a Crossbowman winding his bow
 		var fire: bool = _src_kind == "fire" or town != null and town.fire_proj.has(_src_kind)
+		var storm: bool = _src_kind == "storm"
 		# A Shieldman's shield takes a hit from the front (fire burns it away instead).
-		if not quiet and ai.brig.guards(u, dir, impact, fire):
+		if not quiet and ai.brig.guards(u, dir, impact, fire, storm):
 			return false
+		if not quiet:
+			ai.knights.struck(u, impact)  # a heavy blow breaks a Silencer's bell
+		dmg = armour.soak(u, dmg, impact, fire, storm)
 		if not quiet and impact > 0:
 			_add_break(u, impact, dir)
 		if fire:
@@ -886,9 +894,9 @@ func hit(u: Unit, dmg: float, impact: int, dir: Vector2, knock := 0.0, quiet := 
 	return true
 
 
-## Its Poise now: a Hollow hummed on by a Choir stands firmer.
+## Its Poise now: a Hollow hummed on by a Choir stands firmer; a knight in hot plate less so.
 func poise_of(u: Unit) -> int:
-	return u.poise + (int(D["enemies"]["choir"]["poise_up"]) if u.flags.has("hum_t") else 0)
+	return maxi(0, u.poise + (int(D["enemies"]["choir"]["poise_up"]) if u.flags.has("hum_t") else 0) - armour.poise_down(u))
 
 
 # --- the Break meter (enemy spec §4; N-6.1) ---------------------------------------------
@@ -926,6 +934,7 @@ func _add_break(u: Unit, impact: int, dir: Vector2) -> void:
 		fx("clink", u.pos + Vector2(0, -12), {"life": 0.45})
 		stats["enemies_broken"] = int(stats.get("enemies_broken", 0)) + 1
 		guide.found(u, "broken")
+		ai.knights.break_bell(u)  # a Broken Silencer drops its bell
 		ai.hollows.on_broken(u)  # a Husk leaks its Aether
 
 
@@ -1236,7 +1245,7 @@ func _update_zones(dt: float) -> void:
 	for z in zones.duplicate():
 		z["t"] += dt
 		match z["kind"]:
-			"ember", "gravel", "column", "rod", "puddle", "blaze", "kindle", "douse", "flask", "arc_rod", "smoke", "tar", "lantern", "leak":
+			"ember", "gravel", "column", "rod", "puddle", "blaze", "kindle", "douse", "flask", "arc_rod", "smoke", "tar", "lantern", "leak", "hush":
 				if z["t"] >= z["life"]:
 					zones.erase(z)
 			"ring":
@@ -1308,6 +1317,8 @@ func _detonate(z: Dictionary) -> void:
 				hit(player, z["dmg"], int(z.get("impact", 1)), to.normalized(), 40.0)
 		"pot":
 			ai.brig.pot(z)
+		"bell":
+			ai.knights.ring(z)
 		"rline":
 			# Inverted: the stone appears behind you and flies home to the Slinger's hand.
 			var o := unit_by_id(z["owner"])
@@ -1687,6 +1698,16 @@ func _draw_zone(z: Dictionary) -> void:
 			var fade := clampf((float(z["life"]) - t) / 1.0, 0.0, 1.0)
 			draw_circle(z["pos"], z["r"], Color(0.62, 0.48, 0.95, 0.3 * k * fade), true, -1.0, false)
 			draw_arc(z["pos"], z["r"], 0, TAU, 24, Color(0.62, 0.48, 0.95, 0.8 * fade), 1.0, false)
+		"bell":
+			# a Silencer's bell: the circle its ring will silence fills as it swings
+			var k := clampf(t / z["delay"], 0.0, 1.0)
+			draw_arc(z["pos"], z["r"], 0, TAU, 32, PixelArt.PAPER, 1.0, false)
+			draw_circle(z["pos"], z["r"] * k, Color(PixelArt.PAPER, 0.2), true, -1.0, false)
+		"hush":
+			# the ring's silence: no spell inside, fading as it ends
+			var fade := clampf((float(z["life"]) - t) / 0.5, 0.0, 1.0)
+			draw_circle(z["pos"], z["r"], Color(PixelArt.PAPER, 0.14 * fade), true, -1.0, false)
+			draw_arc(z["pos"], z["r"], 0, TAU, 32, Color(PixelArt.PAPER, 0.7 * fade), 1.0, false)
 		"pot":
 			# a Powder Monkey's pot: the circle where it lands fills as it comes
 			var k := clampf(t / z["delay"], 0.0, 1.0)

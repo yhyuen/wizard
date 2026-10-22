@@ -6,16 +6,19 @@ extends RefCounted
 
 const Brigands := preload("res://scripts/brigands.gd")
 const Hollows := preload("res://scripts/hollows.gd")
+const Knights := preload("res://scripts/knights.gd")
 
 var A
 var brig  # brigands' minds, guard, keg and net (N-6.3)
 var hollows  # the Lantern-eater, the Choir and the Husk (N-6.3)
+var knights  # the Knights' picket: Squire, Shieldknight, Silencer (N-6.6)
 
 
 func _init(arena) -> void:
 	A = arena
 	brig = Brigands.new(arena, self)
 	hollows = Hollows.new(arena, self)
+	knights = Knights.new(arena, self)
 
 
 func update(u: Unit, dt: float) -> void:
@@ -43,7 +46,7 @@ func update(u: Unit, dt: float) -> void:
 	if u.flags.get("dummy", false):
 		_step(u, A.player.pos - u.pos, dt, 0.3 if u.pos.distance_to(A.player.pos) > 30.0 else 0.0)
 		return
-	if brig.mind(u, dt) or hollows.mind(u, dt):
+	if brig.mind(u, dt) or hollows.mind(u, dt) or knights.mind(u, dt):
 		return
 	match u.kind:
 		"hollow":

@@ -128,12 +128,29 @@ func _process(_dt: float) -> bool:
 			_shot("08a_brigands")
 			main.arena.resume_explore()
 			main.mode = "world"
+			# The Knights' picket (N-6.6): two Shieldknights side by side, a Squire and the Silencer.
+			_go(sp["yard_c"] + Vector2(0, 40), 2, 2)
+			slice._start_fight("picket")
+		610:
+			var P: Vector2 = main.arena.player.pos
+			var kinds := ["shieldknight", "shieldknight", "oath_squire", "silencer"]
+			for k in kinds.size():
+				var u = main.arena.spawn(kinds[k], P + Vector2.from_angle(-PI * 0.8 + k * PI * 0.32) * (60.0 if k < 3 else 90.0))
+				u.state = "move"
+		618:
+			var sil = main.arena.enemies().filter(func(u): return u.kind == "silencer")
+			if not sil.is_empty():
+				main.arena.add_zone({"kind": "bell", "owner": sil[0].id, "pos": main.arena.player.pos + Vector2(10, 0), "r": 35.0, "delay": 0.8})
+		626:
+			_shot("08b_knights")
+			main.arena.resume_explore()
+			main.mode = "world"
 			_go(sp["mill_east"] + Vector2(-60, 120), 2, 2)
 			for p in W.props:
 				if p["kind"] == "hay" and p["pos"].distance_to(main.arena.player.pos) < 260.0:
 					W.ignite(p)
 					break
-		640:
+		660:
 			_shot("09_mill_fire")
 			# The ground (N-4.2): a grass fire spreading, and a wet patch beside it taking a Spark.
 			var c = W.cells
@@ -146,13 +163,13 @@ func _process(_dt: float) -> bool:
 					W.wet_ground(p + Vector2(110, 40), 40.0)
 					W.strike_ground(p + Vector2(80, 40), p + Vector2(130, 40), 3)
 					break
-		652:
+		672:
 			_shot("09a_ground_fire")
 			# The leaning gallery (N-4.3): a post breaks, and it shakes before it comes down.
 			var st: Dictionary = W.structures[0]
 			_go(st["rect"].get_center() + Vector2(-40, 110), 2, 1)
 			W._break(st["supports"][0])
-		657:
+		677:
 			_shot("09b_gallery_falls")
 			# Spark Artifice (N-5.2): a tar pool going up under a flask, an arc rod and a smoke cloud.
 			_go(sp["market_c"] + Vector2(0, -20), 2, 4)
@@ -163,25 +180,25 @@ func _process(_dt: float) -> bool:
 			K.ar.detonate({"kind": "throw", "device": "arc_rod", "pos": main.arena.player.pos + Vector2(-60, -30), "r": 50.0})
 			K.ar.detonate({"kind": "throw", "device": "smoke_jar", "pos": main.arena.player.pos + Vector2(-20, 60), "r": 28.0})
 			K.ar.detonate({"kind": "throw", "device": "star_lantern", "pos": main.arena.player.pos + Vector2(-90, 40), "r": 40.0})
-		659:
+		679:
 			_shot("09c_devices")
 			slice.overlay = "map"
-		660:
+		680:
 			_shot("10_camp_map")
 			slice.map_tab = 1
-		663:
+		683:
 			_shot("10a_the_reach")
 			slice.map_tab = 2
 			slice.weather.forecast("camp")  # asked Aldous: tomorrow's glyph shows
 			for d in range(3, 15):
 				slice.weather.note("camp", d)  # days lived in an earlier life, in the Almanac
-		666:
+		686:
 			_shot("10b_calendar")
 			slice.map_tab = 0
 			slice.overlay = "ledger"
 			slice.ledger_tab = 6
 			slice.deeds.earn("first_ring")
-		668:
+		688:
 			_shot("10c_deeds")
 			# the Field Guide (N-6.5): the fights so far, a weakness found and one kind mastered
 			slice.ledger_tab = 7
@@ -189,38 +206,38 @@ func _process(_dt: float) -> bool:
 			G["hollow"] = {"seen": 1, "beaten": 12, "found": ["burned"]}
 			G["shieldman"] = {"seen": 1, "beaten": 2, "found": ["shield_burned"]}
 			G["choir"] = {"seen": 1, "beaten": 0, "found": []}
-		669:
+		689:
 			_shot("10c1_field_guide")
 			slice.ledger_tab = 4
 			slice.run.settle_event(slice.run.fixed_events().filter(func(e): return e["id"] == "iron_gate_shuts")[0], "missed")
-		671:
+		691:
 			_shot("10d_appointments")
 			slice.ledger_tab = 0
 			slice.growth.practice()["pebble"].merge({"level": 10, "stage": 1, "xp": 20.0, "hits": 30}, true)  # at the Master wall, one trial short
 			slice.growth.practice()["ember_bolt"].merge({"level": 7, "stage": 1}, true)
 			slice.book_slot = slice.growth.book().find("pebble")
 			slice.overlay = "book"
-		672:
+		692:
 			_shot("11_book")
 			slice.overlay = ""
 			_go(sp["north_in"], 2, 0)
-		702:
+		722:
 			_shot("12_north_stair")
 			slice.go_map("halls", "landing")
-		708:
+		728:
 			_shot("13_loading")
-		792:
+		812:
 			_close()
-		802:
+		822:
 			_shot("14_halls_landing")
 			main.place_player(W.map.spots["hall_c"] + Vector2(0, 120))
-		842:
+		862:
 			_shot("15_entrance_hall")
 			main.place_player(W.map.items["rune_door"]["at"] + Vector2(-60, 0))
-		882:
+		902:
 			_shot("16_rune_door")
 			slice.overlay = "map"
-		902:
+		922:
 			_shot("17_halls_map")
 			slice.overlay = ""
 			main.place_player(W.map.spots["hall_s"] if W.map.spots.has("hall_s") else Vector2(1100, 1620))

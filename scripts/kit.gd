@@ -350,6 +350,9 @@ func begin(slot: String) -> void:
 	if Progression.charges(id) == 0:
 		_out_of_charges(slot, id)
 		return
+	if A.ai.knights.hushed(A.player.pos):
+		denied[slot] = 0.4  # inside a Silencer's ring: no spell works here (N-6.6)
+		return
 	warding = false
 	var b := band(id)
 	wind = {"slot": slot, "id": id, "t": 0.0, "need": windup(id) + slow_start, "band": b, "commit": false}
