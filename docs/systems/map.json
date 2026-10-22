@@ -22,6 +22,7 @@
       "docs": ["docs/systems/loop.md"],
       "paths": [
         "scripts/game/run.gd", "scripts/game/slice.gd", "scripts/game/reach.gd", "scripts/game/lives.gd", "scripts/game/achievements.gd",
+        "scripts/game/calamity.gd", "data/world/calamities.json",
         "data/world/calendar.json", "data/world/lives.json", "data/world/achievements.json", "data/world/main_line.json"
       ]
     },

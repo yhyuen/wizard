@@ -89,7 +89,7 @@ GitHub Pages. In order:
 
 - `python3 tools/ci/spec_check.py`: the spec rule ([README.md](README.md)).
 - `tools/ci/godot.sh` (fails on any script error) with `tools/tests/unit.gd`, `story_lint.gd`,
-  `route.gd`, `relearn.gd`, `deaths.gd`, `encounters.gd`, `world_magic.gd` (the fight tests with
+  `route.gd`, `relearn.gd`, `deaths.gd`, `calamity.gd`, `encounters.gd`, `world_magic.gd` (the fight tests with
   `--fixed-fps 60`), then `tools/map_preview.gd`.
 - The web export (`wizard-web` artifact), which also checks the story files were packed.
 

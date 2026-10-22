@@ -14,6 +14,7 @@ signal screen_changed(screen: String)
 const Story := preload("res://scripts/game/story.gd")
 const Growth := preload("res://scripts/game/growth.gd")
 const Powers := preload("res://scripts/game/powers.gd")
+const Calamity := preload("res://scripts/game/calamity.gd")
 const World := preload("res://scripts/world/world.gd")
 const Reach := preload("res://scripts/game/reach.gd")
 const Weather := preload("res://scripts/world/weather.gd")
@@ -41,6 +42,7 @@ var run  # the Run autoload
 var story
 var growth  # scripts/game/growth.gd: wells, Rings, Practice, the spellbook
 var powers  # scripts/game/powers.gd: standing, and rank and merit in your road's power
+var calamity  # scripts/game/calamity.gd: signs, the Eve, the Onset, the Dawn tally
 var world  # scripts/world/world.gd
 var reach  # scripts/game/reach.gd: regions, roads, the calendar's events
 var weather  # scripts/world/weather.gd: each region's weather, the Almanac
@@ -77,6 +79,7 @@ var opts: Array = []  # the choices
 var talking := ""  # the person spoken to
 var after: Array = []  # what happens when the scene closes: "sleep", "book"
 var fight_id := ""
+var tally := ""  # the calamity whose Dawn tally card is up (screen "tally")
 
 ## Tests set this to settle fights without playing them: func(encounter_id) -> bool (won), or
 ## -> {"won", "kills"}.
@@ -92,6 +95,7 @@ func setup(the_main) -> void:
 	story.ctx.growth = growth
 	powers = Powers.new(run, growth)
 	story.ctx.powers = powers
+	calamity = Calamity.new(run)
 	story.load_all()
 	for e in story.errors:
 		push_error("story: " + str(e))
@@ -187,6 +191,8 @@ func _morning_notes() -> void:
 
 ## A new time of day: a forced event if one is due, else whatever happens where you stand.
 func _start_period() -> void:
+	if _calamities():
+		return
 	if _fixed_events():
 		return
 	var f: String = story.forced()
@@ -224,6 +230,58 @@ func _fixed_events() -> bool:
 		if run.settle_event(e, "missed"):
 			toast("The Ledger keeps a date you missed: %s, %s." % [e["name"], run.date_name(int(e["at_day"]))])
 	return false
+
+
+## Calamities (seasons spec §6.2, N-7.5.1): at its Onset, if you're in one of its regions, its
+## onset scene plays and the Peak begins where you stand (the life is saved first); if you're
+## elsewhere, or the hour went by while you rested or travelled, it passes without you at its
+## absent tier and the Dawn tally shows. Returns true if something is playing.
+func _calamities() -> bool:
+	for id in calamity.due():
+		var c: Dictionary = calamity.rec(id)
+		if calamity.here_now(id, region()) and story.scenes.has(str(c.get("onset_scene", ""))):
+			calamity.state(id)["phase"] = "peak"
+			run.save()
+			play(str(c["onset_scene"]))
+			return true
+		calamity.settle(id, calamity.absent_tier(id), 0, 0, true)
+		tally = id
+		set_screen("tally")
+		return true
+	return false
+
+
+## The Onset (the story's `calamity_onset <id>`): the market's circuit lamps go out, and won't
+## come back on by themselves tonight.
+func _calamity_onset(id: String) -> void:
+	toast("This night can end the year.", true)
+	for l in world.lamps:
+		if l["circuit"] != "":
+			l["lit"] = false
+			l["by"] = "doused"
+
+
+## Dawn after the Peak (the story's `calamity_dawn <id>`): the stakes as they stand, the tier, the
+## aftermath; the tally card shows when the scene closes.
+func _calamity_dawn(id: String) -> void:
+	var lamps := 0
+	if world.map_id == world.CAMP:
+		lamps = world.lamps.filter(func(l): return l["circuit"] != "" and l["lit"]).size()
+	var lost := int(run.life.get("calamity_lost", 0))
+	calamity.settle(id, calamity.tier_for(id, lamps, lost), lamps, lost, false)
+	tally = id
+	after.append("tally")
+
+
+## Past the tally card: the calamity's end card (Ring 1 ends at Lantern Night's Dawn), or the day.
+func tally_done() -> void:
+	if screen != "tally":
+		return
+	var end := str(calamity.rec(tally).get("end_card", ""))
+	if end != "":
+		end_loop(end)
+	else:
+		set_screen("world")
 
 
 ## The time of day ran out (or you waited): on to the next, or to sleep after Night.
@@ -403,6 +461,10 @@ func rest_until(day: int) -> bool:
 	if why != "":
 		toast(why)
 		return false
+	# A calamity whose date you know stops the rest on its Eve (seasons spec §6.2).
+	var eve: String = calamity.eve_before(day, _calamity_known)
+	if eve != "" and calamity.day(eve) < day:
+		day = calamity.day(eve)
 	overlay = ""
 	cur = {}
 	_to_camp()
@@ -410,7 +472,23 @@ func rest_until(day: int) -> bool:
 	if not pass_days(day - run.day()):
 		return true
 	begin_day()
+	if eve != "" and run.day() == calamity.day(eve):
+		toast("%s is tonight." % _calamity_label(eve), true)
 	return true
+
+
+## A calamity's date is on your calendar (named, or a "?" pinned by its signs).
+func _calamity_known(id: String) -> bool:
+	var ev := str(calamity.rec(id)["event"])
+	return reach.events().any(func(e): return e["id"] == ev and e["known"])
+
+
+func _calamity_label(id: String) -> String:
+	var ev := str(calamity.rec(id)["event"])
+	for e in reach.events():
+		if e["id"] == ev:
+			return "Something" if e["name"] == "?" else str(e["name"])
+	return "Something"
 
 
 ## Through the loading card to `spot` on map `id`: the world switches its state, the arena and
@@ -641,6 +719,18 @@ func _effect(op: String, arg: String) -> bool:
 			after.append(op)
 		"downed":
 			after.append("downed " + arg)
+		"sign":
+			var sg: PackedStringArray = arg.split(" ", false)
+			if calamity.see_sign(sg[0], sg[1]):
+				run.set_flag("pinned_" + str(calamity.rec(sg[0])["event"]))
+				toast("Something is coming on %s. The calendar marks it." % run.date_name(calamity.day(sg[0])), true)
+		"prep":
+			var pp: PackedStringArray = arg.split(" ", false)
+			calamity.prep(pp[0], pp[1])
+		"calamity_onset":
+			_calamity_onset(arg)
+		"calamity_dawn":
+			_calamity_dawn(arg)
 		"standing":
 			var sw: PackedStringArray = arg.split(" ", false)
 			powers.add_standing(sw[0], int(sw[1]))
@@ -785,6 +875,9 @@ func finish_scene() -> void:
 		if op.begins_with("go "):
 			_go(op.substr(3))
 			return
+		if op == "tally":
+			set_screen("tally")
+			return
 		if op.begins_with("downed "):
 			var dw: PackedStringArray = op.substr(7).split(" ", false)
 			_downed(int(dw[0]), dw[1] if dw.size() > 1 else "story")
@@ -866,7 +959,7 @@ func fight_done(won: bool, kills := 0) -> void:
 		return
 	if not won and lethal:
 		lines = []
-		end_loop("fight:" + fight_id)
+		end_loop(str(encounters[fight_id].get("cause", "fight:" + fight_id)))
 		return
 	_run_steps()
 
@@ -1063,6 +1156,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 			match screen:
 				"death", "hurt":
 					wake()
+				"tally":
+					tally_done()
 				"title":
 					if run.has_save():
 						continue_month()
@@ -1099,6 +1194,9 @@ func _draw() -> void:
 		"hurt":
 			draw_rect(Rect2(0, 0, 960, 540), NIGHT)
 			_draw_hurt()
+		"tally":
+			draw_rect(Rect2(0, 0, 960, 540), NIGHT)
+			_draw_tally()
 		"loading":
 			draw_rect(Rect2(0, 0, 960, 540), NIGHT)
 			_draw_loading()
@@ -1617,19 +1715,40 @@ func _draw_death() -> void:
 	var log: Dictionary = run.past_lives()[-1] if not run.past_lives().is_empty() else {}
 	var cause: String = str(log.get("cause", ""))
 	var why: String = death_texts.get(cause, death_texts.get(cause.split(":")[0], "The year ends."))
-	var the_end := cause == "first_playable_end"
+	var the_end := cause == "first_playable_end" or cause == "build_end"
 	var c := Vector2(480, 210)
 	for i in 7:
 		var a := -PI / 2.0 + i * TAU / 7.0
 		star(c + Vector2(cos(a), sin(a)) * 54.0, 3.0, Color(HAIR, 0.45))
 	star(c, 6.0, GOLD if the_end else HOURS)
-	title(Vector2(0, c.y + 100), "The end of the first playable" if the_end else "Life %d ends" % run.loop(), 26,
+	var end_title := "The end of Ring 1" if cause == "build_end" else "The end of the first playable"
+	title(Vector2(0, c.y + 100), end_title if the_end else "Life %d ends" % run.loop(), 26,
 		GOLD if the_end else HOURS, HORIZONTAL_ALIGNMENT_CENTER, 960)
 	para(Vector2(200, c.y + 128), why if the_end else "%s, %s.  %s" % [run.date_name(), run.time_name().to_lower(), why], 560, 14, PAPER)
 	if scene_t >= 1.0:
 		button(Rect2(390, 440, 180, 32), "Continue", wake, 1, 15)
 	button(Rect2(24, 500, 120, 28), "Ledger  (L)", toggle_ledger, 0, 13)
 	_draw_playtest_buttons()
+
+
+## A calamity's Dawn (seasons spec §6.5): its stakes as they stood, the tier, and what it means.
+func _draw_tally() -> void:
+	var c: Dictionary = calamity.rec(tally)
+	var t: Dictionary = calamity.state(tally).get("tally", {})
+	var r := Rect2(220, 70, 520, 400)
+	panel(r, Color(GOLD, 0.5))
+	title(r.position + Vector2(0, 46), "Dawn after %s" % c["name"], 26, GOLD, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+	title(r.position + Vector2(0, 92), calamity.tier_name(tally, str(t.get("tier", ""))), 30, PAPER, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+	var y := r.position.y + 140.0
+	if t.get("absent", false):
+		para(Vector2(r.position.x + 40, y), "You weren't there. You hear of it in the morning, the way everyone does.", r.size.x - 80, 14, PAPER)
+		y += 44.0
+	else:
+		text(Vector2(r.position.x + 40, y), "Lamps still lit: %d of %d" % [int(t.get("lamps", 0)), int(c["stakes"]["lamps"])], 15, PAPER)
+		text(Vector2(r.position.x + 40, y + 24), "People lost: %d of %d" % [int(t.get("lost", 0)), int(c["stakes"]["people"])], 15, PAPER)
+		y += 64.0
+	para(Vector2(r.position.x + 40, y), str(t.get("line", "")), r.size.x - 80, 14, DIM)
+	button(Rect2(r.position.x + 170, r.end.y - 42, 180, 32), "Dawn", tally_done, 1, 15)
 
 
 ## A lost fight that doesn't end the life (lives spec §3.2): what happened, what you learned, and

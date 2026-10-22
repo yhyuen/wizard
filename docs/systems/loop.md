@@ -141,6 +141,32 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
   first morning, all seven doors, carrying Brogan home, sitting for Cass, the patient way,
   passing the exam, keeping the watch.
 
+## Calamities (`data/world/calamities.json`, `scripts/game/calamity.gd`, seasons spec §6, §8; N-7.5.1)
+
+- A calamity keys on its calendar event (`event`) and adds its Onset slot, regions, signs,
+  preparations, Peak encounter, stakes, tiers, absent default, aftermath, Ledger entry and end card.
+  Built: **Lantern Night** (Seedmoon 28, Night, the camp). Its state is the life's
+  (`life.calamity`).
+- **Signs:** the story's `sign <id> <sign>` marks one seen; two pin an unnamed **"?"** on the
+  calendar for its date (`pinned_<event>` life flag, `reach.gd`). **Preparations:** the story's
+  `prep <id> <prep>`, each counted once.
+- **The Eve:** a rest past a calamity whose date is on your calendar (pinned or named) stops on
+  its day's Morning: "Lantern Night is tonight." (Travel doesn't stop.)
+- **The Onset:** at its slot, in one of its regions, its `onset_scene` plays (the life is saved
+  first): the story's `calamity_onset` puts the market's circuit lamps out for the night, and the
+  Peak (`fight c1_peak`, a survive fight) begins where you stand. Falling in it ends the life
+  (`calamity:lantern_night`). Anywhere else, or if the hour went by while you rested or
+  travelled, it passes **without you** at its absent tier (Fallen; Scarred with four
+  preparations).
+- **Dawn:** surviving the Peak, the story's `calamity_dawn` reads the stakes (the camp's circuit
+  lamps still lit, people lost: `life.calamity_lost`) and picks the tier: **Held** (16+ lamps and
+  at most 3 lost), **Scarred** (8+ lamps or at most 10 lost), else **Fallen**. The tier's aftermath
+  sets its flags (`market_held` …) and deeds (SEALED: Held opens a road), keeps `shut`, `shortage`
+  and `abandons` on the life for the economy, teaches the Ledger entry, keeps the date for every
+  later life and lets the Hours be turned back. A **tally card** shows the tier and the stakes.
+- **Ring 1's end card** (N-7.5.4): past the tally, Lantern Night's `end_card` ends the life
+  (`build_end`): "The end of Ring 1. The rest of the year comes with Ring 2."
+
 ## Achievements (`data/world/achievements.json`, `scripts/game/achievements.gd`, lives spec §7)
 
 - The frame (N-1.2; the full list is N-7.7). Each has a kind, name, hint, `when` (a story
