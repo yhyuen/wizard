@@ -566,6 +566,31 @@ func _world() -> void:
 	w.sky = {}
 	w.people.think(true)
 	ok(dry and pie.pos == w.map.spots["pie_seller"], "in the rain the pie-seller sells from under the inn's eaves")
+	# N-7.2.2: the Ring 1 roster. Everyone has a kind and a drawn figure; Sister Nobody keeps her
+	# fire only at Night, from Ashmoon 4; Cass is in the camp only in the first three moons.
+	var vis: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/visual.json"))["figures"]
+	var unkind: Array = []
+	for pid in people:
+		if not str(people[pid].get("kind", "")) in ["full", "light", "role"] or not (vis.has(str(people[pid]["figure"])) or people[pid]["figure"] == "dog"):  # the dog has its own model
+			unkind.append(pid)
+	ok(people.size() >= 17 and unkind.is_empty(), "the Ring 1 roster: %d people, each with a kind and a figure: %s" % [people.size(), ", ".join(unkind)])
+	var nob = w.people.get_person("nobody")
+	run.life["time"] = 4
+	run.life["day"] = 3
+	w.people.think(true)
+	var not_yet: bool = not nob.on
+	run.life["day"] = 4
+	w.people.think(true)
+	ok(not_yet and nob.on and nob.pos == w.map.spots["grief_circle"], "Sister Nobody's fire burns at Night from Ashmoon 4")
+	run.life["time"] = 0
+	var cass = w.people.get_person("cass")
+	run.life["day"] = 80
+	w.people.think(true)
+	var in_seed: bool = cass.on
+	run.life["day"] = 90
+	w.people.think(true)
+	ok(in_seed and not cass.on, "Cass is in the camp through Seedmoon and gone after it")
+	run.life["day"] = 2
 	var life := {}
 	for deed in ["a", "b", "c", "d"]:
 		PeopleS.remember(life, "mira", deed, 3)

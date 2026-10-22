@@ -136,6 +136,7 @@ talk: captain
 priority: 10
 when: not k("captain")
 Captain: Stop there. Nobody goes past the gate. Nobody goes down.
+Captain: Halloway. Captain of the watch, what's left of it. Eleven of us.
 Captain: We lost six last night to the things that walk up out of the College after dark.
 Captain: ...You're one of theirs, aren't you. A College robe. Fine. I didn't see you. Be back before the lamps.
 + learn captain
@@ -313,7 +314,7 @@ The light has no colour, and this time it doesn't stop at the College.
 === knights_arrive
 backdrop: east_gate
 Hooves on the east road. A column of riders in grey iron comes up to the camp's edge and stops at the gate, banners furled.
-The watch captain walks out to meet them alone. Words pass that you can't hear. The riders don't get down from their horses.
+Captain Halloway walks out to meet them alone. Words pass that you can't hear. The riders don't get down from their horses.
 By evening their tents stand a bowshot from the fence, and nobody in the camp sleeps well.
 + learn knights_camp
 + set knights_camped
