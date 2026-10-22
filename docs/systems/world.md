@@ -252,9 +252,25 @@ tiers, gifts and tastes, companions, sworn friends; what of them carries across 
 [people and side activities spec](/mnt/project-files/design/people/people-and-side-activities-spec.md)
 §3–5 (tracker M0-17; visual: [Folk and Pastimes Atlas](https://claude.ai/artifact/H9gh2FHhiCZ6Sm8iu7zkvS)).*
 
-- Camp only (nobody follows you into the ruin). Each person has a `schedule` of spots per time
-  of day, `overrides` (days, times, `when`, `spot`, `seek` to walk up and talk once a loop),
-  `from_day`, and `barks` heard within 170 px every 7–15 s.
+- Each person has a `schedule` of camp spots per time of day, or **schedule rows** (N-7.2.1,
+  people spec §3.2), `overrides` (days, times, `when`, `spot`, `seek` to walk up and talk once a
+  loop; camp only), `from_day`, and `barks` heard within 170 px every 7–15 s (a bark can need a
+  `doing` or a `remembers`).
+- **Rows**: the first that holds wins. A row can need `days` and `moons` ("1-7", "2,3"),
+  `weekdays` (spheres), `seasons`, `slot` (times or `any`), `weather` (kinds) and `if` (a story
+  condition), and says `map` (the camp unless given) and `at` (a spot there, "" off the map, or
+  `away`, gone from the region; an away row can name its `rumour`), `doing` and `seek`. A person
+  shows on whichever map their row names: Aldous works his fields on Sol's, Mars's and Jupiter's
+  days in spring and autumn, and keeps the mill in the camp otherwise.
+- **Busy**: a person whose `doing` is work, drill, pray or sleep answers a talk with one line
+  ("Not now. Later.") unless they have something new to say (an unseen scene).
+- **Cover**: in rain or a storm, someone with a `cover` spot goes there unless their row names a
+  weather (the pie-seller sells from under the inn's eaves).
+- **One seeker a day**: only one person walks up to you each day.
+- **Memories**: the story's `remember <who> <deed>` gives a person a memory of what you did to
+  them this life, three at most (the newest kept); `remembers(who, deed)` reads it.
+- **Away needs a rumour**: the unit test walks the year and fails anyone away more than 7 days
+  running without a rumour on the rows that send them.
 - They flinch and complain when you cast near them; the captain scolds fire in the College ruins;
   Mira walks the lane at dusk lighting lamps.
 

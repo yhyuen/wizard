@@ -21,13 +21,11 @@
   "aldous": {
    "name": "Aldous",
    "figure": "aldous",
-   "schedule": {
-    "morning": "aldous_mill",
-    "noon": "aldous_mill",
-    "afternoon": "aldous_mill",
-    "dusk": "aldous_mill",
-    "night": ""
-   },
+   "rows": [
+    {"seasons": ["spring", "autumn"], "weekdays": ["sol", "mars", "jupiter"], "slot": "morning,noon,afternoon", "map": "fields", "at": "barns", "doing": "work"},
+    {"slot": "morning,noon,afternoon,dusk", "at": "aldous_mill", "doing": "trade"},
+    {"slot": "night", "at": ""}
+   ],
    "barks": [
     {"text": "Bread for the camp. Such as it is."}, {"text": "Flour and ash. Flour and ash."},
     {"times": "dusk", "text": "Don't stand by the cellar door. Please."}
@@ -55,6 +53,7 @@
   "pie_seller": {
    "name": "The pie-seller",
    "figure": "pie_seller",
+   "cover": "inn",
    "schedule": {"morning": "pie_seller", "noon": "pie_seller", "afternoon": "pie_seller", "dusk": "", "night": ""},
    "barks": [{"text": "Pies! Well. Pie."}, {"text": "Hot, at least. It's hot."}]
   },
@@ -83,5 +82,10 @@
   "mira_thanks": "My lane's lit? That was you, College. Thank you.",
   "captain_fire": "Put that out! Fire's what did all this."
  },
+ "_v2_doc": "Schedules v2 (N-7.2.1, people spec \u00a73.2): a person's rows, the first that holds wins: days and moons (\"4\", \"1-7\", \"2,3\"), weekdays (spheres), seasons, slot (times or any), weather (kinds), if (a story condition); map (camp unless given) and at (a spot there, \"\" off the map, or \"away\", gone from the region; an away row may name its rumour); doing (busy doings answer a talk with busy_line unless the person has something new to say); seek. cover: where a person goes in the weathers of cover_in when their row has no weather of its own. memories_max: the deeds a person remembers of you in a life (story effect remember).",
+ "busy": ["work", "drill", "pray", "sleep"],
+ "busy_line": "Not now. Later.",
+ "cover_in": ["rain", "storm"],
+ "memories_max": 3,
  "lamp_round": ["lane_lamp_0", "lane_lamp_1", "lane_lamp_2", "lane_lamp_3", "lane_lamp_4", "lane_lamp_5"]
 }
