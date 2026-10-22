@@ -51,7 +51,10 @@ Reach and Calendar tabs (§5.5).*
 - **The main line:** a gold step under the vitals (outside fights) names the next main-story
   action ([loop.md](loop.md)). The calendar row pins known fixed events in gold and appointments
   in silver.
-- **Toasts** run down the right; an achievement's is gold, with a chime (UI spec §3.6).
+- **Toasts** run down the right; an achievement's is gold, with a chime (UI spec §3.6). A spell
+  reaching its wall and a breakthrough toast too (`main.gd` `_on_breakthrough`). The spellbook
+  screen shows each slot's stage, level and grade, the picked slot's next trials, and "(not yet)"
+  on a Model whose prerequisites aren't met ([growth.md](growth.md)).
 - **Screens:** title, loading card, the end card (a life ends; screen id `death`) and the hurt screen (a fall
   that wakes you Injured, [loop.md](loop.md)). The spellbook bar is the UI spec's stand-in
   (`/mnt/project-files/design/ui/ui-hud-spec.md` §10) until its §3.1 bar is built. Shapes are drawn as one triangle batch

@@ -115,6 +115,9 @@ func _profile(p: String) -> void:
 		for id in g.prog.data["spells"]:
 			run.soul["known"]["model_" + id] = 1
 			g.practice()[id]["level"] = 10
+			g.practice()[id]["stage"] = 1  # past the Adept breakthrough (spell spec §6)
+		g.practice()["pebble"]["level"] = 11
+		g.practice()["pebble"]["stage"] = 2  # one Master spell for the 3rd Ring
 		run.life["book"] = STRONG_BOOK.duplicate()
 
 

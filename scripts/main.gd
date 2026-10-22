@@ -59,6 +59,7 @@ func _ready() -> void:
 	arena.fight_over.connect(_on_fight_over)
 	Progression.spell_leveled.connect(_on_spell_leveled)
 	Progression.mutation_picked.connect(_on_mutation)
+	Progression.breakthrough.connect(_on_breakthrough)
 	slice.main = self
 	add_child(slice)
 	slice.screen_changed.connect(_on_slice_screen)
@@ -361,6 +362,15 @@ func _on_spell_leveled(id: String, old: int, new: int) -> void:
 		if not is_equal_approx(a, b):
 			parts.append("%s %s › %s" % [def["label"], Hud.fmt(def, a), Hud.fmt(def, b)])
 	hud.push_level(id, "%s  Lv %d" % [s["name"], new], "   ".join(parts))
+	if Progression.at_wall(id):
+		hud.push_toast("%s has reached the top of %s. Its next breakthrough is in your spellbook." % [s["name"],
+			Progression.stage_name(Progression.stage(id))], PixelArt.GOLD)
+
+
+## A breakthrough (spell spec §6.4): a new stage, a bigger step, a higher Force grade.
+func _on_breakthrough(id: String, stage: int) -> void:
+	hud.push_toast("Breakthrough: %s is %s now (Force grade %d)." % [Progression.spell(id)["name"], Progression.stage_name(stage),
+		Progression.grade(id)], PixelArt.GOLD)
 
 
 func _on_mutation(id: String, mut: Dictionary) -> void:

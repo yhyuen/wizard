@@ -10,6 +10,7 @@ signal wizard_leveled(old_level: int, new_level: int)
 signal magick_learned(id: String)
 signal hint_learned(id: String)
 signal loadout_changed
+signal breakthrough(id: String, stage: int)
 
 const SAVE_PATH := "user://progress.json"
 
@@ -107,6 +108,9 @@ func stat(id: String, key: String, lv := -1) -> float:
 	if current:
 		lv = level(id)
 	var v := stat_value(spell(id)["stats"][key], lv)
+	# A minor axis steps up at each breakthrough (§6.2).
+	if walls() and key in spell(id).get("minor", []):
+		v *= pow(1.0 + float(data["progression"]["minor_step"]), stage(id))
 	if id == "avalanche" and key == "cap" and has_mut("avalanche", "cap_plus"):
 		v += 2
 	if current and not boost.is_empty() and boost["id"] == id:
@@ -145,23 +149,168 @@ func xp_mult(id: String) -> float:
 
 
 ## Adds spell XP and levels the spell up (several levels if needed). Milestone levels queue a pick.
-func add_xp(id: String, amount: float) -> void:
+## In the slice a stage's top level is a wall (spell spec §6.4): XP banks up to `xp_bank` of a
+## level there until the spell breaks through. `practice` false (training) doesn't count towards
+## the spell's feats.
+func add_xp(id: String, amount: float, practice := true) -> void:
 	if not p["spells"].has(id):
 		return
 	var s: Dictionary = p["spells"][id]
 	var old := int(s["level"])
+	if practice and walls():
+		s["hits"] = int(s.get("hits", 0)) + 1
 	if old >= max_level():
 		return
 	s["xp"] = float(s["xp"]) + amount * xp_mult(id)
+	_climb(id)
+	if int(s["level"]) != old:
+		spell_leveled.emit(id, old, int(s["level"]))
+	add_wizard_xp(amount * 0.5)
+
+
+## Turns banked XP into levels, breaking through a stage's wall when its trials are done.
+func _climb(id: String) -> void:
+	var s: Dictionary = p["spells"][id]
 	while int(s["level"]) < max_level() and float(s["xp"]) >= xp_needed(int(s["level"])):
+		if at_wall(id):
+			_check_trials(id)
+			if not can_break(id):
+				s["xp"] = minf(float(s["xp"]), xp_needed(int(s["level"])) * float(data["progression"]["xp_bank"]))
+				return
+			_break(id)
 		s["xp"] = float(s["xp"]) - xp_needed(int(s["level"]))
 		s["level"] = int(s["level"]) + 1
 		_reach(id, int(s["level"]))
 	if int(s["level"]) >= max_level():
 		s["xp"] = 0.0
-	if int(s["level"]) != old:
-		spell_leveled.emit(id, old, int(s["level"]))
-	add_wizard_xp(amount * 0.5)
+	elif at_wall(id):
+		_check_trials(id)
+
+
+# --- mastery: stages, walls, trials, breakthroughs (spell spec §6.4; build item N-3) --------
+
+## Stage walls apply in the slice only (the old Mill fight levels straight to the top).
+func walls() -> bool:
+	return bool(rules.get("walls", false))
+
+
+## 0 Novice, 1 Adept, 2 Master, 3 Perfected: the breakthroughs made this life.
+func stage(id: String) -> int:
+	return int(p["spells"][id].get("stage", 0))
+
+
+func stage_name(st: int) -> String:
+	return str(data["progression"]["stages"][clampi(st, 0, 3)])
+
+
+## The top level of stage `st` (5, 10, 15, 20).
+func stage_top(st: int) -> int:
+	return int(data["progression"]["stage_top"][clampi(st, 0, 3)])
+
+
+## At the top of its stage, with a breakthrough still to come.
+func at_wall(id: String) -> bool:
+	return walls() and stage(id) < 3 and level(id) >= stage_top(stage(id))
+
+
+## The Force grade it casts at (§6.3): its stage's grade, capped by your Ring.
+func grade(id: String) -> int:
+	var g := int(data["progression"]["grade_by_stage"][stage(id)])
+	return mini(g, int(rules.get("grade_cap", g)))
+
+
+## The three trials of spell `id`'s next breakthrough: [{"kind", "text", "done"}].
+func trials(id: String) -> Array:
+	var st := stage(id) + 1
+	if st > 3:
+		return []
+	var done: Array = p["spells"][id].get("trials", {}).get(str(st), [])
+	var pr: Dictionary = data["progression"]
+	var f: Dictionary = spell(id).get("feats", pr["feats"])[st - 1]
+	var out: Array = [{"kind": "feat", "text": str(f["text"]) % int(f["n"]), "done": "feat" in done}]
+	var ins: Array = spell(id).get("insights", [])
+	out.append({"kind": "insight", "text": "Insight: a teacher, a tome or a mural that shows it" if ins.size() < st or str(ins[st - 1]) == ""
+		else "Insight: " + str(ins[st - 1]), "done": "insight" in done})
+	out.append({"kind": "meditation", "text": "Meditate on it on %s's day" % element_sphere_name(spell(id)["element"]), "done": "meditation" in done})
+	return out
+
+
+func trials_needed(st: int) -> int:
+	return int(data["progression"]["breakthrough_trials"][clampi(st - 1, 0, 2)])
+
+
+## Marks trial `kind` passed for spell `id`'s next breakthrough, and breaks through if it can.
+func pass_trial(id: String, kind: String) -> bool:
+	var s: Dictionary = p["spells"][id]
+	if stage(id) >= 3:
+		return false
+	if not s.has("trials"):
+		s["trials"] = {}
+	var key := str(stage(id) + 1)
+	var done: Array = s["trials"].get(key, [])
+	if kind in done:
+		return false
+	done.append(kind)
+	s["trials"][key] = done
+	_climb(id)
+	return true
+
+
+## A breakthrough can happen: at the wall, its trials done (or remembered from a past life), and
+## for Perfected, the spell was taken to Master in a past life (§6.7).
+func can_break(id: String) -> bool:
+	if not at_wall(id):
+		return false
+	var st := stage(id) + 1
+	if st == 3 and int(rules.get("echo", {}).get(id, 1)) < stage_top(1) + 1:
+		return false
+	if int(rules.get("broken", {}).get(id, 0)) >= st:
+		return true
+	return p["spells"][id].get("trials", {}).get(str(st), []).size() >= trials_needed(st)
+
+
+## The feat and the insight are checked as you go (the meditation is the slice's).
+func _check_trials(id: String) -> void:
+	var st := stage(id) + 1
+	if st > 3:
+		return
+	var s: Dictionary = p["spells"][id]
+	var done: Array = s.get("trials", {}).get(str(st), [])
+	var f: Dictionary = spell(id).get("feats", data["progression"]["feats"])[st - 1]
+	if not "feat" in done and int(s.get(str(f["counter"]), 0)) >= int(f["n"]):
+		done.append("feat")
+	var ins: Array = spell(id).get("insights", [])
+	if not "insight" in done and ins.size() >= st and str(ins[st - 1]) != "" and rules.get("known", {}).has(str(ins[st - 1])):
+		done.append("insight")
+	if not s.has("trials"):
+		s["trials"] = {}
+	s["trials"][str(st)] = done
+
+
+## The breakthrough: the next stage, its step on the minor axes and grade (stat(), grade()) and
+## its Revision pick.
+func _break(id: String) -> void:
+	var s: Dictionary = p["spells"][id]
+	s["stage"] = stage(id) + 1
+	breakthrough.emit(id, stage(id))
+	var key := str(stage_top(stage(id) - 1))
+	var opts: Array = spell(id).get("milestones", {}).get(key, [])
+	if opts.is_empty() or s["muts"].has(key):
+		return
+	if opts.size() == 1:
+		_apply_mut(id, int(key), opts[0])
+		return
+	pending.append({"spell": id, "level": int(key)})
+	milestone_ready.emit()
+
+
+## The weekday Sphere a spell's element belongs to ("mars"; the Hours are Saturn's).
+func element_sphere(element: String) -> String:
+	return str(data["elements"][element].get("sphere", element))
+
+
+func element_sphere_name(element: String) -> String:
+	return element_sphere(element).capitalize()
 
 
 func set_level(id: String, lv: int) -> void:
@@ -177,6 +326,8 @@ func set_level(id: String, lv: int) -> void:
 
 
 func _reach(id: String, lv: int) -> void:
+	if walls():
+		return  # in the slice, the Revision comes with the breakthrough (_break)
 	var opts: Array = spell(id).get("milestones", {}).get(str(lv), [])
 	if opts.is_empty() or p["spells"][id]["muts"].has(str(lv)):
 		return

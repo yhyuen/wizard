@@ -138,6 +138,9 @@ func _process(_dt: float) -> bool:
 		569:
 			_shot("10d_appointments")
 			slice.ledger_tab = 0
+			slice.growth.practice()["pebble"].merge({"level": 10, "stage": 1, "xp": 20.0, "hits": 30}, true)  # at the Master wall, one trial short
+			slice.growth.practice()["ember_bolt"].merge({"level": 7, "stage": 1}, true)
+			slice.book_slot = slice.growth.book().find("pebble")
 			slice.overlay = "book"
 		570:
 			_shot("11_book")

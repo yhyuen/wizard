@@ -1446,6 +1446,18 @@ func _draw_proj(p: Dictionary) -> void:
 				draw_rect(Rect2(pos - Vector2(0.5, 0.5), Vector2.ONE), PixelArt.FIRE_HOT)
 
 
+## A spell's stage on its telegraph (spell spec §6.2): one ring of sigils outside the rim for each
+## breakthrough, so you can read how strong it is before it lands.
+func _sigils(pos: Vector2, r: float, stage: int, col: Color) -> void:
+	for ring in stage:
+		var rr := r + 2.5 + ring * 2.5
+		var n := 8 + ring * 4
+		for i in n:
+			var a := TAU * (i + 0.5 * ring) / n
+			var c := pos + Vector2(cos(a), sin(a)) * rr
+			draw_colored_polygon(PackedVector2Array([c + Vector2(0, -1), c + Vector2(1, 0), c + Vector2(0, 1), c + Vector2(-1, 0)]), Color(col, 0.85))
+
+
 func _draw_zone(z: Dictionary) -> void:
 	var t: float = z["t"]
 	match z["kind"]:
@@ -1469,6 +1481,7 @@ func _draw_zone(z: Dictionary) -> void:
 			# toward it as the delay runs out. Hero effect: only the latest signature stays bright.
 			var bright: bool = z.get("hero", false) or t < 0.3
 			draw_arc(z["pos"], z["r"], 0, TAU, 32, col, 1.0, false)
+			_sigils(z["pos"], z["r"], int(z.get("stage", 0)), col)
 			if z.has("ghost_r"):
 				draw_dashed_circle(z["pos"], z["ghost_r"], Color(PixelArt.PAPER, 0.7))
 			draw_circle(z["pos"], z["r"] * k, Color(col, 0.35 if bright else 0.12), true, -1.0, false)

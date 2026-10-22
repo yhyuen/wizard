@@ -99,7 +99,7 @@ func pillar() -> bool:
 	var r := Progression.stat("pillar", "radius")
 	var z = {"kind": "pillar", "pos": _pillar_target(), "r": r,
 		"delay": maxf(Progression.stat("pillar", "delay"), Progression.fair_delay(r)), "dmg": Progression.stat("pillar", "damage"),
-		"impact": 4 if Progression.has_mut("pillar", "knock_up") else int(s["impact"])}
+		"impact": 4 if Progression.has_mut("pillar", "knock_up") else int(s["impact"]), "stage": Progression.stage("pillar")}
 	if K.ghosts.has("pillar"):
 		z["ghost_r"] = Progression.stat("pillar", "radius", K.ghosts["pillar"]["old"])
 	if Progression.has_mut("pillar", "pull_center"):

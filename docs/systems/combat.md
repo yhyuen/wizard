@@ -86,6 +86,10 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   embers), Jupiter (Pebble lodestones, Fling, Avalanche), Mercury (`storm_water.gd`: Spark, Arc
   Lance, Storm Call, rods), Luna (Splash Wet, Undertow puddles, Maelstrom), Hours (`hours.gd`:
   Rewind, `from_loop` 2, `ring` 0). Field caps and lives are `spells.json` `field`.
+- **Mastery in a fight** ([growth.md](growth.md)): a spell's stage sets its Force grade
+  (`Progression.grade`, I–IV, capped by Ring) and grows its `minor` axis ×1.2 per stage. Pillar's
+  and the meteor's zones draw a ring of sigils per stage (`arena.gd` `_sigils`). Signatures need
+  their prerequisite spells at stage this life (`growth.gd` `needs_met`).
 - **Magicks** (`magicks`): Meteor and Conductor are retired: no key casts them. Discovery and hint
   tomes still run in the old Mill fight.
 

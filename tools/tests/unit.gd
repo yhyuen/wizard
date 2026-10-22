@@ -41,7 +41,7 @@ func _run() -> void:
 	P.add_xp("ember_bolt", 8.0)
 	ok(P.level("ember_bolt") == 2, "8 XP levels Ember Bolt to 2")
 	P.add_xp("ember_bolt", 1000.0)
-	ok(P.level("ember_bolt") == 15, "levels cap at 15")
+	ok(P.level("ember_bolt") == 20, "levels cap at 20")
 	ok(P.pending.size() == 3, "levels 5, 10 and 15 each queue a pick (got %d)" % P.pending.size())
 	P.pick(1)
 	ok(P.has_mut("ember_bolt", "ember_ignite"), "picking option 2 at Lv 5 gives Ember Ignite")
@@ -62,7 +62,7 @@ func _run() -> void:
 	P.next_loop()
 	ok(P.loop() == 2, "the loop advances")
 	ok(P.wizard_level() == 3, "wizard level 7 drops to 3")
-	ok(P.level("ember_bolt") == 15, "spell levels survive the loop")
+	ok(P.level("ember_bolt") == 20, "spell levels survive the loop")
 	ok(P.blink_charges(1) == 1 and P.blink_charges(3) == 2 and P.blink_charges(6) == 3, "blink charges at 1, 3, 6")
 	# The spellbook: four spells from any sphere (spell and combat spec §5.1).
 	P.reset_all()
@@ -114,6 +114,7 @@ func _run() -> void:
 	ok(P.tome_subject() == "", "no tome once every Magick is known or hinted")
 	P.next_loop()
 	ok(P.has_hint("conductor"), "hints carry over loops")
+	_mastery(P)
 	_controls(P)
 	_kit(P)
 	_growth(P)
@@ -248,7 +249,14 @@ func _growth(P) -> void:
 	G.add_wells(30)
 	ok(G.ring() == 0, "wells alone don't pass the yard trial")
 	R.set_flag("ring1")
-	ok(G.ring() == 2 and G.slots() == 3 and G.slot_spell(2) == "pillar", "after the trial, 30 wells is the 2nd Ring: 3 slots, Pillar open")
+	ok(G.ring() == 1 and G.ring_stage_need() == "4 spells at Adept", "after the trial, 30 wells alone is only the 1st Ring: the 2nd needs four spells at Adept")
+	for id in ["ember_bolt", "pebble", "pillar", "fling"]:
+		G.practice()[id]["stage"] = 1
+	ok(G.ring() == 2 and G.slots() == 3 and G.slot_spell(2) == "pillar", "with four at Adept, 30 wells is the 2nd Ring: 3 slots, Pillar open")
+	ok(not G.needs_met("pyroclasm") or G.practice()["ember_bolt"]["stage"] >= 1, "Pyroclasm needs Ember Bolt and Pillar at Adept")
+	G.practice()["pillar"]["stage"] = 0
+	ok(not G.needs_met("pyroclasm") and G.needs_missing("pyroclasm") == ["Pillar at Adept"], "a missing prerequisite is named")
+	G.practice()["pillar"]["stage"] = 1
 	ok(G.max_hp() == 160.0 and G.max_aether() == 130.0 and G.blinks() == 2, "wells raise Vitality and Aether; the 2nd Ring adds a Blink")
 	ok(G.set_slot(0, "fling") and G.book()[0] == "fling" and G.book()[3] == "ember_bolt", "putting a Model in a slot swaps it with where it was")
 	ok(not G.set_slot(3, "ember_bolt"), "slot 4 waits for the 3rd Ring")
@@ -640,3 +648,48 @@ func _events(R) -> void:
 	R.life = R.fresh_life()
 	ok(R.soul["appointments"].has("iron_gate_shuts") and R.event_state("iron_gate_shuts") == "", "appointments outlive the life; the event comes round again")
 	R.new_run()
+
+
+## Spell mastery in the slice (spell spec §6.4, N-3): walls, trials, breakthroughs, remembered
+## breakthroughs, Perfected only after a past-life Master, minor steps, the Force grade.
+func _mastery(P) -> void:
+	P.reset_all()
+	P.rules = {"walls": true, "grade_cap": 2, "echo": {}, "broken": {}, "known": {}}
+	P.add_xp("pillar", 1000.0)
+	ok(P.level("pillar") == 5 and P.stage("pillar") == 0 and P.at_wall("pillar"), "Practice stops at the top of Novice until a breakthrough")
+	ok(P.xp("pillar") <= P.xp_needed(5) + 0.001, "XP banks up to one level at the wall")
+	var dmg0: float = P.stat("pillar", "damage")
+	ok(P.trials("pillar").size() == 3 and not P.trials("pillar")[0]["done"], "three trials, the feat not done yet")
+	ok(P.pass_trial("pillar", "meditation") and P.stage("pillar") == 1 and P.level("pillar") == 6, "one trial breaks through into Adept, and the banked XP carries on")
+	ok(P.pending.size() == 1 and P.pending[0]["level"] == 5, "the breakthrough offers the Revision")
+	P.pick(0)
+	ok(is_equal_approx(P.stat("pillar", "damage"), P.stat_value(P.spell("pillar")["stats"]["damage"], 6) * 1.2) and P.stat("pillar", "damage") > dmg0, "the minor axis steps up 20%")
+	ok(P.grade("pillar") == 2, "Adept casts at Force grade II")
+	P.rules["grade_cap"] = 1
+	ok(P.grade("pillar") == 1, "...unless the Ring caps it")
+	P.rules["grade_cap"] = 2
+	P.add_xp("pillar", 1000.0)
+	P.pass_trial("pillar", "meditation")
+	ok(P.level("pillar") == 10 and P.stage("pillar") == 1, "Master needs two trials")
+	P.p["spells"]["pillar"]["hits"] = 45
+	P.add_xp("pillar", 1.0)
+	ok(P.stage("pillar") == 2 and P.level("pillar") > 10, "the feat (45 hits) and the meditation break through into Master")
+	P.add_xp("pillar", 1000.0)
+	for k in ["feat", "insight", "meditation"]:
+		P.pass_trial("pillar", k)
+	ok(P.level("pillar") == 15 and P.stage("pillar") == 2, "Perfected waits for a spell mastered in a past life")
+	P.rules["echo"] = {"pillar": 12}
+	P.add_xp("pillar", 1.0)
+	ok(P.stage("pillar") == 3, "...and comes once it was")
+	for i in range(P.pending.size()):
+		P.pick(0)
+	# A breakthrough made in a past life needs no trial.
+	P.p = P.fresh()
+	P.rules["broken"] = {"spark": 1}
+	P.add_xp("spark", 1000.0)
+	ok(P.stage("spark") == 1 and P.level("spark") == 10, "a remembered breakthrough happens as soon as the level is reached")
+	for lv in range(1, 21):
+		ok(P.stat("pillar", "delay", lv) >= P.fair_delay(P.stat("pillar", "radius", lv)) - 0.0001, "Pillar at Lv %d keeps the fair-dodge rule" % lv)
+	P.pending.clear()
+	P.rules = {}
+	P.reset_all()

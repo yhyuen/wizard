@@ -583,6 +583,8 @@ func _effect(op: String, arg: String) -> bool:
 					main.arena.kit.rest()  # meditating is a rest: full Aether, no Strain
 				if op == "meditate":
 					after.append("period")  # only actions cost time (GDD 04 §4.2)
+					for id in growth.meditate_trials():
+						toast("You hold %s in your mind on %s. Its meditation trial is done." % [growth.prog.spell(id)["name"], run.weekday()["name"]])
 			else:
 				toast("You've already meditated today. It doesn't come twice.")
 		"train":
@@ -1454,19 +1456,35 @@ func _draw_book() -> void:
 			var nm: String = growth.prog.spell(book[i])["name"] if id != "" else "(empty)"
 			text(rr.position + Vector2(0, 20), nm, 13, PAPER, HORIZONTAL_ALIGNMENT_CENTER, rr.size.x)
 			if id != "":
-				text(rr.position + Vector2(0, 38), "Practice %d" % growth.level(id), 11, DIM, HORIZONTAL_ALIGNMENT_CENTER, rr.size.x)
+				text(rr.position + Vector2(0, 38), "%s %d  ·  grade %s" % [growth.prog.stage_name(growth.prog.stage(id)), growth.level(id),
+					["I", "II", "III", "IV", "V"][growth.prog.grade(id) - 1]], 11, DIM, HORIZONTAL_ALIGNMENT_CENTER, rr.size.x)
 			buttons.append({"r": rr, "act": _pick_slot.bind(i), "key": i + 1})
 		else:
 			text(rr.position + Vector2(0, 28), _slot_ring(i), 12, Color(PAPER, 0.35), HORIZONTAL_ALIGNMENT_CENTER, rr.size.x)
-	title(at + Vector2(0, 86), "Models you know", 15, PAPER)
+	# The picked slot's next breakthrough (spell spec §6.4): its trials, ticked when done.
+	var sel: String = growth.slot_spell(book_slot) if book_slot < growth.slots() else ""
+	if sel != "" and growth.prog.stage(sel) < 3:
+		var st: int = growth.prog.stage(sel) + 1
+		var tri: Array = []
+		for t in growth.prog.trials(sel):
+			tri.append(("✓ " if t["done"] else "") + str(t["text"]).trim_prefix("Feat: ").trim_prefix("Insight: "))
+		var head := "%s: %s at level %d, any %d of:" % [growth.prog.spell(sel)["name"], growth.prog.stage_name(st),
+			growth.prog.stage_top(st - 1), growth.prog.trials_needed(st)]
+		if int(growth.prog.rules.get("broken", {}).get(sel, 0)) >= st:
+			head = "%s: %s at level %d (you broke through in a past life)" % [growth.prog.spell(sel)["name"], growth.prog.stage_name(st), growth.prog.stage_top(st - 1)]
+			tri = []
+		para(at + Vector2(0, 74), head + ("  " + "  ·  ".join(tri) if not tri.is_empty() else ""), r.size.x - 80, 11, HOURS if growth.prog.at_wall(sel) else DIM, 1.1)
+	title(at + Vector2(0, 116), "Models you know", 15, PAPER)
 	var models: Array = growth.known_models()
 	for j in models.size():
 		var id: String = models[j]
-		var rr := Rect2(at + Vector2((j % 6) * 104, 98 + (j / 6) * 34), Vector2(98, 28))
+		var rr := Rect2(at + Vector2((j % 6) * 104, 126 + (j / 6) * 34), Vector2(98, 28))
 		var ok: bool = growth.can_cast(id)
 		var label: String = growth.prog.spell(id)["name"]
-		if not ok:
+		if not ok and growth.ring() < growth.tier_ring(id):
 			label += "  (%s)" % growth.ring_name(growth.tier_ring(id)).trim_suffix(" Ring")
+		elif not ok:
+			label += "  (not yet)"  # its prerequisites (spell spec §6.5)
 		button(rr, label, _put_model.bind(id), 0, 12, ok and book_slot < growth.slots())
 	button(Rect2(r.position.x + r.size.x / 2.0 - 80, r.end.y - 48, 160, 32), "Close  (Space)", func(): overlay = "", 0, 14)
 
