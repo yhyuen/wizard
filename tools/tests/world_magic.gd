@@ -48,6 +48,8 @@ extends SceneTree
 ## N-7.1.3 (the undercroft): the sluice drains the long channel (its water and wet cells go) and
 ## fills it again; shoving the counterweight crate opens the drain grate for good, and its exit up
 ## to the camp (and the camp's down) works from then on.
+## N-7.1.4 (the Mill fields): the sluice drains the mill pond and the islet becomes a walk; Fire I
+## burns the webs off an apple tree and leaves the tree standing.
 
 const BOOK := ["ember_bolt", "pebble", "splash", "undertow"]
 const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt"]
@@ -144,6 +146,8 @@ func _initialize() -> void:
 		["Splash on the Archive gate's plaque washes its soot off", _plaque_setup, _plaque_clean],
 		["in the undercroft, the sluice drains the long channel and fills it again", _sluice_setup, _sluiced],
 		["shoving the counterweight opens the drain grate for good (a soul memory): its exits up and down work", _weight_setup, _weighted],
+		["in the Mill fields, draining the pond at its sluice makes the islet a walk", _pond_setup, _pond_walk],
+		["Fire I burns the webs off an apple tree and leaves the tree standing", _web_setup, _webs_gone],
 	]
 
 
@@ -1386,3 +1390,45 @@ func _weighted() -> bool:
 		return false
 	var camp_side: bool = world.get_map("camp").exits["drain_down"]["opened_by"] == "drain_open"
 	return state["shut"] and world.exit_open("grate_up") and camp_side and run.knows("drain_open")
+
+
+# --- the Mill fields (N-7.1.4) -----------------------------------------------------------------
+
+func _pond_setup() -> void:
+	world.load_map("fields")
+	slice.set_screen("world")
+	main.enter_world(world.map.spots["mill_bridge"])
+	_clear_enemies()
+	state["wade"] = Vector2(1030, 560)  # deep water between the bank and the islet
+	state["deep"] = world.map.blocked(state["wade"])
+	run.set_flag("pond_dry")
+
+
+func _pond_walk() -> bool:
+	if world.map.blocked(state["wade"]):
+		return false
+	var route: PackedVector2Array = world.map.path(world.map.spots["mill_pond"], world.map.spots["pond_islet"], 7.0)
+	return state["deep"] and route.size() > 0 and route[route.size() - 1] == world.map.spots["pond_islet"]
+
+
+func _web_setup() -> void:
+	run.life["flags"].erase("pond_dry")
+	var web := {}
+	for p in world.props:
+		if p["kind"] == "web":
+			web = p
+			break
+	var tree := {}
+	for p in world.props:
+		if p["kind"] == "apple_tree" and (tree.is_empty() or p["pos"].distance_to(web["pos"]) < tree["pos"].distance_to(web["pos"])):
+			tree = p
+	state["web"] = web
+	state["tree"] = tree
+	world.apply_force(web, "fire", 1)
+	state["long"] = true
+
+
+func _webs_gone() -> bool:
+	if state["web"]["state"] != "ash":
+		return false
+	return state["tree"]["state"] != "burning" and state["tree"]["state"] != "ash"

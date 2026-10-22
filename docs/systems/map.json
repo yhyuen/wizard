@@ -52,14 +52,14 @@
   },
   "content": {
     "_doc": "Content specs (index pages, not enforced): which doc describes the exempt content below. spec_check.py ignores this key.",
-    "docs/systems/content.md": ["data/world/map.json", "data/ruins/**", "data/city/**", "data/world/people.json", "data/world/story/**", "data/world/ledger.json"],
+    "docs/systems/content.md": ["data/world/map.json", "data/ruins/**", "data/city/**", "data/fields/**", "data/world/people.json", "data/world/story/**", "data/world/ledger.json"],
     "docs/systems/art.md": ["data/visual.json", "scripts/view/**", "scripts/world/town_mesh.gd", "scripts/world/ruin_mesh.gd", "scripts/world/world_view.gd", "scripts/pixel_art.gd", "assets/**"]
   },
   "exempt": {
     "_doc": "Content and presentation: no spec change needed. Content that needs a new key or rule changes that key's system, which is mapped above.",
     "patterns": [
       "**/*.uid",
-      "data/world/map.json", "data/ruins/**", "data/city/**", "data/world/people.json", "data/world/story/**",
+      "data/world/map.json", "data/ruins/**", "data/city/**", "data/fields/**", "data/world/people.json", "data/world/story/**",
       "data/world/ledger.json",
       "data/visual.json",
       "scripts/view/**", "scripts/world/town_mesh.gd", "scripts/world/ruin_mesh.gd",

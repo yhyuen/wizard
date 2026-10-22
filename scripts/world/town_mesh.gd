@@ -49,6 +49,8 @@ func build(the_view, the_map, config: Dictionary) -> void:
 	_materials()
 	if map.kit == "town":
 		_kit_town()
+	elif map.kit == "country":
+		_kit_country()
 	_kit_ruin()
 	_water()
 	for l in map.d.get("lamps", []):
@@ -80,6 +82,38 @@ func _kit_town() -> void:
 	_square()
 	_mill()
 	_trees()
+
+
+## The country kit (the Mill fields): farm buildings from `blocks`, houses you walk into, the mill
+## wheel, the granary on its legs, the islet's ley stone, a trough, and `trees` [x, y, size].
+func _kit_country() -> void:
+	var i := 0
+	for b in map.d.get("blocks", []):
+		_block(Rect2(b[0], b[1], b[2], b[3]), float(b[4]), i)
+		i += 1
+	for id in map.buildings:
+		_building(id, map.buildings[id])
+	for cr in map.circles:
+		var p: Vector3 = view.to_world(cr[0])
+		var r: float = float(cr[1]) * view.S
+		match cr[2]:
+			"mill_wheel":
+				_mill(cr[0])
+			"granary":
+				# a timber store on squat stone legs, a ladder up to its door
+				for k in 6:
+					var a := k * TAU / 6.0
+					_add(_cyl(0.35, 0.45, 1.4, 6), Transform3D(Basis(), p + Vector3(cos(a) * r * 0.8, 0.7, sin(a) * r * 0.8)), c("stone"))
+				_add(_cyl(r, r, 3.2, 8), Transform3D(Basis(), p + Vector3(0, 3.0, 0)), c("timber").lightened(0.1))
+				_add(_cyl(0.0, r * 1.15, 1.8, 8), Transform3D(Basis(), p + Vector3(0, 5.5, 0)), c("roof"))
+				_box(Vector3(0.6, 2.4, 0.1), p + Vector3(0, 1.2, r + 0.3), c("timber").darkened(0.3))
+			"ley_stone":
+				_add(_cyl(r * 0.5, r * 0.8, 1.8, 5), Transform3D(Basis(), p + Vector3(0, 0.9, 0)), c("stone").darkened(0.15))
+				_box(Vector3(0.25, 0.25, 0.25), p + Vector3(0, 1.95, 0), Color("8fe8ff"), 45.0, true)
+			"trough":
+				_box(Vector3(r * 2.2, 0.5, r * 0.9), p + Vector3(0, 0.25, 0), c("timber").darkened(0.2))
+	for t in map.d.get("trees", []):
+		_tree(view.to_world(Vector2(t[0], t[1])), float(t[2]), false)
 
 
 ## The ruin kit's builders (ruin_mesh.gd). Nothing in the town kit alone.
@@ -455,9 +489,9 @@ func _square() -> void:
 
 
 ## The Mill: its wheel turning in the millrace (the house itself is one of the blocks).
-func _mill() -> void:
+func _mill(at := Vector2(420, 985)) -> void:
 	wheel = Node3D.new()
-	wheel.position = view.to_world(Vector2(420, 985), 1.4)
+	wheel.position = view.to_world(at, 1.4)
 	add_child(wheel)
 	_own(func(st):
 		for k in 8:

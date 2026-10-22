@@ -494,6 +494,20 @@ func _dressing(kind: String, at2: Vector2, rot: float) -> void:
 			rim.ring_segments = 3
 			_add(rim, Transform3D(Basis(Vector3.RIGHT, PI / 2.0 - 0.35), at + Vector3(0, 1.4, 0)), c("brass").darkened(0.3))
 			put.call(Vector3(0.08, 1.2, 0.05), Vector3(0.2, 1.7, 0.22), c("iron"))
+		"wheat":
+			# a stand of wheat gone to seed: pale stalks in loose rows
+			for k in 40:
+				var q := Vector3(rng.randf_range(-3.0, 3.0), 0, rng.randf_range(-2.0, 2.0))
+				put.call(Vector3(0.06, rng.randf_range(0.7, 1.1), 0.06), q + Vector3(0, 0.45, 0), Color("b8a060").darkened(rng.randf() * 0.25))
+		"scarecrow":
+			put.call(Vector3(0.12, 2.2, 0.12), Vector3(0, 1.1, 0), c("timber"))
+			put.call(Vector3(1.4, 0.1, 0.1), Vector3(0, 1.7, 0), c("timber"))
+			put.call(Vector3(0.5, 0.7, 0.3), Vector3(0, 1.45, 0), c("cloth2").darkened(0.3))
+			put.call(Vector3(0.35, 0.35, 0.35), Vector3(0, 2.05, 0), Color("b8984a"))
+		"frost_seam":
+			# the mill cellar's cold crack: a pale seam in the stone, rimed round its edges
+			put.call(Vector3(0.12, 1.8, 0.5), Vector3(0, 0.9, 0), Color("cfe6f2"), true)
+			put.call(Vector3(0.2, 2.2, 0.9), Vector3(-0.08, 1.1, 0), Color("e8f4fa").darkened(0.3))
 		"lens":
 			# the glassworks' great lens on its iron cradle, facing the furnaces
 			put.call(Vector3(0.2, 2.2, 0.2), Vector3(-1.0, 1.1, 0), c("iron"))

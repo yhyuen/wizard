@@ -9,6 +9,8 @@
   },
   "city": {"default": "stone", "places": [["glassworks", "stone"], ["crater_lip", "earth"]], "paint": []},
   "undercroft": {"default": "stone", "indoors": true, "places": [], "paint": []},
+  "fields": {"default": "grass", "places": [["barns", "earth"], ["granary", "earth"], ["farm_track", "earth"], ["mill_bridge", "earth"], ["mill_cellar", "wood"]],
+   "paint": [[300, 1270, 3300, 60, "earth"], [2190, 1330, 60, 230, "earth"], [1770, 1330, 60, 150, "earth"]]},
   "halls": {"default": "stone", "indoors": true, "places": [], "paint": []}
  },
  "spread": {

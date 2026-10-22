@@ -1626,7 +1626,7 @@ func _draw_loading() -> void:
 		star(c + Vector2(cos(a), sin(a)) * 64.0, 5.0 if on else 3.0, GOLD if on else Color(HAIR, 0.5))
 	star(c, 7.0, HOURS)
 	title(Vector2(0, c.y + 112), name, 26, GOLD, HORIZONTAL_ALIGNMENT_CENTER, 960)
-	var sub := "Down into the dark." if world.map.kit == "ruin" else "Up into the grey light, and the camp."
+	var sub := str(world.maps[world.map_id].get("card", "Up into the grey light, and the camp."))
 	text(Vector2(0, c.y + 140), sub, 14, DIM, HORIZONTAL_ALIGNMENT_CENTER, 960)
 
 
