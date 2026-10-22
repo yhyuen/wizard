@@ -33,6 +33,7 @@ const BOOK := ["ember_bolt", "pebble", "splash", "undertow"]
 const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt"]
 const GROUND_BOOK := ["pillar", "splash", "spark"]
 const DEVICE_BOOK := ["spark_flask", "tar_pot", "arc_rod", "smoke_jar"]
+const Lives := preload("res://scripts/game/lives.gd")
 const WAIT := 150  # frames a case may take
 const LIGHT_WAIT := 240  # the lamp-pool case watches a Hollow for this long
 
@@ -106,6 +107,7 @@ func _initialize() -> void:
 			func(): return not state["lamp"]["lit"] and _logged_since("smothered")],
 		["a Choir's hum makes a Hollow firmer and faster, and a heavy hit hushes it", _choir_setup, _hummed],
 		["a Broken Overdrawn Husk leaks Aether you can drink", _husk_setup_leak, _drank],
+		["the Field Guide notes a Shieldman seen, its shield burned and it beaten, and keeps it next life", _guide_setup, _guided],
 	]
 
 
@@ -926,3 +928,31 @@ func _drank() -> bool:
 	A.player.iframes = 0.0
 	_clear_enemies()
 	return ok
+
+
+# --- N-6.5: the Field Guide --------------------------------------------------------------------
+
+func _guide_setup() -> void:
+	_clear_enemies()
+	main.arena.zones.clear()
+	_book(BOOK)
+	run.soul.erase("guide")
+	var A = main.arena
+	var at := _dark_spot() + Vector2(0, 20)
+	var s = A.spawn("shieldman", at)
+	s.stun = 9.0
+	state["s"] = s
+	state["seen"] = int(run.soul["guide"]["shieldman"]["seen"]) > 0
+	_cast_at(at, "ember_bolt", 50.0)
+
+
+func _guided() -> bool:
+	var A = main.arena
+	var s = state["s"]
+	if not s.flags.get("shield_gone", false):
+		return false
+	A.kill(s)
+	var e: Dictionary = run.soul["guide"]["shieldman"]
+	var next: Dictionary = Lives.carry(run.soul, run.life, "test", run.lives)
+	var kept: bool = next.get("guide", {}).has("shieldman")
+	return state["seen"] and int(e["beaten"]) == 1 and "shield_burned" in e["found"] and kept

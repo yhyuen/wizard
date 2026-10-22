@@ -237,9 +237,11 @@ func guards(u: Unit, dir: Vector2, impact: int, fire: bool) -> bool:
 		return false
 	var front: Vector2 = (A.player.pos - u.pos).normalized()
 	if (-dir).dot(front) < cos(deg_to_rad(float(g["arc"]) * 0.5)):
+		A.guide.found(u, "flanked")
 		return false  # from the side or behind
 	if fire:
 		u.flags["shield_gone"] = true
+		A.guide.found(u, "shield_burned")
 		A.fx("burst", u.pos + front * 6.0 + Vector2(0, -6), {"color": PixelArt.FIRE, "r": 9.0, "life": 0.5})
 		A.stats["shields_burned"] = int(A.stats.get("shields_burned", 0)) + 1
 		u.reaction = "stagger"
@@ -259,6 +261,7 @@ func on_fire(u: Unit) -> void:
 	if not e.has("keg") or u.flags.get("keg_gone", false) or u.dead:
 		return
 	u.flags["keg_gone"] = true
+	A.guide.found(u, "keg")
 	var k: Dictionary = e["keg"]
 	var r := float(k["r"])
 	A.fx("burst", u.pos, {"color": PixelArt.FIRE_HOT, "r": r, "life": 0.45})

@@ -39,6 +39,7 @@ extends RefCounted
 ## N-5.2 adds `bench` (work at a bench: fill your devices from your reagents, a time of day) and
 ## `bench stock` (the Lamplighters' spare reagents, data/schools.json devices.starter).
 
+const FieldGuide := preload("res://scripts/field_guide.gd")
 const MAPS := "res://data/world/maps.json"
 const HEADER_KEYS := ["place", "days", "times", "when", "force", "priority", "repeat", "known", "title", "slot", "backdrop",
 	"talk", "use", "arrive", "cast"]
@@ -69,6 +70,13 @@ class Ctx:
 
 	func f(id: String) -> bool:
 		return run.flag(id)
+
+	## Kinds of foe whose weakness the Field Guide has found, and kinds mastered (N-6.5).
+	func guide_found() -> int:
+		return FieldGuide.found_count(run.soul)
+
+	func guide_mastered() -> int:
+		return FieldGuide.mastered_count(run.soul)
 
 	func seen(id: String) -> bool:
 		return run.seen(id)

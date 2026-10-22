@@ -18,6 +18,7 @@ const Reach := preload("res://scripts/game/reach.gd")
 const Weather := preload("res://scripts/world/weather.gd")
 const Tris := preload("res://scripts/ui/tris.gd")
 const Achievements := preload("res://scripts/game/achievements.gd")
+const FieldGuide := preload("res://scripts/field_guide.gd")
 const BuildId := preload("res://scripts/game/build_id.gd")
 ## Where playtesters send their notes (design/slice/README.md §5, M5).
 const FEEDBACK_URL := "https://claude.ai/artifact/HryjwPHEs8S6swcQYFam6c"
@@ -27,7 +28,7 @@ const HINTS := {
 	"talk": "Number keys or a click pick a choice; Space carries on. L opens the Ledger at any time.",
 	"death": "Death resets your power, never what you know. Everything in the Ledger comes with you.",
 }
-const LEDGER_TABS := ["Questions", "Clues", "People", "Insights", "Appointments", "Lives", "Deeds"]
+const LEDGER_TABS := ["Questions", "Clues", "People", "Insights", "Appointments", "Lives", "Deeds", "Guide"]
 ## The Ledger entry that means you know a person well enough to find them on the map.
 const MAX_BARKS := 2  # speech bubbles shown at once
 const KNOWN_PEOPLE := {"mira": "mira", "aldous": "aldous", "pell": "pell", "captain": "captain"}
@@ -996,7 +997,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		toggle_map()
 	elif k == KEY_ESCAPE and overlay != "":
 		overlay = ""
-	elif overlay == "ledger" and k >= KEY_1 and k <= KEY_7:
+	elif overlay == "ledger" and k >= KEY_1 and k <= KEY_8:
 		ledger_tab = k - KEY_1
 	elif overlay == "map" and k >= KEY_1 and k <= KEY_3:
 		map_tab = k - KEY_1
@@ -1655,6 +1656,8 @@ func _draw_ledger() -> void:
 			_draw_lives(r)
 		6:
 			_draw_deeds(r)
+		7:
+			_draw_guide(r)
 		1, 2, 3:
 			var kinds: Array = [["clue"], ["person"], ["insight", "model"]][ledger_tab - 1]
 			var ids: Array = []
@@ -1806,6 +1809,47 @@ func _draw_deeds(r: Rect2) -> void:
 			y += 24.0
 		if y > r.end.y - 50:
 			text(Vector2(x, r.end.y - 44), "…", 13, DIM)
+			break
+
+
+## The Guide tab (enemy spec §12.1, N-6.5): every kind of foe, by faction. Unseen ones are a
+## question mark; seen, its name and tier; beaten, how often; its weakness found, the answer and its
+## lesson; mastered, a gold star.
+func _draw_guide(r: Rect2) -> void:
+	var x := r.position.x + 28.0
+	var y := r.position.y + 78.0
+	var kinds: Dictionary = growth.prog.data["enemies"]
+	var G: Dictionary = growth.prog.data["foes"]["guide"]
+	text(Vector2(r.end.x - 228, y), "%d found  ·  %d mastered" % [FieldGuide.found_count(run.soul), FieldGuide.mastered_count(run.soul)], 13, DIM, HORIZONTAL_ALIGNMENT_RIGHT, 200)
+	var book := FieldGuide.book(run.soul)
+	var faction := ""
+	for kind in kinds:
+		var k: Dictionary = kinds[kind]
+		if str(k.get("faction", "")) != faction:
+			if faction != "":
+				y += 5.0  # a little gap between factions
+			faction = str(k.get("faction", ""))
+		var e: Dictionary = book.get(kind, {})
+		if int(e.get("seen", 0)) == 0:
+			star(Vector2(x + 6, y - 5), 3.5, Color(HAIR, 0.4))
+			text(Vector2(x + 20, y), "?", 13, DIM)
+			y += 17.0
+			continue
+		var master: bool = FieldGuide.mastered(run.soul, kind)
+		star(Vector2(x + 6, y - 5), 4.5 if master else 3.5, GOLD if master else Color(PAPER, 0.7))
+		text(Vector2(x + 20, y), str(k["name"]), 13, GOLD if master else PAPER, HORIZONTAL_ALIGNMENT_LEFT, 150)
+		text(Vector2(x + 172, y), "%s, %s" % [faction.replace("_", " ").capitalize(), str(k.get("tier", "")).capitalize()], 11, DIM, HORIZONTAL_ALIGNMENT_LEFT, 150)
+		var beaten := int(e.get("beaten", 0))
+		text(Vector2(x + 316, y), ("beaten %d" % beaten) if beaten > 0 else "seen", 11, DIM, HORIZONTAL_ALIGNMENT_LEFT, 64)
+		var found: Array = e.get("found", [])
+		var line := ""
+		if not found.is_empty():
+			line = "%s. %s" % [", ".join(found.map(func(a): return str(G["answers"].get(a, a)))), str(k.get("lesson", ""))]
+		elif beaten > 0:
+			line = "HP %d, Poise %d. Its weakness isn't found yet." % [int(k["hp"]), int(k["poise"])]
+		y = para(Vector2(x + 384, y), line, r.size.x - 440, 11, PAPER if not found.is_empty() else DIM, 1.1) + 3.0 if line != "" else y + 17.0
+		if y > r.end.y - 46:
+			text(Vector2(x, r.end.y - 40), "…", 13, DIM)
 			break
 
 
