@@ -125,6 +125,9 @@ func _process(_dt: float) -> bool:
 		563:
 			_shot("10a_the_reach")
 			slice.map_tab = 2
+			slice.weather.forecast("camp")  # asked Aldous: tomorrow's glyph shows
+			for d in range(3, 15):
+				slice.weather.note("camp", d)  # days lived in an earlier life, in the Almanac
 		566:
 			_shot("10b_calendar")
 			slice.map_tab = 0

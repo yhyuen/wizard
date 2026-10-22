@@ -98,7 +98,7 @@ year's seasons, weather and the four calamities. Its §11 has the full list; the
 
 | Target says | As built | Where |
 | --- | --- | --- |
-| Weather per region per day, the same every life; Almanac and forecast; weather acts on matter | No weather | [world.md](world.md) |
+| Weather per region per day, the same every life; Almanac and forecast; weather acts on matter | Weather per region per day, the same every life, pinned calamity days, the Almanac on the calendar, Aldous's forecast (N-4.5.1). Not yet: weather on matter and sight, storm strikes, rain or snow on screen, a turn at a time slot, signs in the sky, a mark for days a spell changed | [world.md](world.md) |
 | Seasons dress the world (fields, rivers, dark slots, regrowth, travel) | Moons carry a season name; nothing reads it | [loop.md](loop.md) |
 | A calamity: Signs, Eve stop, lethal zone, three waves, stakes, Held/Scarred/Fallen, aftermath, absent default | The four calamities are dated and pinned once known; none plays | [loop.md](loop.md) |
 

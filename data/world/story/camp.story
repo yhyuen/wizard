@@ -195,6 +195,13 @@ talk: aldous
 repeat: true
 priority: -10
 Aldous: Flour and ash. Flour and ash.
+* What's the sky doing tomorrow? -> aldous_weather
+* Leave
+
+# The forecast (seasons spec §3.5): Aldous reads tomorrow's weather off the rim.
+=== aldous_weather
+Aldous squints at the rim, where the cloud comes up off the plain.
++ forecast aldous
 * Leave
 
 # --- the square, the east gate -------------------------------------------------------

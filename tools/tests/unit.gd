@@ -552,6 +552,7 @@ func _carry(R) -> void:
 	_save_files(R)
 	_deeds(R)
 	_events(R)
+	_weather(R)
 
 
 ## The save files (save spec §5, §12): a Turning cut short is finished on load, once.
@@ -647,6 +648,55 @@ func _events(R) -> void:
 	R.soul = s
 	R.life = R.fresh_life()
 	ok(R.soul["appointments"].has("iron_gate_shuts") and R.event_state("iron_gate_shuts") == "", "appointments outlive the life; the event comes round again")
+	R.new_run()
+
+
+## The weather (seasons spec §3, N-4.5.1): the same year from the same seed, calamity days pinned,
+## no long storm runs, a spell's change lasts the day, the Almanac and Aldous's forecast.
+func _weather(R) -> void:
+	R.new_run()
+	var W = load("res://scripts/world/weather.gd")
+	var wx = W.new(R)
+	R.soul["seed"] = 4242
+	var year: Array = []
+	for d in range(1, R.LAST_DAY + 1):
+		year.append(wx.kind("camp", d))
+	var wx2 = W.new(R)
+	ok(range(1, R.LAST_DAY + 1).all(func(d): return wx2.kind("camp", d) == year[d - 1]), "the same seed draws the same year")
+	R.soul["seed"] = 4243
+	var other := 0
+	for d in range(1, R.LAST_DAY + 1):
+		other += 1 if wx.kind("camp", d) != year[d - 1] else 0
+	ok(other > 60, "another seed draws another year (%d days differ)" % other)
+	R.soul["seed"] = 4242
+	var c1: Dictionary = wx.on("camp", R.day_of(3, 28))
+	ok(c1["kind"] == "mist" and int(c1["wind"]) == 0 and c1.get("pinned", false), "Lantern Night is pinned: mist, still air")
+	ok(wx.kind("city", R.LAST_DAY) == "snow" and wx.kind("camp", R.day_of(9, 21)) == "heat", "the Eclipse snows; the Purge is a heat day")
+	var run_n := 0
+	var worst := 0
+	var seen := {}
+	for k in year:
+		run_n = run_n + 1 if k == "storm" else 0
+		worst = maxi(worst, run_n)
+		seen[k] = true
+	ok(worst <= 3, "never more than three storm days in a row")
+	ok(seen.size() >= 7, "the plateau's year has most kinds of weather (%d)" % seen.size())
+	ok(range(R.day_of(11, 1), R.LAST_DAY).all(func(d): return wx.kind("camp", d) != "rain" and wx.kind("camp", d) != "heat"), "no rain or heat in winter")
+	R.life["day"] = 20
+	var was: String = wx.kind("camp")
+	var to := "storm" if was != "storm" else "clear"
+	ok(wx.set_today("camp", to) and wx.kind("camp") == to and wx.kind("camp", 21) == year[20], "a weather spell changes today only")
+	R.life["day"] = R.day_of(3, 28)
+	ok(not wx.set_today("camp", "clear") and wx.kind("camp") == "mist", "a pinned day can't be changed")
+	R.life["day"] = 30
+	ok(wx.known("camp", 31) == "" and wx.known("camp", 30) == year[29], "today is known, tomorrow isn't")
+	var said: String = wx.forecast("camp")
+	ok(said != "" and wx.known("camp", 31) == year[30], "Aldous's forecast makes tomorrow known")
+	wx.note("camp")
+	var s: Dictionary = load("res://scripts/game/lives.gd").carry(R.soul, R.life, "eclipse", R.lives)
+	R.soul = s
+	R.life = R.fresh_life()
+	ok(wx.known("camp", 30) == year[29] and wx.known("camp", 31) == "" and int(R.soul["seed"]) == 4242, "the Almanac and the seed carry into the next life")
 	R.new_run()
 
 

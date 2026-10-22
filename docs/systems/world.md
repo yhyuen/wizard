@@ -56,6 +56,31 @@ follows is the build today.*
   Eclipse falls on the road, it comes first.
 - The camp's north stair still leads straight down to the halls for free (the build's shortcut).
 
+## Weather (`data/world/weather.json`, `scripts/world/weather.gd`)
+
+*Target: the [seasons, weather and calamities spec](/mnt/project-files/design/seasons/seasons-and-calamities-spec.md)
+§3–§5 (tracker N-4.5). Built: N-4.5.1, the roll, the Almanac and the forecast. The world doesn't
+read the weather yet (N-4.5.2: wet, wind, frost, sight, storm strikes), and there is no rain or
+snow on screen.*
+
+- **Nine kinds:** Clear, Overcast, Mist, Rain, Storm, Wind, Heat, Frost, Snow, each with a glyph
+  colour, a wind range 0–3 and the world inputs N-4.5.2 will read (`wet`, `dry`, `fire_spread`,
+  `freezes`, `snow_cover`, `sight_m`).
+- **A day's weather per region** (`on(region, day)`: kind, wind, direction of 8) is drawn from the
+  region's climate (`regions`, all Ring 1 on `plateau`) for the moon's season, with a hash of the
+  soul's `seed`, the region and the day, so **the year's weather is the same every life**. Heat
+  doubles in Embermoon and Wind in Leaf-fall (`double`); never more than three Storm days in a
+  row (`max_run`). **Pinned** days win: Lantern Night (camp, city: mist, still), the High Tide
+  (storm), the Ashen Purge (heat, a west gale of 3), the Eclipse (snow everywhere).
+- **A weather spell** can set a region's weather for the rest of the day (`set_today`; not on a
+  pinned day). Nothing casts it yet.
+- **The Almanac** (`soul.almanac`, region → day → kind) notes each day you wake, arrive in a
+  region, or rest or travel through, and carries across lives. **Aldous** (in the camp, "What's
+  the sky doing tomorrow?") tells you tomorrow's weather (story effect `forecast`).
+- **Shown:** today's glyph, and tomorrow's once forecast, at the end of the calendar row, and the
+  kind's name under it ([frame.md](frame.md)); the map's Calendar tab has a glyph on each day you
+  know and today's weather in words.
+
 ## People (`scripts/world/people.gd`, `data/world/people.json`)
 
 *Target: how people and powers judge what you do (standing, fame and infamy, the numbered blame
