@@ -26,6 +26,8 @@ extends SceneTree
 ## N-6.1 (enemy records, Break, the director): Impact from behind fills a Slinger's Break meter until
 ## it is Broken (it can't act and takes more damage); five Hollows round you never wind up more
 ## than two attacks at once.
+## N-6.2 (bodies and burning): an Ember Bolt sets a Hollow (a husk) alight and the fire spreads to
+## the Hollow beside it; a soaked Hollow only dries.
 
 const BOOK := ["ember_bolt", "pebble", "splash", "undertow"]
 const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt"]
@@ -92,6 +94,9 @@ func _initialize() -> void:
 		["inside a Star Lantern's ring a Pillar is Aligned without standing still", _lantern_setup, _lantern_column],
 		["hits from behind fill a Slinger's Break meter until it is Broken", _break_meter_setup, _broken],
 		["five Hollows round you take turns: no more than two wind up at once", _director_setup, _took_turns],
+		["an Ember Bolt sets a Hollow alight, and it spreads to the one beside it", _husk_setup,
+			func(): return int(main.arena.stats.get("set_alight", 0)) >= state["alight"] + 2],
+		["a soaked Hollow only dries when fire hits it", _wet_husk_setup, _dried],
 	]
 
 
@@ -670,3 +675,39 @@ func _took_turns() -> bool:
 	main.arena.player.iframes = 0.0
 	_clear_enemies()
 	return state["max_winding"] == 2
+
+
+# --- N-6.2: bodies and burning ---------------------------------------------------------------
+
+## Two Hollows side by side, held still, a clear shot at the first.
+func _two_hollows() -> void:
+	_clear_enemies()
+	main.arena.zones.clear()
+	_book(BOOK)
+	var at := _dark_spot() + Vector2(0, 20)
+	state["alight"] = int(main.arena.stats.get("set_alight", 0))
+	state["h1"] = main.arena.spawn("hollow", at)
+	state["h2"] = main.arena.spawn("hollow", at + Vector2(0, 10))
+	for h in [state["h1"], state["h2"]]:
+		h.stun = 9.0
+		h.max_hp = 200.0
+		h.hp = 200.0
+	_cast_at(at, "ember_bolt", 50.0)
+
+
+func _husk_setup() -> void:
+	_two_hollows()
+
+
+func _wet_husk_setup() -> void:
+	_two_hollows()
+	state["h1"].wet_t = 30.0
+	state["h2"].wet_t = 30.0
+
+
+func _dried() -> bool:
+	if state["h1"].wet_t > 0.0:
+		return false
+	var ok: bool = int(main.arena.stats.get("set_alight", 0)) == state["alight"] and state["h1"].burn_t <= 0.0
+	_clear_enemies()
+	return ok

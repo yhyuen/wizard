@@ -422,6 +422,13 @@ func _projs(glow_k: float) -> void:
 
 
 func _zones(glow_k: float) -> void:
+	# a burning enemy (N-6.2): a flame on its back
+	for u in arena.units:
+		if u.burn_t > 0.0 and not u.dead:
+			var f := take("flame")
+			f.position = _w(u.shown_pos(), 0.5)
+			f.scale = Vector3(0.6, 0.7 + 0.2 * sin(u.anim * 14.0), 0.6)
+			halo(_w(u.shown_pos(), 0.8), PixelArt.FIRE, 1.0, 0.8)
 	for z in arena.zones:
 		var t: float = z["t"]
 		match z["kind"]:

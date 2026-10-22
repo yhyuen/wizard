@@ -136,6 +136,7 @@ func update(dt: float) -> void:
 				for u in A.units:
 					if not u.dead and u.pos.distance_to(z["pos"]) < float(z["r"]) + u.radius:
 						u.slow_t = maxf(u.slow_t, slow)
+						u.oil_t = maxf(u.oil_t, float(A.D["foes"]["states"]["oil_s"]))  # oiled: it burns (N-6.2)
 				for f in A.zones:
 					if f["kind"] in FIRE_KINDS and f["pos"].distance_to(z["pos"]) < float(z["r"]) + float(f.get("r", 4.0)):
 						ignite.append(z)
