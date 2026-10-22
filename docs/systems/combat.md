@@ -51,6 +51,9 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   wind-up or recovery. Arc Lance still charges with how long it is held.
 - **Injured** ([loop.md](loop.md)): the first spell of each fight winds up +0.2 s longer
   (`arena.set_injured`, `kit.slow_start`), and Vitality stays at or below 75%.
+- **Omens** ([loop.md](loop.md)): the Hard Sky multiplies every enemy's Vitality as it spawns
+  (`Run.omen_mult("enemy_hp")`, ×1.3) and the Thin Well halves Aether regained in and out of
+  fights (`aether_regen`, ×0.5).
 - **Focus** (N-2.1, `casting.focus` 1): while winding up, a hit with Impact at or below Focus
   causes no reaction; above it, the cast breaks (a cracked puff, "Cast broken") and half its Aether
   is lost. **Enemies** have Focus too (`enemies.<kind>.focus`, default Poise + 1, the old "stagger

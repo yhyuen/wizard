@@ -30,7 +30,10 @@ conditions (`standing`, `rank`, `fame`, `nickname`, `wanted`) and effects (`+ st
   `model`, `trial`, `sound`, `cutscene`, `move`, `take`, `sleep`, `book`, `today` (a once-a-day
   action, for `done(op)`), `go <map> <spot>` or `go <exit>`, `open <door>`, `play_path <id>`, `road <id>` (take a road
   for this life, [loop.md](loop.md)), `deed <id>` (a soul flag the Turning keeps; SEALED deeds
-  open roads). Conditions also have `on_road(id)` and `offered(id)`.
+  open roads), `omen <id>` (take an Omen for this life). Conditions also have `on_road(id)`,
+  `offered(id)`, `omen(id)`, `omens()`, `omens_offered()` and `ended(cause)` (only while a life's
+  ending checks achievements). Achievements' conditions (`data/world/achievements.json`) are
+  linted with the scenes'.
   A new effect or header key is a change to this spec.
 
 ## Playing them (`scripts/game/slice.gd`)

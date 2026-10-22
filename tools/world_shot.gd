@@ -128,6 +128,12 @@ func _process(_dt: float) -> bool:
 		566:
 			_shot("10b_calendar")
 			slice.map_tab = 0
+			slice.overlay = "ledger"
+			slice.ledger_tab = 5
+			slice.deeds.earn("first_ring")
+		568:
+			_shot("10c_deeds")
+			slice.ledger_tab = 0
 			slice.overlay = "book"
 		570:
 			_shot("11_book")

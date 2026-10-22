@@ -45,8 +45,9 @@ Reach and Calendar tabs (§5.5).*
 - **The map** (M, `scripts/game/slice.gd`) has three tabs (1–3, or click): **Here** (this map,
   as built), **The Reach** (the region map and travel, [world.md](world.md)) and **Calendar**
   (the year's moons, this moon's weeks by weekday, known dates, Rest until…, [loop.md](loop.md)).
-- **The Ledger** (L) has five tabs (1–5): Questions, Clues, People, Insights and **Lives** (a page
-  per life lived, [loop.md](loop.md)).
+- **The Ledger** (L) has six tabs (1–6): Questions, Clues, People, Insights, **Lives** (a page
+  per life lived) and **Deeds** (achievements and titles, [loop.md](loop.md)).
+- **Toasts** run down the right; an achievement's is gold, with a chime (UI spec §3.6).
 - **Screens:** title, loading card, the end card (a life ends; screen id `death`) and the hurt screen (a fall
   that wakes you Injured, [loop.md](loop.md)). The spellbook bar is the UI spec's stand-in
   (`/mnt/project-files/design/ui/ui-hud-spec.md` §10) until its §3.1 bar is built. Shapes are drawn as one triangle batch

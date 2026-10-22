@@ -21,11 +21,13 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
 - **`soul`** is what you understand and remember, and keeps across lives (lives spec §4.1, "heads
   keep"): known Ledger entries, deaths by cause, trials passed, the Echo (`echo`), `revisions`,
   `best_wells`, `insight` (0–3), `lives` (a page per life: number, road, cause, moon, day, time,
-  insight, wells, what was learnt), play time and frame stats for the run summary, hints seen.
+  insight, wells, what was learnt, Omens, deeds earned), `achievements` (id: life, moon, day),
+  `titles` and the `title` worn, play time and frame stats for the run summary, hints seen.
 - **`life`** is this year and resets at the Turning ("hands reset"): its number `n`, `road`
   (always `apprentice` until roads are built), the day, the time of day, flags, scenes seen, what
   was learnt, Practice, wells, the book, once-a-day actions done (`done_<op>`), items taken,
-  `injured`, `losses` (each lost fight: day, time, cause, days slept) and `calamities` passed.
+  `injured`, `losses` (each lost fight: day, time, cause, days slept), `calamities` passed,
+  `omens` and the achievements `earned` in it.
   `Run.loop()` is the life's number.
 - **The Turning** (`Run.end_life(cause)`): `scripts/game/lives.gd` `carry(soul, life, cause)` is a
   pure function that returns the new soul (deaths, insight +1 up to `insight.cap`, the Echo and
@@ -78,10 +80,35 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
   rose, insight), **Opened** (roads a deed opened) and **Left behind** (the Ring and wells
   reached, Practice, flags). The first morning's toast points at it.
 
+## Achievements (`data/world/achievements.json`, `scripts/game/achievements.gd`, lives spec §7)
+
+- The frame (N-1.2; the full list is N-7.7). Each has a kind, name, hint, `when` (a story
+  condition) and `grants` (a `title` so far). The game checks every 0.5 s in the world and once as
+  a life ends, before the Turning; `ended(cause)` and `omens()` let a condition need the way a life
+  ended. Earning one keeps it in the soul (with life, moon and day), adds its title (worn at once
+  if you wear none), lists it on the life's page under Opened, writes the soul, and copies it to
+  the profile (`user://profile.json`, save spec §3). A gold toast names the deed and its title.
+- Four so far, none from the story: **The First Ring** (a Ring's trial), **A Cold Kiln** (the
+  Kiln Warden), **To the Last Day** (a year to the Eclipse) and **Under a Bad Sky** (hidden: a
+  year finished, at the Eclipse or by turning, under an Omen).
+- The Ledger's **Deeds** tab (6): the titles earned (click one to wear it), then every
+  achievement: earned ones in gold with when, hidden ones as "?" and the hint, sealed (story) ones
+  as "A deed not yet done". A road's `opens_by` may name an achievement as well as a deed.
+
+## Omens (`lives.json` `omens`, lives spec §6.4)
+
+- From life 2, waking on the first morning offers "Read the year's omens" (camp story `omens`,
+  the story's `omen <id>` effect, `omen(id)`, `omens()` and `omens_offered()` conditions). Take
+  any; each holds for the whole life. **The Hard Sky** (`enemy_hp` ×1.3 on every enemy spawned),
+  **The Thin Well** (`aether_regen` ×0.5, in and out of fights) and **The Early Bell**
+  (`calamity_early` 1 moon; no effect until calamities are built, N-7.5).
+- Each Omen raises insight's effect by `omen_insight` (5%) of itself for that life
+  ([growth.md](growth.md)). The life's page names its Omens.
+
 ## Roads (`lives.json` `roads`, lives spec §5)
 
 - Built: the frame and two roads, **Apprentice** (the College, Astral Rite) and **Lamplighter**
-  (the Lamplighters, Spark Artifice). A road opens when its `opens_by` soul flag is set by a deed
+  (the Lamplighters, Spark Artifice). A road opens when its `opens_by` soul flag is set by a deed (or that achievement is earned)
   (the story's `deed <id>` effect; SEALED: no deed is written yet, so only the Apprentice road
   is open in play).
 - Life 1 is always the Apprentice road. A later life offers every open road but the one taken

@@ -542,6 +542,7 @@ func _carry(R) -> void:
 	R.life = R.fresh_life()
 	ok(R.loop() == 6 and R.life["day"] == 1, "the next life is numbered after the soul's pages and starts on the first morning")
 	_save_files(R)
+	_deeds(R)
 
 
 ## The save files (save spec §5, §12): a Turning cut short is finished on load, once.
@@ -574,3 +575,47 @@ func _save_files(R) -> void:
 	R.wipe()
 	R.save_enabled = false
 	R.save_dir = "user://slot1/"
+
+
+## Achievements (lives spec §7) and Omens (§6.4).
+func _deeds(R) -> void:
+	var L = load("res://scripts/game/lives.gd")
+	var story = load("res://scripts/game/story.gd").new(R)
+	var A = load("res://scripts/game/achievements.gd").new(R, story)
+	R.new_run()
+	ok(A.check().is_empty(), "no achievement before its deed")
+	R.set_flag("ring1")
+	ok(A.check() == ["first_ring"] and R.soul["titles"] == ["Ringbearer"] and R.soul["title"] == "Ringbearer", "a deed earns its achievement and title, worn at once if none is")
+	ok(A.check().is_empty() and R.life["earned"] == ["first_ring"], "...once")
+	ok(A.shown("omen")["name"] == "?" and A.shown("first_ring")["earned"], "a hidden achievement shows as ?")
+	R.life["ended"] = "eclipse"
+	ok(A.check() == ["eclipse"], "a life-end achievement waits for its ending, and the Omen one needs an Omen")
+	var rules: Dictionary = R.lives.duplicate(true)
+	rules["roads"]["lamplighter"]["opens_by"] = "first_ring"
+	ok("lamplighter" in L.roads_open(R.soul, rules), "an achievement can open a road")
+	# Omens: from life 2, on the first morning only, for the whole life.
+	ok(not R.omens_offered() and not R.take_omen("hard_foes"), "no Omens in a first life")
+	var s: Dictionary = L.carry(R.soul, R.life, "eclipse", R.lives)
+	ok(s["lives"][0]["earned"] == ["first_ring", "eclipse"] and s["achievements"].has("eclipse"), "the life's page lists its deeds, and the soul keeps them")
+	R.soul = s
+	R.life = R.fresh_life()
+	ok(R.omens_offered() and R.take_omen("hard_foes") and not R.take_omen("hard_foes"), "an Omen is taken on the first morning of a later life, once")
+	ok(is_equal_approx(R.omen_mult("enemy_hp"), 1.3) and is_equal_approx(R.omen_mult("aether_regen"), 1.0), "the Hard Sky toughens enemies, nothing else")
+	R.life["time"] = 1
+	ok(not R.take_omen("thin_aether"), "Omens can't be taken after the first morning")
+	R.life["ended"] = "turned"
+	ok(A.check() == ["omen"], "finishing a year under an Omen earns its deed")
+	ok(L.carry(R.soul, R.life, "turned", R.lives)["lives"][1]["omens"] == ["hard_foes"], "the life's page names its Omens")
+	# The profile keeps a copy (save spec §3).
+	R.save_dir = "user://unit_test_slot/"
+	R.profile_path = "user://unit_test_profile.json"
+	R.save_enabled = true
+	R.profile_earn("warden")
+	var prof = JSON.parse_string(FileAccess.get_file_as_string(R.profile_path))
+	ok(prof is Dictionary and prof["achievements"].has("warden"), "an achievement is copied to the profile")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(R.profile_path))
+	R.wipe()
+	R.save_enabled = false
+	R.save_dir = "user://slot1/"
+	R.profile_path = "user://profile.json"
+	R.new_run()

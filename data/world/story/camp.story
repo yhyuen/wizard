@@ -25,6 +25,35 @@ You've woken here before.
 [not k("hours_stirs")] Something has come back with you that wasn't there the first time: a slow tick under your ribs, the College's own Sphere. The Hours.
 [not k("hours_stirs")] + learn hours_stirs
 [not k("model_rewind")] + model rewind
+* Read the year's omens [omens_offered()] -> omens
+* Get up
+
+# Omens (lives spec §6.4): curses taken for the whole life, read before you rise on the first
+# morning of life 2 onwards. Their numbers are in data/world/lives.json "omens".
+=== omens
+The candle by the cot gutters, and the smoke lies in shapes over the canvas. You've learnt to read them. Each is a hard year you can choose, and a harder year teaches more.
+Take as many as you dare. Once taken, an omen holds until the year is done.
+* The Hard Sky: every foe stands up longer [not omen("hard_foes")] -> omen_hard_foes
+* The Thin Well: your Aether returns at half the pace [not omen("thin_aether")] -> omen_thin_aether
+* The Early Bell: the first calamity comes a moon sooner [not omen("early_calamity")] -> omen_early_calamity
+* Get up
+
+=== omen_hard_foes
++ omen hard_foes
+The smoke settles over the shape of a raised fist. So be it.
+* Read on -> omens
+* Get up
+
+=== omen_thin_aether
++ omen thin_aether
+The smoke thins to a thread and nearly goes out. So be it.
+* Read on -> omens
+* Get up
+
+=== omen_early_calamity
++ omen early_calamity
+Somewhere a bell rings once, though no one is near it. So be it.
+* Read on -> omens
 * Get up
 
 === cot
