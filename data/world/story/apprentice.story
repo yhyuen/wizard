@@ -97,6 +97,7 @@ Wren: Don't sit up fast. Three people have fainted this morning from sitting up 
 * Answer Wren -> wake_again_ask
 
 === wake_again_ask
+* Look past Wren, at the man in the flap [offered("lamplighter") and not seen("fennick_flap")] -> fennick_flap
 * "There's a dwarf under the half-bakery." [k("brogan") and not seen("wake_a_brogan")] -> wake_a_brogan
 * Read the year's omens [omens_offered()] -> omens
 * Get up -> wake_again_ledger

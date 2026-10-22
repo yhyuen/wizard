@@ -89,7 +89,9 @@ workroom moving to the halls, shops, boards and crews behind the new places (N-7
   the square), **D** the Lane run (down Lamplighter's Lane: Mira's round, now six lamps). Each rail
   is an iron strip a cell wide in the paving; the cell grid paints its cells **iron**, so they
   conduct. Every rail stops at the platform: the coupling is open, so the four circuits are four
-  separate networks. Four street lamps outside the Market stay on no circuit.
+  separate networks. Four street lamps outside the Market stay on no circuit. On a dusk you walk the
+  Lamplighter road's round (loop.md), the town doesn't light the 24 circuit lamps (it puts out any
+  it already lit); light all 24 yourself and the world sets `round_done`.
 - **Lightning on a rail** charges along the iron as far as its Force grade reaches (I 24 px, II 60,
   III 240, IV the whole circuit; the ground rule below), and **every circuit lamp on a charged cell
   flares** (logged `flare`), so a strong enough strike lights a whole run for a moment and none of

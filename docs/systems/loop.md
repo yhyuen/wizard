@@ -172,8 +172,8 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
 
 - Built: the frame and two roads, **Apprentice** (the College, Astral Rite) and **Lamplighter**
   (the Lamplighters, Spark Artifice). A road opens when its `opens_by` soul flag is set by a deed (or that achievement is earned)
-  (the story's `deed <id>` effect; SEALED: no deed is written yet, so only the Apprentice road
-  is open in play).
+  (the story's `deed <id>` effect; SEALED: the Lamplighter road's deed comes with Calamity 1,
+  N-7.5, so until then only the Apprentice road is open in play).
 - Life 1 is always the Apprentice road. A later life offers every open road but the one taken
   last life (unless nothing else is open; from life 4, all of them); the story's `road <id>` effect
   takes one for the year (`on_road`, `offered` conditions). With none taken by moon 1, day
@@ -182,6 +182,18 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
   (school, master, ladder, quests, cantrip) comes with the schools (N-5) and Ring 1 (N-7). Built: its
   school (N-5.1) and its starting `kit` (N-5.2: the Lamplighter road teaches the four devices and
   starts with charges and reagents, `growth.take_road_kit`, run by the `road` effect).
+- **The Lamplighter road in Ring 1** (`lamplighter.story`, N-7.4): on the first morning of a life
+  it's offered, Fennick stands behind Wren in the tent flap and offers it (a choice off Wren's
+  questions); put off, the offer waits at the Guild bench until the College's intake. Taking it
+  joins you to the Guild as an Initiate (growth.md Powers). **Rule one** at the bench packs your
+  first device (+5 merit). **Mira's round** (from Ashmoon 4, at Dusk in the market): while you
+  walk it the town leaves the market's 24 circuit lamps (4 circuits) to you; light all 24 the same
+  dusk and the round is done (+10 merit, world.gd `_on_round`). **The rails** (Thaw, by day): Fennick
+  flares a circuit with an Arc Rod (+5 merit). **The Market reckoning** (Seedmoon 14, Morning, the
+  Guild's exam): undercut Kestrel to end in the black, and keep a flask back for Pell if you know
+  why he buys one; passing is the Guild's `exam` (Adept only with its rows met, which life 2
+  rarely does). Three sealed achievements: Rule One, Twenty-Four, In the Black. Main-line steps
+  point at the bench and the reckoning; the Thaw examination's step isn't shown on this road.
 - `life.devices` and `life.reagents` (N-5.2, [growth.md](growth.md) "Devices") reset with the
   life; the device Models you learned stay known.
 - **Any other loss** (a lethal fight lost, or a story `end_loop` with another cause) **doesn't end

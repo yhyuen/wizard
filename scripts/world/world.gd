@@ -62,7 +62,7 @@ var pools: Array = []  # where a lit or flaring lamp's light keeps Hollows off, 
 var light_shy := {}
 
 ## Flags the world sets itself (not a story scene), for the story checks.
-const FLAGS := ["lit_lane"]
+const FLAGS := ["lit_lane", "round_done"]
 
 
 func _init(the_run, the_story) -> void:
@@ -327,13 +327,25 @@ func tick(dt: float) -> void:
 
 
 ## The College and the main streets come on at dusk; the lane waits for Mira; the ruin's lamps
-## only by fire.
+## only by fire. On a dusk you walk Mira's round (the Lamplighter road, N-7.4) the market's circuits
+## are left to you.
 func _lamps_by_time() -> void:
 	var t: int = run.time()
+	var round := _on_round()
 	for l in lamps:
+		if round and l["circuit"] != "":
+			if l["by"] == "town":
+				l["lit"] = false  # the round is yours: the town's taper goes back in the box
+				l["by"] = ""
+			continue
 		if t >= 3 and l["group"] in ["college", "street"] and not l["lit"] and l["by"] != "doused":
 			l["lit"] = true
 			l["by"] = "town"
+
+
+## Walking Mira's round tonight: the story marked `today round` and you're in the camp.
+func _on_round() -> bool:
+	return map_id == CAMP and int(run.life.get("done_round", -1)) == run.day() and run.road() == "lamplighter"
 
 
 func light_lamp(l: Dictionary, by: String) -> void:
@@ -342,6 +354,9 @@ func light_lamp(l: Dictionary, by: String) -> void:
 	l["lit"] = true
 	l["by"] = by
 	events_log.append(["lit", l.get("id", l["group"])])
+	if by == "you" and l["circuit"] != "" and _on_round() and not run.flag("round_done"):
+		if lamps.all(func(o): return o["circuit"] == "" or (o["lit"] and o["by"] == "you")):
+			run.set_flag("round_done")
 	if by == "you" and l["group"] == "lane" and not run.flag("lit_lane"):
 		# Mira's lane, lit before she got to it: she notices (and says so later, if not now).
 		run.set_flag("lit_lane")

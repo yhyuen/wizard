@@ -7,7 +7,8 @@ extends SceneTree
 ## leads to it (losing the fight, if there is one) through to the death screen, or, for a loss that
 ## doesn't end the life (lives spec §3.2), to the hurt screen and waking injured two days later.
 ## Dying or falling that way for the first time must teach at least one Ledger entry the screen
-## shows. Also the life 1 main line's Thaw examination and the stair fall that costs the watch.
+## shows. Also the life 1 main line's Thaw examination and the stair fall that costs the watch, and
+## the Lamplighter road's opening, round and reckoning (N-7.4).
 
 ## Death cause -> the scene that leads to it. A new cause must be added here.
 const ROUTES := {
@@ -54,6 +55,7 @@ func _go() -> void:
 	_shrine_waits()
 	_thaw_exam()
 	_daybook_fall()
+	_lamplighter()
 	for f in failures:
 		print("[deaths] FAIL: " + f)
 	if failures.is_empty():
@@ -202,3 +204,50 @@ func _thaw_exam() -> void:
 		if run.flag("exam_passed_thaw") != right:
 			failures.append("the Thaw examination with the %s chart should %s" % ["right" if right else "wrong", "pass" if right else "fail"])
 	print("[deaths] the Thaw examination passes on the right chart with Alignment, and fails on the wrong one")
+
+
+## The Lamplighter road (N-7.4): a second life with the road open takes Fennick's offer, joins the
+## Guild, packs a flask, walks Mira's round (all 24 circuit lamps by hand) and passes the reckoning.
+func _lamplighter() -> void:
+	slice.new_month()
+	slice.finish_scene()
+	if not run.soul.has("flags"):
+		run.soul["flags"] = {}
+	run.soul["flags"]["road_lamplighter"] = true
+	run.soul["lives"] = [{"n": 1, "road": "apprentice"}]
+	run.soul["last_road"] = "apprentice"
+	run.life = run.fresh_life()
+	run.learn("pell_children")
+	slice.play("fennick_flap")
+	slice.choose(0)
+	slice.finish_scene()
+	if run.road() != "lamplighter" or slice.powers.rank("guild") != 0 or slice.powers.standing("guild") != 20:
+		failures.append("taking Fennick's offer should put you on the Lamplighter road, an Initiate of the Guild (%s)" % run.road())
+		return
+	slice.play("rule_one")
+	slice.choose(0)
+	slice.finish_scene()
+	run.life["day"] = 4
+	run.life["time"] = 3
+	run.life["done_round"] = 4
+	var world = slice.world
+	for l in world.lamps:
+		if l["circuit"] != "" and l["by"] == "town":
+			l["lit"] = false
+			l["by"] = ""
+	for l in world.lamps:
+		if l["circuit"] != "":
+			world.light_lamp(l, "you")
+	run.life["day"] = 70
+	run.life["time"] = 0
+	slice.play("reckoning")
+	slice.choose(0)
+	slice.choose(0)
+	slice.choose(0)
+	if not (run.flag("rule_one") and run.flag("round_done") and run.flag("reckoning_passed") and run.flag("reckoning_rich")):
+		failures.append("the Lamplighter road: rule one %s, the round %s, the reckoning %s" % [run.flag("rule_one"), run.flag("round_done"), run.flag("reckoning_passed")])
+	elif slice.powers.merit() != 5:
+		failures.append("rule one should earn 5 merit (got %d)" % slice.powers.merit())
+	else:
+		print("[deaths] the Lamplighter road: Fennick's offer, rule one, all 24 lamps by hand, and in the black at the reckoning")
+	slice.finish_scene()
