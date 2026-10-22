@@ -161,7 +161,13 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
   if the cut was `stopped` at the lighting the Onset douses nothing and the stake is `kept`;
   otherwise it is `taken` and every circuit lamp goes out but the re-wicked circuits (`rewick_a`
   …). A cut only delayed (`cut_delayed`) makes the Peak shorter (encounter `shorter`). Held also
-  needs the kept stake (the tier's `flag`).
+  needs the kept stake (the tier's `flag`). The scenes before it key on `calamity_in` (days to
+  go), so they move with the Early Bell.
+- **Later lives** (N-7.5.3; SEALED): each life a calamity is Held adds one to the soul's
+  `calamity_held`, and the next lives meet its next `variants` entry (up to 3): Lantern Night's
+  variant 1 moves the cut away from the lighting, variant 2 moves the Onset to Dusk (the record's
+  `onset`), variant 3 sets a life flag at the Onset (`helper_bribed`) unless the answer's flag is
+  set. Each variant teaches a Ledger clue the first time, and the next life can act on it.
 - **The Eve:** a rest past a calamity whose date is on your calendar (pinned or named) stops on
   its day's Morning: "Lantern Night is tonight." (Travel doesn't stop.)
 - **The Onset:** at its slot, in one of its regions, its `onset_scene` plays (the life is saved
@@ -202,7 +208,8 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
   the story's `omen <id>` effect, `omen(id)`, `omens()` and `omens_offered()` conditions). Take
   any; each holds for the whole life. **The Hard Sky** (`enemy_hp` ×1.3 on every enemy spawned),
   **The Thin Well** (`aether_regen` ×0.5, in and out of fights) and **The Early Bell**
-  (`calamity_early` 1 moon; no effect until calamities are built, N-7.5).
+  (`calamity_early` 1 moon: every calendar event marked `early`, Lantern Night and its lighting,
+  comes that many moons sooner, on the calendar too; `Run.event_day`, N-7.5.3).
 - Each Omen raises insight's effect by `omen_insight` (5%) of itself for that life
   ([growth.md](growth.md)). The life's page names its Omens.
 

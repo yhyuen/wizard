@@ -1,5 +1,5 @@
 {
- "_doc": "The calamities (design/seasons/seasons-and-calamities-spec.md §6, §8, §10.2; build item N-7.5.1). Each keys on its calendar event (event: the id in data/world/calendar.json, whose moon and day it shares) and adds: onset, the time of day it starts, and onset_scene, the story scene that plays then if you're there (it begins the Peak); onset_hold (optional; SEALED names): if the life flag `stopped` is set the Onset douses nothing and sets `kept`, otherwise it sets `taken` and douses every circuit lamp but those on circuits whose `held_prefix` + circuit flag is set (re-wicked); regions, where you must be at the Onset to stand in it (data/world/regions.json); signs, each with the first day it can be seen (signs are marked by the story's sign effect); signs_to_pin, how many seen signs pin an unnamed \"?\" on the calendar for its date; prep, the preparations the story marks with its prep effect, and prep_for_raise, how many raise the absent default a tier; peak, the encounter fought from the Onset (data/world/encounters.json, a survive fight; losing it ends the life with calamity:<id>); stakes, read at Dawn: lamps (the camp's circuit lamps still lit) and lost (people taken, Run.life calamity_lost); tiers, checked in order, each a rule over the stakes (lamps_at_least, lost_at_most, any: true for either; flag: a life flag it also needs, the sealed stake), the last tier taken if none holds; default_absent, the tier when you weren't there; aftermath per tier: flags set, deeds done (their ids are SEALED story content: one opens a road), and shut, shortage and abandons, kept on the life for the economy (not built); ledger, the entry learned when it passes; end_card, the ending that follows its Dawn tally (Ring 1 ends here).",
+ "_doc": "The calamities (design/seasons/seasons-and-calamities-spec.md §6, §8, §10.2; build item N-7.5.1). Each keys on its calendar event (event: the id in data/world/calendar.json, whose moon and day it shares) and adds: onset, the time of day it starts, and onset_scene, the story scene that plays then if you're there (it begins the Peak); onset_hold (optional; SEALED names): if the life flag `stopped` is set the Onset douses nothing and sets `kept`, otherwise it sets `taken` and douses every circuit lamp but those on circuits whose `held_prefix` + circuit flag is set (re-wicked); regions, where you must be at the Onset to stand in it (data/world/regions.json); signs, each with how many days before its date it can first be seen (the story's scenes check it with calamity_in) (signs are marked by the story's sign effect); signs_to_pin, how many seen signs pin an unnamed \"?\" on the calendar for its date; prep, the preparations the story marks with its prep effect, and prep_for_raise, how many raise the absent default a tier; peak, the encounter fought from the Onset (data/world/encounters.json, a survive fight; losing it ends the life with calamity:<id>); stakes, read at Dawn: lamps (the camp's circuit lamps still lit) and lost (people taken, Run.life calamity_lost); tiers, checked in order, each a rule over the stakes (lamps_at_least, lost_at_most, any: true for either; flag: a life flag it also needs, the sealed stake), the last tier taken if none holds; default_absent, the tier when you weren't there; aftermath per tier: flags set, deeds done (their ids are SEALED story content: one opens a road), and shut, shortage and abandons, kept on the life for the economy (not built); ledger, the entry learned when it passes; end_card, the ending that follows its Dawn tally (Ring 1 ends here). variants (N-7.5.3; SEALED, seasons spec §9): after each life it was Held the next comes as the next variant, up to max; a variant can move the `onset` slot, and set a life `flag` at the Onset unless the life flag `unless` is set (the story keys the rest on calamity_variant).",
  "calamities": {
   "lantern_night": {
    "name": "Lantern Night",
@@ -8,7 +8,7 @@
    "onset_scene": "lantern_night_onset",
    "onset_hold": {"stopped": "cut_stopped", "kept": "heart_kept", "taken": "heart_taken", "held_prefix": "rewick_"},
    "regions": ["camp"],
-   "signs": {"flicker": 77, "mira_oil": 79, "stair_test": 81},
+   "signs": {"flicker": 7, "mira_oil": 5, "stair_test": 3},
    "signs_to_pin": 2,
    "prep": ["rewick", "bridge_rails", "flares", "clear_hay", "braziers", "shelter", "helpers"],
    "prep_for_raise": 4,
@@ -26,7 +26,8 @@
     "fallen": {"flags": ["market_fallen"], "deeds": [], "shut": {"lantern_market": 14, "guild_bench": 7}, "shortage": {"lamp_oil": 28, "glass": 28}, "abandons": ["market_north_row"], "line": "The Market fell. Its north row is dark for good."}
    },
    "ledger": "lantern_night",
-   "end_card": "build_end"
+   "end_card": "build_end",
+   "variants": {"max": 3, "1": {}, "2": {"onset": "dusk"}, "3": {"flag": "helper_bribed", "unless": "helper_read"}}
   }
  }
 }

@@ -100,7 +100,8 @@ workroom moving to the halls, shops, boards and crews behind the new places (N-7
   30 people (20 if `sheltered`) sleep round the 24 circuit lamps' pools; a pool that is dark (not
   lit, not flaring) with an enemy within 72 px for 10 s loses its people (`calamity_lost`, logged
   `taken`, a toast). With `helpers_coming` a helper relights the first dark circuit lamp with no
-  enemy near every 15 s (`by` "helper").
+  enemy near every 15 s (`by` "helper"). With `helper_bribed` (a later-lives variant) one helper
+  puts out three lit circuit lamps 180 s in instead (logged as doused; teaches `bribed_helper`).
 
 ## The fallen city (`data/city/map.json`, `scripts/world/gates.gd`)
 

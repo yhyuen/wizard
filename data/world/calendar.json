@@ -1,5 +1,5 @@
 {
- "_doc": "The year (design/gdd/04-lives-and-progression.md §4.2, design/world/world-and-story.md §7.1; build item N-1.1). A life is 13 moons of 28 days: day 1 of the year is Moon 1, day 1, and the Great Eclipse is day 364 (Moon 13, day 28). Each moon is four weeks of seven days; the weekdays are ruled by the Spheres in order (weekdays: sphere id, name, glyph colour). events: the year's fixed dates the calendar can pin and skip to (id, name, moon, day, kind calamity or fixed, known: a story condition that pins it, or true). Fixed events (kind fixed, N-1.5, lives spec §6.2) also have time (of day), region, who, scene (the story scene that plays if you're in the region then), missed (effects run instead if you aren't: set, clear, learn or deed) and appointment (true when missing it costs something: the Ledger then keeps it for later lives). Each happens once a life; its date is known (pinned in gold) once you've seen it come or go in any life, and an appointment is pinned in silver.",
+ "_doc": "The year (design/gdd/04-lives-and-progression.md §4.2, design/world/world-and-story.md §7.1; build item N-1.1). A life is 13 moons of 28 days: day 1 of the year is Moon 1, day 1, and the Great Eclipse is day 364 (Moon 13, day 28). Each moon is four weeks of seven days; the weekdays are ruled by the Spheres in order (weekdays: sphere id, name, glyph colour). events: the year's fixed dates the calendar can pin and skip to (id, name, moon, day, kind calamity or fixed, known: a story condition that pins it, or true). Fixed events (kind fixed, N-1.5, lives spec §6.2) also have time (of day), region, who, scene (the story scene that plays if you're in the region then), missed (effects run instead if you aren't: set, clear, learn or deed) and appointment (true when missing it costs something: the Ledger then keeps it for later lives). early: the Early Bell Omen (lives.json calamity_early) moves this event that many moons sooner (the first calamity and its lighting, N-7.5.3). Each happens once a life; its date is known (pinned in gold) once you've seen it come or go in any life, and an appointment is pinned in silver.",
  "days_per_moon": 28,
  "moons": [
   {"name": "Ashmoon", "season": "Spring"},
@@ -35,8 +35,8 @@
   {"id": "two_on_watch", "name": "Two on the watch", "moon": 3, "day": 12, "kind": "fixed", "time": "night", "region": "mill",
    "who": "Tam and the watch", "scene": "tam_fence_here", "missed": ["set tam_taken"], "appointment": true},
   {"id": "lantern_lighting", "name": "The lighting of the Market", "moon": 3, "day": 28, "kind": "fixed", "time": "dusk", "region": "camp",
-   "who": "Mira and the Lamplighters", "scene": "lighting", "missed": [], "appointment": true},
-  {"id": "calamity_1", "name": "Lantern Night", "moon": 3, "day": 28, "kind": "calamity", "known": "k(\"lantern_night\")"},
+   "who": "Mira and the Lamplighters", "scene": "lighting", "missed": [], "appointment": true, "early": true},
+  {"id": "calamity_1", "name": "Lantern Night", "moon": 3, "day": 28, "kind": "calamity", "known": "k(\"lantern_night\")", "early": true},
   {"id": "calamity_2", "name": "The High Tide", "moon": 6, "day": 14, "kind": "calamity", "known": "k(\"high_tide\")"},
   {"id": "calamity_3", "name": "The Ashen Purge", "moon": 9, "day": 21, "kind": "calamity", "known": "k(\"ashen_purge\")"},
   {"id": "eclipse", "name": "The Great Eclipse", "moon": 13, "day": 28, "kind": "calamity", "known": true}

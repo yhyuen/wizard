@@ -84,13 +84,25 @@ func insight() -> int:
 
 # --- fixed events (lives spec §6.2; build item N-1.5) ----------------------------------------
 
+## A calendar event's day of the year: its moon and day, or, for an event marked `early`, as many
+## moons sooner as the life's Omens say (the Early Bell, `calamity_early`).
+func event_day(e: Dictionary) -> int:
+	var at: int = day_of(int(e["moon"]), int(e["day"]))
+	if e.get("early", false):
+		var early: int = 0
+		for o in omens():
+			early = maxi(early, int(lives["omens"].get(o, {}).get("calamity_early", 0)))
+		at -= early * MOON_DAYS
+	return at
+
+
 ## The calendar's fixed events, each with its day of the year and time index.
 func fixed_events() -> Array:
 	var out: Array = []
 	for e in cal["events"]:
 		if e.get("kind", "") == "fixed":
 			var f: Dictionary = e.duplicate()
-			f["at_day"] = day_of(int(e["moon"]), int(e["day"]))
+			f["at_day"] = event_day(e)
 			f["at_time"] = TIMES.find(str(e.get("time", "morning")))
 			out.append(f)
 	return out

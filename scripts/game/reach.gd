@@ -72,7 +72,7 @@ func events() -> Array:
 		# A calamity's signs pin its date before you know its name (seasons spec §6.2): "?".
 		var pin: bool = not k and run.flag("pinned_" + str(e["id"]))
 		out.append({"id": e["id"], "name": "?" if pin else e["name"], "kind": e.get("kind", "fixed"),
-			"day": run.day_of(int(e["moon"]), int(e["day"])), "known": k or pin,
+			"day": run.event_day(e), "known": k or pin,
 			"appointment": run.soul.get("appointments", {}).has(e["id"]), "time": str(e.get("time", ""))})
 	out.sort_custom(func(x, y): return x["day"] < y["day"])
 	return out

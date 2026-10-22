@@ -96,6 +96,7 @@ func setup(the_main) -> void:
 	powers = Powers.new(run, growth)
 	story.ctx.powers = powers
 	calamity = Calamity.new(run)
+	story.ctx.calamity = calamity
 	story.load_all()
 	for e in story.errors:
 		push_error("story: " + str(e))
@@ -256,6 +257,9 @@ func _calamities() -> bool:
 ## stopped, and the re-wicked circuits hold.
 func _calamity_onset(id: String) -> void:
 	toast("This night can end the year.", true)
+	var vr: Dictionary = calamity.variant_rec(id)
+	if vr.has("flag") and not run.flag(str(vr.get("unless", "-"))):
+		run.set_flag(str(vr["flag"]))  # this life's variant (N-7.5.3)
 	var hold: Dictionary = calamity.rec(id).get("onset_hold", {})
 	if not hold.is_empty():
 		if run.flag(str(hold["stopped"])):

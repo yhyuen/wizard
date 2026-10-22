@@ -36,6 +36,8 @@ func _go() -> void:
 	_present()
 	_lost()
 	_vigil()
+	_early_bell()
+	_variants()
 	for f in failures:
 		print("[calamity] FAIL: " + f)
 	if failures.is_empty():
@@ -265,3 +267,58 @@ func _vigil() -> void:
 		failures.append("a helper should relight one dark lamp with nothing near it after 15 s (%d, %d)" % [early, helped])
 	else:
 		print("[calamity] a dark pool with a Hollow in it for 10 s loses its people (%d); a helper relights a lamp" % lost)
+
+
+## The Early Bell Omen (N-7.5.3): Lantern Night and its lighting come a moon sooner, and the
+## calendar shows it there.
+func _early_bell() -> void:
+	_fresh(30, 0)
+	run.life["omens"] = ["early_calamity"]
+	var lighting: Array = run.fixed_events().filter(func(e): return e["id"] == "lantern_lighting")
+	var shown: Dictionary = _calendar()
+	if slice.calamity.day("lantern_night") != 56 or lighting.is_empty() or int(lighting[0]["at_day"]) != 56 or int(shown["day"]) != 56:
+		failures.append("the Early Bell should move Lantern Night and its lighting to day 56 (%d, %s, %s)" % [slice.calamity.day("lantern_night"), str(lighting), str(shown)])
+	else:
+		print("[calamity] the Early Bell moves Lantern Night and its lighting a moon sooner, on the calendar too")
+	run.life["omens"] = []
+
+
+## Later lives (N-7.5.3): each Held life brings the next variant; each has its answer.
+func _variants() -> void:
+	_fresh(84, 2)
+	run.soul["calamity_held"] = {"lantern_night": 1}
+	slice.world.load_map("camp")
+	run.learn("drain_cut")
+	slice.next_period()
+	_play_through(["cellar grate"])
+	if slice.calamity.variant("lantern_night") != 1 or not run.flag("cut_stopped"):
+		failures.append("variant 1: waiting at the cellar grate should stop the cut (%d)" % slice.calamity.variant("lantern_night"))
+	_fresh(84, 2)
+	run.soul["calamity_held"] = {"lantern_night": 2}
+	slice.world.load_map("camp")
+	slice.fight_resolver = func(_id): return true
+	slice.next_period()
+	var early_onset: bool = str(slice.cur.get("id", "")) == "lantern_night_onset"
+	_play_through([])
+	if not early_onset or not run.knows("early_cut"):
+		failures.append("variant 2: the Onset should come at Dusk, and teach why (%s)" % str(early_onset))
+	_fresh(84, 2)
+	run.soul["calamity_held"] = {"lantern_night": 2}
+	run.learn("early_cut")
+	if slice.story.event_at("great_lamp") != "coupling_watch":
+		failures.append("variant 2: knowing it, you can sit at the coupling in the afternoon")
+	_fresh(84, 4)
+	run.soul["calamity_held"] = {"lantern_night": 3}
+	slice.world.load_map("camp")
+	slice._effect("calamity_onset", "lantern_night")
+	var bribed: bool = run.flag("helper_bribed")
+	_fresh(84, 4)
+	run.soul["calamity_held"] = {"lantern_night": 3}
+	run.set_flag("helper_read")
+	slice._effect("calamity_onset", "lantern_night")
+	if not bribed or run.flag("helper_bribed"):
+		failures.append("variant 3: a helper is bought unless you read them first")
+	slice.fight_resolver = Callable()
+	run.soul["calamity_held"] = {}
+	if failures.is_empty():
+		print("[calamity] later lives: the cellar drain, the early cut and the bought helper, each with its answer")

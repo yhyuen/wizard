@@ -53,6 +53,9 @@ func _initialize() -> void:
 		for k in ["kept", "taken"]:
 			if hold.has(k):
 				flags_set[str(hold[k])] = true
+		for vk in cr.get("variants", {}):
+			if cr["variants"][vk] is Dictionary and cr["variants"][vk].has("flag"):
+				flags_set[str(cr["variants"][vk]["flag"])] = true
 		for t in cr["aftermath"]:
 			for fl in cr["aftermath"][t].get("flags", []):
 				flags_set[str(fl)] = true
