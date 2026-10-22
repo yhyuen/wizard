@@ -11,6 +11,7 @@ extends SceneTree
 ## Exits non-zero on any problem.
 
 const Story := preload("res://scripts/game/story.gd")
+const Confront := preload("res://scripts/game/confront.gd")
 const BEATS := {"C1 (who carried you out)": "carried_out", "H1 (the Provost at the Eclipse)": "provost_crossed",
 	"H3 (the door that healed)": "doors_heal", "H4 (the rune on the crate)": "rune_ashlar", "H4 (the rune door opens)": "rune_opened",
 	"H5 (the stair brought down)": "stair_cult", "the sighting": "figure_ahead", "Wren's chalk mark": "wren_chalk",
@@ -64,6 +65,7 @@ func _initialize() -> void:
 			for fl in cr["aftermath"][t].get("flags", []):
 				flags_set[str(fl)] = true
 	var conds: Array = []  # [condition, where]
+	var confront_outs := {}  # scenes that play a confrontation (their outcomes are its closes)
 	for s in story.scenes.values():
 		var where := "%s:%d (%s)" % [s["file"], s["line"], s["id"]]
 		var mid: String = map_of_dir.get(str(s["file"]).get_base_dir(), "")
@@ -155,6 +157,21 @@ func _initialize() -> void:
 				"ladder":
 					if not arg in ["bout", "win"]:
 						problems.append("%s: ladder %s is not bout or win" % [where, arg])
+				"confront":
+					var cr: Dictionary = Confront.load_scene(arg)
+					if cr.is_empty():
+						problems.append("%s: no confrontation data/world/confront/%s.json" % [where, arg])
+					else:
+						var want: Array = cr["closes"].map(func(c): return c["id"])
+						if str(cr["kind"]) != "soft":
+							want.append("lost")
+						for w in want:
+							if not s["outcomes"].has(w):
+								problems.append("%s: confront %s needs ? %s" % [where, arg, w])
+						for o in s["outcomes"]:
+							if not o in want:
+								problems.append("%s: confront %s has no close %s" % [where, arg, o])
+						confront_outs[s["id"]] = true
 				"companion":
 					var cpa := arg.split(" ")
 					if cpa.size() != 2 or not _json("res://data/world/companions.json")["companions"].has(cpa[0]) or not cpa[1] in ["join", "part"]:
@@ -192,7 +209,7 @@ func _initialize() -> void:
 			if c["cond"] != "":
 				conds.append([c["cond"], where])
 		for o in s["outcomes"]:
-			if not o in ["won", "lost"]:
+			if not o in ["won", "lost"] and not confront_outs.has(s["id"]):
 				problems.append("%s: outcome must be won or lost, not %s" % [where, o])
 			if not story.scenes.has(s["outcomes"][o]):
 				problems.append("%s: outcome goes to missing scene %s" % [where, s["outcomes"][o]])
@@ -224,6 +241,18 @@ func _initialize() -> void:
 		for key in ["name", "hint", "kind"]:
 			if str(ach[id].get(key, "")) == "":
 				problems.append("achievement %s: no %s" % [id, key])
+	# Confrontations (N-7.6.7): each scene is solvable and its evidence conditions are sound.
+	for fn in DirAccess.get_files_at(Confront.DIR):
+		if fn.ends_with(".json"):
+			var cr: Dictionary = Confront.load_scene(fn.get_basename())
+			for pr in Confront.check(cr):
+				problems.append("confront %s: %s" % [fn, pr])
+			for e in cr["evidence"]:
+				if str(e.get("needs", "")) != "":
+					conds.append([str(e["needs"]), "confront %s evidence %s" % [fn, e["id"]]])
+			var full = Confront.new(cr, cr["evidence"].map(func(e): return e["id"]))
+			if full.bot() != "won":
+				problems.append("confront %s: can't be won with every piece of evidence" % fn)
 	# Conditions: they parse, run, and name things that exist.
 	var re := RegEx.new()
 	re.compile("\\b(k|f|seen|died|count|omen|ended|attended|missed|bond|bond_ready|rumour_heard|commission_[a-z]+)\\(\"([a-z0-9_]+)\"\\)")
