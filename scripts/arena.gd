@@ -610,6 +610,7 @@ func _physics_process(dt: float) -> void:
 	_separate()
 	_update_projs(dt)
 	_update_zones(dt)
+	ai.hollows.update(dt)  # a Husk's leak
 	_update_stones(dt)
 	var guard := 0
 	while not ignite_queue.is_empty() and guard < 32:
@@ -710,10 +711,11 @@ func _update_unit(u: Unit, dt: float) -> void:
 			u.reaction = ""
 	u.stun = maxf(0.0, u.stun - dt)
 	u.slow_t = maxf(0.0, u.slow_t - dt)
-	if u.flags.has("net_t"):
-		u.flags["net_t"] -= dt
-		if u.flags["net_t"] <= 0.0:
-			u.flags.erase("net_t")
+	for k in ["net_t", "hum_t"]:
+		if u.flags.has(k):
+			u.flags[k] -= dt
+			if u.flags[k] <= 0.0:
+				u.flags.erase(k)
 	u.wet_t = maxf(0.0, u.wet_t - dt)
 	if u.pips > 0:
 		u.pip_timer -= dt
@@ -759,6 +761,8 @@ func move_speed(u: Unit) -> float:
 	if u.flags.has("net_t"):
 		return 0.0  # in a brigand's net
 	var s := u.speed
+	if u.flags.has("hum_t"):
+		s *= float(D["enemies"]["choir"]["speed_k"])  # hummed on by a Choir
 	if u.slow_t > 0.0:
 		s *= 1.0 - float(D["field"]["gravel_slow"])
 	if town != null:
@@ -849,7 +853,7 @@ func hit(u: Unit, dmg: float, impact: int, dir: Vector2, knock := 0.0, quiet := 
 		var pct := dmg / u.max_hp
 		hitstop = maxf(hitstop, clampf(pct * 0.35, 0.0, 0.08))
 		shake = maxf(shake, clampf(pct * 16.0, 0.0, 4.0))
-		var tier := clampi(impact - u.poise, 0, 4)
+		var tier := clampi(impact - poise_of(u), 0, 4)
 		# Winding up a spell, your Focus is your Poise: a hit above it breaks the cast.
 		if u == player and not kit.wind.is_empty():
 			if impact > kit.focus():
@@ -874,6 +878,11 @@ func hit(u: Unit, dmg: float, impact: int, dir: Vector2, knock := 0.0, quiet := 
 	if u.hp <= 0.0:
 		kill(u)
 	return true
+
+
+## Its Poise now: a Hollow hummed on by a Choir stands firmer.
+func poise_of(u: Unit) -> int:
+	return u.poise + (int(D["enemies"]["choir"]["poise_up"]) if u.flags.has("hum_t") else 0)
 
 
 # --- the Break meter (enemy spec §4; N-6.1) ---------------------------------------------
@@ -910,6 +919,7 @@ func _add_break(u: Unit, impact: int, dir: Vector2) -> void:
 		fx("ring", u.pos, {"color": PixelArt.GOLD, "r": u.radius + 10.0, "life": 0.45})
 		fx("clink", u.pos + Vector2(0, -12), {"life": 0.45})
 		stats["enemies_broken"] = int(stats.get("enemies_broken", 0)) + 1
+		ai.hollows.on_broken(u)  # a Husk leaks its Aether
 
 
 func _break_tick(u: Unit, dt: float) -> void:
@@ -1217,7 +1227,7 @@ func _update_zones(dt: float) -> void:
 	for z in zones.duplicate():
 		z["t"] += dt
 		match z["kind"]:
-			"ember", "gravel", "column", "rod", "puddle", "blaze", "kindle", "douse", "flask", "arc_rod", "smoke", "tar", "lantern":
+			"ember", "gravel", "column", "rod", "puddle", "blaze", "kindle", "douse", "flask", "arc_rod", "smoke", "tar", "lantern", "leak":
 				if z["t"] >= z["life"]:
 					zones.erase(z)
 			"ring":
@@ -1305,7 +1315,8 @@ func _detonate(z: Dictionary) -> void:
 			var o := unit_by_id(z["owner"])
 			if z.get("visual", false) or o == null or o.dead:
 				return
-			spawn_proj(ai.brig.shot(o, z))  # a stone, a bolt or a net, by who threw it
+			# a stone, a bolt, a net or a Husk's ember, by who threw it
+			spawn_proj(ai.hollows.shot(o, z) if z.get("ember", false) else ai.brig.shot(o, z))
 
 
 # --- lodestones -------------------------------------------------------------
@@ -1661,6 +1672,12 @@ func _draw_zone(z: Dictionary) -> void:
 		"line":
 			var k := clampf(t / z["delay"], 0.0, 1.0)
 			draw_line(z["a"], z["b"], Color(PixelArt.PAPER if z.get("net", false) else PixelArt.DANGER, 0.3 + 0.5 * k), 1.0)
+		"leak":
+			# an Overdrawn Husk's Aether, pooled where it was Broken: fades as you drink it
+			var k := clampf(float(z["left"]) / float(D["enemies"]["husk"]["leak"]["aether"]), 0.0, 1.0)
+			var fade := clampf((float(z["life"]) - t) / 1.0, 0.0, 1.0)
+			draw_circle(z["pos"], z["r"], Color(0.62, 0.48, 0.95, 0.3 * k * fade), true, -1.0, false)
+			draw_arc(z["pos"], z["r"], 0, TAU, 24, Color(0.62, 0.48, 0.95, 0.8 * fade), 1.0, false)
 		"pot":
 			# a Powder Monkey's pot: the circle where it lands fills as it comes
 			var k := clampf(t / z["delay"], 0.0, 1.0)

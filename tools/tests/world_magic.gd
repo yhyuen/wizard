@@ -102,6 +102,10 @@ func _initialize() -> void:
 		["an Ember Bolt on a Powder Monkey blows his keg, and it hurts the Cutthroat beside him", _keg_setup, _keg_blown],
 		["the Brigand Captain's net roots you, and Blink gets you out", _net_setup, _netted],
 		["with their Captain down, a hurt Shieldman kneels and is spared, and a hurt Cutthroat runs", _yield_setup, _yielded],
+		["a Lantern-eater walks into a lit lamp's pool and smothers it", _eater_setup,
+			func(): return not state["lamp"]["lit"] and _logged_since("smothered")],
+		["a Choir's hum makes a Hollow firmer and faster, and a heavy hit hushes it", _choir_setup, _hummed],
+		["a Broken Overdrawn Husk leaks Aether you can drink", _husk_setup_leak, _drank],
 	]
 
 
@@ -842,3 +846,83 @@ func _yielded() -> bool:
 	A.player.iframes = 0.0
 	A.units = A.units.filter(func(u): return u.team == 0)
 	return state["held"] and knelt and spared
+
+
+# --- N-6.3: more Hollows -----------------------------------------------------------------------
+
+func _eater_setup() -> void:
+	_clear_enemies()
+	main.arena.zones.clear()
+	state["lamp"] = _street_lamp()
+	state["lamp"]["by"] = ""
+	state["lamp"]["lit"] = false
+	world.light_lamp(state["lamp"], "town")
+	state["log_n"] = world.events_log.size()
+	main.place_player(state["lamp"]["pos"] + Vector2(0, 160))
+	main.arena.player.iframes = 99.0
+	var u = main.arena.spawn("lantern_eater", state["lamp"]["pos"] + Vector2(60, 0))
+	u.state = "move"
+	state["long"] = true  # it walks there, then takes its time
+
+
+func _choir_setup() -> void:
+	_clear_enemies()
+	main.arena.zones.clear()
+	var A = main.arena
+	var at := _dark_spot()
+	main.place_player(at)
+	A.player.iframes = 99.0
+	state["c"] = A.spawn("choir", at + Vector2(110, 0))
+	state["h"] = A.spawn("hollow", at + Vector2(110, 30))
+	state["c"].state = "move"
+	state["h"].stun = 9.0
+	state["step"] = 0
+	state["frames"] = 0
+
+
+func _hummed() -> bool:
+	var A = main.arena
+	var h = state["h"]
+	state["frames"] += 1
+	if state["step"] == 0:
+		if not h.flags.has("hum_t"):
+			return false
+		state["firm"] = A.poise_of(h) == h.poise + 1 and A.move_speed(h) > h.speed
+		A.hit(state["c"], 1.0, 2, Vector2.RIGHT, 0.0)  # above its Focus
+		state["step"] = 1
+		state["frames"] = 0
+		return false
+	if state["frames"] < 30:
+		return false
+	var ok: bool = state["firm"] and not h.flags.has("hum_t") and state["c"].cooldown("attack") > 0.0
+	A.player.iframes = 0.0
+	_clear_enemies()
+	return ok
+
+
+func _husk_setup_leak() -> void:
+	_clear_enemies()
+	main.arena.zones.clear()
+	var A = main.arena
+	var at := _dark_spot()
+	main.place_player(at + Vector2(0, 60))
+	A.player.iframes = 99.0
+	var u = A.spawn("husk", at)
+	u.max_hp = 500.0
+	u.hp = 500.0
+	u.state = "move"
+	while u.broken_t <= 0.0:
+		A.hit(u, 1.0, 3, Vector2.DOWN, 0.0)
+	A.kit.aether = 10.0
+	state["drank"] = float(A.stats.get("drank", 0.0))
+	main.place_player(at)
+
+
+func _drank() -> bool:
+	var A = main.arena
+	if float(A.stats.get("drank", 0.0)) - state["drank"] < 19.9:
+		return false
+	var ok: bool = A.kit.aether >= 29.0
+	A.player.iframes = 0.0
+	_clear_enemies()
+	return ok

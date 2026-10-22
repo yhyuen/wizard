@@ -5,7 +5,7 @@
     "combat": {
       "docs": ["docs/systems/combat.md"],
       "paths": [
-        "scripts/arena.gd", "scripts/kit.gd", "scripts/unit.gd", "scripts/ai.gd", "scripts/brigands.gd", "scripts/morale.gd", "scripts/bot.gd",
+        "scripts/arena.gd", "scripts/kit.gd", "scripts/unit.gd", "scripts/ai.gd", "scripts/brigands.gd", "scripts/hollows.gd", "scripts/morale.gd", "scripts/bot.gd",
         "scripts/spells/**",
         "data/spells.json", "data/world/encounters.json", "data/enemies.json"
       ]

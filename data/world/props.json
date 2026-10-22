@@ -20,6 +20,6 @@
  "shock_damage": 5,
  "rewind_r": 34,
  "light_r": 38,
- "light_shy": ["hollow", "slinger", "inverted", "ember"],
+ "light_shy": ["hollow", "slinger", "inverted", "ember", "choir", "husk"],
  "scorch_life": 1.0e9
 }
