@@ -24,7 +24,7 @@ rules it draws come from the [spell and combat spec](/mnt/project-files/design/c
 | --- | --- |
 | The 3D view over the sim: camera, moon, mist, moods, the marks decal, figures, spells | `scripts/view/view3d.gd`, `scripts/world/world_view.gd` (maps, close steep camera) |
 | Static map meshes, merged per chunk with lamp light baked in | `scripts/world/town_mesh.gd` (camp), `scripts/world/ruin_mesh.gd` (the ruin kit), `scripts/view/town.gd` (the old Mill plaza) |
-| Figures | `scripts/view/figure.gd` (skinned models, from the Wuxia game), `scripts/view/shape_figure.gd` (Sphere-born, unskinned shapes) |
+| Figures | `scripts/view/figure.gd` (skinned models, from the Wuxia game), `scripts/view/shape_figure.gd` (unskinned shapes: the Sphere-born, and since N-7.6.3 the `beast` shape, a low four-legged body for the dogs, rats and thorny bramble-crawlers) |
 | Spells as low-poly shapes | `scripts/view/spells3d.gd` |
 | Over-head marks (pips, HP chunks, Wet) | `scripts/view/marks.gd` |
 | Shaders | `scripts/view/*.gdshader`, `lowpoly.gdshaderinc` |

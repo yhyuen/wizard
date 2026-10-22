@@ -17,6 +17,7 @@ const Powers := preload("res://scripts/game/powers.gd")
 const Calamity := preload("res://scripts/game/calamity.gd")
 const Bonds := preload("res://scripts/game/bonds.gd")
 const Rumours := preload("res://scripts/game/rumours.gd")
+const Commissions := preload("res://scripts/game/commissions.gd")
 const World := preload("res://scripts/world/world.gd")
 const Reach := preload("res://scripts/game/reach.gd")
 const Weather := preload("res://scripts/world/weather.gd")
@@ -32,7 +33,7 @@ const HINTS := {
 	"talk": "Number keys or a click pick a choice; Space carries on. L opens the Ledger at any time.",
 	"death": "Death resets your power, never what you know. Everything in the Ledger comes with you.",
 }
-const LEDGER_TABS := ["Questions", "Clues", "People", "Insights", "Appointments", "Lives", "Deeds", "Guide", "Rumours"]
+const LEDGER_TABS := ["Questions", "Clues", "People", "Insights", "Appointments", "Lives", "Deeds", "Guide", "Rumours", "Commissions"]
 ## The Ledger entry that means you know a person well enough to find them on the map.
 const MAX_BARKS := 2  # speech bubbles shown at once
 const KNOWN_PEOPLE := {"mira": "mira", "aldous": "aldous", "pell": "pell", "captain": "captain"}
@@ -47,6 +48,7 @@ var powers  # scripts/game/powers.gd: standing, and rank and merit in your road'
 var calamity  # scripts/game/calamity.gd: signs, the Eve, the Onset, the Dawn tally
 var bonds  # scripts/game/bonds.gd: each person's lamp and tier, gifts and tastes
 var rumours  # scripts/game/rumours.gd: what you've heard, in any life
+var commissions  # scripts/game/commissions.gd: the board's paid jobs, and crowns
 var world  # scripts/world/world.gd
 var reach  # scripts/game/reach.gd: regions, roads, the calendar's events
 var weather  # scripts/world/weather.gd: each region's weather, the Almanac
@@ -105,6 +107,8 @@ func setup(the_main) -> void:
 	story.ctx.bonds = bonds
 	rumours = Rumours.new(run)
 	story.ctx.rumours = rumours
+	commissions = Commissions.new(run, calamity)
+	story.ctx.commissions = commissions
 	story.load_all()
 	for e in story.errors:
 		push_error("story: " + str(e))
@@ -212,6 +216,11 @@ func _start_period() -> void:
 
 
 ## The main line's gold step (UI spec §3.4): the first step whose condition holds, or "".
+## The jobs line under the main line (UI spec §3.4): the commission you're on.
+func job_line() -> String:
+	return commissions.job_line()
+
+
 func main_line() -> String:
 	for st in main_steps:
 		if story.test(str(st["when"])):
@@ -800,6 +809,8 @@ func _effect(op: String, arg: String) -> bool:
 			if rumours.hear(arg):
 				var rr: Dictionary = rumours.rec(arg)
 				toast("A rumour, in the Ledger." + ("  The calendar marks the date." if rr.get("points_at", {}).has("event") else ""))
+		"commission":
+			_commission(arg)
 		"bond_cross":
 			if bonds.cross(arg):
 				toast("%s: %s." % [str(bonds.people[arg]["name"]), bonds.tier_name(bonds.tier(arg))], true)
@@ -841,6 +852,49 @@ func _effect(op: String, arg: String) -> bool:
 		_:
 			push_warning("story effect not handled yet: " + op)
 	return false
+
+
+## `commission <id> <op>` (people spec §6; N-7.6.3).
+func _commission(arg: String) -> void:
+	var cw: PackedStringArray = arg.split(" ", false)
+	var id: String = cw[0]
+	var r: Dictionary = commissions.rec(id)
+	match cw[1]:
+		"take":
+			if commissions.take(id):
+				toast("Commission taken: %s. %s." % [r["title"], r["steps"][0]["text"]])
+		"next":
+			commissions.next(id, _spared(r.get("hook", {}).get("spare", {})))
+			var n: int = commissions.step(id)
+			if n >= 0 and n != commissions.DONE:
+				toast(str(r["steps"][n]["text"]) + ".")
+		"clean":
+			commissions.clean(id)
+		"lose":
+			commissions.lose(id)
+		"slow":
+			commissions.slow(id)
+			after.append("period")  # the slow way: it takes the time of day, and pays less
+		"work":
+			if not commissions.known(id):
+				after.append("period")  # a past life knew the way: no time spent (spec §6.1)
+		"pay":
+			var got: int = commissions.finish(id)
+			if got > 0:
+				toast("%s: paid %d crowns." % [r["title"], got], true)
+
+
+## Nothing of `kinds` in the place on this map is burning, burned or broken (a commission's
+## matter hook, people spec §6.1 rule 4). An empty rule holds.
+func _spared(rule: Dictionary) -> bool:
+	if rule.is_empty() or not world.map.places.has(str(rule["place"])):
+		return true
+	var rr: Array = world.map.places[str(rule["place"])]["rect"]
+	var rect := Rect2(rr[0], rr[1], rr[2], rr[3])
+	for p in world.props:
+		if p["kind"] in rule["kinds"] and rect.has_point(p["pos"]) and (p["state"] in ["burning", "ash"] or p["integrity"] == "broken"):
+			return false
+	return true
 
 
 func gain_wells(n: int) -> void:
@@ -1182,6 +1236,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 		overlay = ""
 	elif overlay == "ledger" and k >= KEY_1 and k <= KEY_9:
 		ledger_tab = k - KEY_1
+	elif overlay == "ledger" and k == KEY_0:
+		ledger_tab = 9
 	elif overlay == "map" and k >= KEY_1 and k <= KEY_3:
 		map_tab = k - KEY_1
 	elif (dlg or overlay == "book") and k >= KEY_1 and k <= KEY_9:
@@ -1852,7 +1908,7 @@ func _draw_ledger() -> void:
 	var x := r.position.x + 186.0
 	var ty := r.position.y + 14.0
 	for i in LEDGER_TABS.size():
-		var tw: float = text_w("%d  %s" % [i + 1, LEDGER_TABS[i]], 13) + 18.0
+		var tw: float = text_w("%d  %s" % [(i + 1) % 10, LEDGER_TABS[i]], 13) + 18.0
 		if x + tw > r.end.x - 12.0:
 			x = r.position.x + 186.0  # a second row of tabs
 			ty += 31.0
@@ -1860,7 +1916,7 @@ func _draw_ledger() -> void:
 		var on := i == ledger_tab
 		draw_rect(tr, Color(GOLD, 0.25) if on else Color(0, 0, 0, 0.3))
 		draw_rect(tr, Color(GOLD, 0.8 if on else 0.3), false, 1.0)
-		text(tr.position + Vector2(10, 19), "%d  %s" % [i + 1, LEDGER_TABS[i]], 13, GOLD if on else PAPER)
+		text(tr.position + Vector2(10, 19), "%d  %s" % [(i + 1) % 10, LEDGER_TABS[i]], 13, GOLD if on else PAPER)
 		buttons.append({"r": tr, "act": func(): ledger_tab = i, "key": 0})
 		x += tr.size.x + 4.0
 	var y := r.position.y + 76.0
@@ -1878,6 +1934,8 @@ func _draw_ledger() -> void:
 			_draw_guide(r)
 		8:
 			_draw_rumours(r)
+		9:
+			_draw_commissions(r)
 		1, 2, 3:
 			var kinds: Array = [["clue"], ["person"], ["insight", "model"]][ledger_tab - 1]
 			var ids: Array = []
@@ -1921,6 +1979,30 @@ func _draw_rumours(r: Rect2) -> void:
 		y += 6.0
 	if not any:
 		para(Vector2(x, y - 12), "No rumours yet. Stand near people who are talking, and listen.", r.size.x - 56, 13, DIM)
+
+
+## The Commissions tab (people spec §6.2): the jobs you're doing, the ones posted, the ones paid
+## this life, and the crowns you've earned.
+func _draw_commissions(r: Rect2) -> void:
+	var x := r.position.x + 28.0
+	var y := r.position.y + 78.0
+	text(Vector2(r.end.x - 230, y), "Crowns this year: %d" % int(run.life.get("crowns", 0)), 13, GOLD)
+	var rows: Array = commissions.ledger()
+	if rows.is_empty():
+		para(Vector2(x, y - 12), "No commissions yet. The board in the square has work, most weeks.", r.size.x - 300, 13, DIM)
+		return
+	for kd in [["doing", "Doing"], ["posted", "Posted"], ["done", "Done"]]:
+		var got: Array = rows.filter(func(c): return c["state"] == kd[0])
+		if got.is_empty():
+			continue
+		text(Vector2(x, y), kd[1], 14, GOLD)
+		y += 4.0
+		for c in got:
+			text(Vector2(x + 90, y), str(c["title"]), 13, PAPER if kd[0] != "done" else DIM)
+			y = para(Vector2(x + 290, y), "%s  ·  %s" % [c["giver"], c["line"]], r.size.x - 350, 12, Color(PAPER, 0.85) if kd[0] != "done" else DIM, 1.2) + 6.0
+			if y > r.end.y - 50:
+				return
+		y += 8.0
 
 
 ## The Appointments tab (lives spec §6.2, UI spec §5.3): every fixed event you missed in a life

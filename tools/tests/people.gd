@@ -9,6 +9,9 @@ extends SceneTree
 ## by taste and its reaction is learned for every life; Close in one life starts the next at Warm.
 ## Overhearing gives a rumour once, pins its date on the calendar and keeps it for later lives;
 ## a pool draws the unheard rumour pointing at the soonest event.
+## Commissions (§6; N-7.6.3): the board posts in a window and not in a calamity's week; a job is
+## taken, its fight moves it on, a lost fight opens the slow way at half pay, the matter hook pays
+## +50% unless what it spares burned, the board pays, and a later life knows the way (no time).
 
 var main
 var slice
@@ -82,10 +85,11 @@ func _go() -> void:
 	_check(slice.bonds.tier("mira") == 1 and slice.bonds.tier("bett") == 1 and slice.bonds.tier("fennick") == 0, "Close starts the next life at Warm (%d, %d, %d)" % [slice.bonds.tier("mira"), slice.bonds.tier("bett"), slice.bonds.tier("fennick")])
 	_check(slice.bonds.tastes_known("wren").get("old_book", "") == "love", "tastes carry")
 	_rumours()
+	_commissions()
 	for f in failures:
 		print("[people] FAIL: " + f)
 	if failures.is_empty():
-		print("[people] bonds and rumours hold")
+		print("[people] bonds, rumours and commissions hold")
 	quit(1 if not failures.is_empty() else 0)
 
 
@@ -111,3 +115,71 @@ func _rumours() -> void:
 	run.life["time"] = 3
 	_check(slice.story.event_at("inn") == "", "a rumour heard in any life isn't overheard again")
 	_check(r.of_kind("date")[0]["earlier"], "next life it's from another year")
+
+
+func _commissions() -> void:
+	slice.new_month()
+	slice.finish_scene()
+	var c = slice.commissions
+	run.life["day"] = 5
+	_check(c.posted("c1_goat") and not c.posted("c2_bramble") and not c.posted("c3_round") and c.posted("c8_letters"), "the board posts in each job's window")
+	_check(slice.story.use_scene("board") == "board" and slice.story.use_scene("duty_slate") == "duty_slate", "the board and the slate can be read")
+	slice.play("c1_take")
+	slice.finish_scene()
+	_check(c.step("c1_goat") == 0 and not c.posted("c1_goat") and slice.job_line().begins_with("The Lost Goat"), "taking a job puts it on the jobs line (%s)" % slice.job_line())
+	# A lost fight: the step stays open, and the slow way opens.
+	c.lose("c1_goat")
+	var slow_offered: bool = slice.story.choices(slice.story.scenes["com_c1_here"]).any(func(ch): return ch["target"] == "com_c1_slow")
+	_check(c.step("c1_goat") == 0 and slow_offered, "a lost fight leaves the step open, with the slow way")
+	# The fight in the orchard moves it on; the hook holds while the hay is whole.
+	slice.world.load_map("fields")
+	slice.fight_resolver = func(_id): return true
+	slice.play("com_c1_go")
+	var n := 0
+	while not slice.cur.is_empty() and n < 10:
+		n += 1
+		if not slice.pending.is_empty():
+			slice.advance()
+		else:
+			slice.finish_scene()
+	slice.fight_resolver = Callable()
+	_check(c.step("c1_goat") == 1 and c.is_clean("c1_goat"), "winning in the orchard moves the job on, clean (%d, %s)" % [c.step("c1_goat"), str(c.is_clean("c1_goat"))])
+	slice.play("c1_pay")
+	slice.finish_scene()
+	_check(c.done("c1_goat") and int(run.life.get("crowns", 0)) == 38, "the board pays 25 +50%% for a clean job (%d)" % int(run.life.get("crowns", 0)))
+	# The bramble: burn the fence and the bonus is gone; the slow way pays half.
+	run.life["day"] = 10
+	slice.play("c2_take")
+	slice.finish_scene()
+	for p in slice.world.props:
+		if p["kind"] == "fence" and Rect2(1550, 400, 900, 620).has_point(p["pos"]):
+			p["state"] = "ash"
+			break
+	c.lose("c2_bramble")
+	slice.play("com_c2_slow")
+	slice.finish_scene()
+	_check(c.step("c2_bramble") == 1 and not c.is_clean("c2_bramble"), "a burned fence loses the hook")
+	_check(c.pay_of("c2_bramble") == 15, "the slow way pays half (%d)" % c.pay_of("c2_bramble"))
+	# Letters: three steps, no fights.
+	slice.play("c8_take")
+	slice.finish_scene()
+	run.life["day"] = 12
+	slice.play("com_c8_picket")
+	slice.finish_scene()
+	slice.play("com_c8_bell")
+	slice.finish_scene()
+	_check(c.step("c8_letters") == 2 and slice.story.test("commission_step(\"c8_letters\") == 2"), "each letter moves the job on")
+	# Nothing is posted in the week before a calamity.
+	run.life["day"] = 80
+	_check(c.posted_at("board").is_empty() and slice.story.test("commission_board_empty()"), "nothing posted in a calamity's week")
+	# A later life knows the way: the answer shows, and the work costs no time.
+	slice.world.load_map("camp")
+	slice.end_loop("turned")
+	slice.wake()
+	_check(c.known("c1_goat") and not c.known("c2_bramble") and c.step("c1_goat") == -1, "a paid job is known next life, and posted again")
+	slice.after = []
+	slice._effect("commission", "c1_goat work")
+	_check(not "period" in slice.after, "a known job's work costs no time")
+	slice._effect("commission", "c2_bramble work")
+	_check("period" in slice.after, "an unknown job's work takes the time of day")
+	slice.after = []

@@ -40,6 +40,9 @@ extends RefCounted
 ## `bench stock` (the Lamplighters' spare reagents, data/schools.json devices.starter).
 ## N-7.2.1 adds `remember <who> <deed>` (that person remembers it this life, up to three deeds)
 ## and the condition remembers(who, deed).
+## N-7.6.3 adds `commission <id> take|next|clean|lose|slow|work|pay` (scripts/game/commissions.gd)
+## and the conditions commission_step, commission_posted, commission_done, commission_known,
+## commission_lost, commission_clean and commission_board_empty.
 
 const FieldGuide := preload("res://scripts/field_guide.gd")
 const MAPS := "res://data/world/maps.json"
@@ -47,7 +50,7 @@ const HEADER_KEYS := ["place", "days", "times", "when", "force", "priority", "re
 	"talk", "use", "arrive", "cast"]
 const EFFECTS := ["learn", "set", "clear", "fight", "wells", "train", "meditate", "goto", "end_loop",
 	"model", "trial", "sound", "cutscene", "move", "take", "sleep", "book", "today", "go", "open", "play_path", "road", "deed", "omen", "forecast", "bench", "remember", "ignite", "downed", "standing", "merit", "exam", "sign", "prep", "calamity_onset", "calamity_dawn",
-	"bond", "bond_cross", "betray", "gift", "rumour"]
+	"bond", "bond_cross", "betray", "gift", "rumour", "commission"]
 
 var scenes := {}  # id -> scene dictionary
 var errors: Array = []  # parse errors, for the linter
@@ -63,6 +66,7 @@ class Ctx:
 	var calamity  # scripts/game/calamity.gd, when the slice has one
 	var bonds  # scripts/game/bonds.gd, when the slice has one
 	var rumours  # scripts/game/rumours.gd, when the slice has one
+	var commissions  # scripts/game/commissions.gd, when the slice has one
 
 	## A once-a-day action (meditate, train) already done today.
 	func done(op: String) -> bool:
@@ -154,6 +158,31 @@ class Ctx:
 	## A rumour heard, in this life or an earlier one.
 	func rumour_heard(id: String) -> bool:
 		return rumours.heard(id) if rumours != null else false
+
+	## Commission `id` (people spec §6; N-7.6.3): its step this life (-1 not taken, 99 paid), on
+	## the board now, paid this life, done in an earlier life (the answer shows), a fight for it lost.
+	func commission_step(id: String) -> int:
+		return commissions.step(id) if commissions != null else -1
+
+	func commission_posted(id: String) -> bool:
+		return commissions.posted(id) if commissions != null else false
+
+	func commission_done(id: String) -> bool:
+		return commissions.done(id) if commissions != null else false
+
+	func commission_known(id: String) -> bool:
+		return commissions.known(id) if commissions != null else false
+
+	func commission_lost(id: String) -> bool:
+		return commissions.lost(id) if commissions != null else false
+
+	## Its matter hook was kept (the bonus is owed).
+	func commission_clean(id: String) -> bool:
+		return commissions.is_clean(id) if commissions != null else false
+
+	## Nothing posted on the camp's board now (a quiet week, or a calamity's).
+	func commission_board_empty() -> bool:
+		return commissions.posted_at("board").is_empty() if commissions != null else true
 
 	## Your bond tier with a person (0 Stranger .. 5 Sworn; people spec §4.1).
 	func bond(who: String) -> int:

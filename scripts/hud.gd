@@ -256,6 +256,14 @@ func _draw_fight() -> void:
 			var rows_t: Array = main.slice.wrap_text(step, 200.0, 12)
 			for i in rows_t.size():
 				_text(Vector2(26, pr.end.y + 18 + i * 15), rows_t[i], 12, Color(PixelArt.GOLD, 0.9))
+		# The jobs line: the commission you're on, in paper under the gold step (N-7.6.3).
+		var job: String = main.slice.job_line()
+		if job != "":
+			var jy: float = pr.end.y + 18 + (main.slice.wrap_text(step, 200.0, 12).size() if step != "" else 0) * 15 + 6
+			_diamond(Vector2(17, jy - 4), 3.0, PixelArt.PAPER, false)
+			var rows_j: Array = main.slice.wrap_text(job, 200.0, 11)
+			for i in rows_j.size():
+				_text(Vector2(26, jy + i * 14), rows_j[i], 11, Color(PixelArt.PAPER, 0.8))
 	var el: Dictionary = arena.D["elements"]
 	_draw_moons()
 	# Top right: the duelist.

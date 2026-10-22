@@ -672,7 +672,7 @@
    1.02
   ]
  ],
- "spawns": {
+ "spawns": {"com_round": {"ring": [140, 220], "ring_n": 6}, "com_bully": {"ring": [140, 220], "ring_n": 6}, 
   "picket": {
    "points": [
     [

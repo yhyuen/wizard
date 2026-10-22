@@ -51,7 +51,7 @@ func update(u: Unit, dt: float) -> void:
 		return
 	if brig.mind(u, dt) or hollows.mind(u, dt) or knights.mind(u, dt) or cult.mind(u, dt):
 		return
-	match u.kind:
+	match str(A.D["enemies"][u.kind].get("mind", u.kind)):  # a kind may fight with another's mind
 		"hollow":
 			_hollow(u, dt)
 		"slinger":
@@ -135,7 +135,7 @@ func _toward(u: Unit, to: Vector2, dt: float) -> Vector2:
 
 
 func _hollow(u: Unit, dt: float) -> void:
-	var e: Dictionary = A.D["enemies"]["hollow"]
+	var e: Dictionary = A.D["enemies"][u.kind]
 	var to: Vector2 = A.player.pos - u.pos
 	match u.state:
 		"move":
@@ -156,7 +156,7 @@ func _hollow(u: Unit, dt: float) -> void:
 
 ## An ember: a Hollow's rush, faster, and its swing ends in a short lunge.
 func _ember(u: Unit, dt: float) -> void:
-	var e: Dictionary = A.D["enemies"]["ember"]
+	var e: Dictionary = A.D["enemies"][u.kind]
 	var to: Vector2 = A.player.pos - u.pos
 	match u.state:
 		"move":

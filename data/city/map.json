@@ -208,7 +208,7 @@
   "nodes": {"gap": [1600, 2280], "ave_s": [1600, 1850], "ave_sq": [1600, 1580], "sq_c": [1600, 1480], "sq_w": [1180, 1340], "sq_e": [2060, 1340], "sq_n": [1600, 1100], "sq_nw": [1400, 1180], "ave_n": [1600, 960], "north_c": [1600, 800], "north_w": [850, 800], "north_e": [2330, 800], "steps": [1585, 340], "archive": [570, 420], "glass_n": [845, 960], "glass_c": [700, 1250], "glass_e": [1050, 1335], "cinder_e": [1350, 1850], "cinder_w": [450, 1850], "bakery": [415, 1960], "wick_w": [1800, 1850], "wick_e": [2500, 1850], "house": [2198, 1880], "bell_w": [2240, 1345], "bell_e": [2600, 1345], "watch": [2400, 1200], "depot": [2330, 500], "depot_door": [2330, 760], "crater": [2800, 260], "north_far": [2560, 800], "loft_out": [480, 1170], "loft_s": [390, 1165], "loft_in": [390, 1070]},
   "edges": [["gap", "ave_s"], ["ave_s", "ave_sq"], ["ave_sq", "sq_c"], ["sq_c", "sq_w"], ["sq_c", "sq_e"], ["sq_w", "sq_nw"], ["sq_nw", "sq_n"], ["sq_n", "ave_n"], ["ave_n", "north_c"], ["north_c", "north_w"], ["north_c", "north_e"], ["north_c", "steps"], ["north_w", "archive"], ["north_w", "glass_n"], ["glass_n", "glass_c"], ["glass_c", "glass_e"], ["glass_e", "sq_w"], ["ave_s", "cinder_e"], ["cinder_e", "cinder_w"], ["cinder_w", "bakery"], ["ave_s", "wick_w"], ["wick_w", "wick_e"], ["wick_w", "house"], ["sq_e", "bell_w"], ["bell_e", "watch"], ["north_e", "depot_door"], ["depot_door", "depot"], ["north_e", "north_far"], ["north_far", "crater"], ["bell_w", "bell_e"], ["glass_c", "loft_out"], ["loft_out", "loft_s"], ["loft_s", "loft_in"]]
  },
- "spawns": {
+ "spawns": {"com_salvage": {"ring": [140, 220], "ring_n": 6}, 
   "cinder_row": {"ring": [150, 230], "ring_n": 6},
   "square_nest": {"ring": [150, 230], "ring_n": 6},
   "square_choir": {"ring": [150, 230], "ring_n": 6},

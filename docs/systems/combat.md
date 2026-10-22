@@ -54,6 +54,14 @@ page [Enemy Field Guide](https://claude.ai/artifact/NfkV4YFAufXzUP1pBuGcAK)). Un
   | `cellar` (F14) | east road, smugglers' cellar | when you get in, or smoke them out | 2 Crossbowmen, 3 Cutthroats, a Shieldman |
   | `quarry` (F15) | east road, quarry | day | 2 Crossbowmen, 2 Shieldmen, a Powder Monkey |
   | `mill_cellar` (F17) | fields, mill cellar | night, from Thaw | 5 Hollows, a Slinger |
+  | `com_goat` (C1) | fields, orchard | while the job is open | 4 Wild Dogs |
+  | `com_bramble` (C2) | fields, bramble field | while the job is open | 3 Bramble-crawlers; 3 more |
+  | `com_round` (C3) | east road, waystation | dusk and night, while the job is open | 2 Cutthroats, a Crossbowman |
+  | `com_salvage` (C4) | city, Cinder Row | day, while the job is open | 2 Cutthroats, a Shieldman |
+  | `com_bully` (C6) | east road, quarry | while the job is open | the Quarry Bully, 2 Cutthroats |
+  | `com_rats` (C7) | fields, granary | while the job is open | 3 waves of 4 Granary Rats |
+
+  The `com_*` fights are the commissions' ([story.md](story.md) Commissions), none lethal.
 
   The terrain hooks are the places' own props and ground (the keg, the hay cart, the scaffold, the
   stream, the channel's water). `encounters.gd` plays each placed fight from its spot.
@@ -238,6 +246,12 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   4 s). Water on the oil first (any water spell that wets the ground there, through
   `world.wet_ground`) washes it out. Up close it swings a knife. Encounter `watch_cell` (three
   Acolytes and a Saboteur, places spec F8; not lethal) is fought in the Old Watch.
+- **Beasts and the bully** (N-7.6.3, the commissions' foes; `mind` in `data/enemies.json` lets a
+  kind fight with another kind's mind on its own numbers): the **Wild Dog** (Minion, a dog-shaped
+  figure) rushes and lunges like an ember; the **Bramble-crawler** (Minion, cloth: it burns, a
+  knot of thorn with spikes) and the **Granary Rat** (Minion, tiny, hp 6) fight like Hollows; the
+  **Quarry Bully** (Soldier, leader) fights like a Shieldman behind a narrower guard and kneels like
+  any man. Beasts (`beasts`) run when hurt (morale) or set alight (panic).
 - **The Field Guide** (N-6.5, enemy spec §12.1, `foes.guide`, `scripts/field_guide.gd`): what
   you know of each kind, kept in the soul (`Run.soul["guide"]`), so it carries to every life. A
   kind is **Seen** when it spawns, **Beaten** when killed or it yields, its weakness **Found** the
@@ -248,7 +262,7 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   found. The Ledger's Guide tab shows it ([frame.md](frame.md)); achievements count it
   ([loop.md](loop.md)).
 - **Morale** (N-6.4, enemy spec §6.5, `foes.morale`, `scripts/morale.gd`): people yield, Hollows,
-  constructs, embers and Silas don't (`brigands`, `knights` and `cult` so far). Once a side's leader is dead or half
+  constructs, embers and Silas don't (`brigands`, `knights`, `cult` and `beasts` so far). Once a side's leader is dead or half
   of it is out of the fight, any of it at 25% HP or less gives up: a Minion runs for 2.5 s and is
   gone (not a kill); the rest **kneel**, out of the fight (team 2: spells, AI and the win check pass
   them by) and give their XP and wells as if beaten. The leader going down toasts that the rest lose
