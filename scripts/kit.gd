@@ -353,7 +353,7 @@ func begin(slot: String) -> void:
 	warding = false
 	var b := band(id)
 	wind = {"slot": slot, "id": id, "t": 0.0, "need": windup(id) + slow_start, "band": b, "commit": false}
-	if aligned() and Progression.school_of(id) == Progression.school():
+	if (aligned() and Progression.school() in Progression.schools_of(id)) or ar.in_lantern(A.player.pos):
 		Progression.align = id  # its telegraph and the cast reach further
 		A.fx("ring", A.player.pos, {"color": PixelArt.GOLD, "r": 12.0, "life": 0.35})
 	slow_start = 0.0

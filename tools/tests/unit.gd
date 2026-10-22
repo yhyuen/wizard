@@ -120,6 +120,7 @@ func _run() -> void:
 	_growth(P)
 	_schools(P)
 	_devices(P)
+	_combined(P)
 	_world()
 	_year()
 	print("[unit] %d check(s), %d failed" % [checks, fails])
@@ -568,7 +569,7 @@ func _devices(P) -> void:
 	R.new_run()
 	var G = load("res://scripts/game/growth.gd").new(R, P)
 	var devs: Array = P.data["spells"].keys().filter(func(id): return P.is_device(id))
-	ok(devs.size() == 4 and devs.all(func(id): return P.school_of(id) == "spark_artifice" and P.spell(id).has("reagents")), "four devices, all Spark Artifice, each with its reagents")
+	ok(devs.size() >= 4 and devs.all(func(id): return "spark_artifice" in P.schools_of(id) and P.spell(id).has("reagents")), "the devices are all Spark Artifice, each with its reagents")
 	ok(P.spell_for("fire", "bolt") == "ember_bolt", "a device never stands in for a sphere's own bolt")
 	ok(G.known_devices().is_empty(), "an Apprentice knows no devices")
 	R.life["road"] = ""
@@ -600,6 +601,32 @@ func _devices(P) -> void:
 	ok(G.charge_cost("spark_flask") == {"oil": 2, "glass": 1}, "trained but on another road: one more oil")
 	var props: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/props.json"))["kinds"]
 	ok(props["crate"]["salvage"].has("glass") and props["barrel"]["salvage"].has("oil"), "broken crates and barrels leave salvage")
+	R.new_run()
+
+
+## The first combined spell (spell spec §8; N-5.3): the Star Lantern needs Astral Rite and Spark
+## Artifice both at Master (any life) plus Spark Flask and Ember Bolt at Master this life; it is
+## never outside your school and counts toward either school's rank.
+func _combined(P) -> void:
+	var R = root.get_node("Run")
+	R.new_run()
+	var G = load("res://scripts/game/growth.gd").new(R, P)
+	R.set_flag("ring1")
+	R.soul["known"]["model_star_lantern"] = 1
+	ok(P.schools_of("star_lantern") == ["astral_rite", "spark_artifice"] and P.is_device("star_lantern"), "the Star Lantern is a device of both schools")
+	ok(not G.can_cast("star_lantern"), "locked until both schools are mastered")
+	R.soul["schools"] = {"astral_rite": 2, "spark_artifice": 2}
+	ok(G.mastered("spark_artifice") and not G.can_cast("star_lantern"), "an earlier life's Master rank counts, but the named spells must be at Master too")
+	G.practice()["spark_flask"]["stage"] = 2
+	G.practice()["ember_bolt"]["stage"] = 2
+	ok(G.can_cast("star_lantern"), "both schools mastered and both spells at Master: it casts")
+	G.begin_fight()
+	ok(P.school_k("star_lantern") == 1.0, "never outside the school on the College road")
+	var before := float(R.life["schools"]["astral_rite"]["progress"])
+	P.add_xp("star_lantern", 10.0)
+	ok(float(R.life["schools"]["astral_rite"]["progress"]) > before, "its Practice counts toward the College's rank")
+	G.end_fight()
+	ok(G.charge_cost("star_lantern") == {"oil": 1, "glass": 1, "wire": 1}, "a charge costs its listed reagents on either road")
 	R.new_run()
 
 

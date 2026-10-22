@@ -342,6 +342,9 @@ func _light_pools() -> void:
 	for l in lamps:
 		if lamp_on(l):
 			pools.append(l["pos"])
+	for z in arena.zones:
+		if z["kind"] == "lantern":
+			pools.append(z["pos"])  # the Star Lantern's light (N-5.3)
 
 
 ## Where a light-shy enemy at `p` may stand: pushed out to the edge of any lamp's pool it is in

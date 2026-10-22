@@ -21,6 +21,8 @@ extends SceneTree
 ## N-5.2 (Spark Artifice): breaking a crate leaves glass you pick up; a Spark Flask spends a charge
 ## and sets grass burning; a Tar Pot's tar slows a Hollow and goes up when a flask lands in it; an
 ## empty device won't throw; the bench fills devices from reagents and takes the time of day.
+## N-5.3 (the first combined spell): inside a Star Lantern's ring a Pillar begun at once, without
+## standing still, is Aligned and reaches past its listed range.
 
 const BOOK := ["ember_bolt", "pebble", "splash", "undertow"]
 const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt"]
@@ -84,6 +86,7 @@ func _initialize() -> void:
 		["a Tar Pot slows a Hollow, and a flask sets the tar alight", _tar_setup, _tar_lit],
 		["an empty device won't throw", _empty_setup, _no_throw],
 		["the bench fills a flask (double reagents outside the school) and takes the time of day", _bench_setup, _benched],
+		["inside a Star Lantern's ring a Pillar is Aligned without standing still", _lantern_setup, _lantern_column],
 	]
 
 
@@ -569,3 +572,39 @@ func _bench_setup() -> void:
 func _benched() -> bool:
 	return int(slice.growth.devices()["spark_flask"]) == 1 and int(slice.growth.reagents()["oil"]) == 0 \
 		and (slice.after.has("period") or run.time() != state["time"])
+
+
+# --- N-5.3: the Star Lantern ---------------------------------------------------------------
+
+func _lantern_setup() -> void:
+	run.soul["schools"] = {"astral_rite": 2, "spark_artifice": 2}  # both mastered in earlier lives
+	slice.growth.practice()["spark_flask"]["stage"] = 2
+	slice.growth.practice()["ember_bolt"]["stage"] = 2
+	run.soul["known"]["model_star_lantern"] = 1
+	slice.growth.devices()["star_lantern"] = 1
+	_book(["star_lantern", "pillar", "splash", "spark"])
+	state["long"] = true
+	state.erase("pillar")
+	var at := _dark_spot()
+	var far := float(root.get_node("Progression").spell("pillar")["range"]) * 1.25
+	state["target"] = at
+	for k in 16:
+		var p: Vector2 = at + Vector2.from_angle(k * TAU / 16.0) * far
+		if not world.map.solid_at(p, 16.0) and world.map.clear_line(at, p, 2.0):
+			state["target"] = p
+			break
+	main.place_player(at)
+	main.arena.kit.aether = main.arena.kit.max_aether()
+	main.arena.player.cd.clear()
+	state["from"] = at
+	cast = {"slot": main.arena.kit.slot_of("star_lantern"), "aim": at + Vector2(12, 0), "f": 0}
+
+
+## The lantern hangs; then a Pillar begun at once (no time to stand still) reaches further.
+func _lantern_column() -> bool:
+	var lit: bool = main.arena.zones.any(func(z): return z["kind"] == "lantern")
+	if lit and not state.has("pillar") and main.arena.kit.recover_t <= 0.0 and main.arena.kit.wind.is_empty():
+		state["pillar"] = true
+		main.arena.kit.still_t = 0.0
+		cast = {"slot": main.arena.kit.slot_of("pillar"), "aim": state["target"], "f": 0}
+	return state.has("pillar") and _far_column()

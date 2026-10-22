@@ -86,6 +86,23 @@ school quest lines, combined spells, Grand spells needing the school's Adept ran
   devices and starts the life with 3 Spark Flask charges, 4 oil and 4 glass.
 - **Salvage** ([world.md](world.md)): breaking a crate, barrel or cart near you adds its reagents.
 
+### Combined spells (`schools.json` `combined`; N-5.3)
+
+*Spell spec §6.5, §8. Built: the first, for Astral Rite + Spark Artifice. How it fights is in
+[combat.md](combat.md) "Star Lantern".*
+
+- A combined spell names both schools (`spells.json` `schools`, `combined`). It **casts** once both
+  schools have reached **Master** (`combined.rank` 2) in this life or an earlier one
+  (`growth.mastered`), and its named spells are at their stage this life (`needs`): the **Star
+  Lantern** needs Spark Flask and Ember Bolt at Master, and the 1st Ring. The book shows "(not yet)"
+  until then.
+- It is **never outside your school** on either school's road (`Progression.schools_of`), its
+  Practice counts toward whichever of its schools you walk, and as a device its charge costs its
+  listed reagents (1 oil, 1 glass, 1 copper wire) and fills at the bench.
+- **Learning it:** once both schools are mastered, the Lamplighters' bench offers "Ask about the
+  lantern with the star-chart shade" (story condition `mastered(<school>)`), which teaches the Model
+  (kept across lives).
+
 ## Spell levels and mastery (`scripts/autoload/progression.gd`, `data/spells.json` `progression`)
 
 - A spell levels from its own hits: XP needed `xp_base` 8 + `xp_step` 4 per level, max 20.

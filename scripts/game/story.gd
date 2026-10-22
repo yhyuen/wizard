@@ -63,6 +63,10 @@ class Ctx:
 	func k(id: String) -> bool:
 		return run.knows(id)
 
+	## School `id` reached Master in this life or an earlier one (combined spells, N-5.3).
+	func mastered(id: String) -> bool:
+		return growth != null and growth.mastered(id)
+
 	func f(id: String) -> bool:
 		return run.flag(id)
 

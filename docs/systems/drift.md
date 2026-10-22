@@ -31,7 +31,7 @@ table; the big gaps:
 | Rest points change the book | Your desk (the story's `book` effect) | [combat.md](combat.md) |
 | Eight schools, each with its own casting act and rule | Two schools built (`data/schools.json`): the 13 sphere spells are Astral Rite (Alignment, N-5.1); four devices are Spark Artifice (charges and the bench, N-5.2). Devices' Smoke Jar is Luna/water and the Tar Pot Mars/fire in the build's element terms. No other school yet; rank comes from Practice alone, not the power's merit, standing and exam; no casting acts in the art | [growth.md](growth.md), [combat.md](combat.md) |
 | One force × material table for props, tiles and units | One table (`data/materials.json`), on props only so far | [world.md](world.md) |
-| Combined spells from two mastered schools | Magicks (old Mill fight only) | [combat.md](combat.md) |
+| Combined spells from two mastered schools, learned at either school's hall | One built (N-5.3): the Star Lantern (Astral Rite + Spark Artifice), learned at the Lamplighters' bench only (the College has no hall scene for it yet). Magicks remain in the old Mill fight | [growth.md](growth.md), [combat.md](combat.md) |
 | Spells grow on seven visible axes over 20 levels in four stages, with breakthrough trials, Force grades I–V and prerequisite spells | 20 levels in four stages with walls and trials (feat, insight, meditation), grades I–IV by stage, one minor axis per spell, prerequisites for the four signatures (N-3). Not yet: Sphere Comprehension, insight entries in the Ledger, meditation only at Sympathy places, grade V, the 1st Ring is still the yard trial alone | [growth.md](growth.md) |
 
 ## Spell look: the target vs the build

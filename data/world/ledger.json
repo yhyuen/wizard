@@ -94,6 +94,7 @@
   "model_spark_flask": {"kind": "model", "title": "Spark Flask (device)", "text": "Oil, a spark in the stopper, and keep it away from your face. The Lamplighters' first lesson."},
   "model_arc_rod": {"kind": "model", "title": "Arc Rod (device)", "text": "Copper wound round an iron spike. Plant it and let it find them."},
   "model_smoke_jar": {"kind": "model", "title": "Smoke Jar (device)", "text": "Powder that blooms into a cloud. What can't see you can't hit you."},
+  "model_star_lantern": {"kind": "model", "title": "Star Lantern (combined)", "text": "College work and Lamplighter work in one glass. Hang it, and the stars line up for you."},
   "model_tar_pot": {"kind": "model", "title": "Tar Pot (device)", "text": "Pitch for the ground. It holds feet, and it holds a flame longer."},
   "q_wren": {
    "kind": "question",

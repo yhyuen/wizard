@@ -146,6 +146,7 @@ func _process(_dt: float) -> bool:
 			K.ar.detonate({"kind": "throw", "device": "spark_flask", "pos": at + Vector2(10, 0), "r": 16.0})
 			K.ar.detonate({"kind": "throw", "device": "arc_rod", "pos": main.arena.player.pos + Vector2(-60, -30), "r": 50.0})
 			K.ar.detonate({"kind": "throw", "device": "smoke_jar", "pos": main.arena.player.pos + Vector2(-20, 60), "r": 28.0})
+			K.ar.detonate({"kind": "throw", "device": "star_lantern", "pos": main.arena.player.pos + Vector2(-90, 40), "r": 40.0})
 		559:
 			_shot("09c_devices")
 			slice.overlay = "map"

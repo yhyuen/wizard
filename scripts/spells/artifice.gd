@@ -5,6 +5,9 @@ extends RefCounted
 ## the Spark Flask bursts into flame (it lights the ground and what stands on it), the Arc Rod plants
 ## and arcs into the nearest foe until it burns out, the Smoke Jar leaves a cloud foes can't strike
 ## from, and the Tar Pot coats the ground in tar that slows and burns like a lamp when fire finds it.
+## The Star Lantern (N-5.3) is the first combined spell, Spark Artifice with Astral Rite: a device
+## that hangs where it lands; inside its ring every spell you begin is Aligned, and its light keeps
+## light-shy things out.
 
 const FIRE_KINDS := ["ember", "blaze", "column", "kindle", "flask"]
 
@@ -62,6 +65,15 @@ func tar_pot() -> bool:
 	return _throw("tar_pot")
 
 
+func star_lantern() -> bool:
+	return _throw("star_lantern")
+
+
+## Inside a Star Lantern's ring: a spell begun here is Aligned.
+func in_lantern(p: Vector2) -> bool:
+	return A.zones.any(func(z): return z["kind"] == "lantern" and z["pos"].distance_to(p) <= float(z["r"]))
+
+
 func detonate(z: Dictionary) -> bool:
 	if z["kind"] != "throw":
 		return false
@@ -77,6 +89,10 @@ func detonate(z: Dictionary) -> bool:
 		"smoke_jar":
 			A.add_zone({"kind": "smoke", "pos": z["pos"], "r": float(z["r"]), "life": Progression.stat("smoke_jar", "life")})
 			A.fx("dust", z["pos"], {"r": float(z["r"]), "life": 0.6})
+		"star_lantern":
+			A.add_zone({"kind": "lantern", "pos": z["pos"], "r": float(z["r"]), "life": Progression.stat("star_lantern", "life")})
+			A.fx("ring", z["pos"], {"color": PixelArt.GOLD, "r": float(z["r"]), "life": 0.5})
+			Progression.add_xp("star_lantern", float(Progression.spell("star_lantern")["xp_cast"]))
 		"tar_pot":
 			A.add_zone({"kind": "tar", "pos": z["pos"], "r": float(z["r"]), "life": Progression.stat("tar_pot", "life")})
 			A.fx("dust", z["pos"], {"color": PixelArt.INK, "r": float(z["r"]) * 0.6, "life": 0.4})
@@ -181,6 +197,14 @@ func draw_field(c: CanvasItem) -> void:
 				c.draw_arc(z["pos"], float(z["r"]), 0, TAU, 24, Color(PixelArt.FIRE, 0.25), 1.0, true)
 			"arc_rod":
 				c.draw_arc(z["pos"], float(z["r"]), 0, TAU, 32, Color(PixelArt.STORM, 0.18), 1.0, true)
+			"lantern":
+				# its ring on the ground, eight gold stars turning round it
+				var fade := clampf((float(z["life"]) - float(z["t"])) / 1.5, 0.2, 1.0)
+				c.draw_arc(z["pos"], float(z["r"]), 0, TAU, 40, Color(PixelArt.GOLD, 0.45 * fade), 1.0, true)
+				c.draw_circle(z["pos"], float(z["r"]), Color(PixelArt.GOLD, 0.05 * fade), true, -1.0, true)
+				for i in 8:
+					var at: Vector2 = z["pos"] + Vector2.from_angle(TAU * i / 8.0 + float(z["t"]) * 0.4) * float(z["r"])
+					c.draw_circle(at, 1.2, Color(PixelArt.GOLD, 0.9 * fade), true, -1.0, true)
 
 
 func _col(id: String) -> Color:
@@ -191,6 +215,8 @@ func _col(id: String) -> Color:
 			return PixelArt.PAPER
 		"tar_pot":
 			return PixelArt.EARTH
+		"star_lantern":
+			return PixelArt.GOLD
 	return PixelArt.FIRE
 
 
