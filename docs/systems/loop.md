@@ -13,14 +13,26 @@ right about the game.*
 
 ## Two layers of state (`scripts/game/run.gd`, the `Run` autoload)
 
-- **`mem`** is what you remember and keeps across loops: the loop number, known Ledger entries,
-  deaths by cause, trials passed, Fluency, best wells, revisions, a log of each loop (day, time,
-  cause, what was learnt), play time and frame stats for the run summary.
-- **`lp`** is this loop and resets on waking: the day, the time of day, flags, scenes seen, what
-  was learnt this loop, once-a-day actions done (`done_<op>`), items taken, `injured`, and
-  `losses` (each lost fight: day, time, cause, days slept).
-- **Save:** `user://ruins.json` at each dawn, at the end of a loop and on waking. A save from the
-  older town month (`slice.json`) doesn't carry over. Tests (`--script`) never save.
+- **`soul`** is what you understand and remember, and keeps across lives (lives spec §4.1, "heads
+  keep"): known Ledger entries, deaths by cause, trials passed, the Echo (`echo`), `revisions`,
+  `best_wells`, `insight` (0–3), `lives` (a page per life: number, road, cause, moon, day, time,
+  insight, wells, what was learnt), play time and frame stats for the run summary, hints seen.
+- **`life`** is this year and resets at the Turning ("hands reset"): its number `n`, `road`
+  (always `apprentice` until roads are built), the day, the time of day, flags, scenes seen, what
+  was learnt, Practice, wells, the book, once-a-day actions done (`done_<op>`), items taken,
+  `injured`, `losses` (each lost fight: day, time, cause, days slept) and `calamities` passed.
+  `Run.loop()` is the life's number.
+- **The Turning** (`Run.end_life(cause)`): `scripts/game/lives.gd` `carry(soul, life, cause)` is a
+  pure function that returns the new soul (deaths, insight +1 up to `insight.cap`, the Echo and
+  revisions from the life's Practice, the most wells held, the life's page). Nothing else carries.
+- **Save** (save spec §2, §5; one slot, `user://slot1/`): `soul.json`, `life.json` and
+  `meta.json`, each written beside a `.tmp` copy and swapped in. Saved at each dawn, after a loss
+  and on waking. The Turning writes in order: `meta.json` with `turning` (the ended life), the new
+  soul, the next first morning, `meta.json` cleared. On load, a `turning` mark is finished
+  (re-carried if the soul hadn't been written, else just completed), and a life whose `n` isn't
+  the soul's pages + 1 is dropped for the first morning (the soul wins). The older
+  `user://ruins.json` doesn't carry over. Tests (`--script`) never save, except `unit.gd`'s own
+  slot.
 
 ## The year (`data/world/calendar.json`, `Run`)
 
@@ -43,10 +55,15 @@ right about the game.*
 
 ## How a loop ends, and losing (`data/world/lives.json`)
 
-- **A loop ends** (`Run.end_loop(cause)`, the death screen) only for the causes in `endings`
-  (`eclipse`, `shrine`, `turned`, `build_end`, `first_playable_end`) or any `calamity:<id>`
-  (`Run.ends_life`): the Eclipse on day 364, letting it go at an Orrery shrine, or a story
-  ending. The death screen lists what you learnt that loop and the cause's line (`ledger.json`
+- **A loop ends** (`Run.end_life(cause)`, the death screen) only for the causes in `endings`
+  (`eclipse`, `turned`, `build_end`, `first_playable_end`) or any `calamity:<id>`
+  (`Run.ends_life`): the Eclipse on day 364, turning back the Hours at an Orrery shrine, or a
+  story ending.
+- **Turning back the Hours** needs a calamity passed in this life (`turning_needs_calamity`,
+  `life.calamities`, `Run.pass_calamity`; lives spec §3.1): until then the shrine says the rings
+  won't stop and offers only the spellbook. No calamity is built yet (N-7.5), so for now a life
+  ends at the Eclipse (Rest until… gets you there) or at a story ending; the tests pass a
+  stand-in calamity. The death screen lists what you learnt that loop and the cause's line (`ledger.json`
   `deaths`); then you wake on the cot on day 1 of the next loop. **Knowledge stays; power resets**
   ([growth.md](growth.md)).
 - **Any other loss** (a lethal fight lost, or a story `end_loop` with another cause) **doesn't end

@@ -613,7 +613,7 @@ func on_wall(p: Dictionary) -> void:
 # --- what the wizard can reach ---------------------------------------------------------
 
 func item_visible(id: String) -> bool:
-	return not run.lp.get("taken", {}).has(id)
+	return not run.life.get("taken", {}).has(id)
 
 
 ## The person or item the wizard would talk to or use with G: the nearest in reach, or {}.

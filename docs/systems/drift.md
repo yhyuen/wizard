@@ -80,13 +80,13 @@ saving and the screen. Each has a "today vs target" section; the big gaps:
 
 | Target says | As built | Where |
 | --- | --- | --- |
-| A life is a year (13 × 28 days); it ends only in a calamity, at the Great Eclipse, or by turning back the Hours after a calamity; other losses wake you injured 2 days later | The year and waking injured are built (N-1.1, N-1.3). The shrine still lets a loop go at any time, without a passed calamity (no calamity is built yet; the Turning's rule comes with N-1.2) | [loop.md](loop.md) |
+| A life is a year (13 × 28 days); it ends only in a calamity, at the Great Eclipse, or by turning back the Hours after a calamity; other losses wake you injured 2 days later | The year, waking injured and the Turning's rule are built (N-1.1–1.3). No calamity is built yet (N-7.5), so the shrine never turns the Hours back in play: a life ends at the Eclipse or a story ending | [loop.md](loop.md) |
 | Wake injured at the nearest shrine or camp you rested at this life | Always on your cot in the camp (it's the only rest point built) | [loop.md](loop.md) |
 | Fixed events per moon; missed ones run their default and become appointments | Only the four calamities are dated, and only the Eclipse is known from the start; days you rest or travel past skip the camp's day scenes (N-1.5) | [loop.md](loop.md) |
 | Ring 1: camp, fallen city, Mill fields as regions with their own maps | The fallen city's one map is the College halls (also reached by the camp's north stair, free); the Mill fields and Ring 2 are cards | [world.md](world.md) |
-| `soul` / `life`; carry table with insight, bonds, roads, shortcuts, caches; school rank and Comprehension relearn | `mem` / `lp`; the Echo on spells and wells, revisions, Fluency | [loop.md](loop.md), [growth.md](growth.md) |
+| `soul` / `life`; carry table with insight, bonds, roads, shortcuts, caches; school rank and Comprehension relearn | `soul` / `life` with a pure `carry` and insight (N-1.2); no bonds, roads, shortcuts, caches, schools or Comprehension yet; the Echo on spells and wells, revisions, Fluency | [loop.md](loop.md), [growth.md](growth.md) |
 | End card, then the Ledger's life page on the first morning | Death screen listing what you learnt | [loop.md](loop.md), [frame.md](frame.md) |
-| Three slots; soul, life, per-map damage files and meta; atomic writes, checksums, a crash-proof Turning, versions | One `user://ruins.json`, plain overwrite, no versions | [loop.md](loop.md) |
+| Three slots; soul, life, per-map damage files and meta; atomic writes, checksums, a crash-proof Turning, versions | One slot (`user://slot1/`): soul, life and meta files swapped in from `.tmp` copies, a crash-proof Turning, a `version` field; no map damage files (nothing in the world lasts the life yet), no checksums or migrations | [loop.md](loop.md) |
 | Four-star bar with stage rings, Focus and Overdraw, a 13-moon calendar with pins, Codex, region map | Four-star stand-in bar, Cadence, the calendar row (moons, weekday dots, calamity discs, time dial; no gold or silver pins yet), Ledger, map with the Reach and calendar tabs | [frame.md](frame.md) |
 
 ## Known differences inside the build

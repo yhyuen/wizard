@@ -7,7 +7,7 @@ works now.** Read the spec before the code; open only the code you are changing.
 | Spec | System | Tracker rows |
 | --- | --- | --- |
 | [combat.md](combat.md) | The fight, the spellbook, Aether and Cadence, spells and spheres, Magicks, enemies, encounters | C-1–C-5 |
-| [growth.md](growth.md) | Wells, Rings, Practice, the Echo and Fluency; spell levels and milestones | S-1, C-1 |
+| [growth.md](growth.md) | Wells, Rings, Practice, the Echo and insight; spell levels and milestones | S-1, C-1 |
 | [loop.md](loop.md) | The two layers of state, days and the clock, how a loop ends, the Ledger, the save | S-1, R-1, R-2 |
 | [world.md](world.md) | Maps and exits, collision, doors and cracks, people, props, magic meeting the world | W-1, W-2, R-1, R-2 |
 | [story.md](story.md) | The scene engine: format, conditions, effects; playing scenes; cutscenes | S-1, R-2 |

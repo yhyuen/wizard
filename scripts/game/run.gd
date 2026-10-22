@@ -1,12 +1,17 @@
 extends Node
-## The two layers of state (design/slice/systems.md §1; design/gdd/04-progression-and-loop.md).
-## `mem` is what you remember and keeps across loops: the Ledger, Models, trials passed, deaths.
-## `lp` is this loop and resets when you wake in the camp: the day, the time of day, flags, and
-## what you learnt this loop (for the death screen). Saved at each dawn and at the end of a loop.
+## The two layers of state (design/lives/lives-and-carryover-spec.md §4, design/lives/save-spec.md).
+## `soul` is what you understand and remember, and keeps across lives: the Ledger, deaths, each
+## spell's best Practice, the most wells you held, insight, a page per life. `life` is this year
+## and resets at the Turning: the day, the time of day, flags, Practice, wells, what you learnt.
+## The Turning (`end_life`) computes the new soul with scripts/game/lives.gd `carry` before it
+## writes anything, and writes it so that a crash halfway can't lose it or count it twice.
+
+const Lives := preload("res://scripts/game/lives.gd")
 
 signal learned(id: String)
 
-const SAVE_PATH := "user://ruins.json"  # the ruins game; the open world's saves (slice.json) don't carry over
+var save_dir := "user://slot1/"  # one slot for now (the save spec's three come with the title screen); tests use their own
+const SAVE_VERSION := 1
 const TIMES := ["morning", "noon", "afternoon", "dusk", "night"]
 const TIME_NAMES := ["Morning", "Noon", "Afternoon", "Dusk", "Night"]
 const CALENDAR := "res://data/world/calendar.json"
@@ -18,8 +23,8 @@ const LAST_DAY := MOON_DAYS * MOONS  # the Great Eclipse: Moon 13, day 28
 var cal: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(CALENDAR))
 var lives: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(LIVES))
 
-var mem := {}
-var lp := {}
+var soul := {}
+var life := {}
 var save_enabled := true
 
 
@@ -30,28 +35,53 @@ func _ready() -> void:
 		load_save()
 
 
-func fresh_mem() -> Dictionary:
-	return {"loop": 1, "known": {}, "deaths": {}, "trials": [], "fluency": 0, "log": [],
+func fresh_soul() -> Dictionary:
+	return {"version": SAVE_VERSION, "lives": [], "insight": 0, "known": {}, "deaths": {}, "trials": [],
+		"echo": {}, "revisions": {}, "best_wells": 0,
 		"play_s": 0.0, "fps": {"sum": 0.0, "n": 0, "min": 0}}  # for the playtest run summary
 
 
-func fresh_loop() -> Dictionary:
-	return {"day": 1, "time": 0, "flags": {}, "seen": {}, "learned": [], "dawn_done": false,
-		"injured": false, "losses": [], "region": str(JSON.parse_string(FileAccess.get_file_as_string("res://data/world/regions.json"))["start"])}
+## The first morning of the next life: its number follows the soul's pages (save spec §5).
+func fresh_life() -> Dictionary:
+	return {"version": SAVE_VERSION, "n": soul.get("lives", []).size() + 1, "road": "apprentice",
+		"day": 1, "time": 0, "flags": {}, "seen": {}, "learned": [], "dawn_done": false,
+		"injured": false, "losses": [], "calamities": []}
 
 
 ## A brand new month: forgets everything.
 func new_run() -> void:
-	mem = fresh_mem()
-	lp = fresh_loop()
+	soul = fresh_soul()
+	life = fresh_life()
 
 
-## Ends this loop (`cause` is why: "patrol", "shrine", "eclipse", "fight:patrol"...). The
-## memory keeps a count of each way you have died.
-func end_loop(cause: String) -> void:
-	mem["deaths"][cause] = int(mem["deaths"].get(cause, 0)) + 1
-	mem["log"].append({"loop": loop(), "day": day(), "time": time_name(), "cause": cause, "learned": lp["learned"].duplicate()})
-	save()
+## The Turning: this life ends (`cause`: "eclipse", "turned", "calamity:<id>"...). The soul takes
+## what carries (Lives.carry) and is written at once; this life stays in memory for the death
+## screen until you wake, but the saved life is already the next first morning.
+func end_life(cause: String) -> void:
+	var next: Dictionary = Lives.carry(soul, life, cause, lives)
+	soul = next
+	if save_enabled:
+		_turn_on_disk(life)
+
+
+## Whether you may turn back the Hours now (lives spec §3.1).
+func can_turn() -> bool:
+	return Lives.can_turn(life, lives)
+
+
+## A calamity passed in this life (its id), which lets you turn back the Hours.
+func pass_calamity(id: String) -> void:
+	if not id in life["calamities"]:
+		life["calamities"].append(id)
+
+
+func insight() -> int:
+	return int(soul.get("insight", 0))
+
+
+## The pages of the lives already lived, oldest first.
+func past_lives() -> Array:
+	return soul.get("lives", [])
 
 
 ## Whether `cause` ends the life (data/world/lives.json "endings", or any calamity). Every other
@@ -63,36 +93,36 @@ func ends_life(cause: String) -> bool:
 ## A loss that doesn't end the life: counted like a death, logged on this life's page. Returns the
 ## days that pass before you wake: none if you already lost today (two losses don't stack).
 func lose(cause: String, wild := false) -> int:
-	mem["deaths"][cause] = int(mem["deaths"].get(cause, 0)) + 1
+	soul["deaths"][cause] = int(soul["deaths"].get(cause, 0)) + 1
 	var w: Dictionary = lives["wake_injured"]
-	var again: bool = not lp["losses"].is_empty() and int(lp["losses"][-1]["day"]) == day()
+	var again: bool = not life["losses"].is_empty() and int(life["losses"][-1]["day"]) == day()
 	var days: int = 0 if again else int(w["wild_days"] if wild else w["days"])
-	lp["losses"].append({"day": day(), "time": time_name(), "cause": cause, "learned": lp["learned"].size(), "days": days})
-	lp["injured"] = true
+	life["losses"].append({"day": day(), "time": time_name(), "cause": cause, "learned": life["learned"].size(), "days": days})
+	life["injured"] = true
 	return days
 
 
 func injured() -> bool:
-	return bool(lp.get("injured", false))
+	return bool(life.get("injured", false))
 
 
-## Wake on day 1 of the next loop: the loop state resets, the memory stays.
+## Wake on the first morning of the next life: the life resets, the soul stays.
 func wake() -> void:
-	mem["loop"] = loop() + 1
-	lp = fresh_loop()
+	life = fresh_life()
 	save()
 
 
+## This life's number, from 1.
 func loop() -> int:
-	return int(mem["loop"])
+	return int(life.get("n", 1))
 
 
 func day() -> int:
-	return int(lp["day"])
+	return int(life["day"])
 
 
 func time() -> int:
-	return int(lp["time"])
+	return int(life["time"])
 
 
 func time_id() -> String:
@@ -107,7 +137,7 @@ func time_name() -> String:
 func advance_time() -> bool:
 	if time() >= TIMES.size() - 1:
 		return false
-	lp["time"] = time() + 1
+	life["time"] = time() + 1
 	return true
 
 
@@ -147,86 +177,126 @@ func days_left() -> int:
 
 
 func next_day() -> void:
-	lp["day"] = mini(day() + 1, LAST_DAY)
-	lp["time"] = 0
-	lp["dawn_done"] = false
+	life["day"] = mini(day() + 1, LAST_DAY)
+	life["time"] = 0
+	life["dawn_done"] = false
 
 
 
 # --- memory ------------------------------------------------------------------
 
 func knows(id: String) -> bool:
-	return mem["known"].has(id)
+	return soul["known"].has(id)
 
 
 ## Remembers `id` for good. Returns true the first time.
 func learn(id: String) -> bool:
 	if knows(id):
 		return false
-	mem["known"][id] = loop()
-	lp["learned"].append(id)
+	soul["known"][id] = loop()
+	life["learned"].append(id)
 	learned.emit(id)
 	return true
 
 
 func known_ids() -> Array:
-	return mem["known"].keys()
+	return soul["known"].keys()
 
 
 func died_of(cause: String) -> int:
-	return int(mem["deaths"].get(cause, 0))
+	return int(soul["deaths"].get(cause, 0))
 
 
 # --- this loop -----------------------------------------------------------------
 
 func flag(id: String) -> bool:
-	return lp["flags"].has(id)
+	return life["flags"].has(id)
 
 
 func set_flag(id: String) -> void:
-	lp["flags"][id] = true
+	life["flags"][id] = true
 
 
 func clear_flag(id: String) -> void:
-	lp["flags"].erase(id)
+	life["flags"].erase(id)
 
 
 func seen(scene_id: String) -> bool:
-	return lp["seen"].has(scene_id)
+	return life["seen"].has(scene_id)
 
 
 func mark_seen(scene_id: String) -> void:
-	lp["seen"][scene_id] = true
+	life["seen"][scene_id] = true
 
 
-# --- save ----------------------------------------------------------------------
+# --- save (save spec §2, §5; one slot) ------------------------------------------------
 
 func has_save() -> bool:
-	return FileAccess.file_exists(SAVE_PATH)
+	return FileAccess.file_exists(save_dir + "soul.json")
 
 
+## Saves both layers (at dawn, on waking, after a loss).
 func save() -> void:
 	if not save_enabled:
 		return
-	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if f:
-		f.store_string(JSON.stringify({"mem": mem, "loop": lp}))
+	DirAccess.make_dir_recursive_absolute(save_dir)
+	_write("soul.json", soul)
+	_write("life.json", life)
+
+
+## The Turning's writes, in the save spec's order: mark the turning, write the new soul, write the
+## next first morning, clear the mark. `ended` is the life that just ended, kept so a crash before
+## the soul was written can be redone on load.
+func _turn_on_disk(ended: Dictionary) -> void:
+	DirAccess.make_dir_recursive_absolute(save_dir)
+	_write("meta.json", {"version": SAVE_VERSION, "turning": {"from_life": int(ended.get("n", 1)), "life": ended,
+		"cause": soul["lives"][-1]["cause"] if not soul["lives"].is_empty() else ""}})
+	_write("soul.json", soul)
+	_write("life.json", fresh_life())
+	_write("meta.json", {"version": SAVE_VERSION})
+
+
+## Writes `name` beside a temporary copy and swaps it in, so a crash leaves the old file or the new.
+func _write(name: String, data: Dictionary) -> void:
+	var tmp := save_dir + name + ".tmp"
+	var f := FileAccess.open(tmp, FileAccess.WRITE)
+	if f == null:
+		return
+	f.store_string(JSON.stringify(data))
+	f.close()
+	DirAccess.rename_absolute(ProjectSettings.globalize_path(tmp), ProjectSettings.globalize_path(save_dir + name))
+
+
+func _read(name: String):
+	if not FileAccess.file_exists(save_dir + name):
+		return null
+	return JSON.parse_string(FileAccess.get_file_as_string(save_dir + name))
 
 
 func load_save() -> bool:
-	if not has_save():
+	var s = _read("soul.json")
+	if not s is Dictionary:
 		return false
-	var d = JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH))
-	if not (d is Dictionary and d.has("mem") and d.has("loop")):
-		return false
-	mem = fresh_mem()
-	mem.merge(d["mem"], true)
-	lp = fresh_loop()
-	lp.merge(d["loop"], true)
+	soul = fresh_soul()
+	soul.merge(s, true)
+	var meta = _read("meta.json")
+	if meta is Dictionary and meta.has("turning"):
+		# A Turning was cut short (save spec §5): finish it the same way either way.
+		var t: Dictionary = meta["turning"]
+		if soul["lives"].size() < int(t["from_life"]):
+			soul = Lives.carry(soul, t["life"], str(t["cause"]), lives)
+		_turn_on_disk(t["life"])
+	var l = _read("life.json")
+	life = fresh_life()
+	if l is Dictionary and int(l.get("n", 0)) == soul["lives"].size() + 1:
+		life.merge(l, true)
+	# else: a life that doesn't follow the soul's pages is dropped; the soul always wins
 	return true
 
 
 func wipe() -> void:
 	new_run()
-	if save_enabled and has_save():
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+	if save_enabled:
+		for name in ["soul.json", "life.json", "meta.json"]:
+			if FileAccess.file_exists(save_dir + name):
+				DirAccess.remove_absolute(ProjectSettings.globalize_path(save_dir + name))

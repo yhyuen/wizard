@@ -15,7 +15,8 @@ Tracker: S-1, W-1, R-2.*
   starts it: `talk: <person>`, `use: <item or exit>`, `arrive: <place>`, `cast: <element>` (with
   `use:`; `cast: hours` is Rewind's shard on the item).
 - **Conditions** are Godot expressions over `k(id)` (remembered), `f(id)` (flag this loop),
-  `seen(id)`, `died(cause)`, `count(prefix)`, `done(op)`, and `loop`, `day`, `time`, `ring`. A
+  `seen(id)`, `died(cause)`, `can_turn()` (a calamity has passed, so the Hours can be turned back),
+  `count(prefix)`, `done(op)`, and `loop`, `day`, `time`, `ring`. A
   line, effect or outcome can start with `[condition]`.
 - **Effects:** `learn`, `set`, `clear`, `fight`, `wells`, `train`, `meditate`, `goto`, `end_loop`,
   `model`, `trial`, `sound`, `cutscene`, `move`, `take`, `sleep`, `book`, `today` (a once-a-day

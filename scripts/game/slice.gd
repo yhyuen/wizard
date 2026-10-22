@@ -137,7 +137,7 @@ func continue_month() -> void:
 ## Dawn: you wake on your cot in the camp (the save is made here).
 func begin_day() -> void:
 	growth.end_fight()
-	run.lp["time"] = 0
+	run.life["time"] = 0
 	run.save()
 	growth.begin_fight()  # you can cast anywhere, so the day's Practice is lent all day
 	cur = {}
@@ -190,7 +190,7 @@ func wait() -> void:
 func end_day() -> void:
 	cur = {}
 	_to_camp()
-	run.lp["injured"] = false
+	run.life["injured"] = false
 	if not pass_days(1):
 		return
 	begin_day()
@@ -231,7 +231,7 @@ func end_loop(cause: String) -> void:
 	Sfx.play("death")
 	growth.end_fight()
 	growth.loop_over()
-	run.end_loop(cause)
+	run.end_life(cause)
 	cur = {}
 	pending = {}
 	after = []
@@ -258,7 +258,7 @@ func wake_hurt() -> void:
 	cur = {}
 	set_screen("world")
 	_to_camp()
-	if not pass_days(int(run.lp["losses"][-1]["days"])):
+	if not pass_days(int(run.life["losses"][-1]["days"])):
 		return
 	begin_day()
 
@@ -304,7 +304,7 @@ func travel(id: String) -> bool:
 		return true
 	var to: Dictionary = reach.region(id)
 	growth.end_fight()
-	run.lp["time"] = 0
+	run.life["time"] = 0
 	run.save()
 	growth.begin_fight()
 	world.reset_day()
@@ -327,7 +327,7 @@ func rest_until(day: int) -> bool:
 	overlay = ""
 	cur = {}
 	_to_camp()
-	run.lp["injured"] = false
+	run.life["injured"] = false
 	if not pass_days(day - run.day()):
 		return true
 	begin_day()
@@ -531,15 +531,15 @@ func _effect(op: String, arg: String) -> bool:
 		"move":
 			main.place_player(world.map.spots[arg])
 		"take":
-			if not run.lp.has("taken"):
-				run.lp["taken"] = {}
-			run.lp["taken"][arg] = true
+			if not run.life.has("taken"):
+				run.life["taken"] = {}
+			run.life["taken"][arg] = true
 		"sleep", "book":
 			after.append(op)
 		"go":
 			after.append("go " + arg)
 		"today":
-			run.lp["done_" + arg] = run.day()
+			run.life["done_" + arg] = run.day()
 		"open":
 			world.map.doors[arg]["open"] = true
 			Sfx.play("chime")
@@ -801,13 +801,13 @@ func toggle_map() -> void:
 func _track_play(dt: float) -> void:
 	if screen == "title" or main == null or main.bot.is_valid() or fight_resolver.is_valid():
 		return
-	run.mem["play_s"] = float(run.mem.get("play_s", 0.0)) + dt
+	run.soul["play_s"] = float(run.soul.get("play_s", 0.0)) + dt
 	if screen != "world":
 		return
 	fps_t += dt
 	if fps_t >= 1.0:
 		fps_t = 0.0
-		var f: Dictionary = run.mem["fps"]
+		var f: Dictionary = run.soul["fps"]
 		var now := int(Engine.get_frames_per_second())
 		f["sum"] = float(f["sum"]) + now
 		f["n"] = int(f["n"]) + 1
@@ -817,7 +817,7 @@ func _track_play(dt: float) -> void:
 ## A plain-text report of this month for the feedback form.
 func run_summary() -> String:
 	var out: Array = ["The Shattered Orrery, first playable · build %s · %s" % [BuildId.ID, OS.get_name()]]
-	out.append("Played %d min · loop %d, day %d, %s · %s, %d wells" % [roundi(float(run.mem.get("play_s", 0.0)) / 60.0),
+	out.append("Played %d min · loop %d, day %d, %s · %s, %d wells" % [roundi(float(run.soul.get("play_s", 0.0)) / 60.0),
 		run.loop(), run.day(), run.time_name().to_lower(), growth.ring_name(), growth.wells()])
 	var known: Array = run.known_ids().filter(func(id): return ledger.has(id) and ledger[id]["kind"] != "trial")
 	var qs: Array = ledger.keys().filter(func(id): return ledger[id]["kind"] == "question")
@@ -831,11 +831,11 @@ func run_summary() -> String:
 			reached.append(k)
 	out.append("This loop / ever: " + (", ".join(reached) if not reached.is_empty() else "nothing yet"))
 	out.append("Now: %s" % str(world.map_def().get("name", world.map_id)))
-	for d in run.mem["log"]:
+	for d in run.past_lives():
 		out.append("Loop %d ended on %s, %s: %s (%d learned)" % [d["loop"], run.date_name(int(d["day"])), str(d["time"]).to_lower(), d["cause"], d["learned"].size()])
-	for l in run.lp["losses"]:
+	for l in run.life["losses"]:
 		out.append("This loop: lost on %s, %s: %s; woke Injured %d days later" % [run.date_name(int(l["day"])), str(l["time"]).to_lower(), l["cause"], int(l["days"])])
-	var f: Dictionary = run.mem.get("fps", {})
+	var f: Dictionary = run.soul.get("fps", {})
 	if int(f.get("n", 0)) > 0:
 		out.append("In town: %d fps on average, %d at worst · graphics %s%s" % [roundi(float(f["sum"]) / int(f["n"])), int(f["min"]),
 			main.gfx, " (now low)" if main.view != null and main.view.low and main.gfx == "auto" else ""])
@@ -952,9 +952,9 @@ func _draw() -> void:
 func hint_for(s: String) -> String:
 	if not HINTS.has(s) or run.loop() > 1 and s != "death":
 		return ""
-	if not run.mem.has("hints"):
-		run.mem["hints"] = {}
-	return "" if run.mem["hints"].has(s) else HINTS[s]
+	if not run.soul.has("hints"):
+		run.soul["hints"] = {}
+	return "" if run.soul["hints"].has(s) else HINTS[s]
 
 
 func _draw_hint(h: String, r: Rect2) -> void:
@@ -1051,7 +1051,7 @@ func _draw_world() -> void:
 		if h != "":
 			_draw_hint(h, Rect2(250, 322, 460, 0))  # under the wizard, clear of the place name
 			if scene_t > 12.0 or world.clock > 20.0:
-				run.mem["hints"]["walk"] = true
+				run.soul["hints"]["walk"] = true
 
 
 ## A speech bubble over a head: a line someone says as you pass.
@@ -1116,7 +1116,7 @@ func _draw_dialogue() -> void:
 	if h != "":
 		_draw_hint(h, Rect2(r.position.x + 120, r.position.y - 60, 460, 0))
 		if scene_t > 6.0:
-			run.mem["hints"]["talk"] = true
+			run.soul["hints"]["talk"] = true
 
 
 const MAP_TABS := ["Here", "The Reach", "Calendar"]
@@ -1352,7 +1352,7 @@ func _draw_book() -> void:
 	if not growth.echo().is_empty():
 		bits.append("Practice regrows ×%d up to your best" % int(growth.d["echo_mult"]))
 	if growth.fluency() > 0.0:
-		bits.append("Fluency +%d%%" % roundi(growth.fluency() * 100.0))
+		bits.append("insight +%d%%" % roundi(growth.fluency() * 100.0))
 	if not bits.is_empty():
 		next += ("  " if next != "" else "") + "Echo: " + ", ".join(bits) + "."
 	text(at + Vector2(0, 24), next, 13, DIM)
@@ -1390,7 +1390,7 @@ func _draw_book() -> void:
 func _draw_death() -> void:
 	var r := Rect2(220, 70, 520, 400)
 	panel(r, Color(HOURS, 0.6))
-	var log: Dictionary = run.mem["log"][-1] if not run.mem["log"].is_empty() else {}
+	var log: Dictionary = run.past_lives()[-1] if not run.past_lives().is_empty() else {}
 	var cause: String = str(log.get("cause", ""))
 	var why: String = death_texts.get(cause, death_texts.get(cause.split(":")[0], "The month ends."))
 	var the_end := cause == "first_playable_end"
@@ -1400,7 +1400,7 @@ func _draw_death() -> void:
 		HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 	title(r.position + Vector2(32, 120), "What you learned this loop", 15, GOLD)
 	var y := r.position.y + 146.0
-	var learned: Array = run.lp["learned"].filter(func(id): return ledger.has(id) and ledger[id]["kind"] != "trial")
+	var learned: Array = run.life["learned"].filter(func(id): return ledger.has(id) and ledger[id]["kind"] != "trial")
 	if learned.is_empty():
 		text(Vector2(r.position.x + 32, y), "Nothing new. But nothing you know is ever lost.", 14, DIM)
 	for id in learned.slice(0, 11):
@@ -1423,16 +1423,16 @@ func _draw_death() -> void:
 func _draw_hurt() -> void:
 	var r := Rect2(220, 70, 520, 400)
 	panel(r, Color(DANGER, 0.5))
-	var loss: Dictionary = run.lp["losses"][-1] if not run.lp["losses"].is_empty() else {}
+	var loss: Dictionary = run.life["losses"][-1] if not run.life["losses"].is_empty() else {}
 	var cause: String = str(loss.get("cause", ""))
 	var why: String = death_texts.get(cause, death_texts.get(cause.split(":")[0], "You go down."))
 	title(r.position + Vector2(0, 46), "You go down", 28, PAPER, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 	para(r.position + Vector2(40, 76), "%s, %s.  %s" % [run.date_name(), run.time_name().to_lower(), why], r.size.x - 80, 14, PAPER)
 	title(r.position + Vector2(32, 150), "What you learned", 15, GOLD)
 	var y := r.position.y + 176.0
-	var losses: Array = run.lp["losses"]
+	var losses: Array = run.life["losses"]
 	var from: int = int(losses[-2]["learned"]) if losses.size() > 1 else 0
-	var learned: Array = run.lp["learned"].slice(from).filter(func(id): return ledger.has(id) and ledger[id]["kind"] != "trial")
+	var learned: Array = run.life["learned"].slice(from).filter(func(id): return ledger.has(id) and ledger[id]["kind"] != "trial")
 	if learned.is_empty():
 		text(Vector2(r.position.x + 32, y), "Nothing new this time.", 14, DIM)
 	for id in learned.slice(0, 8):

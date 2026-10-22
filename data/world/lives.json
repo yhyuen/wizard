@@ -1,5 +1,20 @@
 {
- "_doc": "How a life goes (design/lives/lives-and-carryover-spec.md §3; build items N-1.2, N-1.3). endings: the causes that end a life (any calamity:<id> does too); every other lost fight or story loss wakes you injured instead. wake_injured: days that pass (wild_days if you fell on a map marked wild), the share of Vitality you can hold until your next full night's sleep, and the extra wind-up on the first spell of each fight while Injured.",
- "endings": ["eclipse", "shrine", "turned", "build_end", "first_playable_end"],
- "wake_injured": {"days": 2, "wild_days": 3, "vitality": 0.75, "windup": 0.2}
+ "_doc": "How a life goes (design/lives/lives-and-carryover-spec.md §3–4; build items N-1.2, N-1.3). endings: the causes that end a life (any calamity:<id> does too): the Eclipse, turning back the Hours at a shrine (turned), the build-end card and the first playable's end card; every other lost fight or story loss wakes you injured instead. turning_needs_calamity: the Hours can be turned back only once a calamity has passed in this life. insight: +1 at each Turning up to cap; each point adds per to all Practice gained. wake_injured: days that pass (wild_days if you fell on a map marked wild), the share of Vitality you can hold until your next full night's sleep, and the extra wind-up on the first spell of each fight while Injured.",
+ "endings": [
+  "eclipse",
+  "turned",
+  "build_end",
+  "first_playable_end"
+ ],
+ "turning_needs_calamity": true,
+ "insight": {
+  "cap": 3,
+  "per": 0.1
+ },
+ "wake_injured": {
+  "days": 2,
+  "wild_days": 3,
+  "vitality": 0.75,
+  "windup": 0.2
+ }
 }

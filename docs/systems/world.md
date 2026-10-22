@@ -24,7 +24,8 @@
 ## The world in play (`scripts/world/world.gd`)
 
 - Ticks the clock, people, items, lamps, braziers, props and scorches on the current map. Each map
-  keeps its own state for the rest of the loop while you are elsewhere (`_saved`).
+  keeps its own state for the rest of the loop while you are elsewhere (`_saved`). It reads the
+  day and flags from `Run.life` ([loop.md](loop.md)).
 - **It never plays a scene itself:** it asks the game through `requests` (`talk`, `use`,
   `arrive`, `scene`, `cast`, `exit`, `period`); [story.md](story.md) answers.
 - `reach` 30 px to talk or use; Vitality regenerates out of fights (`spells.json`

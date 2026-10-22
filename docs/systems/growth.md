@@ -15,7 +15,8 @@ There are two layers, and the ruins game uses the first on top of the second.
 
 - **Reset on waking:** wells, the Ring, each Model's (spell's) Practice, the spellbook.
 - **Kept across loops:** the Models you know, the best Practice each reached, the most wells you
-  held (the **Echo**), each spell's mutation picks (`mem.revisions`), and Fluency.
+  held (the **Echo**), each spell's mutation picks (`soul.revisions`), and insight. The Turning
+  writes them with `scripts/game/lives.gd` `carry` ([loop.md](loop.md)).
 - **Wells** come from kills (`wells.kill` 1), patrols and meditating, capped at `well_cap` 80.
   Below the most you held in an earlier loop they grow `echo_mult` ×3 faster.
 - **Rings:** Apprentice, 1st (the yard trial sets the flag `ring1`), 2nd, 3rd, 4th at
@@ -23,13 +24,14 @@ There are two layers, and the ruins game uses the first on top of the second.
   combat spec §5.1; six slots before the combat weight pass, N-2.3); a spell's tier needs a Ring
   (`tier_ring`: bolt 0, control 1, signature 4). HP 100 + 2 per well, Aether 100 + 1 per well;
   blink charges at Rings `blink_ring` 2 and 4.
-- **Practice** (spell XP): grows ×3 below the best that Model reached before, plus Fluency
-  +10% for each loop that reached day 7, capped at +50%. Meditating and training at the watch's
+- **Practice** (spell XP): grows ×3 below the best that Model reached before, plus **insight**
+  (lives spec §4.3): +1 at each Turning, up to +3, each point +10% (`lives.json` `insight`; it
+  replaced Fluency, which counted loops that reached day 7). Meditating and training at the watch's
   targets work once a day each (`once_a_day`); training gives `train_share` 0.4 of a level.
 - **Start:** `start_models` Ember Bolt, Pebble, Pillar, Fling.
 - **Fights borrow it:** `begin_fight()` lends this loop's Practice and spellbook to the
   Progression autoload with the rules dictionary (`Progression.rules`: hp, aether, blinks, open
-  slots, echo, fluency, no Magicks); `end_fight()` takes them back. A book saved with six slots
+  slots, echo, `fluency` (the insight bonus), no Magicks); `end_fight()` takes them back. A book saved with six slots
   keeps its first four.
 
 ## Spell levels (`scripts/autoload/progression.gd`, `data/spells.json` `progression`)

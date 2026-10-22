@@ -56,7 +56,7 @@ class Ctx:
 
 	## A once-a-day action (meditate, train) already done today.
 	func done(op: String) -> bool:
-		return int(run.lp.get("done_" + op, 0)) == run.day()
+		return int(run.life.get("done_" + op, 0)) == run.day()
 
 	func k(id: String) -> bool:
 		return run.knows(id)
@@ -67,11 +67,15 @@ class Ctx:
 	func seen(id: String) -> bool:
 		return run.seen(id)
 
+	## The Hours can be turned back (a calamity has passed in this life).
+	func can_turn() -> bool:
+		return run.can_turn()
+
 	func died(cause: String) -> bool:
 		return run.died_of(cause) > 0
 
 	func count(prefix: String) -> int:
-		return run.lp["flags"].keys().filter(func(k): return str(k).begins_with(prefix)).size()
+		return run.life["flags"].keys().filter(func(k): return str(k).begins_with(prefix)).size()
 
 
 func _init(run = null) -> void:

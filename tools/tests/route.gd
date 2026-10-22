@@ -32,7 +32,7 @@ const PLAN_1 := {
 	1: [["talk:mira", "talk:pell"], ["talk:captain", "exit:north_stair", "go:entrance_hall", "use:rune_door",
 		"use:stair_back>Climb out"], [], [], ["sleep"]],
 	2: [["exit:north_stair"] + LONG, [], [], [], []],
-	4: [["exit:north_stair", "use:shrine>Let this loop go"], [], [], [], []],
+	4: [["exit:north_stair", "use:shrine>Turn back the Hours"], [], [], [], []],
 }
 const PLAN_2 := {
 	1: [["use:dwarf_crate", "talk:captain", "exit:north_stair", "go:entrance_hall", "use:great_clock", "cast:great_clock:rewind", "use:collapsed_stair",
@@ -89,7 +89,7 @@ func _process(_dt: float) -> bool:
 	_watch_route()
 	match slice.screen:
 		"hurt":
-			var l: Dictionary = run.lp["losses"][-1]
+			var l: Dictionary = run.life["losses"][-1]
 			print("[route] loop %d: lost on day %d (%s), waking in %d days" % [run.loop(), run.day(), l["cause"], l["days"]])
 			lost = {"cause": l["cause"], "day": run.day()}
 			slice.wake()
@@ -98,7 +98,7 @@ func _process(_dt: float) -> bool:
 			down_at = -1.0
 			fork_at = -1.0
 		"death":
-			var log: Dictionary = run.mem["log"][-1]
+			var log: Dictionary = run.soul["lives"][-1]
 			print("[route] loop %d ends on day %d (%s), learned %d" % [run.loop(), run.day(), log["cause"], log["learned"].size()])
 			if run.loop() >= 2:
 				return _report()
@@ -120,13 +120,15 @@ func _process(_dt: float) -> bool:
 					var book: Array = slice.growth.prog.spellbook().duplicate()
 					book[book.find("rewind") if book.has("rewind") else 1] = book[1]
 					book[1] = "rewind"
-					run.lp["book"] = book
+					run.life["book"] = book
 					slice.growth.refresh()
 					main.refresh_book()
 				if not plan.has(run.day()):
 					failures.append("loop %d got to day %d without ending" % [run.loop(), run.day()])
 					return _report()
 				var day_plan: Array = plan[run.day()]
+				if run.loop() == 1 and run.day() == 4:
+					run.pass_calamity("stand_in")  # no calamity is built yet (N-7.5); the shrine needs one passed
 				bot.set_goals(day_plan[run.time()])
 				if run.time() == 0:
 					print("[route] loop %d, day %d, on %s" % [run.loop(), run.day(), slice.world.map_id])
@@ -177,11 +179,11 @@ func _report() -> bool:
 			"burnt_far_side", "provost_crossed", "stair_cult", "stair_mend", "sluice_flood"]:
 		if not run.knows(need):
 			failures.append("never learned " + need)
-	var log: Array = run.mem["log"]
+	var log: Array = run.soul["lives"]
 	var causes: Array = log.map(func(l): return l["cause"])
-	if not run.mem["log"].is_empty() and int(run.mem["log"][-1]["day"]) != 2:
+	if not run.soul["lives"].is_empty() and int(run.soul["lives"][-1]["day"]) != 2:
 		failures.append("loop 2 should reach the end card on day 2 (the stair and the sluice took day 1)")
-	if causes != ["shrine", "first_playable_end"]:
+	if causes != ["turned", "first_playable_end"]:
 		failures.append("loop 1 must end at the shrine and loop 2 reach the end card, got %s" % str(causes))
 	if lost.get("cause", "") != "fight:warden" or int(lost.get("woke", 0)) != int(lost.get("day", 0)) + 2 or not lost.get("injured", false):
 		failures.append("losing to the Warden on loop 1 should wake you Injured two days later: %s" % str(lost))

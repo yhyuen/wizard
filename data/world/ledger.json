@@ -226,7 +226,7 @@
  "deaths": {
   "patrol": "The Hollows in the ruins were too many.",
   "eclipse": "The Eclipse came, and the Orrery's heart woke a second time.",
-  "shrine": "You let the loop go at the shrine.",
+  "turned": "You stopped the rings at the shrine and turned back the Hours.",
   "fight": "You fell in a fight.",
   "fight:hall_fight": "The embers in the entrance hall burned you down. The west crack glowed first.",
   "fight:refectory_fight": "The embers in the refectory were too many. Its four cracks glow in the same order every time.",

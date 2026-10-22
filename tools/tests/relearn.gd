@@ -12,9 +12,9 @@ extends SceneTree
 
 const Walker := preload("res://tools/tests/walker.gd")
 const GRIND := [["use:targets>Train"], ["use:cot>Meditate"], ["use:targets>Train"], ["use:targets>Train"], ["go:yard", "sleep"]]
-const LAST := [["exit:north_stair", "use:shrine>Let this loop go"], [], [], [], []]
+const LAST := [["exit:north_stair", "use:shrine>Turn back the Hours"], [], [], [], []]
 const END_DAY := 7
-const PREFER := ["Train", "Meditate", "Fight them", "Let this loop go"]
+const PREFER := ["Train", "Meditate", "Fight them", "Turn back the Hours"]
 const MAX_FRAMES := 400000
 
 var main
@@ -76,6 +76,8 @@ func _process(_dt: float) -> bool:
 				if run.loop() == 3 and run.day() > 3:
 					return _report()
 				last_key = key
+				if run.day() >= END_DAY:
+					run.pass_calamity("stand_in")  # no calamity is built yet (N-7.5); the shrine needs one passed
 				bot.set_goals((LAST if run.day() >= END_DAY else GRIND)[run.time()])
 			if bot.tick(1.0 / 60.0) == "idle":
 				slice.wait()
@@ -99,8 +101,8 @@ func _report() -> bool:
 	for st in bot.stuck:
 		failures.append(st)
 	for loop in [1, 2]:
-		var log: Array = run.mem["log"]
-		if log.size() < loop or log[loop - 1]["cause"] != "shrine" or int(log[loop - 1]["day"]) != END_DAY:
+		var log: Array = run.soul["lives"]
+		if log.size() < loop or log[loop - 1]["cause"] != "turned" or int(log[loop - 1]["day"]) != END_DAY:
 			failures.append("loop %d should end at the shrine on day %d: %s" % [loop, END_DAY, log[loop - 1] if log.size() >= loop else "it didn't end"])
 	var w1: Dictionary = wells.get(1, {})
 	var w3: Dictionary = wells.get(3, {})
