@@ -33,6 +33,10 @@ func _kit_ruin() -> void:
 	if map.kit == "ruin":
 		for w in map.d.get("walls", []):
 			_broken_wall(Rect2(w[0], w[1], w[2], w[3]), float(w[4]))
+		for b in map.d.get("blocks", []):
+			_burned_house(Rect2(b[0], b[1], b[2], b[3]), float(b[4]))
+		for id in map.buildings:
+			_building(id, map.buildings[id])  # a house still standing (Wick Lane's)
 	for w in map.d.get("ruin_walls", []):
 		_broken_wall(Rect2(w[0], w[1], w[2], w[3]), float(w[4]))
 	for r in map.d.get("rubble", []):
@@ -48,6 +52,12 @@ func _kit_ruin() -> void:
 				_observatory_ruin(at, float(cr[2]), float(cr[3]))
 			"bell":
 				_bell(at, float(cr[2]), float(cr[3]))
+			"fountain":
+				_fountain(at, float(cr[2]), float(cr[3]))
+			"watchtower":
+				_watchtower(at, float(cr[2]), float(cr[3]))
+			"furnace":
+				_furnace(at, float(cr[2]), float(cr[3]))
 	for pit: Rect2 in map.pits:
 		_pit(pit)
 	for st in map.d.get("stairwells", []):
@@ -87,6 +97,57 @@ func _broken_wall(r: Rect2, h_px: float) -> void:
 			else Vector2((r.end.x + 6.0) if side > 0 else (r.position.x - 6.0), r.position.y + length * t)
 		var s := rng.randf_range(0.25, 0.5)
 		_add(_rock_mesh(s), Transform3D(Basis(Vector3.UP, rng.randf() * TAU), view.to_world(p, s * 0.2)), c("rock").lerp(c("wall_stone"), rng.randf()))
+
+
+## A burned house (the fallen city's blocks): its outer walls standing to uneven heights, the
+## inside a heap of charred beams and fallen stone.
+func _burned_house(r: Rect2, h_px: float) -> void:
+	var t := 10.0
+	_broken_wall(Rect2(r.position, Vector2(r.size.x, t)), h_px)
+	_broken_wall(Rect2(r.position.x, r.end.y - t, r.size.x, t), h_px)
+	_broken_wall(Rect2(r.position.x, r.position.y + t, t, r.size.y - 2 * t), h_px)
+	_broken_wall(Rect2(r.end.x - t, r.position.y + t, t, r.size.y - 2 * t), h_px)
+	var inner := r.grow(-t)
+	_rect_box(inner, 0.25, c("char"))
+	for k in int(inner.get_area() / 6000.0) + 1:
+		var p := Vector2(rng.randf_range(inner.position.x, inner.end.x), rng.randf_range(inner.position.y, inner.end.y))
+		var beam := Vector3(rng.randf_range(2.0, 4.0), 0.25, 0.25)
+		_box(beam, view.to_world(p, 0.4), c("char").lightened(0.08), rng.randf() * 180.0)
+		var s := rng.randf_range(0.3, 0.6)
+		_add(_rock_mesh(s), Transform3D(Basis(Vector3.UP, rng.randf() * TAU), view.to_world(p + Vector2(14, 6), s * 0.3)), c("rock").lerp(c("wall_stone"), rng.randf()))
+
+
+## The Sunken Square's fountain: a dry basin, a broken column at its middle.
+func _fountain(at2: Vector2, r_px: float, h_px: float) -> void:
+	var at: Vector3 = view.to_world(at2)
+	var r: float = r_px * view.S
+	_add(_cyl(r, r * 1.04, h_px * view.S * 0.4, 12), Transform3D(Basis(), at + Vector3(0, h_px * view.S * 0.2, 0)), c("stone"))
+	_add(_cyl(r * 0.88, r * 0.88, 0.06, 12), Transform3D(Basis(), at + Vector3(0, h_px * view.S * 0.41, 0)), c("rock2"))
+	_add(_cyl(r * 0.18, r * 0.22, 2.2, 6), Transform3D(Basis(), at + Vector3(0, 1.1, 0)), c("wall_stone"))
+	_add(_rock_mesh(0.5), Transform3D(Basis(Vector3.UP, 0.7), at + Vector3(r * 0.4, 0.6, r * 0.3)), c("wall_stone"))
+
+
+## The Old Watch: a leaning stone tower, its top broken off.
+func _watchtower(at2: Vector2, r_px: float, h_px: float) -> void:
+	var at: Vector3 = view.to_world(at2)
+	var r: float = r_px * view.S
+	var h: float = h_px * view.S
+	var lean := Basis(Vector3(0, 0, 1), -0.06)
+	_add(_cyl(r * 0.85, r, h, 8), Transform3D(lean, at + Vector3(-h * 0.03, h * 0.5, 0)), c("wall_stone"))
+	for k in 5:
+		var a := k * TAU / 5.0
+		_box(Vector3(0.7, rng.randf_range(0.6, 1.6), 0.7), at + Vector3(cos(a) * r * 0.8 - h * 0.06, h + 0.4, sin(a) * r * 0.8), c("stone"), rad_to_deg(a))
+	_box(Vector3(0.3, 1.0, 0.1), at + Vector3(0, h * 0.6, r + 0.02), c("window").darkened(0.5), 0.0)
+
+
+## A glass furnace: a squat brick dome, its mouth still warm.
+func _furnace(at2: Vector2, r_px: float, h_px: float) -> void:
+	var at: Vector3 = view.to_world(at2)
+	var r: float = r_px * view.S
+	var h: float = h_px * view.S
+	_add(_cyl(r * 0.55, r, h, 8), Transform3D(Basis(), at + Vector3(0, h * 0.5, 0)), c("wall_stone").darkened(0.2))
+	_add(_cyl(r * 0.2, r * 0.25, h * 0.5, 6), Transform3D(Basis(), at + Vector3(0, h * 1.2, 0)), c("char"))
+	_box(Vector3(r * 0.6, h * 0.3, 0.1), at + Vector3(0, h * 0.2, r * 0.9), c("ember").darkened(0.3), 0.0, true)
 
 
 ## A heap of fallen stone: a dark base, faceted stones piled higher toward its middle, and some
@@ -244,6 +305,8 @@ func _crack(cr: Dictionary) -> void:
 
 ## A door in the ruin: sealed with a rune that glows, burnt, or just shut. Hidden while open.
 func _ruin_door(did: String, door: Dictionary) -> void:
+	if door.has("gate"):
+		return  # a gate is its prop (a barricade, a shutter, a heap): the prop is what you see
 	var r: Rect2 = door["rect"]
 	var node := Node3D.new()
 	node.name = "door_" + did
@@ -412,6 +475,28 @@ func _dressing(kind: String, at2: Vector2, rot: float) -> void:
 			rim.ring_segments = 3
 			_add(rim, Transform3D(Basis(Vector3.RIGHT, PI / 2.0 - 0.35), at + Vector3(0, 1.4, 0)), c("brass").darkened(0.3))
 			put.call(Vector3(0.08, 1.2, 0.05), Vector3(0.2, 1.7, 0.22), c("iron"))
+		"lens":
+			# the glassworks' great lens on its iron cradle, facing the furnaces
+			put.call(Vector3(0.2, 2.2, 0.2), Vector3(-1.0, 1.1, 0), c("iron"))
+			put.call(Vector3(0.2, 2.2, 0.2), Vector3(1.0, 1.1, 0), c("iron"))
+			_add(_cyl(1.0, 1.0, 0.16, 12), Transform3D(Basis(Vector3.RIGHT, PI / 2.0 - 0.3), at + Vector3(0, 2.2, 0)), Color("bfe4ee"), true)
+		"glass_rack":
+			put.call(Vector3(2.0, 1.4, 0.5), Vector3(0, 0.7, 0), c("timber").darkened(0.2))
+			for k in 5:
+				put.call(Vector3(0.3, 0.5, 0.02), Vector3(-0.8 + k * 0.4, 1.1, 0.27), Color("9ec4cc").darkened(0.2 * (k % 2)))
+		"lever":
+			put.call(Vector3(0.5, 0.6, 0.5), Vector3(0, 0.3, 0), c("iron"))
+			put.call(Vector3(0.08, 1.0, 0.08), Vector3(0.1, 1.0, 0), c("iron").lightened(0.1))
+			put.call(Vector3(0.6, 0.12, 0.3), Vector3(0, 0.05, 0.4), c("brass"))
+		"plaque":
+			put.call(Vector3(1.6, 0.9, 0.12), Vector3(0, 1.6, 0), c("brass").darkened(0.6))
+			put.call(Vector3(1.4, 0.7, 0.02), Vector3(0, 1.6, 0.07), c("char"))
+		"garden":
+			# the one green thing in the quarter: a bed someone still waters
+			put.call(Vector3(2.6, 0.25, 1.4), Vector3(0, 0.12, 0), c("timber").darkened(0.3))
+			put.call(Vector3(2.4, 0.08, 1.2), Vector3(0, 0.27, 0), Color("4a3a2c"))
+			for k in 8:
+				put.call(Vector3(0.18, 0.35, 0.18), Vector3(-1.0 + (k % 4) * 0.66, 0.45, -0.3 + (k / 4) * 0.6), Color("5f7f46"))
 		"bones":
 			for k in 4:
 				put.call(Vector3(0.35, 0.06, 0.06), Vector3(rng.randf_range(-0.4, 0.4), 0.03, rng.randf_range(-0.4, 0.4)), c("paper").darkened(0.3))

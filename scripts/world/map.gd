@@ -25,6 +25,7 @@ var water: Array = []  # Rect2
 var bridges: Array = []  # Rect2
 var doors := {}  # id -> {"rect": Rect2, "open": bool, "state": String}
 var pits: Array = []  # Rect2: collapsed floor, not walkable, open to shots
+var pits_all: Array = []  # every pit as the map was drawn (a fallen structure can bridge one for the life)
 var cracks: Array = []  # {"rect", "sphere", "id", "foot"}: glowing seams that embers burst from; foot is where they step out
 var exits := {}  # id -> {"rect": Rect2, "to": map id, "at": spot id there}
 var buildings := {}  # id -> {"rect", "door", "walls": [Rect2], "height", ...}
@@ -67,6 +68,7 @@ func _init(path := PATH, map_id := "camp", map_kit := "town") -> void:
 		_rect(cr, "crack")
 	for r in d.get("pits", []):
 		pits.append(Rect2(r[0], r[1], r[2], r[3]))
+	pits_all = pits.duplicate()
 	for bid in d.get("buildings", {}):
 		var bd: Dictionary = d["buildings"][bid].duplicate(true)
 		var rr: Array = bd["rect"]
@@ -88,6 +90,11 @@ func _init(path := PATH, map_id := "camp", map_kit := "town") -> void:
 		var state: String = str(dd.get("state", "shut")) if dd is Dictionary else "shut"
 		doors[did] = {"rect": Rect2(r[0], r[1], r[2], r[3]), "open": state == "open", "state": state,
 			"open_days": dd.get("open_days", []) if dd is Dictionary else []}
+		if dd is Dictionary:
+			# a gate (N-7.1.2): its prop, its winch, or the glassworks' lens opens it
+			for k in ["gate", "winch", "grade", "lens"]:
+				if dd.has(k):
+					doors[did][k] = dd[k]
 	for e in d.get("exits", []):
 		var r: Array = e["rect"]
 		exits[str(e["id"])] = {"rect": Rect2(r[0], r[1], r[2], r[3]), "to": str(e["to"]), "at": str(e["at"])}
@@ -486,3 +493,11 @@ static func path_length(a: Vector2, pts: PackedVector2Array) -> float:
 		l += at.distance_to(p)
 		at = p
 	return l
+
+
+## A fallen structure lies across `r`: the pits under it can be walked over for the life.
+func bridge_pits(r: Rect2) -> int:
+	var n := pits.size()
+	pits = pits.filter(func(p: Rect2): return not p.intersects(r))
+	return n - pits.size()
+

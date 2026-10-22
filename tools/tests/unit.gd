@@ -411,11 +411,19 @@ func _world() -> void:
 	ok(not m.solid_at(Vector2(m.d["tents"][0][0], m.d["tents"][0][1])), "your open shelter isn't")
 	var pd: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/props.json"))
 	var far: Array = []
-	for start in [["camp", "cot"], ["halls", "landing"]]:
+	for start in [["camp", "cot"], ["halls", "landing"], ["city", "wall_gap"]]:
 		var mm = loaded[start[0]]
 		mm.set_day_doors(1)  # early in the month, when the burnt door stands open
+		var gate_props := {}
+		for did in mm.doors:
+			# the city's gates, winch and lens: walk as if each were opened (gates.gd)
+			if mm.doors[did].has("gate") or mm.doors[did].has("winch") or mm.doors[did].has("lens"):
+				mm.doors[did]["open"] = true
+				gate_props[str(mm.doors[did].get("gate", ""))] = true
 		var props: Array = []
 		for pr in mm.d.get("props", []):
+			if pr.size() > 4 and gate_props.has(str(pr[4])):
+				continue
 			props.append([Vector2(pr[1], pr[2]), float(pd["kinds"][pr[0]]["r"])])
 		mm.movers = func(): return props
 		var targets := {}
@@ -442,7 +450,7 @@ func _world() -> void:
 			if p.distance_to(b) > reach[tname]:
 				far.append("%s %s (%.0f px short)" % [start[0], tname, p.distance_to(b)])
 		mm.movers = Callable()
-	ok(far.is_empty(), "every spot, item and exit can be walked to from the cot and the landing: " + ", ".join(far))
+	ok(far.is_empty(), "every spot, item and exit can be walked to from the cot, the landing and the wall gap: " + ", ".join(far))
 	var people: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/people.json"))["people"]
 	var bad: Array = []
 	for pid in people:

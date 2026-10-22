@@ -6,7 +6,8 @@ extends SceneTree
 ## spellbook; then the loading card, the halls' landing and shrine, the
 ## entrance hall, the rune door, the halls' map, a crack glowing and the embers out of it, the
 ## refectory, the dark gallery, the bell passage, the burnt door, the cistern's sluice, the Kiln
-## Warden's rings and vents, and the end card.
+## Warden's rings and vents, the end card, and the fallen city: the wall gap, the Sunken Square,
+## the glassworks, Bell Street's barricade and the Old Watch at dusk.
 ##
 ##   xvfb-run -a -s "-screen 0 1440x810x24" godot --rendering-driver opengl3 --resolution 1440x810 \
 ##       --fixed-fps 60 --script res://tools/world_shot.gd -- --out DIR
@@ -299,6 +300,25 @@ func _process(_dt: float) -> bool:
 			slice.end_loop("first_playable_end")
 		2362:
 			_shot("27_end_card")
+			run.life["day"] = 2
+			slice.set_screen("world")
+			slice.go_map("city", "wall_gap")
+		2450:
+			_close()
+		2460:
+			_shot("28_city_wall_gap")
+			_go(W.map.spots["sunken_square"] + Vector2(-120, 60), 2, 1)
+		2500:
+			_shot("29_sunken_square")
+			_go(W.map.items["lens"]["at"] + Vector2(60, 90), 2, 1)
+		2540:
+			_shot("30_glassworks")
+			_go(W.map.spots["barricade_w"], 2, 2)
+		2580:
+			_shot("31_bell_street")
+			_go(W.map.spots["old_watch"] + Vector2(-80, 20), 2, 3)
+		2620:
+			_shot("32_old_watch_dusk")
 			var f := FileAccess.open(out.path_join("stats.txt"), FileAccess.WRITE)
 			f.store_string("\n".join(stats) + "\n")
 			return true

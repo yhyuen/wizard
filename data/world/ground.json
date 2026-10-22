@@ -7,6 +7,7 @@
    "places": [["streets", "stone"], ["market", "stone"], ["square", "stone"], ["lane", "stone"], ["college", "stone"], ["hill", "grass"], ["mill", "earth"], ["road", "earth"]],
    "paint": [[180, 1090, 360, 250, "grass"], [560, 40, 400, 150, "grass"], [1500, 40, 380, 150, "grass"]]
   },
+  "city": {"default": "stone", "places": [["glassworks", "stone"], ["crater_lip", "earth"]], "paint": []},
   "halls": {"default": "stone", "indoors": true, "places": [], "paint": []}
  },
  "spread": {

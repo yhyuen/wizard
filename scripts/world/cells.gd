@@ -63,9 +63,12 @@ func _init(map, def: Dictionary, spread: Dictionary, materials: Dictionary) -> v
 			areas.append([[Vector2(c[0], c[1]), float(c[2])], pr[1]])
 	for r in def.get("paint", []):
 		areas.append([Rect2(r[0], r[1], r[2], r[3]), r[4]])
+	var rails: Array = []
 	for r in def.get("rails", []):
-		# an iron rail a cell wide, from one cell centre to another (the camp's lamp circuits)
-		areas.append([Rect2(Vector2(r[1], r[2]), Vector2.ZERO).expand(Vector2(r[3], r[4])).grow(size * 0.5 - 1.0), "iron"])
+		# an iron rail a cell wide, from one cell centre to another (the camp's lamp circuits);
+		# it stays iron even where it runs under a wall or a shut door (the city's winch)
+		rails.append(Rect2(Vector2(r[1], r[2]), Vector2.ZERO).expand(Vector2(r[3], r[4])).grow(size * 0.5 - 1.0))
+	var iron := mats.find("iron")
 	var dflt := mats.find(str(def.get("default", "earth")))
 	var water := mats.find("water")
 	var brick := mats.find("brick")
@@ -81,6 +84,9 @@ func _init(map, def: Dictionary, spread: Dictionary, materials: Dictionary) -> v
 			m = water
 		elif map.solid_at(c):
 			m = brick
+		for rr in rails:
+			if rr.has_point(c):
+				m = iron
 		mat[i] = m
 		fuel[i] = float(mdef[m].get("fuel_s", 0.0)) if int(mdef[m].get("fire", 0)) > 0 else 0.0
 

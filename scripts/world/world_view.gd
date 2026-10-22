@@ -268,7 +268,9 @@ func _build_marks_window() -> void:
 func _build_props() -> void:
 	var pal: Dictionary = wc["town"]["palette"]
 	var col := {"hay": Color("b8984a"), "crate": Color(str(pal["timber"])).lightened(0.25), "barrel": Color(str(pal["timber"])).lightened(0.1),
-		"cart": Color(str(pal["timber"])).lightened(0.15), "post": Color(str(pal["timber"]))}
+		"cart": Color(str(pal["timber"])).lightened(0.15), "post": Color(str(pal["timber"])),
+		"barricade": Color(str(pal["timber"])).darkened(0.1), "shutter": Color("4a4c52"), "rubble_heap": Color("6e6a66"),
+		"heap": Color("7a5a48"), "mirror": Color("b8bcc4")}
 	for k in col:
 		_prop_mats[k] = Figure.finish(Figure.mat(col[k]), "prop")
 		_prop_mats[k + "_burning"] = Figure.finish(Figure.mat(col[k].darkened(0.55)), "prop")
@@ -383,6 +385,44 @@ func _prop_mesh(kind: String) -> Mesh:
 			var brace := BoxMesh.new()
 			brace.size = Vector3(r * 0.5, h * 0.45, r * 0.5)
 			put.call(brace, Transform3D(Basis(Vector3.FORWARD, 0.6), Vector3(r * 0.9, h * 0.75, 0)))
+		"barricade":
+			# a cart on its side with doors and planks jammed against it
+			var side := BoxMesh.new()
+			side.size = Vector3(r * 1.9, h * 0.7, r * 0.35)
+			put.call(side, Transform3D(Basis(Vector3.RIGHT, 0.25), Vector3(0, h * 0.35, 0)))
+			var plank := BoxMesh.new()
+			plank.size = Vector3(0.12, h, r * 0.25)
+			for i in 5:
+				put.call(plank, Transform3D(Basis(Vector3.FORWARD, -0.5 + 0.25 * i), Vector3((i - 2) * r * 0.4, h * 0.5, r * 0.3)))
+			var wheel := CylinderMesh.new()
+			wheel.top_radius = h * 0.35
+			wheel.bottom_radius = h * 0.35
+			wheel.height = 0.1
+			wheel.radial_segments = 8
+			wheel.rings = 1
+			put.call(wheel, Transform3D(Basis(), Vector3(r * 0.6, h * 0.72, -r * 0.1)))
+		"shutter":
+			var sm := BoxMesh.new()
+			sm.size = Vector3(r * 2.2, h, 0.1)
+			put.call(sm, Transform3D(Basis(), Vector3(0, h * 0.5, 0)))
+			var rib := BoxMesh.new()
+			rib.size = Vector3(r * 2.24, 0.05, 0.14)
+			for i in 6:
+				put.call(rib, Transform3D(Basis(), Vector3(0, h * (0.12 + 0.15 * i), 0)))
+		"rubble_heap", "heap":
+			var blk := BoxMesh.new()
+			blk.size = Vector3(r * 0.7, h * 0.5, r * 0.6)
+			for i in 7:
+				var a := i * 2.4
+				var d := r * (0.15 + 0.1 * (i % 3))
+				put.call(blk, Transform3D(Basis(Vector3.UP, a), Vector3(cos(a) * d, h * (0.25 + 0.4 * float(i == 6)), sin(a) * d)))
+		"mirror":
+			var stand := BoxMesh.new()
+			stand.size = Vector3(0.08, h * 0.6, 0.08)
+			put.call(stand, Transform3D(Basis(), Vector3(0, h * 0.3, 0)))
+			var glass := BoxMesh.new()
+			glass.size = Vector3(r * 2.0, r * 2.0, 0.05)
+			put.call(glass, Transform3D(Basis(Vector3.RIGHT, -0.35), Vector3(0, h * 0.75, 0)))
 		_:
 			var bm := BoxMesh.new()
 			bm.size = Vector3(r * 1.5, h, r * 1.5)

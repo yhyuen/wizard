@@ -111,8 +111,8 @@ func _rest_and_travel() -> void:
 		failures.append("resting until Thaw begins should wake you on Moon 2, day 1 (day %d, %s)" % [run.day(), slice.screen])
 	if slice.travel("mill") or run.day() != 29:
 		failures.append("the Mill fields aren't built: going there must cost no time and go nowhere")
-	if not slice.travel("city") or run.day() != 30 or slice.world.map_id != "halls":
-		failures.append("the road to the fallen city should take a day and arrive at the halls (day %d, %s)" % [run.day(), slice.world.map_id])
+	if not slice.travel("city") or run.day() != 30 or slice.world.map_id != "city":
+		failures.append("the road to the fallen city should take a day and arrive at the wall gap (day %d, %s)" % [run.day(), slice.world.map_id])
 	else:
 		print("[deaths] rested to %s, then travelled to the fallen city, arriving %s" % [run.date_name(29), run.date_name()])
 

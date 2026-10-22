@@ -40,9 +40,9 @@
   "burnt_door": {"rect": [1070, 820, 60, 20], "state": "burnt", "open_days": [1, 9]},
   "collapsed_stair": {"rect": [1070, 1140, 60, 40], "state": "rubble"}
  },
- "exits": [{"id": "stair_up", "rect": [1066, 1822, 68, 36], "to": "camp", "at": "north_in"}],
+ "exits": [{"id": "stair_up", "rect": [1066, 1822, 68, 36], "to": "camp", "at": "north_in"}, {"id": "steps_up", "rect": [1164, 1720, 34, 64], "to": "city", "at": "college_steps"}],
  "dressing": [
-  ["shrine", 1030, 1690, 0], ["stair_up", 1100, 1846, 0], ["clock", 1478, 1420, 90], ["fissure", 900, 1600, 30],
+  ["shrine", 1030, 1690, 0], ["stair_up", 1100, 1846, 0], ["stair_up", 1184, 1752, 270], ["clock", 1478, 1420, 90], ["fissure", 900, 1600, 30],
   ["fissure", 1350, 1260, -20], ["bones", 1000, 1560, 40], ["bones", 300, 1550, 10], ["fissure", 450, 700, 70],
   ["bones", 1180, 760, -30], ["scorch", 1100, 300, 0], ["scorch", 1100, 800, 0]
  ],
@@ -69,6 +69,7 @@
  },
  "spots": {
   "landing": [1100, 1760],
+  "city_stair": [1130, 1752],
   "shrine": [1040, 1720],
   "hall_c": [1100, 1420],
   "hall_north": [1100, 1230],

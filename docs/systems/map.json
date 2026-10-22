@@ -28,7 +28,7 @@
       "docs": ["docs/systems/world.md"],
       "paths": [
         "scripts/world/map.gd", "scripts/world/world.gd", "scripts/world/people.gd",
-        "data/world/maps.json", "data/world/world.json", "data/world/props.json", "data/world/owners.json", "scripts/world/deeds.gd",
+        "data/world/maps.json", "data/world/world.json", "data/world/props.json", "data/world/owners.json", "scripts/world/deeds.gd", "scripts/world/gates.gd",
         "data/world/regions.json", "scripts/game/reach.gd",
         "scripts/world/weather.gd", "data/world/weather.json", "scripts/world/matter.gd", "data/materials.json",
         "scripts/world/cells.gd", "data/world/ground.json", "data/world/structures.json"
@@ -52,14 +52,14 @@
   },
   "content": {
     "_doc": "Content specs (index pages, not enforced): which doc describes the exempt content below. spec_check.py ignores this key.",
-    "docs/systems/content.md": ["data/world/map.json", "data/ruins/**", "data/world/people.json", "data/world/story/**", "data/world/ledger.json"],
+    "docs/systems/content.md": ["data/world/map.json", "data/ruins/**", "data/city/**", "data/world/people.json", "data/world/story/**", "data/world/ledger.json"],
     "docs/systems/art.md": ["data/visual.json", "scripts/view/**", "scripts/world/town_mesh.gd", "scripts/world/ruin_mesh.gd", "scripts/world/world_view.gd", "scripts/pixel_art.gd", "assets/**"]
   },
   "exempt": {
     "_doc": "Content and presentation: no spec change needed. Content that needs a new key or rule changes that key's system, which is mapped above.",
     "patterns": [
       "**/*.uid",
-      "data/world/map.json", "data/ruins/**", "data/world/people.json", "data/world/story/**",
+      "data/world/map.json", "data/ruins/**", "data/city/**", "data/world/people.json", "data/world/story/**",
       "data/world/ledger.json",
       "data/visual.json",
       "scripts/view/**", "scripts/world/town_mesh.gd", "scripts/world/ruin_mesh.gd",
