@@ -115,6 +115,9 @@ func _initialize() -> void:
 				"end_loop":
 					if not deaths.has(arg):
 						problems.append("%s: no death text for %s" % [where, arg])
+				"road":
+					if not root.get_node("Run").lives["roads"].has(arg):
+						problems.append("%s: no road %s in data/world/lives.json" % [where, arg])
 				"sound":
 					if not FileAccess.file_exists("res://assets/sfx/%s.wav" % arg):
 						problems.append("%s: no sound assets/sfx/%s.wav" % [where, arg])

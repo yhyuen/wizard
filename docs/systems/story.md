@@ -20,7 +20,9 @@ Tracker: S-1, W-1, R-2.*
   line, effect or outcome can start with `[condition]`.
 - **Effects:** `learn`, `set`, `clear`, `fight`, `wells`, `train`, `meditate`, `goto`, `end_loop`,
   `model`, `trial`, `sound`, `cutscene`, `move`, `take`, `sleep`, `book`, `today` (a once-a-day
-  action, for `done(op)`), `go <map> <spot>` or `go <exit>`, `open <door>`, `play_path <id>`.
+  action, for `done(op)`), `go <map> <spot>` or `go <exit>`, `open <door>`, `play_path <id>`, `road <id>` (take a road
+  for this life, [loop.md](loop.md)), `deed <id>` (a soul flag the Turning keeps; SEALED deeds
+  open roads). Conditions also have `on_road(id)` and `offered(id)`.
   A new effect or header key is a change to this spec.
 
 ## Playing them (`scripts/game/slice.gd`)

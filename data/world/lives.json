@@ -1,5 +1,5 @@
 {
- "_doc": "How a life goes (design/lives/lives-and-carryover-spec.md §3–4; build items N-1.2, N-1.3). endings: the causes that end a life (any calamity:<id> does too): the Eclipse, turning back the Hours at a shrine (turned), the build-end card and the first playable's end card; every other lost fight or story loss wakes you injured instead. turning_needs_calamity: the Hours can be turned back only once a calamity has passed in this life. insight: +1 at each Turning up to cap; each point adds per to all Practice gained. wake_injured: days that pass (wild_days if you fell on a map marked wild), the share of Vitality you can hold until your next full night's sleep, and the extra wind-up on the first spell of each fight while Injured.",
+ "_doc": "How a life goes (design/lives/lives-and-carryover-spec.md §3–4; build items N-1.2, N-1.3). endings: the causes that end a life (any calamity:<id> does too): the Eclipse, turning back the Hours at a shrine (turned), the build-end card and the first playable's end card; every other lost fight or story loss wakes you injured instead. turning_needs_calamity: the Hours can be turned back only once a calamity has passed in this life. insight: +1 at each Turning up to cap; each point adds per to all Practice gained. wake_injured: days that pass (wild_days if you fell on a map marked wild), the share of Vitality you can hold until your next full night's sleep, and the extra wind-up on the first spell of each fight while Injured. roads (lives spec §5): each road's name, power, school, starting cantrip and opens_by (a soul flag set by a deed with the story's deed effect, or empty for always open; the deeds are SEALED, owned by the story threads). Life 1 is always the Apprentice road; later lives take an offered road by accepting it (the story's road effect), or the Apprentice road on moon 1, day road_by_day. The road you took last life isn't offered again unless nothing else is. ledger_lines: the Ledger's line for the header of each life's page, by life number (SEALED, story text; empty until the story threads write them).",
  "endings": [
   "eclipse",
   "turned",
@@ -16,5 +16,23 @@
   "wild_days": 3,
   "vitality": 0.75,
   "windup": 0.2
- }
+ },
+ "roads": {
+  "apprentice": {
+   "name": "Apprentice",
+   "power": "The College of Hours",
+   "school": "Astral Rite",
+   "cantrip": "kindle",
+   "opens_by": ""
+  },
+  "lamplighter": {
+   "name": "Lamplighter",
+   "power": "The Lamplighters",
+   "school": "Spark Artifice",
+   "cantrip": "kindle",
+   "opens_by": "road_lamplighter"
+  }
+ },
+ "road_by_day": 7,
+ "ledger_lines": []
 }

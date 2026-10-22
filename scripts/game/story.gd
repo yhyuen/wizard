@@ -41,7 +41,7 @@ const MAPS := "res://data/world/maps.json"
 const HEADER_KEYS := ["place", "days", "times", "when", "force", "priority", "repeat", "known", "title", "slot", "backdrop",
 	"talk", "use", "arrive", "cast"]
 const EFFECTS := ["learn", "set", "clear", "fight", "wells", "train", "meditate", "goto", "end_loop",
-	"model", "trial", "sound", "cutscene", "move", "take", "sleep", "book", "today", "go", "open", "play_path"]
+	"model", "trial", "sound", "cutscene", "move", "take", "sleep", "book", "today", "go", "open", "play_path", "road", "deed"]
 
 var scenes := {}  # id -> scene dictionary
 var errors: Array = []  # parse errors, for the linter
@@ -66,6 +66,14 @@ class Ctx:
 
 	func seen(id: String) -> bool:
 		return run.seen(id)
+
+	## This life's road is `id` ("" before one is taken).
+	func on_road(id: String) -> bool:
+		return run.road() == id
+
+	## Road `id` offers itself this life (open, not taken last life, no road taken yet).
+	func offered(id: String) -> bool:
+		return id in run.road_offers()
 
 	## The Hours can be turned back (a calamity has passed in this life).
 	func can_turn() -> bool:

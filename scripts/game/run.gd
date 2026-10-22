@@ -43,7 +43,8 @@ func fresh_soul() -> Dictionary:
 
 ## The first morning of the next life: its number follows the soul's pages (save spec §5).
 func fresh_life() -> Dictionary:
-	return {"version": SAVE_VERSION, "n": soul.get("lives", []).size() + 1, "road": "apprentice",
+	var first: bool = (soul.get("lives", []) as Array).is_empty()
+	return {"version": SAVE_VERSION, "n": soul.get("lives", []).size() + 1, "road": "apprentice" if first else "", "deeds": [],
 		"day": 1, "time": 0, "flags": {}, "seen": {}, "learned": [], "dawn_done": false,
 		"injured": false, "losses": [], "calamities": []}
 
@@ -77,6 +78,37 @@ func pass_calamity(id: String) -> void:
 
 func insight() -> int:
 	return int(soul.get("insight", 0))
+
+
+# --- roads (lives spec §5) -----------------------------------------------------------
+
+## This life's road ("" until one is taken).
+func road() -> String:
+	return str(life.get("road", ""))
+
+
+func road_name(id := "") -> String:
+	id = id if id != "" else road()
+	return str(lives["roads"].get(id, {}).get("name", "no road yet"))
+
+
+## The roads offering themselves this life (none once a road is taken).
+func road_offers() -> Array:
+	return [] if road() != "" else Lives.offers(soul, lives)
+
+
+## Takes road `id` for the whole life. Returns false if it isn't on offer.
+func take_road(id: String) -> bool:
+	if road() != "" or not (id in road_offers() or (id == "apprentice" and lives["roads"].has(id))):
+		return false
+	life["road"] = id
+	return true
+
+
+## A deed done in this life: a soul flag the Turning keeps (it may open a road; SEALED content).
+func deed(id: String) -> void:
+	if not id in life["deeds"]:
+		life["deeds"].append(id)
 
 
 ## The pages of the lives already lived, oldest first.

@@ -511,7 +511,7 @@ func _carry(R) -> void:
 	var s: Dictionary = L.carry(soul, life, "eclipse", rules)
 	ok(s["known"].has("crack_order") and s["deaths"]["eclipse"] == 1, "the soul keeps what you know and counts the ending")
 	ok(s["echo"]["fling"] == 4 and s["revisions"]["fling"]["5"] == "split" and s["best_wells"] == 18, "the Echo, revisions and the most wells held carry")
-	ok(not s.has("flags") and not s.has("practice") and not s.has("wells"), "flags, Practice and wells stay with the life")
+	ok(not s["flags"].has("ring1") and not s.has("practice") and not s.has("wells"), "life flags, Practice and wells stay with the life")
 	ok(s["insight"] == 1 and s["lives"].size() == 1 and s["lives"][0]["moon"] == 2 and s["lives"][0]["time"] == "Dusk", "insight +1 and a page for the life")
 	ok(soul["lives"].is_empty() and not soul["echo"].has("fling"), "carry doesn't touch the soul it was given")
 	for i in 4:
@@ -521,6 +521,22 @@ func _carry(R) -> void:
 	ok(not L.can_turn(life, rules), "no Turning back the Hours before a calamity has passed")
 	life["calamities"] = ["lantern_night"]
 	ok(L.can_turn(life, rules), "a calamity passed lets you turn back the Hours")
+	# Roads (lives spec §5): life 1 is the Apprentice road; a deed opens another; last life's road
+	# isn't offered again unless nothing else is.
+	var s1: Dictionary = R.fresh_soul()
+	ok(L.offers(s1, rules).is_empty() and L.roads_open(s1, rules) == ["apprentice"], "a first life is offered no road but the Apprentice's")
+	var l1 := {"n": 1, "road": "apprentice", "deeds": ["road_lamplighter"]}
+	var s2: Dictionary = L.carry(s1, l1, "eclipse", rules)
+	ok(s2["lives"][0]["opened"] == ["lamplighter"] and L.offers(s2, rules) == ["lamplighter"], "a deed opens a road, and last life's road isn't offered")
+	var s3: Dictionary = L.carry(s2, {"n": 2, "road": "lamplighter"}, "eclipse", rules)
+	ok(L.offers(s3, rules) == ["apprentice"], "the next life is nudged back the other way")
+	var s4: Dictionary = L.carry(s3, {"n": 3, "road": "apprentice"}, "eclipse", rules)
+	ok(L.offers(s4, rules).size() == 2, "from life 4 every open road offers itself")
+	R.new_run()
+	ok(R.road() == "apprentice" and not R.take_road("lamplighter"), "life 1 walks the Apprentice road")
+	R.soul = s2
+	R.life = R.fresh_life()
+	ok(R.road() == "" and R.take_road("lamplighter") and R.road() == "lamplighter" and R.road_offers().is_empty(), "a later life takes an offered road for the whole year")
 	R.new_run()
 	R.soul = s
 	R.life = R.fresh_life()
