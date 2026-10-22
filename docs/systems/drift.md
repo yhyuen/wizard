@@ -15,6 +15,22 @@ tracker's `needs`.*
   written in the "Full game build plan" thread. Until code for it lands, the specs describe the
   ruins build, and the R rows on the tracker are parked.
 
+## Combat: the target spec vs the build
+
+The [spell and combat spec](/mnt/project-files/design/combat/spell-and-combat-spec.md) (2026-10-22,
+tracker M0-4) is the design for spells and fights in the long-loop direction. Its §14 is the full
+table; the big gaps:
+
+| Target spec says | As built | Where |
+| --- | --- | --- |
+| No free bolts: every spell has a wind-up, a cost and a cooldown; a weak staff strike is the only free attack | Bolts are free and fire while held | [combat.md](combat.md) |
+| Aether regen 3/s in a fight, refills fully only at rest; Overdraw adds Strain | 100 Aether, regen 12/s anywhere | [combat.md](combat.md) |
+| A 4-spell book plus 2 cantrips; Ward held on RMB | 6 slots; Ward on C with 2 charges | [combat.md](combat.md), [growth.md](growth.md) |
+| Focus: impact above it breaks a wind-up, for you and for enemies | No player interrupts | [combat.md](combat.md) |
+| Eight schools, each with its own casting act and rule | No schools; Spheres only | [combat.md](combat.md) |
+| One force × material table for props, tiles and units | Per-spell lists in `props.json` for fire, water, force, lightning | [world.md](world.md) |
+| Combined spells from two mastered schools | Magicks (old Mill fight only) | [combat.md](combat.md) |
+
 ## Known differences inside the build
 
 | Doc says | As built | Where |

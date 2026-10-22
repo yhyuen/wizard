@@ -5,6 +5,11 @@ spheres', 'What to look for'). Design: GDD 02 (magic) and 03 (combat) in
 `/mnt/project-files/design/gdd/`, [Readable Arsenal](/mnt/project-files/design/readable-arsenal.md)
 where the GDD is silent. Tracker: C-1 to C-5.*
 
+*Target for the long-loop direction: [spell and combat spec](/mnt/project-files/design/combat/spell-and-combat-spec.md)
+(tracker M0-4): cast wind-ups and interrupts, scarce Aether, a 4-spell book, eight schools, a
+force × material table. Nothing of it is built yet; its §14 lists today vs target, and
+[drift.md](drift.md) has the summary. Until code lands, this page is right about the game.*
+
 ## The fight
 
 - **One sim, flat and 2D.** `scripts/arena.gd` simulates every unit (`scripts/unit.gd`),
