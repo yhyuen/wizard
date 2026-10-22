@@ -38,7 +38,8 @@ It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `c
   `model`, `trial`, `sound`, `cutscene`, `move`, `take`, `sleep`, `book`, `today` (a once-a-day
   action, for `done(op)`), `go <map> <spot>` or `go <exit>`, `open <door>`, `play_path <id>`, `road <id>` (take a road
   for this life, [loop.md](loop.md)), `deed <id>` (a soul flag the Turning keeps; SEALED deeds
-  open roads), `omen <id>` (take an Omen for this life). Conditions also have `on_road(id)`,
+  open roads), `omen <id>` (take an Omen for this life), `forecast <who>` (that person says
+  tomorrow's weather, [world.md](world.md)). Conditions also have `on_road(id)`,
   `offered(id)`, `omen(id)`, `omens()`, `omens_offered()`, `ended(cause)`, `attended(id)` and `missed(id)` (fixed events, [loop.md](loop.md)) (only while a life's
   ending checks achievements). Achievements' conditions (`data/world/achievements.json`) are
   linted with the scenes'.

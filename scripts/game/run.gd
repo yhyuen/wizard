@@ -39,7 +39,7 @@ func _ready() -> void:
 func fresh_soul() -> Dictionary:
 	return {"version": SAVE_VERSION, "lives": [], "insight": 0, "known": {}, "deaths": {}, "trials": [],
 		"echo": {}, "revisions": {}, "best_wells": 0, "achievements": {}, "titles": [], "title": "",
-		"dates": {}, "appointments": {},
+		"dates": {}, "appointments": {}, "almanac": {}, "seed": randi() % 1000000 + 1,
 		"play_s": 0.0, "fps": {"sum": 0.0, "n": 0, "min": 0}}  # for the playtest run summary
 
 

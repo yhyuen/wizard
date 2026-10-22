@@ -15,6 +15,8 @@ const Story := preload("res://scripts/game/story.gd")
 const Growth := preload("res://scripts/game/growth.gd")
 const World := preload("res://scripts/world/world.gd")
 const Reach := preload("res://scripts/game/reach.gd")
+const Weather := preload("res://scripts/world/weather.gd")
+const Tris := preload("res://scripts/ui/tris.gd")
 const Achievements := preload("res://scripts/game/achievements.gd")
 const BuildId := preload("res://scripts/game/build_id.gd")
 ## Where playtesters send their notes (design/slice/README.md §5, M5).
@@ -38,6 +40,7 @@ var story
 var growth  # scripts/game/growth.gd: wells, Rings, Practice, the spellbook
 var world  # scripts/world/world.gd
 var reach  # scripts/game/reach.gd: regions, roads, the calendar's events
+var weather  # scripts/world/weather.gd: each region's weather, the Almanac
 var deeds  # scripts/game/achievements.gd: the achievements
 var deeds_t := 0.0  # seconds since the achievements were last checked
 var encounters: Dictionary = {}
@@ -49,6 +52,7 @@ var screen := "title"  # title, world, loading (the card between maps), death, h
 var load_to := {}  # while the loading card is up: {"map", "spot", "t"}
 var overlay := ""  # over the town: "", "map", "book", "ledger"
 var map_tab := 0  # in the map: 0 here, 1 the Reach (the region map), 2 the calendar
+var cal_moon := 0  # the moon the calendar shows (0: this one)
 var reach_pick := ""  # the region picked on the region map
 var ledger_tab := 0
 var ledger_q := ""  # the question picked in the Questions tab
@@ -93,6 +97,7 @@ func setup(the_main) -> void:
 	main_steps = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/main_line.json"))["steps"]
 	world = World.new(run, story)
 	reach = Reach.new(run, story)
+	weather = Weather.new(run)
 	deeds = Achievements.new(run, story)
 	world.busy = busy
 	run.learned.connect(_on_learned)
@@ -148,6 +153,7 @@ func begin_day() -> void:
 	growth.begin_fight()  # you can cast anywhere, so the day's Practice is lent all day
 	cur = {}
 	main.enter_world(world.map.spots["cot"])
+	weather.note(region())
 	main.arena.kit.rest()  # a night's sleep: full Aether, no Strain
 	_hurt_state()
 	world.reset_day()
@@ -264,6 +270,7 @@ func pass_days(n: int) -> bool:
 			play("eclipse")  # the second blast
 			return false
 		growth.end_fight()
+		weather.note(region())  # the days you rest or travel through count as lived
 		run.next_day()
 	return true
 
@@ -399,6 +406,7 @@ func go_map(id: String, spot: String) -> void:
 	pending = {}
 	_stop_talking()
 	world.load_map(id)
+	weather.note(region())
 	load_to = {"map": id, "spot": spot, "t": 0.0}
 	set_screen("loading")
 	main.change_map(world.map.spots[spot])
@@ -614,6 +622,8 @@ func _effect(op: String, arg: String) -> bool:
 				toast("You walk the %s road this year." % run.road_name(arg))
 		"deed":
 			run.deed(arg)
+		"forecast":
+			lines.append({"who": arg.capitalize(), "text": weather.forecast(region())})
 		"omen":
 			if run.take_omen(arg):
 				toast("Omen taken: %s." % run.lives["omens"][arg]["name"])
@@ -870,6 +880,7 @@ func toggle_ledger() -> void:
 func toggle_map() -> void:
 	if screen == "world" and cur.is_empty():
 		overlay = "" if overlay == "map" else "map"
+		cal_moon = 0
 
 
 # --- playtest ------------------------------------------------------------------------
@@ -1344,14 +1355,17 @@ func _draw_reach() -> void:
 ## The calendar (N-1.1): the year's 13 moons, this moon's four weeks by their weekday Spheres,
 ## the dates you know, and Rest until… for the next of them.
 func _draw_calendar() -> void:
+	var shown: int = cal_moon if cal_moon > 0 else run.moon()
 	title(MAP_RECT.position + Vector2(20, 22), "%s  ·  %s  ·  %s, %s" % [run.moon_name(), run.cal["moons"][run.moon() - 1]["season"], run.date_name(),
 		run.weekday()["name"]], 15, GOLD)
+	var here: String = region()
+	text(MAP_RECT.position + Vector2(470, 22), "Weather: " + weather.describe(here), 13, weather.color(weather.kind(here)))
 	var events: Array = reach.events()
 	var known_on := {}
 	for e in events:
 		if e["known"] or e["appointment"]:
 			known_on[int(e["day"])] = e
-	# the year: one row of moons
+	# the year: one row of moons (pick one to see its days)
 	var x0 := MAP_RECT.position.x + 30.0
 	for m in run.MOONS:
 		var c := Vector2(x0 + 22 + m * 62.0, MAP_RECT.position.y + 62)
@@ -1360,6 +1374,8 @@ func _draw_calendar() -> void:
 		draw_circle(c, 9.0, Color("dfe4f2", 0.75 if now else (0.18 if past else 0.4)))
 		if now:
 			draw_arc(c, 13.0, 0, TAU, 24, HAIR, 1.0)
+		if m + 1 == shown and not now:
+			draw_arc(c, 13.0, 0, TAU, 24, Color(GOLD, 0.8), 1.0)
 		for e in events:
 			if (e["known"] or e["appointment"]) and (int(e["day"]) - 1) / run.MOON_DAYS == m:
 				if e["kind"] == "calamity":
@@ -1367,14 +1383,16 @@ func _draw_calendar() -> void:
 					draw_arc(c + Vector2(8, -8), 4.5, 0, TAU, 12, Color(GOLD, 0.8), 1.0)
 				else:
 					draw_circle(c + Vector2(-8, -9), 2.2, SILVER if e["appointment"] else GOLD)
-		text(c + Vector2(-31, 26), run.moon_name(m + 1), 10, GOLD if now else DIM, HORIZONTAL_ALIGNMENT_CENTER, 62)
-	# this moon: four weeks of seven days
+		text(c + Vector2(-31, 26), run.moon_name(m + 1), 10, GOLD if m + 1 == shown else DIM, HORIZONTAL_ALIGNMENT_CENTER, 62)
+		buttons.append({"r": Rect2(c - Vector2(28, 14), Vector2(56, 44)), "act": func(): cal_moon = m + 1, "key": 0})
+	# the shown moon: four weeks of seven days, with the weather you know (the Almanac)
 	var gx := MAP_RECT.position.x + 40.0
 	var gy := MAP_RECT.position.y + 120.0
 	for wd in 7:
 		var w: Dictionary = run.weekday(wd + 1)
 		text(Vector2(gx + wd * 62.0, gy), str(w["sphere"]).capitalize(), 11, Color(w["color"]), HORIZONTAL_ALIGNMENT_CENTER, 58)
-	var first: int = run.day_of(run.moon(), 1)
+	var first: int = run.day_of(shown, 1)
+	var g := Tris.new()
 	for i in run.MOON_DAYS:
 		var d: int = first + i
 		var cell := Rect2(gx + (i % 7) * 62.0, gy + 10 + (i / 7) * 52.0, 58, 46)
@@ -1382,6 +1400,9 @@ func _draw_calendar() -> void:
 		draw_rect(cell, Color(Color(w["color"]), 0.12 if d == run.day() else 0.04))
 		draw_rect(cell, Color(HAIR, 0.8 if d == run.day() else 0.18), false, 1.0)
 		text(cell.position + Vector2(6, 15), str(i + 1), 12, PAPER if d >= run.day() else DIM)
+		var wk: String = weather.known(here, d)
+		if wk != "":
+			Weather.glyph(g, wk, cell.position + Vector2(29, 11), 5.5, Color(weather.color(wk), 0.5 if d < run.day() else 0.95))
 		if known_on.has(d):
 			var ev: Dictionary = known_on[d]
 			var pc: Color = SILVER if ev["appointment"] else GOLD  # appointments silver, fixed events gold
@@ -1392,6 +1413,8 @@ func _draw_calendar() -> void:
 				draw_line(cell.position + Vector2(46, 8), cell.position + Vector2(46, 16), pc, 1.0)
 				draw_circle(cell.position + Vector2(46, 7), 3.0, pc)
 			para(cell.position + Vector2(4, 30), str(ev["name"]), 54, 9, pc)
+	g.flush(get_canvas_item())
+	text(Vector2(gx, gy + 10 + 4 * 52.0 + 10), "Weather glyphs: today, what Aldous forecast, and the days you have lived here in any life.", 11, DIM)
 	# Rest until…
 	var rx := MAP_RECT.position.x + 490.0
 	var ry := gy

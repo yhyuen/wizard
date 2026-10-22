@@ -300,6 +300,9 @@ func _draw_moons() -> void:
 	var known := ""
 	for e in main.slice.reach.events():
 		known += ("2" if e["appointment"] else "1") if e["known"] else "0"
+	var sl = main.slice
+	var here: String = sl.region()
+	known += "/%s/%s" % [sl.weather.kind(here), sl.weather.known(here, run.day() + 1)]
 	var key := "%d/%d/%s" % [run.day(), run.time(), known]
 	_g.cached(get_canvas_item(), "moons", key, _moon_shapes.bind(run.day(), run.time()))
 	if main.mode == "fight":
@@ -309,7 +312,8 @@ func _draw_moons() -> void:
 			int(arena.stats["damage_taken"]), int(arena.stats["kills"])], 11, Color(HAIR, 0.85), HORIZONTAL_ALIGNMENT_CENTER, 960)
 		return
 	var w = main.world
-	_title(Vector2(0, 48), "%s   ·   %s   ·   %s   ·   %s" % [run.moon_name(), run.date_name(), run.weekday()["name"], w.map.place_name(w.here)],
+	_title(Vector2(0, 48), "%s   ·   %s   ·   %s   ·   %s   ·   %s" % [run.moon_name(), run.date_name(), run.weekday()["name"],
+		sl.weather.kind_name(sl.weather.kind(here)), w.map.place_name(w.here)],
 		12, Color(HAIR, 0.9), HORIZONTAL_ALIGNMENT_CENTER, 960)
 
 
@@ -322,7 +326,7 @@ const WEEK_GAP := 4.0
 func _moon_shapes(day: int, time: int) -> void:
 	var run = main.slice.run
 	var moon: int = run.moon()
-	var width: float = run.MOONS * MOON_STEP + 10.0 + run.MOON_DAYS * DAY_STEP + 3 * WEEK_GAP + 20.0 + 26.0
+	var width: float = run.MOONS * MOON_STEP + 10.0 + run.MOON_DAYS * DAY_STEP + 3 * WEEK_GAP + 20.0 + 26.0 + 36.0
 	var x0 := 480.0 - width / 2.0
 	var strip := Rect2(x0 - 8, 10, width + 16, 22)
 	_g.rect(strip, Color(BG, 0.55))
@@ -374,6 +378,14 @@ func _moon_shapes(day: int, time: int) -> void:
 	var ang := PI + PI * float(time) / 4.0
 	_g.line(dc, dc + Vector2.from_angle(ang) * 7.0, HAIR, 1.5)
 	_g.circle(dc + Vector2.from_angle(ang) * 7.0, 1.8, Color(PixelArt.GOLD, 0.9))
+	# the weather (seasons spec §3.5): today's glyph, and tomorrow's once Aldous has told you
+	var wx = main.slice.weather
+	var here: String = main.slice.region()
+	var today: String = wx.kind(here)
+	wx.glyph(_g, today, Vector2(dc.x + 20.0, 21), 5.5, wx.color(today))
+	var tomorrow: String = wx.known(here, day + 1) if day < run.LAST_DAY else ""
+	if tomorrow != "":
+		wx.glyph(_g, tomorrow, Vector2(dc.x + 36.0, 22), 3.8, Color(wx.color(tomorrow), 0.55))
 
 
 func _diamond(c: Vector2, r: float, col: Color, filled := true) -> void:

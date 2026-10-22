@@ -40,11 +40,13 @@ Reach and Calendar tabs (§5.5).*
   can't fill drawn red.
 - **The calendar row** (top centre): the 13 moons (this one ringed, past ones dim), then this
   moon's 28 days as four weeks of dots in their weekday Sphere's colour, today ringed, known
-  calamities as dark discs, the Great Eclipse as a black sun, and a dial for the time of day. Under
-  it: moon name, date, weekday and place; in a fight, the date and the fight's numbers.
+  calamities as dark discs, the Great Eclipse as a black sun, a dial for the time of day, today's
+  weather glyph and, once Aldous has told you, tomorrow's ([world.md](world.md)). Under it: moon
+  name, date, weekday, weather and place; in a fight, the date and the fight's numbers.
 - **The map** (M, `scripts/game/slice.gd`) has three tabs (1–3, or click): **Here** (this map,
   as built), **The Reach** (the region map and travel, [world.md](world.md)) and **Calendar**
-  (the year's moons, this moon's weeks by weekday, known dates, Rest until…, [loop.md](loop.md)).
+  (the year's moons, click one to see its weeks by weekday, known dates, the weather glyphs you
+  know, today's weather, Rest until…, [loop.md](loop.md)).
 - **The Ledger** (L) has seven tabs (1–7): Questions, Clues, People, Insights, **Appointments**
   (missed fixed events, with date, place and who), **Lives** (a page per life lived) and **Deeds**
   (achievements and titles, [loop.md](loop.md)).
