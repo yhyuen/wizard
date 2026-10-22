@@ -102,6 +102,7 @@
   "tam_fence": {"kind": "clue", "title": "Two on the watch", "text": "Tam went to the east fence for the goat on the night of Seedmoon 12, and the watch was short. In my own hand, under the first line: \"Tam. Night of Seedmoon 12. East fence. Two on the watch.\""},
   "mill_below": {"kind": "clue", "title": "What came up", "text": "Aldous says that before the dark sat down in his cellar, something cold came up through the floor and went past him on the stair, like a draught that knew where it was going."},
   "rails_flare": {"kind": "insight", "title": "Iron lamps flare", "text": "Fennick: lightning runs along the iron rail between the market's lamps and flares every lamp on that circuit. Wet iron carries it further; two circuits joined, it runs both."},
+  "lantern_night": {"kind": "clue", "title": "Lantern Night", "text": "On the night of Seedmoon 28 every lamp in the Lantern Market went out, one after another down the rails, and the Hollows came up out of the city into the dark."},
   "alignment": {"kind": "insight", "title": "One honest second", "text": "Stand still on a star stone for one honest second and the figure sharpens: the spell runs further and straighter. Marrow teaches on the Sun's day."},
   "fennick": {"kind": "person", "title": "Fennick Brass", "text": "Guild artificer up from Lantern Quay. Runs the Lantern Market and sells everything, out of forty pockets."},
   "bett": {"kind": "person", "title": "Bett", "text": "Aldous's wife. Runs the camp kitchen and feeds whoever comes."},
@@ -302,6 +303,8 @@
  },
  "deaths": {
   "patrol": "The Hollows in the ruins were too many.",
+  "calamity:lantern_night": "The lamps went out, and the dark came up the stair, and you were in it.",
+  "build_end": "The rest of the year comes with Ring 2.",
   "fall": "The stair aged under you, a hundred years in a heartbeat, and you fell.",
   "eclipse": "The Eclipse came, and the Orrery's heart woke a second time.",
   "turned": "You stopped the rings at the shrine and turned back the Hours.",

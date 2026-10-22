@@ -6,7 +6,8 @@ extends SceneTree
 ##
 ## Each fight is started the way the game starts it (in place, with its spawns from its map, and
 ## the day's growth lent to the fight) and must end within its time limit; a fight with "survive"
-## must last at least that long. Fights are played as a fresh loop-1 Apprentice and as a "strong"
+## must last at least that long (a calamity's Peak gets its own time limit).
+## Fights are played as a fresh loop-1 Apprentice and as a "strong"
 ## wizard (4th Ring, Practice 10). REQUIRE names results the design rests on (none yet: R2 adds
 ## the halls' fights); the rest are printed for tuning.
 ##
@@ -22,7 +23,7 @@ const FRAME_BUDGET := 8.0  # ms
 ## (its `place` [map, place, spot], N-7.1.6) starts at its spot instead.
 const AT := {"patrol": ["camp", "yard_c"], "hall_fight": ["halls", "hall_c"], "refectory_fight": ["halls", "refectory_c"],
 	"gallery_fight": ["halls", "gallery_c"], "ante_fight": ["halls", "ante_c"], "warden": ["halls", "kiln_s"],
-	"lamp_night": ["camp", "yard_c"]}
+	"lamp_night": ["camp", "yard_c"], "c1_peak": ["camp", "great_lamp"]}
 ## The Kiln Warden is a trial (design/ruins/content.md §4): a fresh Apprentice who walks in
 ## without turning the sluice loses; with the sluice turned, a wizard who has worked at it wins.
 const REQUIRE := {"warden fresh": false, "warden strong+flooded": true}
@@ -77,9 +78,13 @@ func _process(_dt: float) -> bool:
 	if frames > 30 and last_us > 0:
 		frame_ms.append((now - last_us) / 1000.0)
 	last_us = now
-	if frames > LIMIT:
+	if i >= cases.size():
+		return false  # all done: quitting
+	# A calamity's Peak lasts longer than any other fight: its own time, and a little more.
+	var limit: int = maxi(LIMIT, int((float(encounters[cases[i]["id"]].get("survive", 0)) + 30.0) * 60.0))
+	if frames > limit:
 		var left: Array = main.arena.enemies().map(func(u): return "%s at %s" % [u.kind, str(u.pos.round())])
-		fails.append("%s did not end within %d s (left: %s, you at %s)" % [_name(cases[i]), LIMIT / 60, ", ".join(left), str(main.arena.player.pos.round())])
+		fails.append("%s did not end within %d s (left: %s, you at %s)" % [_name(cases[i]), limit / 60, ", ".join(left), str(main.arena.player.pos.round())])
 		_next()
 	return false
 

@@ -187,7 +187,10 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   (up to 0.35 rad off its aim; the telegraph line shows where it really goes), and when Broken
   **leaks** a violet pool of 20 Aether, 12/s to you while you stand in it, for 5 s. Encounter
   `lamp_night` is the Lantern-eater and Choir with Hollows, then the Husk, for the fight tests;
-  in the world they come in the depot, square_choir and glassworks fights.
+  in the world they come in the depot, square_choir and glassworks fights. Encounter `c1_peak` is
+  Lantern Night's Peak (N-7.5.1): three waves over 480 s in the camp (Hollows and Slingers;
+  Lantern-eaters, a Choir and Hollows; Husks, Hollows, a Lantern-eater and Slingers), up to 24
+  alive; losing it ends the life (`cause` `calamity:lantern_night`). The boss is N-7.5.2.
 - **Brigands** (N-6.3, enemy spec §8.2; minds, guard, keg and net in `scripts/brigands.gd`, flesh
   bodies): the **Cutthroat** (Minion) stabs with a lunge and backs off; the **Crossbowman**
   (Soldier) keeps 170 px off, shoots a bolt (Impact 2, the Ward stops it) and stands reloading 3 s

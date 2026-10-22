@@ -21,9 +21,10 @@ const ROUTES := {
 	"fight:ante_fight": "antechamber",
 	"fight:warden": "warden_fight",
 	"fall": "daybook_study",
+	"calamity:lantern_night": "lantern_night_onset",
 }
 const GENERIC := ["fight"]  # the fallback text for a lethal fight with no death scene of its own
-const NOT_DEATHS := ["first_playable_end"]  # the end card, reached by winning
+const NOT_DEATHS := ["first_playable_end", "build_end"]  # the end cards, reached by winning or a Dawn
 
 var main
 var slice
