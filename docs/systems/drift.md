@@ -101,3 +101,18 @@ saving and the screen. Each has a "today vs target" section; the big gaps:
 ## Questions for Harold
 
 None open from this pass; the open question is the direction itself (tracker M0-3).
+
+## Powers and reputation: the target spec vs the build
+
+The [powers and reputation spec](/mnt/project-files/design/powers/powers-and-reputation-spec.md)
+(2026-10-22, tracker M0-14) is the design for factions, ranks, fame and blame. Its §14 is the full
+table; none of it is built:
+
+| Target spec says | As built | Where |
+| --- | --- | --- |
+| Standing −100 to +100 per power in seven tiers, moved by one deed stream (temperaments, duties, damage), with ripples to allies and feuds | No powers or standing | [story.md](story.md), [world.md](world.md) |
+| A road power with ranks Initiate to Grandmaster: merit, standing, Ring, school mastery and a dated exam; one Associate power | No ranks or exams | [story.md](story.md) |
+| Fame and infamy from witnessed deeds only, news travelling by road days, nicknames | No fame | [world.md](world.md) |
+| The reaction ladder with numbers, suspicion for unwitnessed damage, amends within 3 days, fines and bounties | People flinch and complain; the captain scolds fire | [world.md](world.md) |
+| One named rival per road who duels you before each rank exam | No rivals | [story.md](story.md) |
+
