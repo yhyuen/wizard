@@ -4,6 +4,12 @@
 playable's rules and success criteria), [design/ruins/content.md](/mnt/project-files/design/ruins/content.md)
 §6 (the Ledger). Design: GDD 01 and 04. Tracker: S-1 (the two-layer save, deductions), R-1, R-2.*
 
+*Target for the long-loop direction: the [lives, carry-over and achievements spec](/mnt/project-files/design/lives/lives-and-carryover-spec.md) (tracker M0-10: a year of 13 moons, three
+ways a life ends, waking injured, the soul/life carry table, insight, roads, achievements) and the
+[save system spec](/mnt/project-files/design/lives/save-spec.md) (tracker M0-11: three slots, soul / life / map-damage files, the crash-proof
+Turning, save moments, versions, desktop and browser); visual page [Lives, Saves and HUD Atlas](https://claude.ai/artifact/7H3xpu7YpYVzGmtDRUq8fK). Nothing of it is built yet;
+[drift.md](drift.md) has the summary. Until code lands, this page is right about the game.*
+
 ## Two layers of state (`scripts/game/run.gd`, the `Run` autoload)
 
 - **`mem`** is what you remember and keeps across loops: the loop number, known Ledger entries,
