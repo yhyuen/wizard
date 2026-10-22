@@ -59,7 +59,9 @@ Reach and Calendar tabs (§5.5).*
   rank (`_on_school_ranked`). The spellbook
   screen shows each slot's stage, level and grade, the picked slot's next trials, and "(not yet)"
   on a Model whose prerequisites aren't met, your school and rank in its header and the extra cost
-  ("+25%") on a Model outside your school ([growth.md](growth.md)).
+  ("+25%") on a Model outside your school ([growth.md](growth.md)). A device shows "2 / 3
+  charges" on its slot and Model, the header lists your reagents, the HUD star shows its charges
+  in place of an Aether cost (red at 0), and salvage picked up toasts ("Salvage: 1 glass vial").
 - **Screens:** title, loading card, the end card (a life ends; screen id `death`) and the hurt screen (a fall
   that wakes you Injured, [loop.md](loop.md)). The spellbook bar is the UI spec's stand-in
   (`/mnt/project-files/design/ui/ui-hud-spec.md` §10) until its §3.1 bar is built. Shapes are drawn as one triangle batch

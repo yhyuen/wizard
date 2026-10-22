@@ -128,6 +128,17 @@ func make_rubble(i: int) -> void:
 		burning.erase(i)
 
 
+## Tar thrown on cell `i` (the Tar Pot): it is oil now, catches at Fire I and burns long.
+func tar(i: int) -> bool:
+	if i < 0 or burn[i] > 0.0 or mats[mat[i]] == "water":
+		return false
+	var o := mats.find("oil")
+	mat[i] = o
+	fuel[i] = float(mdef[o].get("fuel_s", 0.0))
+	wet[i] = 0.0
+	return true
+
+
 func is_wet(i: int) -> bool:
 	return wet[i] > 0.0 or (raining and not indoors) or mats[mat[i]] == "water"
 

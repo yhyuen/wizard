@@ -492,6 +492,9 @@ func handle_requests() -> void:
 			"scene":
 				if not run.seen(r["id"]):
 					play(r["id"])
+			"salvage":
+				growth.add_reagents(r["got"])
+				toast("Salvage: " + _reagent_list(r["got"]))
 			"cast":
 				var s: String = story.cast_scene(r["item"], r["element"])
 				if s != "":
@@ -622,10 +625,27 @@ func _effect(op: String, arg: String) -> bool:
 			run.life["done_" + arg] = run.day()
 		"road":
 			if run.take_road(arg):
+				growth.take_road_kit(arg)
 				growth.refresh()
 				toast("You walk the %s road this year." % run.road_name(arg))
 		"deed":
 			run.deed(arg)
+		"bench":
+			if arg == "stock":
+				var st: Dictionary = growth.prog.schools["devices"]["starter"]
+				growth.add_reagents(st)
+				toast("Stock: " + _reagent_list(st))
+			else:
+				var got: Dictionary = growth.refill()
+				if got.is_empty():
+					toast("Nothing to fill: your devices are full, or you lack the reagents.")
+				else:
+					var parts: Array = []
+					for id in got:
+						parts.append("%s +%d" % [growth.prog.spell(id)["name"], int(got[id])])
+					toast("At the bench: " + ", ".join(parts))
+					growth.refresh()
+					after.append("period")  # an hour's work, a time of day here
 		"forecast":
 			lines.append({"who": arg.capitalize(), "text": weather.forecast(region())})
 		"omen":
@@ -868,6 +888,15 @@ func entries_of(kind: String) -> Array:
 		if ledger.has(id) and ledger[id]["kind"] == kind:
 			out.append(id)
 	return out
+
+
+## "2 lamp oil, 1 glass vial".
+func _reagent_list(got: Dictionary) -> String:
+	var names: Dictionary = growth.prog.schools["devices"]["reagents"]
+	var parts: Array = []
+	for k in got:
+		parts.append("%d %s" % [int(got[k]), names.get(k, k)])
+	return ", ".join(parts)
 
 
 func toast(s: String, gold := false) -> void:
@@ -1469,6 +1498,13 @@ func _draw_book() -> void:
 		bits.append("insight +%d%%" % roundi(growth.fluency() * 100.0))
 	if not bits.is_empty():
 		next += ("  " if next != "" else "") + "Echo: " + ", ".join(bits) + "."
+	if not growth.known_devices().is_empty():
+		var have := {}
+		for k in growth.reagents():
+			if int(growth.reagents()[k]) > 0:
+				have[k] = growth.reagents()[k]
+		var stock := _reagent_list(have)
+		next += ("  " if next != "" else "") + "Stock: " + (stock if stock != "" else "none") + "."
 	text(at + Vector2(0, 24), next, 13, DIM)
 	at += Vector2(0, 58)
 	title(at, "Spellbook", 15, PAPER)
@@ -1483,7 +1519,9 @@ func _draw_book() -> void:
 		if open:
 			var nm: String = growth.prog.spell(book[i])["name"] if id != "" else "(empty)"
 			text(rr.position + Vector2(0, 20), nm, 13, PAPER, HORIZONTAL_ALIGNMENT_CENTER, rr.size.x)
-			if id != "":
+			if id != "" and growth.prog.is_device(id):
+				text(rr.position + Vector2(0, 38), "%d / %d charges" % [int(growth.devices().get(id, 0)), growth.device_cap(id)], 11, DIM, HORIZONTAL_ALIGNMENT_CENTER, rr.size.x)
+			elif id != "":
 				text(rr.position + Vector2(0, 38), "%s %d  ·  grade %s" % [growth.prog.stage_name(growth.prog.stage(id)), growth.level(id),
 					["I", "II", "III", "IV", "V"][growth.prog.grade(id) - 1]], 11, DIM, HORIZONTAL_ALIGNMENT_CENTER, rr.size.x)
 			buttons.append({"r": rr, "act": _pick_slot.bind(i), "key": i + 1})
@@ -1513,6 +1551,8 @@ func _draw_book() -> void:
 			label += "  (%s)" % growth.ring_name(growth.tier_ring(id)).trim_suffix(" Ring")
 		elif not ok:
 			label += "  (not yet)"  # its prerequisites (spell spec §6.5)
+		elif growth.prog.is_device(id):
+			label += "  %d/%d" % [int(growth.devices().get(id, 0)), growth.device_cap(id)]  # charges (economy spec §5.3)
 		elif growth.prog.school_k(id) > 1.0:
 			label += "  +%d%%" % roundi((growth.prog.school_k(id) - 1.0) * 100.0)  # outside your school (spec §5.1)
 		button(rr, label, _put_model.bind(id), 0, 12, ok and book_slot < growth.slots())

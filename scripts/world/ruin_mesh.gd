@@ -338,6 +338,16 @@ func _dressing(kind: String, at2: Vector2, rot: float) -> void:
 			for k in 3:
 				put.call(Vector3(0.05, 0.7, 0.05), Vector3(-0.3 + k * 0.25, 0.75, 0.1 * (k - 1)), c("timber").darkened(0.2))
 			put.call(Vector3(0.22, 0.22, 0.02), Vector3(0, 0.35, 0.36), c("brass"), true)  # the stamped rune
+		"bench":
+			# the Lamplighters' bench: a trestle table, a vice, a spirit lamp and a rack of flasks
+			put.call(Vector3(1.6, 0.08, 0.7), Vector3(0, 0.85, 0), c("timber"))
+			for sx in [-1.0, 1.0]:
+				put.call(Vector3(0.08, 0.85, 0.6), Vector3(sx * 0.7, 0.42, 0), c("timber").darkened(0.2))
+			put.call(Vector3(0.2, 0.2, 0.14), Vector3(-0.55, 1.0, 0.1), c("iron"))
+			put.call(Vector3(0.1, 0.16, 0.1), Vector3(0.0, 0.97, -0.15), c("brass"))
+			put.call(Vector3(0.05, 0.07, 0.05), Vector3(0.0, 1.09, -0.15), Color("ffd36b"), true)
+			for k in 4:
+				put.call(Vector3(0.09, 0.2, 0.09), Vector3(0.25 + k * 0.13, 0.99, 0.15), Color("f08a3c") if k % 2 == 0 else Color("8fe8ff"), true)
 		"barrier":
 			for sx in [-1.0, 1.0]:
 				put.call(Vector3(0.1, 1.0, 0.5), Vector3(sx * 1.5, 0.5, 0), c("timber"))

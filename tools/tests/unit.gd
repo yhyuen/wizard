@@ -119,6 +119,7 @@ func _run() -> void:
 	_kit(P)
 	_growth(P)
 	_schools(P)
+	_devices(P)
 	_world()
 	_year()
 	print("[unit] %d check(s), %d failed" % [checks, fails])
@@ -557,6 +558,48 @@ func _schools(P) -> void:
 	P.align = "spark"
 	ok(is_equal_approx(P.reach("spark"), P.stat("spark", "range", P.level("spark")) * 1.3), "on a spell with a range track too")
 	P.align = ""
+	R.new_run()
+
+
+## Spark Artifice (spell spec §7, economy spec §5; N-5.2): devices spend charges, not Aether; the
+## road's kit; refilling at a bench from reagents; the outside-school reagent cost; salvage data.
+func _devices(P) -> void:
+	var R = root.get_node("Run")
+	R.new_run()
+	var G = load("res://scripts/game/growth.gd").new(R, P)
+	var devs: Array = P.data["spells"].keys().filter(func(id): return P.is_device(id))
+	ok(devs.size() == 4 and devs.all(func(id): return P.school_of(id) == "spark_artifice" and P.spell(id).has("reagents")), "four devices, all Spark Artifice, each with its reagents")
+	ok(P.spell_for("fire", "bolt") == "ember_bolt", "a device never stands in for a sphere's own bolt")
+	ok(G.known_devices().is_empty(), "an Apprentice knows no devices")
+	R.life["road"] = ""
+	R.life["deeds"] = []
+	R.soul["lives"] = [{"deeds": ["road_lamplighter"]}]
+	R.life["road"] = "lamplighter"
+	G.take_road_kit("lamplighter")
+	ok(G.known_devices().size() == 4 and int(G.devices()["spark_flask"]) == 3 and int(G.reagents()["oil"]) == 4, "the Lamplighter road starts with its devices, 3 flasks and reagents")
+	G.begin_fight()
+	ok(P.charges("spark_flask") == 3 and P.use_charge("spark_flask") and int(G.devices()["spark_flask"]) == 2, "a throw spends this life's charge")
+	G.devices()["spark_flask"] = 0
+	ok(P.charges("spark_flask") == 0 and not P.use_charge("spark_flask"), "an empty device can't be thrown")
+	G.end_fight()
+	ok(P.charges("spark_flask") == -1, "outside the slice's rules nothing counts charges")
+	ok(G.charge_cost("spark_flask") == {"oil": 1, "glass": 1}, "on its own road a flask costs 1 oil and 1 glass")
+	var got: Dictionary = G.refill()
+	ok(int(got.get("spark_flask", 0)) == 3 and int(G.reagents()["oil"]) == 1 and int(G.reagents()["glass"]) == 1, "the bench fills the flask to its cap from the reagents")
+	ok(G.refill().is_empty(), "nothing to fill when the devices are full or the reagents short")
+	G.devices()["spark_flask"] = 0
+	G.reagents()["oil"] = 1
+	G.reagents()["glass"] = 4
+	ok(int(G.refill().get("spark_flask", 0)) == 1, "the bench stops where the reagents run out")
+	G.practice()["spark_flask"]["stage"] = 1
+	ok(G.device_cap("spark_flask") == 4, "a breakthrough holds one more charge")
+	R.life["road"] = "apprentice"
+	R.life["schools"] = {}
+	ok(G.charge_cost("spark_flask") == {"oil": 2, "glass": 2}, "never trained in it: double the reagents")
+	R.life["schools"] = {"spark_artifice": {"rank": 0, "progress": 0.0}}
+	ok(G.charge_cost("spark_flask") == {"oil": 2, "glass": 1}, "trained but on another road: one more oil")
+	var props: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/props.json"))["kinds"]
+	ok(props["crate"]["salvage"].has("glass") and props["barrel"]["salvage"].has("oil"), "broken crates and barrels leave salvage")
 	R.new_run()
 
 

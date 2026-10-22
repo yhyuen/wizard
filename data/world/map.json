@@ -124,6 +124,7 @@
   "cot": {"name": "Your cot", "at": [990, 1160], "verb": "Use", "reach": 26},
   "dwarf_crate": {"name": "The dwarves' salvage crate", "at": [1188, 1066], "verb": "Look", "reach": 28},
   "targets": {"name": "The watch's straw targets", "at": [1745, 1050], "verb": "Train", "reach": 30},
+  "bench": {"name": "The Lamplighters' bench", "at": [930, 966], "verb": "Work at", "reach": 28},
   "east_gate": {"name": "The east gate", "at": [2104, 1030], "verb": "Look", "reach": 34}
  },
  "spawns": {"patrol": {"ring": [150, 200]}},
@@ -143,7 +144,7 @@
   [940, 1120, 90, "canvas2"], [1540, 1120, 0, "canvas"], [1720, 960, 90, "canvas2"], [1720, 1130, 0, "canvas"]
  ],
  "dressing": [
-  ["cot", 990, 1164, 0], ["tool_crate", 1188, 1066, 20], ["barrier", 1000, 872, 0], ["targets", 1745, 1050, 0],
+  ["cot", 990, 1164, 0], ["tool_crate", 1188, 1066, 20], ["bench", 930, 960, 0], ["barrier", 1000, 872, 0], ["targets", 1745, 1050, 0],
   ["fissure", 760, 560, 20], ["fissure", 1060, 640, -60], ["fissure", 900, 700, 10], ["scorch", 1000, 600, 0],
   ["scorch", 760, 460, 0], ["scorch", 1180, 470, 0]
  ]

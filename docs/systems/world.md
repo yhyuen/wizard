@@ -136,6 +136,12 @@ grid, breaking and collapse, damage that lasts the life, owners and witnesses. W
   and braziers, sets props burning) and Douse like a splash all round its point (puts out props,
   lamps, braziers and burning patches). The **staff strike** shoves the prop in front of it.
 - A lit or flaring lamp's pool (`light_r` 38) keeps `light_shy` kinds out.
+- **Devices** (N-5.2, [combat.md](combat.md)): a Spark Flask's burst is a `flask` mark that acts
+  like Pillar's fire (ground, props, lamps, braziers). A Tar Pot turns the cells under its pool to
+  **oil** (`cells.gd` `tar`: catches at Fire I, burns 12 s); fire touching the pool lights it all.
+- **Salvage** (`props.json` `salvage`, `salvage_reach` 80): a prop that breaks within 80 px of you
+  leaves reagents you pick up at once (a toast): crate 1 glass, barrel 1 oil, cart 1 copper wire.
+  It ignores who owned it (owners and witnesses are N-4.4).
 
 ### Supports and collapse (`data/world/structures.json`)
 
@@ -198,8 +204,10 @@ ice on the cells, mud from water on earth.*
 one coin (crowns), shops with weekly stock and one price formula (ring, season, scarcity, standing,
 infamy), gear slots with fixed tiers and traits, reagents, salvage and benches, Spark Artifice device
 charges, commissions, homes and loans, and repair crews who rebuild owned props on the environment
-spec's timers using each town's stock. Money, gear and the home reset each life. None of it is built
-yet; the gaps are in [drift.md](drift.md).*
+spec's timers using each town's stock. Money, gear and the home reset each life. Built so far: the
+Spark Artifice part (reagents, salvage, the Lamplighters' bench and device charges, N-5.2: see
+[growth.md](growth.md) "Devices" and "Salvage" above); the rest is not, and the gaps are in
+[drift.md](drift.md).*
 
 ## Tests
 

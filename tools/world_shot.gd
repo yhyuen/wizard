@@ -138,6 +138,16 @@ func _process(_dt: float) -> bool:
 			W._break(st["supports"][0])
 		557:
 			_shot("09b_gallery_falls")
+			# Spark Artifice (N-5.2): a tar pool going up under a flask, an arc rod and a smoke cloud.
+			_go(sp["market_c"] + Vector2(0, -20), 2, 4)
+			var K = main.arena.kit
+			var at: Vector2 = main.arena.player.pos + Vector2(70, -10)
+			K.ar.detonate({"kind": "throw", "device": "tar_pot", "pos": at, "r": 26.0})
+			K.ar.detonate({"kind": "throw", "device": "spark_flask", "pos": at + Vector2(10, 0), "r": 16.0})
+			K.ar.detonate({"kind": "throw", "device": "arc_rod", "pos": main.arena.player.pos + Vector2(-60, -30), "r": 50.0})
+			K.ar.detonate({"kind": "throw", "device": "smoke_jar", "pos": main.arena.player.pos + Vector2(-20, 60), "r": 28.0})
+		559:
+			_shot("09c_devices")
 			slice.overlay = "map"
 		560:
 			_shot("10_camp_map")

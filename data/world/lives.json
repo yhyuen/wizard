@@ -30,7 +30,8 @@
    "power": "The Lamplighters",
    "school": "spark_artifice",
    "cantrip": "kindle",
-   "opens_by": "road_lamplighter"
+   "opens_by": "road_lamplighter",
+   "kit": {"models": ["spark_flask", "arc_rod", "smoke_jar", "tar_pot"], "charges": {"spark_flask": 3}, "reagents": {"oil": 4, "glass": 4}}
   }
  },
  "road_by_day": 7,

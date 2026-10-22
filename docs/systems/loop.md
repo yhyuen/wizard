@@ -146,7 +146,11 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
   takes one for the year (`on_road`, `offered` conditions). With none taken by moon 1, day
   `road_by_day` (7), the College's intake puts you on the Apprentice road.
 - `soul.flags` (deeds), `roads_played`, `last_road`; `life.road`, `life.deeds`. What a road sets
-  (school, master, ladder, quests, cantrip) comes with the schools (N-5) and Ring 1 (N-7).
+  (school, master, ladder, quests, cantrip) comes with the schools (N-5) and Ring 1 (N-7). Built: its
+  school (N-5.1) and its starting `kit` (N-5.2: the Lamplighter road teaches the four devices and
+  starts with charges and reagents, `growth.take_road_kit`, run by the `road` effect).
+- `life.devices` and `life.reagents` (N-5.2, [growth.md](growth.md) "Devices") reset with the
+  life; the device Models you learned stay known.
 - **Any other loss** (a lethal fight lost, or a story `end_loop` with another cause) **doesn't end
   the life** (`Run.lose`, lives spec §3.2): the hurt screen shows the cause's line and what you
   learnt since your last fall, then `wake_injured.days` (2) pass, or `wild_days` (3) on a map

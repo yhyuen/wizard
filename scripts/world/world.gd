@@ -814,6 +814,10 @@ func _break(p: Dictionary) -> void:
 	p["hp"] = 0.0
 	p["vel"] = Vector2.ZERO
 	arena.fx("dust", p["pos"], {"r": float(prop_def(p["kind"])["r"]) * 1.4, "life": 0.5})
+	# Salvage (economy spec §5.1): what it was made of, picked up if you're near (N-5.2).
+	var got: Dictionary = prop_def(p["kind"]).get("salvage", {})
+	if not got.is_empty() and arena.player != null and arena.player.pos.distance_to(p["pos"]) <= float(pd.get("salvage_reach", 80)):
+		request({"t": "salvage", "got": got, "at": p["home"]})
 
 
 ## The Force grade a spell's mark carries (spell spec §6.3): its stage, capped by the Ring;
@@ -943,7 +947,7 @@ func _magic() -> void:
 			continue
 		z["_w"] = true
 		match z["kind"]:
-			"column", "kindle":
+			"column", "kindle", "flask":
 				burn_ground(z["pos"], float(z["r"]), grade_of(z["kind"]))
 				for pr in props:
 					if pr["pos"].distance_to(z["pos"]) < float(z["r"]) + float(prop_def(pr["kind"])["r"]):

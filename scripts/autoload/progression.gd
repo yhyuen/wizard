@@ -179,6 +179,36 @@ func school_rule(rule: String) -> bool:
 	return str(schools["schools"].get(school(), {}).get("rule", "")) == rule
 
 
+# --- Spark Artifice devices (spell spec §7, economy spec §5.3; N-5.2) ---------------------
+
+## A device: a spell with charges instead of Aether and wind-up.
+func is_device(id: String) -> bool:
+	return data["spells"].has(id) and bool(spell(id).get("device", false))
+
+
+## A device holds 3 charges, +1 for each breakthrough.
+func device_max(id: String) -> int:
+	return int(schools["devices"]["base"]) + stage(id)
+
+
+## Charges left in device `id`; -1 when nothing counts them (not a device, or outside the slice's rules).
+func charges(id: String) -> int:
+	if not rules.has("devices") or not is_device(id):
+		return -1
+	return int(rules["devices"].get(id, 0))
+
+
+## Spends one charge of device `id`. False when it is empty.
+func use_charge(id: String) -> bool:
+	if not rules.has("devices") or not is_device(id):
+		return true
+	var d: Dictionary = rules["devices"]
+	if int(d.get(id, 0)) <= 0:
+		return false
+	d[id] = int(d[id]) - 1
+	return true
+
+
 ## The shortest fair delay for a circle telegraph of radius `r`: a target as fast as the wizard,
 ## standing at its centre, can still step out (data "dodge"; design/magic-world-revisit.md §3).
 func fair_delay(r: float) -> float:
@@ -509,7 +539,7 @@ func elements() -> Array:
 func spell_for(element: String, slot: String) -> String:
 	for id in data["spells"]:
 		var s: Dictionary = data["spells"][id]
-		if s["element"] == element and s["slot"] == slot:
+		if s["element"] == element and s["slot"] == slot and not s.get("device", false):
 			return id
 	return ""
 

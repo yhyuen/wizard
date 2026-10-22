@@ -465,6 +465,23 @@ func _zones(glow_k: float) -> void:
 					r.position = _w(z["pos"] + o, 0.05)
 					r.scale = Vector3.ONE * 0.45
 					r.rotation = Vector3(a, a * 2.0, 0)
+			"throw":
+				# a Spark Artifice device in flight: a glass flask arcing to where it lands (N-5.2)
+				var k := clampf(t / maxf(0.01, float(z["delay"])), 0.0, 1.0)
+				var o := take("orb")
+				o.position = _w(z["from"].lerp(z["pos"], k), SHOT_HEIGHT + 1.4 * sin(PI * k))
+				o.scale = Vector3.ONE * 0.6
+				var col: Color = PixelArt.STORM if z["device"] == "arc_rod" else (PixelArt.FIRE if z["device"] == "spark_flask" else PixelArt.PAPER)
+				paint(o, col, _glow(glow_k, 0.8, 1.6))
+			"arc_rod":
+				var r := take("rod")
+				r.position = _w(z["pos"])
+				var lit: bool = z.get("zap_t", 1.0) > float(Progression.spell("arc_rod")["zap_every"]) - 0.15
+				paint(r.get_node("Tip"), PixelArt.GOLD, 2.4 if lit else 0.8)
+				r.get_node("Tip").rotation.y = t * 2.0
+				if lit:
+					halo(r.get_node("Tip").global_position, PixelArt.STORM, 0.7, 1.4)
+					view.want_light(_w(z["pos"], 1.0), PixelArt.STORM, 0.8, 2.0)
 			"rod":
 				var r := take("rod")
 				r.position = _w(z["pos"])

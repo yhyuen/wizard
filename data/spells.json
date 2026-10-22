@@ -283,6 +283,47 @@
         "damage": {"label": "Damage", "base": 20, "per": 1.5, "fmt": "%.0f"},
         "radius": {"label": "Width", "base": 4.5, "per": 0.1, "fmt": "%.1f"}
       }
+    },
+    "spark_flask": {
+      "school": "spark_artifice", "device": true, "ring": 0, "name": "Spark Flask", "element": "fire", "slot": "bolt", "cast": "swift", "windup": 0.0, "aether": 0,
+      "blurb": "A flask of lamp oil with a spark in the stopper. Thrown, it bursts into flame where it lands.",
+      "cooldown": 1.0, "impact": 2, "xp_hit": 3, "range": 110, "flight": 0.35, "pips": 2,
+      "reagents": {"oil": 1, "glass": 1},
+      "stats": {
+        "radius": {"label": "Burst", "base": 16, "per": 0.5},
+        "damage": {"label": "Damage", "base": 16, "per": 1.2, "fmt": "%.0f"}
+      }
+    },
+    "arc_rod": {
+      "school": "spark_artifice", "device": true, "ring": 0, "name": "Arc Rod", "element": "storm", "slot": "control", "cast": "swift", "windup": 0.0, "aether": 0,
+      "blurb": "A copper rod you plant in the ground. It arcs into the nearest foe until it burns out.",
+      "cooldown": 1.5, "impact": 1, "xp_hit": 1, "range": 90, "flight": 0.3, "zap_every": 0.9,
+      "reagents": {"wire": 1},
+      "stats": {
+        "reach": {"label": "Reach", "base": 50, "per": 1.5},
+        "life": {"label": "Lasts", "base": 8, "per": 0.3, "fmt": "%.0f s"},
+        "damage": {"label": "Damage", "base": 8, "per": 0.6, "fmt": "%.0f"}
+      }
+    },
+    "smoke_jar": {
+      "school": "spark_artifice", "device": true, "ring": 0, "name": "Smoke Jar", "element": "water", "slot": "control", "cast": "swift", "windup": 0.0, "aether": 0,
+      "blurb": "A jar of smoke powder. Foes inside the cloud can't see to strike.",
+      "cooldown": 1.5, "impact": 0, "xp_hit": 1, "range": 100, "flight": 0.35, "blind": 0.3,
+      "reagents": {"powder": 1, "glass": 1},
+      "stats": {
+        "radius": {"label": "Cloud", "base": 28, "per": 0.8},
+        "life": {"label": "Lasts", "base": 5, "per": 0.15, "fmt": "%.1f s"}
+      }
+    },
+    "tar_pot": {
+      "school": "spark_artifice", "device": true, "ring": 0, "name": "Tar Pot", "element": "fire", "slot": "control", "cast": "swift", "windup": 0.0, "aether": 0,
+      "blurb": "A pot of tar. It slows whatever wades in, and the ground it coats burns like a lamp.",
+      "cooldown": 1.5, "impact": 0, "xp_hit": 1, "range": 100, "flight": 0.35, "slow": 0.3,
+      "reagents": {"tar": 1, "glass": 1},
+      "stats": {
+        "radius": {"label": "Pool", "base": 26, "per": 0.6},
+        "life": {"label": "Lasts", "base": 12, "per": 0.3, "fmt": "%.0f s"}
+      }
     }
   },
   "magicks": {

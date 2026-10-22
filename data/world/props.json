@@ -1,11 +1,12 @@
 {
- "_doc": "Things in Vellmar that spells can change (design/open-world/interactions.md §5). r: radius in sim px (it blocks walking); h: height in metres; mass: how far a shove sends it (lighter goes further); roll: keeps rolling (barrels); burns: seconds a fire lasts before it leaves ash; spread: sim px within which a fire catches other burnable things. Lamps and braziers are lit by fire and put out by water. A burning prop hurts enemies standing in it (dps). material (data/materials.json) and hp (structure: an Impact at or above the break grade takes its impact off, and at 0 it breaks); break and fire override the material's grades (N-4.1).",
+ "_doc": "Things in Vellmar that spells can change (design/open-world/interactions.md §5). r: radius in sim px (it blocks walking); h: height in metres; mass: how far a shove sends it (lighter goes further); roll: keeps rolling (barrels); burns: seconds a fire lasts before it leaves ash; spread: sim px within which a fire catches other burnable things. Lamps and braziers are lit by fire and put out by water. A burning prop hurts enemies standing in it (dps). material (data/materials.json) and hp (structure: an Impact at or above the break grade takes its impact off, and at 0 it breaks); break and fire override the material's grades (N-4.1). salvage: the reagents a broken prop leaves (economy spec §5.1), picked up when you are within salvage_reach (N-5.2).",
+ "salvage_reach": 80,
  "kinds": {
   "hay":    {"r": 11, "h": 0.9, "mass": 0, "burns": 12.0, "spread": 34, "dps": 10, "material": "cloth", "hp": 2},
-  "crate":  {"r": 9, "h": 0.8, "mass": 1.0, "burns": 14.0, "spread": 26, "dps": 8, "material": "wood", "hp": 4},
-  "barrel": {"r": 8, "h": 0.9, "mass": 0.7, "roll": true, "burns": 16.0, "spread": 24, "dps": 8, "material": "wood", "hp": 5, "break": 2, "fire": 2,
+  "crate":  {"r": 9, "h": 0.8, "mass": 1.0, "burns": 14.0, "spread": 26, "dps": 8, "material": "wood", "hp": 4, "salvage": {"glass": 1}},
+  "barrel": {"r": 8, "h": 0.9, "mass": 0.7, "roll": true, "burns": 16.0, "spread": 24, "dps": 8, "material": "wood", "hp": 5, "break": 2, "fire": 2, "salvage": {"oil": 1},
    "_doc": "iron-banded staves: breaks at Impact II, catches only at Fire II (grade I smoulders it)"},
-  "cart":   {"r": 16, "h": 1.2, "mass": 2.5, "burns": 18.0, "spread": 30, "dps": 8, "material": "wood", "hp": 8, "break": 2},
+  "cart":   {"r": 16, "h": 1.2, "mass": 2.5, "burns": 18.0, "spread": 30, "dps": 8, "material": "wood", "hp": 8, "break": 2, "salvage": {"wire": 1}},
   "post":   {"r": 5, "h": 2.6, "mass": 0, "burns": 20.0, "spread": 20, "dps": 8, "material": "wood", "hp": 3, "break": 2,
    "_doc": "a timber prop holding up a structure (data/world/structures.json): breaks at Impact II (a grade I hit cracks it, the next breaks it); burnt to ash, it fails too"}
  },

@@ -75,6 +75,89 @@ func _on_practised(id: String, amount: float) -> void:
 		prog.school_ranked.emit(sid, int(e["rank"]))
 
 
+# --- Spark Artifice: devices, reagents and the bench (economy spec §5; N-5.2) ------------------
+
+## This life's charges, {device id: charges}. Progression counts them down in a fight.
+func devices() -> Dictionary:
+	if not run.life.has("devices"):
+		run.life["devices"] = {}
+	return run.life["devices"]
+
+
+## This life's reagents, {reagent id: count}.
+func reagents() -> Dictionary:
+	if not run.life.has("reagents"):
+		run.life["reagents"] = {}
+	return run.life["reagents"]
+
+
+func add_reagents(got: Dictionary) -> void:
+	var r := reagents()
+	for k in got:
+		r[k] = int(r.get(k, 0)) + int(got[k])
+
+
+## A device holds 3 charges, +1 for each breakthrough this life.
+func device_cap(id: String) -> int:
+	return int(prog.schools["devices"]["base"]) + int(practice()[id].get("stage", 0))
+
+
+## What one charge of device `id` costs you in reagents: its listed reagents on the Spark Artifice
+## road (or once an earlier life took the school to Adept); one more of the first if you trained the
+## school but walk another road; double if you never trained it.
+func charge_cost(id: String) -> Dictionary:
+	var D: Dictionary = prog.schools["devices"]
+	var cost := {}
+	for k in prog.spell(id)["reagents"]:
+		cost[k] = int(prog.spell(id)["reagents"][k])
+	var sid: String = prog.school_of(id)
+	if sid == school() or int(school_best().get(sid, -1)) >= int(prog.schools["outside"]["free_rank"]):
+		return cost
+	if school_ranks().has(sid) or school_best().has(sid):
+		var first: String = cost.keys()[0]
+		cost[first] = int(cost[first]) + int(D["outside_extra"])
+	else:
+		for k in cost:
+			cost[k] = int(cost[k]) * int(D["never_k"])
+	return cost
+
+
+## The devices you know, in the data's order.
+func known_devices() -> Array:
+	return known_models().filter(func(id): return prog.is_device(id))
+
+
+## Works at a bench: fills every known device toward its cap, one charge at a time round the
+## devices so the stock spreads, as far as the reagents go. Returns {id: charges added}.
+func refill() -> Dictionary:
+	var got := {}
+	var more := true
+	while more:
+		more = false
+		for id in known_devices():
+			if int(devices().get(id, 0)) >= device_cap(id):
+				continue
+			var cost := charge_cost(id)
+			if not cost.keys().all(func(k): return int(reagents().get(k, 0)) >= int(cost[k])):
+				continue
+			for k in cost:
+				reagents()[k] = int(reagents()[k]) - int(cost[k])
+			devices()[id] = int(devices().get(id, 0)) + 1
+			got[id] = int(got.get(id, 0)) + 1
+			more = true
+	return got
+
+
+## The Spark Artifice road starts you with its devices, a few charges and some reagents.
+func take_road_kit(road_id: String) -> void:
+	var kit: Dictionary = run.lives["roads"].get(road_id, {}).get("kit", {})
+	for id in kit.get("models", []):
+		run.learn("model_" + id)
+	for id in kit.get("charges", {}):
+		devices()[id] = maxi(int(devices().get(id, 0)), int(kit["charges"][id]))
+	add_reagents(kit.get("reagents", {}))
+
+
 # --- wells and Rings ---------------------------------------------------------------
 
 func wells() -> int:
@@ -309,7 +392,8 @@ func rules() -> Dictionary:
 		"revisions": run.soul.get("revisions", {}).duplicate(true),
 		"walls": true, "grade_cap": int(d["grade_cap"][ring()]), "broken": run.soul.get("broken", {}).duplicate(),
 		"known": run.soul.get("known", {}),
-		"school": school(), "school_ranks": _rank_table(), "school_best": school_best().duplicate()}
+		"school": school(), "school_ranks": _rank_table(), "school_best": school_best().duplicate(),
+		"devices": devices()}  # by reference: a throw spends this life's charge
 
 
 func _rank_table() -> Dictionary:

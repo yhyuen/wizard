@@ -39,9 +39,9 @@ There are two layers, and the ruins game uses the first on top of the second.
 
 ## Schools (`data/schools.json`; N-5.1)
 
-*Spell spec §5.1, §7, §8. Built: the frame and Astral Rite's rule. Not yet: other schools' rules
-(Spark Artifice is N-5.2), a power's rank ladder with merit, standing and an exam (N-7.3), school
-quest lines, combined spells, Grand spells needing the school's Adept rank.*
+*Spell spec §5.1, §7, §8. Built: the frame, Astral Rite's rule and Spark Artifice's devices.
+Not yet: the other six schools, a power's rank ladder with merit, standing and an exam (N-7.3),
+school quest lines, combined spells, Grand spells needing the school's Adept rank.*
 
 - **Every spell names its school** (`spells.json` `school`): the 13 spells are all **Astral
   Rite** (the College). Each road names its school (`lives.json` `roads`): Apprentice → Astral
@@ -60,6 +60,31 @@ quest lines, combined spells, Grand spells needing the school's Adept rank.*
   turns round your feet when you're Aligned), then begin a spell of your school: it gets ×1.3
   range (`range_k`), its telegraph included (`Progression.align`, `reach()`). Moving or casting
   resets it.
+
+### Devices: Spark Artifice (`schools.json` `devices`, `growth.gd`; N-5.2)
+
+*Economy spec §5. How a device fights is in [combat.md](combat.md) "Devices".*
+
+- **Four devices**, all Spark Artifice and all usable from the Apprentice Ring (`ring` 0): Spark
+  Flask, Arc Rod, Smoke Jar, Tar Pot. A device is a Model like any spell (`model_<id>`, kept
+  across lives) and goes in any book slot. It levels from its hits like any spell, and that
+  Practice counts toward Spark Artifice's rank.
+- **Charges** (`life.devices`, reset each life): a device holds 3, +1 per breakthrough this life
+  (`device_cap`). The fight spends them through `Progression.rules.devices` (the same dictionary).
+- **Reagents** (`life.reagents`, reset each life): lamp oil, glass vial, copper wire, tar, smoke
+  powder. Per charge: Spark Flask 1 oil + 1 glass, Arc Rod 1 wire, Smoke Jar 1 powder + 1 glass,
+  Tar Pot 1 tar + 1 glass. The spellbook's header lists your stock once you know a device; slots
+  and Models show "2 / 3 charges".
+- **Outside the school** (`charge_cost`): on the Lamplighter road (or once an earlier life took
+  Spark Artifice to Adept) a charge costs its listed reagents; having trained it but walking
+  another road, +1 of its first reagent; never trained, double (`never_k`).
+- **The bench** (camp, Lantern Market; story effect `bench`): fills every device you know toward
+  its cap, one charge at a time round the devices, as far as your reagents go, and takes the time
+  of day. Never mid-fight. Its first use teaches anyone the Spark Flask (`teaches`), and once a
+  life the Lamplighter there gives you 2 oil and 2 glass (`starter`, story `bench stock`).
+- **The Lamplighter road** (`lives.json` `roads.lamplighter.kit`): taking it teaches all four
+  devices and starts the life with 3 Spark Flask charges, 4 oil and 4 glass.
+- **Salvage** ([world.md](world.md)): breaking a crate, barrel or cart near you adds its reagents.
 
 ## Spell levels and mastery (`scripts/autoload/progression.gd`, `data/spells.json` `progression`)
 
