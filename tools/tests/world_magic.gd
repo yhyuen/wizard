@@ -28,6 +28,9 @@ extends SceneTree
 ## than two attacks at once.
 ## N-6.2 (bodies and burning): an Ember Bolt sets a Hollow (a husk) alight and the fire spreads to
 ## the Hollow beside it; a soaked Hollow only dries.
+## N-6.6 (armour and the Knights): an Oath Squire's mail halves a light hit and not a heavy one,
+## and falls away when worn through; a Spark goes through a Shieldknight's iron shield, which fire
+## doesn't burn; a Silencer's bell stops a spell inside its ring, and a heavy blow breaks it.
 
 const BOOK := ["ember_bolt", "pebble", "splash", "undertow"]
 const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt"]
@@ -108,6 +111,10 @@ func _initialize() -> void:
 		["a Choir's hum makes a Hollow firmer and faster, and a heavy hit hushes it", _choir_setup, _hummed],
 		["a Broken Overdrawn Husk leaks Aether you can drink", _husk_setup_leak, _drank],
 		["the Field Guide notes a Shieldman seen, its shield burned and it beaten, and keeps it next life", _guide_setup, _guided],
+		["an Oath Squire's mail halves a light hit, not a heavy one, and falls away when worn through", _armour_setup,
+			func(): return state["armoured"]],
+		["a Spark goes through a Shieldknight's iron shield, which fire doesn't burn", _iron_setup, _conducted],
+		["a Silencer's bell stops spells inside its ring, and a heavy blow breaks the bell", _bell_setup, _belled],
 	]
 
 
@@ -956,3 +963,84 @@ func _guided() -> bool:
 	var next: Dictionary = Lives.carry(run.soul, run.life, "test", run.lives)
 	var kept: bool = next.get("guide", {}).has("shieldman")
 	return state["seen"] and int(e["beaten"]) == 1 and "shield_burned" in e["found"] and kept
+
+
+# --- N-6.6: armour and the Knights' picket ------------------------------------------------------
+
+func _armour_setup() -> void:
+	_clear_enemies()
+	main.arena.zones.clear()
+	_book(BOOK)
+	var A = main.arena
+	var q = A.spawn("oath_squire", _dark_spot() + Vector2(0, 20))
+	q.stun = 9.0
+	q.max_hp = 200.0
+	q.hp = 200.0
+	var dir: Vector2 = (q.pos - A.player.pos).normalized()
+	q.facing = -signf(dir.x) if absf(dir.x) > 0.1 else q.facing  # facing you: no from-behind Break
+	A.hit(q, 10.0, 1, dir, 0.0)  # below mail's grade II: half gets through
+	var light: float = 200.0 - q.hp
+	var hp: float = q.hp
+	q.brk = 0.0  # keep it from being Broken (Broken takes more): this is about the mail
+	A.hit(q, 10.0, 2, dir, 0.0)  # at its grade: all of it
+	var heavy: float = hp - q.hp
+	q.brk = 0.0
+	A.hit(q, 10.0, 1, dir, 0.0)  # 30 worn off its 25: sundered
+	hp = q.hp
+	q.brk = 0.0
+	q.broken_t = 0.0
+	A.hit(q, 10.0, 1, dir, 0.0)
+	var bare: float = hp - q.hp
+	var found: Array = run.soul["guide"]["oath_squire"]["found"]
+	state["armoured"] = is_equal_approx(light, 5.0) and is_equal_approx(heavy, 10.0) and q.flags.get("sundered", false) \
+		and is_equal_approx(bare, 10.0) and "sundered" in found
+
+
+func _iron_setup() -> void:
+	_clear_enemies()
+	main.arena.zones.clear()
+	_book(STORM_BOOK)
+	var A = main.arena
+	var at := _dark_spot() + Vector2(0, 20)
+	var k = A.spawn("shieldknight", at)
+	k.stun = 9.0
+	k.max_hp = 200.0
+	k.hp = 200.0
+	state["k"] = k
+	_cast_at(at, "spark", 50.0)
+	# fire from the front: the iron shield takes it and doesn't burn
+	A._src_kind = "fire"
+	state["iron"] = not A.hit(k, 5.0, 1, (k.pos - A.player.pos).normalized(), 0.0) and not k.flags.get("shield_gone", false)
+	A._src_kind = ""
+
+
+func _conducted() -> bool:
+	var k = state["k"]
+	return state["iron"] and k.hp < 200.0 and "conducted" in run.soul["guide"]["shieldknight"]["found"]
+
+
+func _bell_setup() -> void:
+	_clear_enemies()
+	main.arena.zones.clear()
+	_book(BOOK)
+	var A = main.arena
+	main.place_player(_dark_spot())
+	A.kit.aether = A.kit.max_aether()
+	A.player.cd.clear()
+	state["sil"] = A.spawn("silencer", A.player.pos + Vector2(70, 0))
+	state["sil"].max_hp = 400.0
+	state["sil"].hp = 400.0
+	A.player.max_hp = 999.0
+	A.player.hp = 999.0
+
+
+func _belled() -> bool:
+	var A = main.arena
+	var sil = state["sil"]
+	if not A.ai.knights.hushed(A.player.pos):
+		return false
+	A.kit.begin(A.kit.slot_of("ember_bolt"))
+	var refused: bool = A.kit.wind.is_empty()
+	A.hit(sil, 1.0, 3, (sil.pos - A.player.pos).normalized(), 0.0)
+	return refused and sil.flags.get("bell_gone", false) and "bell_broken" in run.soul["guide"]["silencer"]["found"]
+

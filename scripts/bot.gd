@@ -76,6 +76,14 @@ func intent(A) -> Dictionary:
 	if boss and r == null:
 		r = boss
 	var focus: Unit = r if r and near.pos.distance_to(P.pos) > 30.0 else near
+	# A shield facing us eats what we cast: go for someone without one, or get round it.
+	var shielded := _shielded(A, focus)
+	if shielded and r == null:
+		for u in foes:
+			if not _shielded(A, u) and u.pos.distance_to(P.pos) < 140.0:
+				focus = u
+				shielded = false
+				break
 	out["aim"] = focus.pos + Vector2(0, -4)
 	# Movement: keep some distance, then step out of any telegraph that covers us.
 	var to: Vector2 = focus.pos - P.pos
@@ -86,7 +94,7 @@ func intent(A) -> Dictionary:
 		mv -= to.normalized()
 	elif to.length() > (65.0 if short else 120.0):
 		mv += to.normalized() * 0.6
-	mv += to.orthogonal().normalized() * 0.5 * (1.0 if int(t / 3.0) % 2 == 0 else -1.0)
+	mv += to.orthogonal().normalized() * (1.4 if shielded else 0.5) * (1.0 if int(t / 3.0) % 2 == 0 else -1.0)
 	mv += (_home(A) - P.pos) * 0.004
 	var danger := false
 	for z in A.zones:
@@ -102,6 +110,10 @@ func intent(A) -> Dictionary:
 			"lance":
 				c = Geometry2D.get_closest_point_to_segment(P.pos, z["a"], z["b"])
 				hit = P.pos.distance_to(c) < z["w"] + 6.0
+			"bell", "hush":
+				# a Silencer's ring: no spells inside it
+				c = z["pos"]
+				hit = P.pos.distance_to(c) < float(z["r"]) + 4.0
 			"line", "rline":
 				if not z.get("visual", false):
 					c = Geometry2D.get_closest_point_to_segment(P.pos, z["a"], z["b"])
@@ -131,6 +143,15 @@ func intent(A) -> Dictionary:
 		out["aim"] = near.pos
 		out["pressed"]["staff"] = true
 	return out
+
+
+## Its shield faces us and would stop a spell: a Shieldman's or Shieldknight's, not yet burned.
+func _shielded(A, u: Unit) -> bool:
+	var g: Dictionary = A.D["enemies"][u.kind].get("guard", {})
+	if g.is_empty() or u.flags.get("shield_gone", false) or u.broken_t > 0.0:
+		return false
+	var to_us: Vector2 = (A.player.pos - u.pos).normalized()
+	return to_us.dot(A.ai.brig.shield_dir(u)) > cos(deg_to_rad(float(g["arc"]) * 0.5))
 
 
 func _fire_earth(A, out: Dictionary, foes: Array, near: Unit, focus: Unit, r: Unit) -> void:

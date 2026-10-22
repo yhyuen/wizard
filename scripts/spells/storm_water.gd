@@ -75,7 +75,11 @@ func _nearest(at: Vector2, reach_len: float, skip: Array) -> Unit:
 ## Any lightning hit. Lightning on a wet enemy is how Conductor is discovered.
 func storm_hit(u: Unit, dmg: float, impact: int, dir: Vector2, knock: float, xp_id: String, xp: float) -> void:
 	var was_wet := u.wet_t > 0.0
-	if not A.hit(u, dmg, impact, dir, knock):
+	var was: String = A._src_kind
+	A._src_kind = "storm"  # it runs through a knight's metal (N-6.6)
+	var landed: bool = A.hit(u, dmg, impact, dir, knock)
+	A._src_kind = was
+	if not landed:
 		return
 	Progression.add_xp(xp_id, xp)
 	if was_wet:
@@ -134,7 +138,7 @@ func spark() -> void:
 	var cur: Unit = first
 	while cur and hit.size() < targets + bonus:
 		A.fx("zap", from, {"to": cur.pos + Vector2(0, -4), "color": PixelArt.STORM, "life": 0.14})
-		if cur.wet_t > 0.0 and bonus < 3:
+		if (cur.wet_t > 0.0 or A.armour.metal(cur)) and bonus < 3:  # water or a knight's metal
 			bonus += 1
 		_spark_hit(cur, from)
 		hit.append(cur.id)
