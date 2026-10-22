@@ -1,8 +1,9 @@
 {
- "_doc": "Every fight in place (design/ruins/content.md). R1 has the night patrol in the College ruins; R2 adds the halls. waves run one after another (the next starts when the yard is clear); with survive > 0 they arrive on a timer instead and the fight is won by lasting that many seconds. lethal: losing ends the loop. unkillable: kinds that are knocked down (for down_time seconds) instead of dying. hits: a duel won by the first to land that many hits of at least hit_min damage; trickle: in a survive fight, one more Hollow every that many seconds; tell: the rival always opens with his lance, and stands for lance_recover seconds after each one. leash: in the town, how far (sim px) the mist lets you stray from where the fight began (220 unless given). max_alive: the trickle waits while that many enemies are up. light_shy: false means the Hollows ignore lamplight (the tide is too many for it); otherwise they won't step into a lit lamp's pool. In the halls a group can come out of a named crack (\"crack\": it glows for glow seconds, 1 unless the encounter gives one, then its embers burst out one after another), wait \"at\" seconds into its wave, and give its units \"flags\". flooded_by: the once-a-day action (the sluice) that starts the guardian quenched; a \"guardian\" group is the one it floods. waived: the waves used once you know that trial (the Warden comes straight to its second phase). toll (N-6.3): the brigands' bridge toll (enemy spec §13.1, places spec F13); it has no place yet (the east road comes with N-7.1.5), so for now it is fought only by the fight tests, in the camp yard. Losing to people isn't lethal (you wake injured). lamp_night (N-6.3): the new Hollows (Lantern-eater and Choir, then an Overdrawn Husk); like the toll it waits for its place (the lamp depot, Sunken Square and glassworks, N-7.1). picket (N-6.6): the Knights of the Iron Oath on the camp's edge (enemy spec \u00a78.3), two Shieldknights side by side with Squires and a Silencer behind; it waits for its place (the camp's edge, N-7.1) and isn't lethal. watch_cell (N-6.7): the cult's cell in the Old Watch (places spec F8), three Acolytes and a Saboteur; it waits for its place (the Old Watch, N-7.1) and isn't lethal.",
+ "_doc": "Every fight in place (design/ruins/content.md). R1 has the night patrol in the College ruins; R2 adds the halls. waves run one after another (the next starts when the yard is clear); with survive > 0 they arrive on a timer instead and the fight is won by lasting that many seconds. lethal: losing ends the loop. unkillable: kinds that are knocked down (for down_time seconds) instead of dying. hits: a duel won by the first to land that many hits of at least hit_min damage; trickle: in a survive fight, one more Hollow every that many seconds; tell: the rival always opens with his lance, and stands for lance_recover seconds after each one. leash: in the town, how far (sim px) the mist lets you stray from where the fight began (220 unless given). max_alive: the trickle waits while that many enemies are up. light_shy: false means the Hollows ignore lamplight (the tide is too many for it); otherwise they won't step into a lit lamp's pool. In the halls a group can come out of a named crack (\"crack\": it glows for glow seconds, 1 unless the encounter gives one, then its embers burst out one after another), wait \"at\" seconds into its wave, and give its units \"flags\". flooded_by: the once-a-day action (the sluice) that starts the guardian quenched; a \"guardian\" group is the one it floods. waived: the waves used once you know that trial (the Warden comes straight to its second phase). toll (N-6.3): the brigands' bridge toll (enemy spec §13.1, places spec F13); it is placed at the east road's toll bridge (N-7.1.6). Losing to people isn't lethal (you wake injured). lamp_night (N-6.3): the new Hollows (Lantern-eater and Choir, then an Overdrawn Husk); its kinds are placed in the city's depot, square_choir and glassworks fights; this mixed group stays for the fight tests. picket (N-6.6): the Knights of the Iron Oath on the camp's edge (enemy spec \u00a78.3), two Shieldknights side by side with Squires and a Silencer behind; it is placed at the east road's picket and isn't lethal. watch_cell (N-6.7): the cult's cell in the Old Watch (places spec F8), three Acolytes and a Saboteur; it is placed in the Old Watch on Seedmoon nights and isn't lethal. place (N-7.1.6, places spec §10.2): [map, place, spot], where the fight is placed (a scene in that map's story arriving at the place starts it, with its times and refill) and the spot the fight tests start from.",
  "encounters": {
   "patrol": {
    "title": "Hollows in the ruins",
+   "place": ["camp", "yard", "yard_c"],
    "lethal": true,
    "waves": [[{"kind": "hollow", "n": 4}], [{"kind": "hollow", "n": 3}, {"kind": "slinger", "n": 1}]]
   },
@@ -47,6 +48,7 @@
   },
   "watch_cell": {
    "title": "The cell in the Old Watch",
+   "place": ["city", "old_watch", "old_watch"],
    "faction": "cult",
    "lethal": false,
    "waves": [
@@ -55,6 +57,7 @@
   },
   "picket": {
    "title": "The Knights' picket",
+   "place": ["east_road", "knights_picket", "knights_picket"],
    "faction": "knights",
    "lethal": false,
    "waves": [
@@ -63,6 +66,7 @@
   },
   "toll": {
    "title": "The bridge toll",
+   "place": ["east_road", "toll_bridge", "toll_bridge"],
    "faction": "brigands",
    "lethal": false,
    "waves": [
@@ -70,6 +74,96 @@
      {"kind": "brigand_captain", "n": 1}, {"kind": "cutthroat", "n": 2}, {"kind": "crossbowman", "n": 1},
      {"kind": "powder_monkey", "n": 1}, {"kind": "shieldman", "n": 1}
     ]
+   ]
+  },
+  "cinder_row": {
+   "title": "Scavengers on Cinder Row",
+   "place": ["city", "cinder_row", "cinder_row"],
+   "faction": "brigands",
+   "lethal": false,
+   "waves": [
+    [{"kind": "cutthroat", "n": 3}, {"kind": "crossbowman", "n": 1}, {"kind": "shieldman", "n": 1}]
+   ]
+  },
+  "square_nest": {
+   "title": "The Sunken Square at night",
+   "place": ["city", "sunken_square", "sunken_square"],
+   "waves": [
+    [{"kind": "hollow", "n": 4}, {"kind": "slinger", "n": 1}],
+    [{"kind": "hollow", "n": 2}, {"kind": "slinger", "n": 1}]
+   ]
+  },
+  "square_choir": {
+   "title": "The Choir in the Sunken Square",
+   "place": ["city", "sunken_square", "sunken_square"],
+   "waves": [
+    [{"kind": "hollow", "n": 4}, {"kind": "slinger", "n": 1}],
+    [{"kind": "hollow", "n": 2}, {"kind": "slinger", "n": 1}, {"kind": "choir", "n": 1}]
+   ]
+  },
+  "glassworks": {
+   "title": "The Overdrawn Husk",
+   "place": ["city", "glassworks", "glassworks"],
+   "waves": [
+    [{"kind": "husk", "n": 1}, {"kind": "hollow", "n": 4}]
+   ]
+  },
+  "depot": {
+   "title": "Lantern-eaters at the lamp depot",
+   "place": ["city", "lamp_depot", "lamp_depot"],
+   "waves": [
+    [{"kind": "lantern_eater", "n": 3}, {"kind": "hollow", "n": 4}]
+   ]
+  },
+  "channel": {
+   "title": "The long channel",
+   "place": ["undercroft", "channel", "channel"],
+   "waves": [
+    [{"kind": "inverted", "n": 3}, {"kind": "hollow", "n": 4}]
+   ]
+  },
+  "granary_raid": {
+   "title": "Brigands at the granary",
+   "place": ["fields", "granary", "granary"],
+   "faction": "brigands",
+   "lethal": false,
+   "waves": [
+    [{"kind": "cutthroat", "n": 2}, {"kind": "shieldman", "n": 1}, {"kind": "powder_monkey", "n": 1}]
+   ]
+  },
+  "fence": {
+   "title": "Hollows at the east fence",
+   "place": ["fields", "east_fence", "east_fence"],
+   "waves": [
+    [{"kind": "hollow", "n": 4}],
+    [{"kind": "hollow", "n": 3}, {"kind": "slinger", "n": 1}]
+   ]
+  },
+  "mill_cellar": {
+   "title": "The sack aisles",
+   "place": ["fields", "mill_cellar", "mill_cellar"],
+   "leash": 200,
+   "waves": [
+    [{"kind": "hollow", "n": 5}, {"kind": "slinger", "n": 1}]
+   ]
+  },
+  "cellar": {
+   "title": "The smugglers' cellar",
+   "place": ["east_road", "smugglers_cellar", "cellar_in"],
+   "faction": "brigands",
+   "lethal": false,
+   "leash": 260,
+   "waves": [
+    [{"kind": "crossbowman", "n": 2}, {"kind": "cutthroat", "n": 3}, {"kind": "shieldman", "n": 1}]
+   ]
+  },
+  "quarry": {
+   "title": "The ledge camp",
+   "place": ["east_road", "quarry", "quarry"],
+   "faction": "brigands",
+   "lethal": false,
+   "waves": [
+    [{"kind": "crossbowman", "n": 2}, {"kind": "shieldman", "n": 2}, {"kind": "powder_monkey", "n": 1}]
    ]
   },
   "warden": {

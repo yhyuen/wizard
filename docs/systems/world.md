@@ -98,8 +98,8 @@ workroom moving to the halls, shops, boards and crews behind the new places (N-7
 ## The fallen city (`data/city/map.json`, `scripts/world/gates.gd`)
 
 *N-7.1.2, [Ring 1 places spec](/mnt/project-files/design/places/ring1-places-and-fights-spec.md)
-§4.1, §8, §9. Not built: the drain stair and the undercroft (N-7.1.3), the city's fights and
-night nests (N-7.1.6), the Old Watch's rope lift, ley points at shrines, buying the Wick Lane
+§4.1, §8, §9. Not built: the drain stair and the undercroft (N-7.1.3), the shrine opening for
+the night when the square's nest is cleared, the Old Watch's rope lift, ley points at shrines, buying the Wick Lane
 house, the bakery cellar's beam, the lens turned by Lamplight or the furnace light, and the
 Lamplighter trial at the depot.*
 
@@ -138,7 +138,7 @@ Lamplighter trial at the depot.*
 
 ### The undercroft (`data/city/undercroft/map.json`)
 
-*N-7.1.3, spec §4.3. Not built: the channel's fight (F9, N-7.1.6), the floor grate that holds a
+*N-7.1.3, spec §4.3. Not built: the floor grate that holds a
 body, floating the crate to the grate on a flooded channel, Weighting the grate back down or
 freezing its chain to shut the Lantern Night approach (N-7.5).*
 
@@ -161,8 +161,7 @@ freezing its chain to shut the Lantern Night approach (N-7.5).*
 ## The Mill fields (`data/fields/map.json`)
 
 *N-7.1.4, [Ring 1 places spec](/mnt/project-files/design/places/ring1-places-and-fights-spec.md)
-§6. Not built: the fields' fights (F10, F11,
-F17: N-7.1.6), the granary's flooded cellar (D8), the mill wheel as a motor (P3), the islet's ley
+§6. Not built: the granary's flooded cellar (D8), the mill wheel as a motor (P3), the islet's ley
 point, the footbridge breaking (P8), freezing or planking across the pond, Aldous complaining
 when the pond is drained, the bramble commission and the granary's bread shortage.*
 
@@ -189,8 +188,8 @@ when the pond is drained, the bramble commission and the granary's bread shortag
 ## The east road (`data/fields/east_road/map.json`)
 
 *N-7.1.5, [Ring 1 places spec](/mnt/project-files/design/places/ring1-places-and-fights-spec.md)
-§7. Not built: the road's fights (the Knights' picket F3, the toll F13 and its talk route, the
-smugglers F14, the ledge camp F15: N-7.1.6), the toll bridge breaking under the brigands (the
+§7. Not built: the toll's talk route, the Knights fighting only when you're Wanted or cast inside
+their line (today you can challenge them), the toll bridge breaking under the brigands (the
 ford for the rest of the life), smoking the cellar with a Smoke Jar or flooding it, the Knights
 arriving only from Ashmoon 2, and the Holds themselves (Ring 2).*
 
@@ -211,6 +210,8 @@ arriving only from Ashmoon 2, and the Holds themselves (Ring 2).*
 - **The Holds gate** (D10) is a calendar door (`open_days` [1, 28]): open through Ashmoon, shut
   and barred from Thaw 1. Past it the road to the Holds is a stand-in (an item); seeing the gate
   shut, or reading the road, teaches `holds_shut` (Ledger clue).
+- **The ground** under the picket and round the toll bridge is trodden earth, and the fields have an earth strip along the
+  east fence: grass catches and spreads fire, which in a fight cost more than a frame allows.
 - **Owners**: nobody owns the road; the picket is the Knights' (they mend), the quarry the
   dwarves' (they don't, they aren't here).
 - A story `open <door>` now also marks the door opened for the life, so a gate whose prop still

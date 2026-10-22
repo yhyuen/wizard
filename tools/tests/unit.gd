@@ -474,6 +474,31 @@ func _world() -> void:
 	run.new_run()
 	var story = Story.new(run)
 	story.load_all()
+	# N-7.1.6: every Ring 1 fight is placed: its place and spot are on its map, the map says where
+	# its foes come from, and a scene arriving at the place starts it (there or one choice on).
+	var encs: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/encounters.json"))["encounters"]
+	var unplaced: Array = []
+	for eid in encs:
+		var pl: Array = encs[eid].get("place", [])
+		if pl.is_empty():
+			continue
+		var pm = loaded[pl[0]]
+		var starts := false
+		for sid in story.scenes:
+			var s: Dictionary = story.scenes[sid]
+			if not pl[1] in s["arrives"]:
+				continue
+			var reach: Array = [s]
+			for c in s["choices"]:
+				if story.scenes.has(c["target"]):
+					reach.append(story.scenes[c["target"]])
+			for r in reach:
+				for st in r["steps"]:
+					if st["t"] == "fx" and st["op"] == "fight" and st["arg"] == eid:
+						starts = true
+		if not (pm.places.has(pl[1]) and pm.spots.has(pl[2]) and pm.d["spawns"].has(eid) and starts):
+			unplaced.append(eid)
+	ok(unplaced.is_empty(), "every placed fight has its place, spot, spawns and a scene that starts it: " + ", ".join(unplaced))
 	var w = World.new(run, story)
 	ok(w.period_s() > 0.0 and is_equal_approx(w.period_left(), 1.0), "a time of day starts full")
 	w.clock = w.period_s() * 0.5
