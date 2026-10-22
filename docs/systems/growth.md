@@ -27,7 +27,8 @@ There are two layers, and the ruins game uses the first on top of the second.
   (`tier_ring`: bolt 0, control 1, signature 4). HP 100 + 2 per well, Aether 100 + 1 per well;
   blink charges at Rings `blink_ring` 2 and 4.
 - **Practice** (spell XP): grows ×3 below the best that Model reached before, plus **insight**
-  (lives spec §4.3): +1 at each Turning, up to +3, each point +10% (`lives.json` `insight`; it
+  (lives spec §4.3): +1 at each Turning, up to +3, each point +10%, and each Omen taken this life adds 5% of that (`lives.json` `insight`,
+  `omen_insight`; it
   replaced Fluency, which counted loops that reached day 7). Meditating and training at the watch's
   targets work once a day each (`once_a_day`); training gives `train_share` 0.4 of a level.
 - **Start:** `start_models` Ember Bolt, Pebble, Pillar, Fling.

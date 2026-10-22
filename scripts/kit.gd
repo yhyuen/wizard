@@ -308,12 +308,13 @@ func _regen(dt: float) -> void:
 		if aether <= 0.0:
 			_drop_ward()
 		return
+	var omen: float = Run.omen_mult("aether_regen")  # the Thin Well Omen (lives spec §6.4)
 	if A.fighting():
-		aether = minf(top, aether + float(M["regen_fight"]) * dt)
+		aether = minf(top, aether + float(M["regen_fight"]) * omen * dt)
 	else:
 		var cap: float = top * float(M["out_cap"])
 		if aether < cap:
-			aether = minf(cap, aether + float(M["regen_out"]) * dt)
+			aether = minf(cap, aether + float(M["regen_out"]) * omen * dt)
 
 
 ## How fast the wizard walks now: slowed while winding up (rooted for an Incant), in recovery and

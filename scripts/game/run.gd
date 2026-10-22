@@ -11,6 +11,7 @@ const Lives := preload("res://scripts/game/lives.gd")
 signal learned(id: String)
 
 var save_dir := "user://slot1/"  # one slot for now (the save spec's three come with the title screen); tests use their own
+var profile_path := "user://profile.json"  # the install's copy of every achievement earned (save spec §3)
 const SAVE_VERSION := 1
 const TIMES := ["morning", "noon", "afternoon", "dusk", "night"]
 const TIME_NAMES := ["Morning", "Noon", "Afternoon", "Dusk", "Night"]
@@ -37,7 +38,7 @@ func _ready() -> void:
 
 func fresh_soul() -> Dictionary:
 	return {"version": SAVE_VERSION, "lives": [], "insight": 0, "known": {}, "deaths": {}, "trials": [],
-		"echo": {}, "revisions": {}, "best_wells": 0,
+		"echo": {}, "revisions": {}, "best_wells": 0, "achievements": {}, "titles": [], "title": "",
 		"play_s": 0.0, "fps": {"sum": 0.0, "n": 0, "min": 0}}  # for the playtest run summary
 
 
@@ -46,7 +47,7 @@ func fresh_life() -> Dictionary:
 	var first: bool = (soul.get("lives", []) as Array).is_empty()
 	return {"version": SAVE_VERSION, "n": soul.get("lives", []).size() + 1, "road": "apprentice" if first else "", "deeds": [],
 		"day": 1, "time": 0, "flags": {}, "seen": {}, "learned": [], "dawn_done": false,
-		"injured": false, "losses": [], "calamities": []}
+		"injured": false, "losses": [], "calamities": [], "omens": [], "earned": []}
 
 
 ## A brand new month: forgets everything.
@@ -78,6 +79,33 @@ func pass_calamity(id: String) -> void:
 
 func insight() -> int:
 	return int(soul.get("insight", 0))
+
+
+# --- Omens (lives spec §6.4) ------------------------------------------------------------
+
+func omens() -> Array:
+	return life.get("omens", [])
+
+
+## Omens are read on the first morning of life 2 onwards, before you rise.
+func omens_offered() -> bool:
+	return loop() > 1 and day() == 1 and time() == 0
+
+
+## Takes Omen `id` for the rest of this life. Returns false if it can't be taken now.
+func take_omen(id: String) -> bool:
+	if not omens_offered() or id in omens() or not lives.get("omens", {}).has(id):
+		return false
+	life["omens"].append(id)
+	return true
+
+
+## The product of this life's Omens' `key` (enemy_hp, aether_regen); 1 with none.
+func omen_mult(key: String) -> float:
+	var m := 1.0
+	for id in life.get("omens", []):
+		m *= float(lives["omens"].get(id, {}).get(key, 1.0))
+	return m
 
 
 # --- roads (lives spec §5) -----------------------------------------------------------
@@ -274,6 +302,34 @@ func save() -> void:
 	DirAccess.make_dir_recursive_absolute(save_dir)
 	_write("soul.json", soul)
 	_write("life.json", life)
+
+
+## Writes the soul alone (an achievement or what you learn is never lost to a crash).
+func save_soul() -> void:
+	if not save_enabled:
+		return
+	DirAccess.make_dir_recursive_absolute(save_dir)
+	_write("soul.json", soul)
+
+
+## Copies achievement `id` to the profile, which keeps it even if this playthrough is deleted.
+func profile_earn(id: String) -> void:
+	if not save_enabled:
+		return
+	var p = JSON.parse_string(FileAccess.get_file_as_string(profile_path)) if FileAccess.file_exists(profile_path) else null
+	if not p is Dictionary:
+		p = {"version": SAVE_VERSION, "achievements": {}}
+	if not p.has("achievements"):
+		p["achievements"] = {}
+	if not p["achievements"].has(id):
+		p["achievements"][id] = {"first_slot": save_dir.trim_suffix("/").get_file(), "date": Time.get_date_string_from_system()}
+	var tmp := profile_path + ".tmp"
+	var f := FileAccess.open(tmp, FileAccess.WRITE)
+	if f == null:
+		return
+	f.store_string(JSON.stringify(p))
+	f.close()
+	DirAccess.rename_absolute(ProjectSettings.globalize_path(tmp), ProjectSettings.globalize_path(profile_path))
 
 
 ## The Turning's writes, in the save spec's order: mark the turning, write the new soul, write the

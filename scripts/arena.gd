@@ -306,7 +306,7 @@ func spawn(kind: String, at: Vector2) -> Unit:
 	u.team = 1
 	u.pos = at
 	u.radius = float(e["radius"])
-	u.max_hp = float(e["hp"])
+	u.max_hp = float(e["hp"]) * Run.omen_mult("enemy_hp")  # the Hard Sky Omen (lives spec §6.4)
 	u.hp = u.max_hp
 	u.hp_lag = u.hp
 	u.poise = int(e["poise"])

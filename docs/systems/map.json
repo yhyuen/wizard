@@ -20,8 +20,8 @@
     "loop": {
       "docs": ["docs/systems/loop.md"],
       "paths": [
-        "scripts/game/run.gd", "scripts/game/slice.gd", "scripts/game/reach.gd", "scripts/game/lives.gd",
-        "data/world/calendar.json", "data/world/lives.json"
+        "scripts/game/run.gd", "scripts/game/slice.gd", "scripts/game/reach.gd", "scripts/game/lives.gd", "scripts/game/achievements.gd",
+        "data/world/calendar.json", "data/world/lives.json", "data/world/achievements.json"
       ]
     },
     "world": {

@@ -41,7 +41,7 @@ const MAPS := "res://data/world/maps.json"
 const HEADER_KEYS := ["place", "days", "times", "when", "force", "priority", "repeat", "known", "title", "slot", "backdrop",
 	"talk", "use", "arrive", "cast"]
 const EFFECTS := ["learn", "set", "clear", "fight", "wells", "train", "meditate", "goto", "end_loop",
-	"model", "trial", "sound", "cutscene", "move", "take", "sleep", "book", "today", "go", "open", "play_path", "road", "deed"]
+	"model", "trial", "sound", "cutscene", "move", "take", "sleep", "book", "today", "go", "open", "play_path", "road", "deed", "omen"]
 
 var scenes := {}  # id -> scene dictionary
 var errors: Array = []  # parse errors, for the linter
@@ -78,6 +78,22 @@ class Ctx:
 	## The Hours can be turned back (a calamity has passed in this life).
 	func can_turn() -> bool:
 		return run.can_turn()
+
+	## This life is ending for `cause` (true only while the Turning checks achievements).
+	func ended(cause: String) -> bool:
+		return str(run.life.get("ended", "")) == cause
+
+	## Omen `id` is taken this life.
+	func omen(id: String) -> bool:
+		return id in run.omens()
+
+	## How many Omens this life is under.
+	func omens() -> int:
+		return run.omens().size()
+
+	## The Omens can be read now (the first morning of life 2 onwards).
+	func omens_offered() -> bool:
+		return run.omens_offered()
 
 	func died(cause: String) -> bool:
 		return run.died_of(cause) > 0

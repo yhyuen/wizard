@@ -1,0 +1,34 @@
+{
+ "_doc": "Achievements (design/lives/lives-and-carryover-spec.md §7; build items N-1.2 frame, N-7.7 the list). Deeds the soul remembers: never raw power. Each has a kind (region, school, life, craft, story, challenge), a name, a hint (shown for hidden ones as '?'), when (a story condition, checked through the day and as a life ends: ended(cause) and omens() are true only then and this life), and grants: title (worn on the Deeds tab; people's reactions come later). A road's opens_by may name an achievement id. hidden: shows as '?' with its hint until earned. sealed: a story achievement, shown only as 'A deed not yet done' (SEALED, written by the story threads).",
+ "list": {
+  "first_ring": {
+   "kind": "school",
+   "name": "The First Ring",
+   "hint": "Pass a Ring's trial.",
+   "when": "f(\"ring1\")",
+   "grants": {"title": "Ringbearer"}
+  },
+  "warden": {
+   "kind": "region",
+   "name": "A Cold Kiln",
+   "hint": "Put out the Kiln Warden.",
+   "when": "k(\"trial_warden\")",
+   "grants": {"title": "Kiln-Breaker"}
+  },
+  "eclipse": {
+   "kind": "life",
+   "name": "To the Last Day",
+   "hint": "See a year through to the Eclipse.",
+   "when": "ended(\"eclipse\")",
+   "grants": {"title": "Eclipse-Watcher"}
+  },
+  "omen": {
+   "kind": "challenge",
+   "name": "Under a Bad Sky",
+   "hint": "Finish a year under an Omen.",
+   "hidden": true,
+   "when": "omens() > 0 and (ended(\"eclipse\") or ended(\"turned\"))",
+   "grants": {"title": "Omen-Walker"}
+  }
+ }
+}

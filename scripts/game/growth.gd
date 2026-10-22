@@ -188,7 +188,8 @@ func echo() -> Dictionary:
 
 ## Insight (lives spec §4.3): each point, +1 a life up to the cap, adds to all Practice gained.
 func fluency() -> float:
-	return float(run.lives["insight"]["per"]) * mini(run.insight(), int(run.lives["insight"]["cap"]))
+	var base: float = float(run.lives["insight"]["per"]) * mini(run.insight(), int(run.lives["insight"]["cap"]))
+	return base * (1.0 + float(run.lives.get("omen_insight", 0.0)) * run.omens().size())  # each Omen adds to insight's effect
 
 
 ## What Progression needs to play by the slice's rules.

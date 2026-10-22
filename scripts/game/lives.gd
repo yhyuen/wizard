@@ -52,18 +52,21 @@ static func carry(soul: Dictionary, life: Dictionary, cause: String, rules: Dict
 	s["lives"].append({"loop": n, "road": road, "cause": cause,
 		"day": day, "moon": (day - 1) / 28 + 1, "time": TIME_NAMES[t], "insight": s["insight"],
 		"wells": held, "ring": str(life.get("ring_name", "")), "raised": raised, "opened": opened,
-		"learned": (life.get("learned", []) as Array).duplicate()})
+		"learned": (life.get("learned", []) as Array).duplicate(),
+		"omens": (life.get("omens", []) as Array).duplicate(), "earned": (life.get("earned", []) as Array).duplicate()})
 	s["last_road"] = road
 	return s
 
 
-## The roads a soul has opened: those with no deed to open them, and those whose deed is done.
+## The roads a soul has opened: those with no deed to open them, and those whose deed (a soul flag)
+## or achievement is done.
 static func roads_open(soul: Dictionary, rules: Dictionary) -> Array:
 	var out: Array = []
 	var flags: Dictionary = soul.get("flags", {})
+	var got: Dictionary = soul.get("achievements", {})
 	for id in rules.get("roads", {}):
 		var by: String = str(rules["roads"][id].get("opens_by", ""))
-		if by == "" or flags.has(by):
+		if by == "" or flags.has(by) or got.has(by):
 			out.append(id)
 	return out
 

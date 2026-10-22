@@ -118,6 +118,9 @@ func _initialize() -> void:
 				"road":
 					if not root.get_node("Run").lives["roads"].has(arg):
 						problems.append("%s: no road %s in data/world/lives.json" % [where, arg])
+				"omen":
+					if not root.get_node("Run").lives.get("omens", {}).has(arg):
+						problems.append("%s: no omen %s in data/world/lives.json" % [where, arg])
 				"sound":
 					if not FileAccess.file_exists("res://assets/sfx/%s.wav" % arg):
 						problems.append("%s: no sound assets/sfx/%s.wav" % [where, arg])
@@ -131,9 +134,17 @@ func _initialize() -> void:
 				problems.append("%s: outcome must be won or lost, not %s" % [where, o])
 			if not story.scenes.has(s["outcomes"][o]):
 				problems.append("%s: outcome goes to missing scene %s" % [where, s["outcomes"][o]])
+	# Achievements' conditions too (data/world/achievements.json).
+	var ach: Dictionary = _json("res://data/world/achievements.json")["list"]
+	for id in ach:
+		if str(ach[id].get("when", "")) != "":
+			conds.append([str(ach[id]["when"]), "achievement " + id])
+		for key in ["name", "hint", "kind"]:
+			if str(ach[id].get(key, "")) == "":
+				problems.append("achievement %s: no %s" % [id, key])
 	# Conditions: they parse, run, and name things that exist.
 	var re := RegEx.new()
-	re.compile("(k|f|seen|died|count)\\(\"([a-z0-9_]+)\"\\)")
+	re.compile("(k|f|seen|died|count|omen|ended)\\(\"([a-z0-9_]+)\"\\)")
 	for pair in conds:
 		var e := Expression.new()
 		if e.parse(pair[0], ["loop", "day", "time", "ring"]) != OK:
@@ -151,7 +162,9 @@ func _initialize() -> void:
 				problems.append("%s: flag %s is never set" % [pair[1], id])
 			elif fn == "seen" and not story.scenes.has(id):
 				problems.append("%s: seen(\"%s\") is not a scene" % [pair[1], id])
-			elif fn == "died" and not deaths.has(id):
+			elif fn == "omen" and not run.lives.get("omens", {}).has(id):
+				problems.append("%s: omen(\"%s\") is not an Omen" % [pair[1], id])
+			elif fn in ["died", "ended"] and not deaths.has(id):
 				problems.append("%s: died(\"%s\") is not a death cause" % [pair[1], id])
 	# Everyone you can walk up to says something, and every item does something, on any day.
 	for id in people:

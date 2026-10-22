@@ -15,6 +15,7 @@ const Story := preload("res://scripts/game/story.gd")
 const Growth := preload("res://scripts/game/growth.gd")
 const World := preload("res://scripts/world/world.gd")
 const Reach := preload("res://scripts/game/reach.gd")
+const Achievements := preload("res://scripts/game/achievements.gd")
 const BuildId := preload("res://scripts/game/build_id.gd")
 ## Where playtesters send their notes (design/slice/README.md §5, M5).
 const FEEDBACK_URL := "https://claude.ai/artifact/HryjwPHEs8S6swcQYFam6c"
@@ -24,7 +25,7 @@ const HINTS := {
 	"talk": "Number keys or a click pick a choice; Space carries on. L opens the Ledger at any time.",
 	"death": "Death resets your power, never what you know. Everything in the Ledger comes with you.",
 }
-const LEDGER_TABS := ["Questions", "Clues", "People", "Insights", "Lives"]
+const LEDGER_TABS := ["Questions", "Clues", "People", "Insights", "Lives", "Deeds"]
 ## The Ledger entry that means you know a person well enough to find them on the map.
 const MAX_BARKS := 2  # speech bubbles shown at once
 const KNOWN_PEOPLE := {"mira": "mira", "aldous": "aldous", "pell": "pell", "captain": "captain"}
@@ -37,6 +38,8 @@ var story
 var growth  # scripts/game/growth.gd: wells, Rings, Practice, the spellbook
 var world  # scripts/world/world.gd
 var reach  # scripts/game/reach.gd: regions, roads, the calendar's events
+var deeds  # scripts/game/achievements.gd: the achievements
+var deeds_t := 0.0  # seconds since the achievements were last checked
 var encounters: Dictionary = {}
 var ledger: Dictionary = {}  # data/world/ledger.json "entries"
 var death_texts: Dictionary = {}
@@ -49,7 +52,7 @@ var reach_pick := ""  # the region picked on the region map
 var ledger_tab := 0
 var ledger_q := ""  # the question picked in the Questions tab
 var ledger_note := ""  # feedback on a wrong deduction, shown in the Ledger
-var toasts: Array = []  # {"text", "t"}
+var toasts: Array = []  # {"text", "t", "gold"}
 var book_slot := 0  # the spellbook slot picked
 var scene_t := 0.0
 var dawn_t := 99.0  # seconds since you woke: the "Day N" card fades
@@ -88,6 +91,7 @@ func setup(the_main) -> void:
 	death_texts = ld["deaths"]
 	world = World.new(run, story)
 	reach = Reach.new(run, story)
+	deeds = Achievements.new(run, story)
 	world.busy = busy
 	run.learned.connect(_on_learned)
 
@@ -247,6 +251,8 @@ func end_loop(cause: String) -> void:
 	growth.end_fight()
 	growth.loop_over()
 	run.life["ring_name"] = growth.ring_name()  # for the life's page
+	run.life["ended"] = cause  # for achievements that need the life to end this way
+	check_deeds()
 	run.end_life(cause)
 	cur = {}
 	pending = {}
@@ -403,7 +409,18 @@ func _process(dt: float) -> void:
 			place_t = 0.0
 		if not busy() and main.mode == "world":
 			handle_requests()
+		deeds_t += dt
+		if deeds_t >= 0.5:
+			deeds_t = 0.0
+			check_deeds()
 	queue_redraw()
+
+
+## Earns any achievement whose condition now holds, with a gold toast for each.
+func check_deeds() -> void:
+	for id in deeds.check():
+		Sfx.play("chime")
+		toast(deeds.toast_text(id), true)
 
 
 ## Plays what the town asked for, one request at a time.
@@ -561,6 +578,9 @@ func _effect(op: String, arg: String) -> bool:
 				toast("You walk the %s road this year." % run.road_name(arg))
 		"deed":
 			run.deed(arg)
+		"omen":
+			if run.take_omen(arg):
+				toast("Omen taken: %s." % run.lives["omens"][arg]["name"])
 		"open":
 			world.map.doors[arg]["open"] = true
 			Sfx.play("chime")
@@ -800,8 +820,8 @@ func entries_of(kind: String) -> Array:
 	return out
 
 
-func toast(s: String) -> void:
-	toasts.append({"text": s, "t": 0.0})
+func toast(s: String, gold := false) -> void:
+	toasts.append({"text": s, "t": 0.0, "gold": gold})
 	if toasts.size() > 6:
 		toasts.pop_front()
 
@@ -896,7 +916,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		toggle_map()
 	elif k == KEY_ESCAPE and overlay != "":
 		overlay = ""
-	elif overlay == "ledger" and k >= KEY_1 and k <= KEY_5:
+	elif overlay == "ledger" and k >= KEY_1 and k <= KEY_6:
 		ledger_tab = k - KEY_1
 	elif overlay == "map" and k >= KEY_1 and k <= KEY_3:
 		map_tab = k - KEY_1
@@ -1484,15 +1504,15 @@ func _draw_ledger() -> void:
 	draw_rect(r, NIGHT)
 	panel(r, Color(GOLD, 0.7))
 	title(r.position + Vector2(28, 36), "The Ledger", 24, GOLD)
-	var x := r.position.x + 220.0
+	var x := r.position.x + 186.0
 	for i in LEDGER_TABS.size():
-		var tr := Rect2(x, r.position.y + 14, 116, 28)
+		var tr := Rect2(x, r.position.y + 14, 90, 28)
 		var on := i == ledger_tab
 		draw_rect(tr, Color(GOLD, 0.25) if on else Color(0, 0, 0, 0.3))
 		draw_rect(tr, Color(GOLD, 0.8 if on else 0.3), false, 1.0)
 		text(tr.position + Vector2(10, 19), "%d  %s" % [i + 1, LEDGER_TABS[i]], 13, GOLD if on else PAPER)
 		buttons.append({"r": tr, "act": func(): ledger_tab = i, "key": 0})
-		x += 124.0
+		x += 94.0
 	var y := r.position.y + 76.0
 	var w := r.size.x - 56.0
 	match ledger_tab:
@@ -1500,6 +1520,8 @@ func _draw_ledger() -> void:
 			_draw_questions(r)
 		4:
 			_draw_lives(r)
+		5:
+			_draw_deeds(r)
 		1, 2, 3:
 			var kinds: Array = [["clue"], ["person"], ["insight", "model"]][ledger_tab - 1]
 			var ids: Array = []
@@ -1512,7 +1534,7 @@ func _draw_ledger() -> void:
 				if y > r.end.y - 30:
 					text(Vector2(r.position.x + 28, r.end.y - 14), "…", 13, DIM)
 					break
-	if run.known_ids().is_empty() and ledger_tab != 4:
+	if run.known_ids().is_empty() and ledger_tab < 4:
 		text(Vector2(r.position.x + 28, y), "Nothing yet.", 14, DIM)
 	button(Rect2(r.end.x - 120, r.end.y - 36, 100, 26), "Close  (L)", toggle_ledger, 0, 13)
 
@@ -1545,6 +1567,9 @@ func _draw_lives(r: Rect2) -> void:
 	for k in int(p.get("insight", 0)):
 		star(Vector2(r.end.x - 60 - k * 16, y - 6), 5.0, GOLD)
 	y = para(Vector2(x, y + 10), "Ended %s, %s.  %s" % [run.date_name(int(p["day"])), str(p["time"]).to_lower(), why], r.size.x - 56, 13, PAPER) + 2.0
+	var under: Array = (p.get("omens", []) as Array).map(func(o): return str(run.lives["omens"].get(o, {}).get("name", o)))
+	if not under.is_empty():
+		y = para(Vector2(x, y), "Under the omens: " + ", ".join(under) + ".", r.size.x - 56, 12, DIM) + 2.0
 	var lines: Array = run.lives.get("ledger_lines", [])
 	if int(p["loop"]) - 1 < lines.size():
 		y = para(Vector2(x, y), str(lines[int(p["loop"]) - 1]), r.size.x - 56, 13, HOURS) + 2.0
@@ -1558,6 +1583,8 @@ func _draw_lives(r: Rect2) -> void:
 		kept.append("%s best Practice %d" % [growth.prog.spell(id)["name"], int(p["raised"][id])])
 	kept.append("Insight +%d" % int(p.get("insight", 0)))
 	var opened: Array = (p.get("opened", []) as Array).map(func(rid): return "The %s road" % run.road_name(rid))
+	for id in p.get("earned", []):
+		opened.append("Deed: " + str(deeds.get_def(id).get("name", id)))
 	var left: Array = []
 	if str(p.get("ring", "")) != "":
 		left.append(str(p["ring"]))
@@ -1577,6 +1604,48 @@ func _draw_lives(r: Rect2) -> void:
 				break
 	if run.loop() > 1 and run.road() == "" and not run.road_offers().is_empty():
 		text(Vector2(x, r.end.y - 20), "Roads open to you this life: " + ", ".join(run.road_offers().map(func(o): return run.road_name(o))), 12, HOURS)
+
+
+## The Deeds tab (lives spec §7.3): every achievement, earned ones in gold with when; hidden ones
+## as "?" and their hint, sealed ones only as a deed not yet done. Above them, the titles you have
+## earned: click one to wear it.
+func _draw_deeds(r: Rect2) -> void:
+	var x := r.position.x + 28.0
+	var y := r.position.y + 78.0
+	var titles: Array = run.soul.get("titles", [])
+	var worn: String = str(run.soul.get("title", ""))
+	if titles.is_empty():
+		text(Vector2(x, y), "No title yet. Deeds earn them.", 13, DIM)
+	else:
+		text(Vector2(x, y), "Title worn:", 13, DIM)
+		var tx := x + 84.0
+		for t in titles:
+			var tw := text_w(str(t), 13) + 18.0
+			var br := Rect2(tx, y - 16, tw, 22)
+			var on: bool = t == worn
+			draw_rect(br, Color(GOLD, 0.25) if on else Color(0, 0, 0, 0.3))
+			draw_rect(br, Color(GOLD, 0.8 if on else 0.3), false, 1.0)
+			text(br.position + Vector2(9, 16), str(t), 13, GOLD if on else PAPER)
+			buttons.append({"r": br, "act": func(): run.soul["title"] = t, "key": 0})
+			tx += tw + 8.0
+	y += 30.0
+	var got := 0
+	for id in deeds.ids():
+		if deeds.earned(id):
+			got += 1
+	text(Vector2(r.end.x - 128, r.position.y + 78), "%d of %d" % [got, deeds.ids().size()], 13, DIM, HORIZONTAL_ALIGNMENT_RIGHT, 100)
+	for id in deeds.ids():
+		var sh: Dictionary = deeds.shown(id)
+		var on: bool = sh["earned"]
+		star(Vector2(x + 6, y - 5), 4.5, GOLD if on else Color(HAIR, 0.5))
+		text(Vector2(x + 20, y), str(sh["name"]), 14, GOLD if on else PAPER, HORIZONTAL_ALIGNMENT_LEFT, 280)
+		if str(sh["line"]) != "":
+			y = para(Vector2(x + 310, y), str(sh["line"]), r.size.x - 370, 12, PAPER if on else DIM, 1.2) + 6.0
+		else:
+			y += 24.0
+		if y > r.end.y - 50:
+			text(Vector2(x, r.end.y - 44), "…", 13, DIM)
+			break
 
 
 ## The Questions tab: questions down the left; the one picked shows its clues on the right, and,
@@ -1676,9 +1745,10 @@ func _draw_toasts() -> void:
 		var a := clampf(4.0 - float(t["t"]), 0.0, 1.0)
 		var rows: Array = wrap_text(t["text"], 196.0, 13)
 		var r := Rect2(700, y, 236, 10 + rows.size() * 17)
-		draw_rect(r, Color(0.03, 0.05, 0.1, 0.9 * a))
-		draw_rect(r, Color(GOLD, 0.5 * a), false, 1.0)
-		star(r.position + Vector2(12, 14), 3.5, Color(GOLD, a))
+		var gold: bool = t.get("gold", false)  # an achievement (UI spec §3.6)
+		draw_rect(r, Color(0.16, 0.12, 0.03, 0.92 * a) if gold else Color(0.03, 0.05, 0.1, 0.9 * a))
+		draw_rect(r, Color(GOLD, (1.0 if gold else 0.5) * a), false, 2.0 if gold else 1.0)
+		star(r.position + Vector2(12, 14), 5.0 if gold else 3.5, Color(GOLD, a))
 		for i in rows.size():
-			text(r.position + Vector2(24, 18 + i * 17), rows[i], 13, Color(PAPER, a))
+			text(r.position + Vector2(24, 18 + i * 17), rows[i], 13, Color(GOLD if gold else PAPER, a))
 		y += r.size.y + 6.0
