@@ -17,8 +17,8 @@ extends RefCounted
 ##
 ## Conditions are Godot expressions over k(id) (remembered), f(id) (flag this loop), seen(id)
 ## (scene played this loop), died(cause), count(prefix) (flags starting with prefix), done(op)
-## (a once-a-day action such as "meditate" already done today), and the values loop, day, time
-## and ring. A line, effect or outcome can start with [condition] to
+## (a once-a-day action such as "meditate" already done today), since(op) (days since that action),
+## and the values loop, day, time and ring. A line, effect or outcome can start with [condition] to
 ## happen only when it holds. `place` can list several places; `slot: free` means playing the
 ## scene doesn't use up the time of day. `backdrop: north_door` paints that place behind a scene
 ## that has no place of its own (and the scenes it leads to).
@@ -60,6 +60,11 @@ class Ctx:
 	## A once-a-day action (meditate, train) already done today.
 	func done(op: String) -> bool:
 		return int(run.life.get("done_" + op, 0)) == run.day()
+
+	## Days since `today op` was last marked in this life (a large number if never): a fight site
+	## cleared that long ago has filled up again (N-7.1.6).
+	func since(op: String) -> int:
+		return run.day() - int(run.life["done_" + op]) if run.life.has("done_" + op) else 9999
 
 	func k(id: String) -> bool:
 		return run.knows(id)

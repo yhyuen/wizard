@@ -18,11 +18,11 @@ extends SceneTree
 
 const LIMIT := 180 * 60
 const FRAME_BUDGET := 8.0  # ms
-## Where the wizard stands when each fight starts: a map and a spot on it.
+## Where the wizard stands when each fight starts: a map and a spot on it. A fight placed in Ring 1
+## (its `place` [map, place, spot], N-7.1.6) starts at its spot instead.
 const AT := {"patrol": ["camp", "yard_c"], "hall_fight": ["halls", "hall_c"], "refectory_fight": ["halls", "refectory_c"],
 	"gallery_fight": ["halls", "gallery_c"], "ante_fight": ["halls", "ante_c"], "warden": ["halls", "kiln_s"],
-	"toll": ["camp", "yard_c"], "lamp_night": ["camp", "yard_c"], "picket": ["camp", "yard_c"],
-	"watch_cell": ["camp", "yard_c"]}
+	"lamp_night": ["camp", "yard_c"]}
 ## The Kiln Warden is a trial (design/ruins/content.md §4): a fresh Apprentice who walks in
 ## without turning the sluice loses; with the sluice turned, a wizard who has worked at it wins.
 const REQUIRE := {"warden fresh": false, "warden strong+flooded": true}
@@ -148,10 +148,12 @@ func _next() -> void:
 	slice.growth.end_fight()
 	slice.growth.begin_fight()
 	slice.world.reset_loop()
-	slice.world.load_map(AT[c["id"]][0])
+	var pl: Array = encounters[c["id"]].get("place", [])
+	var at: Array = AT[c["id"]] if AT.has(c["id"]) else [pl[0], pl[2]]
+	slice.world.load_map(at[0])
 	slice.world.reset_day()
 	slice.set_screen("world")
-	main.enter_world(slice.world.map.spots[AT[c["id"]][1]])
+	main.enter_world(slice.world.map.spots[at[1]])
 	main.arena.kit.rest()  # each fight starts rested, as after a night's sleep
 	if c.get("flooded", false):
 		run.life["done_sluice"] = run.day()

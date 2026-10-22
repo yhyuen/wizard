@@ -1,7 +1,7 @@
 # The fallen city of Vellmar (design/places/ring1-places-and-fights-spec.md §4.1; build item
 # N-7.1.2): the wall gap you arrive at, the Sunken Square's shrine and fountain, the glassworks'
 # lens and the loft behind it, Wick Lane's house, the Archive gate's plaque and the crater's lip.
-# The city's fights come with N-7.1.6. The format is in scripts/game/story.gd.
+# And the city's fights (N-7.1.6). The format is in scripts/game/story.gd.
 
 === wall_gap
 arrive: wall_gap
@@ -89,3 +89,135 @@ The soot crackles and flakes away in the heat. Under it, the letters are cut dee
 + set plaque_clean
 + learn archive_key
 THE ARCHIVE OF THE COLLEGE OF HOURS. ENTRY BY THE COLLEGE'S KEY ALONE.
+
+# --- the city's fights (N-7.1.6; places spec §10.2) -----------------------------------------
+
+=== cinder_row_here
+arrive: cinder_row
+times: morning, noon, afternoon
+repeat: true
+priority: 5
+when: not done("cinder_row") and since("cinder_row_won") >= 28
++ today cinder_row
+Scavengers are stripping lead off the burned roofs of Cinder Row. A man with a crossbow on a roof sees you first.
+"This street's spoken for, friend. Keep walking."
+* Stand your ground -> cinder_row_go
+* Back away
+
+=== cinder_row_go
++ fight cinder_row
+? won -> cinder_row_won
+? lost -> cinder_row_lost
+
+=== cinder_row_won
+They break for the wall and leave their lead behind. Cinder Row is quiet until they work up the nerve to come back.
++ today cinder_row_won
+
+=== cinder_row_lost
+You come to in the ash with your pockets turned out. They didn't take your life. They didn't think it was worth much.
+
+
+=== square_nest_here
+arrive: sunken_square
+times: night
+repeat: true
+priority: 5
+when: not done("square_nest") and since("square_nest_won") >= 3 and day <= 28
++ today square_nest
+Something moves among the leaning lamps. Then everything does: Hollows, climbing out of the square's broken edge, more of them than you can count at once.
+* Fight them -> square_nest_go
+* Back away
+
+=== square_nest_go
++ fight square_nest
+? won -> square_nest_won
+
+=== square_nest_won
+The square goes still. The shrine's rings tick round in the dark, and nothing else moves.
++ today square_nest_won
+
+
+=== square_choir_here
+arrive: sunken_square
+times: night
+repeat: true
+priority: 5
+when: not done("square_nest") and since("square_nest_won") >= 3 and day > 28
++ today square_nest
+Something moves among the leaning lamps. Then everything does, and under the shuffling there's a sound like singing, if a crowd could sing with one throat.
+* Fight them -> square_choir_go
+* Back away
+
+=== square_choir_go
++ fight square_choir
+? won -> square_choir_won
+
+=== square_choir_won
+The square goes still, and the singing with it. The shrine's rings tick round in the dark.
++ today square_nest_won
+
+
+=== glassworks_here
+arrive: glassworks
+repeat: true
+priority: 5
+when: not f("husk_down") and not done("glassworks")
++ today glassworks
+The furnace mouths are cold, but the air in the glassworks hums. Something in the middle of the floor is leaking light, a man-shape gone thin as blown glass, with Hollows crouched round it like dogs round a fire.
+* Fight it -> glassworks_go
+* Back away
+
+=== glassworks_go
++ fight glassworks
+? won -> glassworks_won
+
+=== glassworks_won
+The thing in the middle of the floor comes apart like a dropped lamp. The hum stops. Nothing in here will leak again, not this life.
++ today glassworks_won
++ set husk_down
+
+
+=== depot_here
+arrive: lamp_depot
+times: night
+repeat: true
+priority: 5
+when: not done("depot") and since("depot_won") >= 3 and day > 28
++ today depot
+Inside the depot the lamps on their racks are going out one by one, and not by any wind. Long shapes hang off them, drinking.
+* Fight them -> depot_go
+* Back away
+
+=== depot_go
++ fight depot
+? won -> depot_won
+
+=== depot_won
+The last of the lamp-drinkers falls off its rack. The depot is dark, but it's an ordinary dark.
++ today depot_won
+
+
+=== watch_cell_here
+arrive: old_watch
+times: night
+repeat: true
+priority: 5
+when: day >= 70 and day <= 83 and not done("watch_cell") and since("watch_cell_won") >= 3
++ today watch_cell
+There's a light in the Old Watch, three floors up, where there shouldn't be anyone. Voices too, low and all together, like a lesson being learned by heart.
+Someone at a window sees you. A shape breaks for the stairs.
+* Go after them -> watch_cell_go
+* Back away
+
+=== watch_cell_go
++ fight watch_cell
+? won -> watch_cell_won
+? lost -> watch_cell_lost
+
+=== watch_cell_won
+The Old Watch goes quiet. Whoever they were, they won't meet here again soon.
++ today watch_cell_won
+
+=== watch_cell_lost
+You wake at the foot of the tower. Somebody dragged you out of the way before they left, which is more than you expected.
+

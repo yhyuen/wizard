@@ -1,6 +1,6 @@
 # The Mill fields (design/places/ring1-places-and-fights-spec.md §6; build item N-7.1.4): the
 # Mill bridge you arrive at, the pond's sluice and the islet stone, the mill cellar's cold crack,
-# the wayside shrine and the east fence. The fields' fights come with N-7.1.6. The format is in
+# the wayside shrine and the east fence. The fields' fights are N-7.1.6's. The format is in
 # scripts/game/story.gd.
 
 === mill_bridge
@@ -59,3 +59,71 @@ use: scarecrow
 repeat: true
 A scarecrow on the fence line with an iron basket for a heart. Aldous lights it at dusk, to keep the things on the moor guessing.
 * Leave
+
+# --- the fields' fights (N-7.1.6; places spec F10, F11, F17) --------------------------------
+
+=== granary_raid_here
+arrive: granary
+times: night
+repeat: true
+priority: 5
+when: day == 66 and not done("granary_raid")
++ today granary_raid
+Lanterns at the granary, and men with sacks on the ladder. They want Aldous's grain, and they want it quiet.
+"Walk on, wizard. This isn't your bread."
+* Stop them -> granary_raid_go
+* Back away
+
+=== granary_raid_go
++ fight granary_raid
+? won -> granary_raid_won
+? lost -> granary_raid_lost
+
+=== granary_raid_won
+They drop the sacks and run for the road. Aldous will find his grain where it should be in the morning, and never know why.
++ today granary_raid_won
+
+=== granary_raid_lost
+You wake in the wheat at dawn. The granary door hangs open and half the sacks are gone.
+
+
+=== fence_here
+arrive: east_fence
+times: dusk, night
+repeat: true
+priority: 5
+when: not done("fence") and since("fence_won") >= 3
++ today fence
+Out on the moor, shapes are coming down to the fence. Not wolves. They walk like people who've forgotten how.
+* Hold the fence -> fence_go
+* Back away
+
+=== fence_go
++ fight fence
+? won -> fence_won
+
+=== fence_won
+The last of them falls against the posts. The moor is empty again, as far as you can see, which isn't far.
++ today fence_won
+
+
+=== mill_cellar_here
+arrive: mill_cellar
+times: night
+repeat: true
+priority: 5
+when: not done("mill_cellar") and since("mill_cellar_won") >= 3 and day > 28
++ today mill_cellar
+Down in the sack aisles something is tearing at the grain. Hollows, drawn by it the way moths are drawn to a lamp, and the air is thick with flour.
+Fire would be a very bad idea in here.
+* Fight them -> mill_cellar_go
+* Back away
+
+=== mill_cellar_go
++ fight mill_cellar
+? won -> mill_cellar_won
+
+=== mill_cellar_won
+The aisles go still. Flour settles on everything, on you too, like snow.
++ today mill_cellar_won
+

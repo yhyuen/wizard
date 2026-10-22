@@ -1,7 +1,7 @@
 # The undercroft (design/places/ring1-places-and-fights-spec.md §4.3; build item N-7.1.3): the
 # cistern-drain under the Sunken Square. The drain stair, the long channel, the sluice wheel that
 # drains or floods it, and the grate up to the camp's market cellar (the drain shortcut). The
-# channel's fight comes with N-7.1.6. The format is in scripts/game/story.gd.
+# channel's fight is N-7.1.6's. The format is in scripts/game/story.gd.
 
 === undercroft_stair
 arrive: drain_stair
@@ -41,3 +41,24 @@ An iron grate in the vault overhead, rusted into its frame. Lamplight shows thro
 [not k("drain_open")] Its chain runs down to a post and a crate hung as a counterweight. A hard enough shove on the crate, or a strong charge down the chain, might drag the grate up.
 [k("drain_open")] The grate stands open on its chain. The way to the camp is right there.
 * Leave
+
+# --- the undercroft's fight (N-7.1.6; places spec F9) ------------------------------------------
+
+=== channel_here
+arrive: channel
+repeat: true
+priority: 5
+when: not done("channel") and since("channel_won") >= 3
++ today channel
+Something stirs in the long channel: Hollows wading out of the dark, and behind them a few that walk the wrong way round, heels first.
+* Fight them -> channel_go
+* Back away
+
+=== channel_go
++ fight channel
+? won -> channel_won
+
+=== channel_won
+The channel goes still. Burn the backward ones, or they'll stand up again.
++ today channel_won
+

@@ -322,6 +322,16 @@
   ]
  ],
  "places": {
+  "smugglers_cellar": {
+   "name": "The smugglers' cellar",
+   "district": "east_road",
+   "rect": [
+    1830,
+    170,
+    300,
+    190
+   ]
+  },
   "road_end": {
    "name": "The road's end",
    "district": "east_road",
@@ -662,7 +672,70 @@
    1.02
   ]
  ],
- "spawns": {},
+ "spawns": {
+  "picket": {
+   "points": [
+    [
+     520,
+     620
+    ],
+    [
+     660,
+     620
+    ],
+    [
+     560,
+     790
+    ],
+    [
+     700,
+     790
+    ],
+    [
+     480,
+     700
+    ]
+   ]
+  },
+  "toll": {
+   "ring": [
+    150,
+    230
+   ],
+   "ring_n": 6
+  },
+  "cellar": {
+   "points": [
+    [
+     1900,
+     230
+    ],
+    [
+     2060,
+     230
+    ],
+    [
+     2000,
+     300
+    ],
+    [
+     1880,
+     320
+    ],
+    [
+     2100,
+     320
+    ]
+   ]
+  },
+  "quarry": {
+   "ring": [
+    150,
+    230
+   ],
+   "ring_n": 6
+  }
+ },
  "nav": {
   "nodes": {
    "end": [

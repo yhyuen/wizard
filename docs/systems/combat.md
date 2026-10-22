@@ -31,6 +31,32 @@ page [Enemy Field Guide](https://claude.ai/artifact/NfkV4YFAufXzUP1pBuGcAK)). Un
   loop. Groups can come out of a named map crack (`crack`, glowing `glow` s, default 1) after `at`
   seconds; `guardian` + `flooded_by` lets a once-a-day action (the sluice) start the guardian
   quenched; `waived` waves replace the first ones once you know that trial.
+- **Ring 1's fights placed** (N-7.1.6, [Ring 1 places spec](/mnt/project-files/design/places/ring1-places-and-fights-spec.md)
+  §10.2). An encounter's `place` [map, place, spot] says where it is fought; a scene in that
+  map's story arriving at the place offers it (fight, or back away) and marks it `today`, so no
+  site fights twice a day; winning marks `<id>_won`, and the site refills when `since()` says
+  enough days have gone (Hollow nests 3, brigand and Knight sites 28). Foes come from the map's
+  `spawns` (fixed points indoors, a ring outside). The fights:
+
+  | Id | Where | When | Group |
+  | --- | --- | --- | --- |
+  | `patrol` (F1) | camp yard | night | 4 Hollows; 3 + a Slinger |
+  | `picket` (F3) | east road, Knights' picket | day, from day 2 | 2 Shieldknights, 2 Squires, a Silencer |
+  | `cinder_row` (F4) | city, Cinder Row | day | 3 Cutthroats, a Crossbowman, a Shieldman |
+  | `square_nest` / `square_choir` (F5) | city, Sunken Square | night (the Choir from Thaw) | 4 Hollows + a Slinger; 2 + a Slinger (+ a Choir) |
+  | `glassworks` (F6) | city, glassworks | any time, once a life (`husk_down`) | the Overdrawn Husk, 4 Hollows |
+  | `depot` (F7) | city, lamp depot (inside) | night, from Thaw | 3 Lantern-eaters, 4 Hollows |
+  | `watch_cell` (F8) | city, Old Watch | Seedmoon nights 14–27 (days 70–83) | 3 Acolytes, a Saboteur |
+  | `channel` (F9) | undercroft, long channel | any time | 3 Backward Slingers, 4 Hollows |
+  | `granary_raid` (F10) | fields, granary | Seedmoon 10 night (day 66) | 2 Cutthroats, a Shieldman, a Powder Monkey |
+  | `fence` (F11) | fields, east fence | dusk and night | 4 Hollows; 3 + a Slinger |
+  | `toll` (F13) | east road, toll bridge | day, from day 8 | the Captain, 2 Cutthroats, a Crossbowman, a Powder Monkey, a Shieldman |
+  | `cellar` (F14) | east road, smugglers' cellar | when you get in, or smoke them out | 2 Crossbowmen, 3 Cutthroats, a Shieldman |
+  | `quarry` (F15) | east road, quarry | day | 2 Crossbowmen, 2 Shieldmen, a Powder Monkey |
+  | `mill_cellar` (F17) | fields, mill cellar | night, from Thaw | 5 Hollows, a Slinger |
+
+  The terrain hooks are the places' own props and ground (the keg, the hay cart, the scaffold, the
+  stream, the channel's water). `encounters.gd` plays each placed fight from its spot.
 - **The old Mill fight** (two Hollow waves, then the duel with Silas Vane) and the test scenes
   (T on the title card) still run in the arena when no encounter is set.
 
@@ -160,8 +186,8 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   hit above its Focus hushes it for 2.5 s; the **Overdrawn Husk** (Elite) throws a wild Ember Bolt
   (up to 0.35 rad off its aim; the telegraph line shows where it really goes), and when Broken
   **leaks** a violet pool of 20 Aether, 12/s to you while you stand in it, for 5 s. Encounter
-  `lamp_night` is the Lantern-eater and Choir with Hollows, then the Husk; like the toll, only the
-  fight tests play it until its places are built (N-7.1).
+  `lamp_night` is the Lantern-eater and Choir with Hollows, then the Husk, for the fight tests;
+  in the world they come in the depot, square_choir and glassworks fights.
 - **Brigands** (N-6.3, enemy spec §8.2; minds, guard, keg and net in `scripts/brigands.gd`, flesh
   bodies): the **Cutthroat** (Minion) stabs with a lunge and backs off; the **Crossbowman**
   (Soldier) keeps 170 px off, shoots a bolt (Impact 2, the Ward stops it) and stands reloading 3 s
@@ -172,8 +198,8 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   (30 damage, Impact 3, 34 px, to everyone near, and it sets off other kegs); the **Brigand
   Captain** (Champion, a Leader) swings with Impact 2, throws a **net** (it roots you 1.2 s; Blink
   gets you out) and every 8 s calls a **volley** (his ready Crossbowmen shoot together, past the
-  director). Encounter `toll` (the bridge toll, places spec F13) is the group; until the east road
-  is built (N-7.1.5) only the fight tests play it, in the camp yard.
+  director). Encounter `toll` (the bridge toll, places spec F13) is the group, at the east road's toll
+  bridge.
 - **Armour** (N-6.6, enemy spec §5.3, `foes.armour`, `scripts/armour.gd`): a kind may wear a
   layer over its body: leather (grade I, 15 HP), mail (II, 25) or plate (III, 40). A hit with
   Impact at or above the grade goes fully through; a lighter one lets through only ¾ (leather),
@@ -192,8 +218,8 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   a 35 px circle (shown as it swings) lands after 0.8 s and for 2 s no spell can be begun inside it,
   and a spell you were winding there breaks (`knights.hushed`, checked in `kit.begin`); it rings
   every 6 s. A hit of Impact 3 or more, or Breaking it, breaks the bell, and then it fights with its
-  mace. Encounter `picket` (two Shieldknights, two Squires, a Silencer; not lethal) waits for its
-  place on the camp's edge (N-7.1); until then only the fight tests play it, in the camp yard.
+  mace. Encounter `picket` (two Shieldknights, two Squires, a Silencer; not lethal) is the east
+  road's picket.
 - **The cult's first cell** (N-6.7, enemy spec §8.11, `scripts/cult.gd`, flesh): the **Acolyte**
   (Minion) keeps 100 px off and throws a quick shadow bolt (a line telegraph, Impact 1). The first
   Acolyte in a fight **runs for help**: it runs from you for 5 s (a toast says so), and if it's
@@ -203,8 +229,7 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   burns; then it goes up (10 damage if you're in it, the ground catches, and a fire burns there for
   4 s). Water on the oil first (any water spell that wets the ground there, through
   `world.wet_ground`) washes it out. Up close it swings a knife. Encounter `watch_cell` (three
-  Acolytes and a Saboteur, places spec F8; not lethal) waits for the Old Watch (N-7.1); until then
-  only the fight tests play it, in the camp yard.
+  Acolytes and a Saboteur, places spec F8; not lethal) is fought in the Old Watch.
 - **The Field Guide** (N-6.5, enemy spec §12.1, `foes.guide`, `scripts/field_guide.gd`): what
   you know of each kind, kept in the soul (`Run.soul["guide"]`), so it carries to every life. A
   kind is **Seen** when it spawns, **Beaten** when killed or it yields, its weakness **Found** the
