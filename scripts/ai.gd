@@ -38,6 +38,23 @@ func update(u: Unit, dt: float) -> void:
 			_warden(u, dt)
 
 
+## The fight director (enemy spec §6.4; N-6.1): at most `melee` melee and `ranged` ranged enemies
+## may be winding up an attack on you at once, and none further than `reach` from you (the
+## off-screen rule). The rest keep moving until a turn comes free. Duellists and bosses aren't counted.
+func may_attack(u: Unit) -> bool:
+	var Dr: Dictionary = A.D["foes"]["director"]
+	if u.pos.distance_to(A.player.pos) > float(Dr["reach"]):
+		return false
+	var kind: String = str(A.D["enemies"][u.kind].get("attack", "melee"))
+	if not Dr.has(kind):
+		return true
+	var busy := 0
+	for o in A.enemies():
+		if o != u and o.state == "windup" and str(A.D["enemies"][o.kind].get("attack", "")) == kind:
+			busy += 1
+	return busy < int(Dr[kind])
+
+
 ## An enemy's Focus: Impact above it breaks a wind-up (spell and combat spec §9). Its "focus" in
 ## data/spells.json, else one above its Poise (a stagger or more, as before Focus existed).
 func focus(u: Unit) -> int:
@@ -87,7 +104,7 @@ func _hollow(u: Unit, dt: float) -> void:
 	var to: Vector2 = A.player.pos - u.pos
 	match u.state:
 		"move":
-			if to.length() < float(e["reach"]) + 3.0 and u.cooldown("attack") <= 0.0:
+			if to.length() < float(e["reach"]) + 3.0 and u.cooldown("attack") <= 0.0 and may_attack(u):
 				u.state = "windup"
 				u.state_t = float(e["windup"])
 				u.facing = signf(to.x) if absf(to.x) > 0.1 else u.facing
@@ -108,7 +125,7 @@ func _ember(u: Unit, dt: float) -> void:
 	var to: Vector2 = A.player.pos - u.pos
 	match u.state:
 		"move":
-			if to.length() < float(e["reach"]) + 6.0 and u.cooldown("attack") <= 0.0:
+			if to.length() < float(e["reach"]) + 6.0 and u.cooldown("attack") <= 0.0 and may_attack(u):
 				u.state = "windup"
 				u.state_t = float(e["windup"])
 				u.aim = to.normalized()
@@ -213,7 +230,7 @@ func _slinger(u: Unit, dt: float) -> void:
 				dir = -to
 			dir += to.orthogonal().normalized() * (0.6 if int(u.id) % 2 == 0 else -0.6)
 			_step(u, dir, dt)
-			if d < float(e["range"]) and u.cooldown("attack") <= 0.0:
+			if d < float(e["range"]) and u.cooldown("attack") <= 0.0 and may_attack(u):
 				u.state = "windup"
 				u.state_t = float(e["windup"])
 				u.facing = signf(to.x) if absf(to.x) > 0.1 else u.facing
@@ -244,7 +261,7 @@ func _inverted(u: Unit, dt: float) -> void:
 			dir += to.orthogonal().normalized() * (-0.6 if int(u.id) % 2 == 0 else 0.6)
 			_step(u, dir, dt)
 			u.facing = signf(to.x) if absf(to.x) > 0.1 else u.facing
-			if d < float(e["range"]) and u.cooldown("attack") <= 0.0:
+			if d < float(e["range"]) and u.cooldown("attack") <= 0.0 and may_attack(u):
 				u.state = "windup"
 				u.state_t = float(e["windup"])
 				var hand = u.pos + Vector2(0, -6)

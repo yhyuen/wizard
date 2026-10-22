@@ -23,6 +23,9 @@ extends SceneTree
 ## empty device won't throw; the bench fills devices from reagents and takes the time of day.
 ## N-5.3 (the first combined spell): inside a Star Lantern's ring a Pillar begun at once, without
 ## standing still, is Aligned and reaches past its listed range.
+## N-6.1 (enemy records, Break, the director): Impact from behind fills a Slinger's Break meter until
+## it is Broken (it can't act and takes more damage); five Hollows round you never wind up more
+## than two attacks at once.
 
 const BOOK := ["ember_bolt", "pebble", "splash", "undertow"]
 const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt"]
@@ -87,6 +90,8 @@ func _initialize() -> void:
 		["an empty device won't throw", _empty_setup, _no_throw],
 		["the bench fills a flask (double reagents outside the school) and takes the time of day", _bench_setup, _benched],
 		["inside a Star Lantern's ring a Pillar is Aligned without standing still", _lantern_setup, _lantern_column],
+		["hits from behind fill a Slinger's Break meter until it is Broken", _break_meter_setup, _broken],
+		["five Hollows round you take turns: no more than two wind up at once", _director_setup, _took_turns],
 	]
 
 
@@ -608,3 +613,60 @@ func _lantern_column() -> bool:
 		main.arena.kit.still_t = 0.0
 		cast = {"slot": main.arena.kit.slot_of("pillar"), "aim": state["target"], "f": 0}
 	return state.has("pillar") and _far_column()
+
+
+# --- N-6.1: Break and the director ----------------------------------------------------------
+
+func _break_meter_setup() -> void:
+	cast = {}
+	state.erase("long")
+	_clear_enemies()
+	var at := _dark_spot()
+	main.place_player(at)
+	var u = main.arena.spawn("slinger", at + Vector2(40, 0))
+	u.state = "move"
+	u.facing = 1.0  # facing away from you: your hits come from behind
+	state["slinger"] = u
+	state["hp0"] = 0.0
+
+
+## Two Impact-2 hits from behind (30 each, on a 35 meter) break it; a Broken Slinger takes ×1.5.
+func _broken() -> bool:
+	var u = state["slinger"]
+	var A = main.arena
+	if u.broken_t <= 0.0:
+		u.hp = u.max_hp
+		u.reaction_t = 0.0
+		u.stun = 0.0
+		u.facing = 1.0
+		A.hit(u, 1.0, 2, Vector2.RIGHT, 0.0)
+		return false
+	var before: float = u.hp
+	A.hit(u, 4.0, 1, Vector2.RIGHT, 0.0)
+	var ok: bool = u.locked() and is_equal_approx(before - u.hp, 6.0) and A.break_max(u) == 35.0
+	_clear_enemies()
+	return ok
+
+
+func _director_setup() -> void:
+	_clear_enemies()
+	main.arena.zones.clear()  # the Star Lantern's light would keep these Hollows off
+	var at := _dark_spot()
+	main.place_player(at)
+	main.arena.player.iframes = 99.0  # they may hit you; this case only counts their turns
+	state["max_winding"] = 0
+	state["frames"] = 0
+	for k in 5:
+		var h = main.arena.spawn("hollow", at + Vector2.from_angle(k * TAU / 5.0) * 14.0)
+		h.state = "move"
+
+
+func _took_turns() -> bool:
+	var n: int = main.arena.enemies().filter(func(u): return u.state == "windup").size()
+	state["max_winding"] = maxi(state["max_winding"], n)
+	state["frames"] += 1
+	if state["frames"] < 120:
+		return false
+	main.arena.player.iframes = 0.0
+	_clear_enemies()
+	return state["max_winding"] == 2

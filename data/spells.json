@@ -373,26 +373,6 @@
   },
   "shrine": {"pos": [240, 122], "reach": 22, "tome_spots": [[72, 70], [410, 220], [70, 222], [408, 72]]},
   "wizard": {"speed": 72, "radius": 5, "blink_dist": 52, "blink_recharge": 2.6, "iframes": 0.5, "regen_out": 0.02},
-  "enemies": {
-    "hollow": {"name": "Dust Hollow", "hp": 22, "poise": 0, "speed": 34, "radius": 5, "damage": 6, "windup": 0.6, "reach": 13, "cooldown": 1.1, "xp": 6},
-    "slinger": {"name": "Hollow Slinger", "hp": 18, "poise": 0, "speed": 30, "radius": 5, "damage": 7, "windup": 0.75, "range": 150, "keep": 105, "shot_speed": 150, "shot_radius": 3.0, "cooldown": 2.4, "xp": 8},
-    "inverted": {"name": "Backward Slinger", "hp": 18, "poise": 0, "speed": 30, "radius": 5, "damage": 8, "windup": 0.9, "range": 150, "keep": 95, "behind": 45, "shot_speed": 150, "shot_radius": 3.0, "cooldown": 2.8, "rise": 1.2, "xp": 10},
-    "rival": {"name": "Silas Vane", "hp": 300, "poise": 1, "speed": 52, "radius": 6, "xp": 60,
-      "spark": {"damage": 9, "windup": 0.35, "speed": 210, "radius": 3.0},
-      "lance": {"damage": 18, "windup": 0.8, "length": 170, "width": 7, "impact": 2},
-      "storm": {"damage": 14, "delay": 1.0, "radius": 16, "cooldown": 6.0},
-      "blink": {"dist": 70, "cooldown": 3.0, "react": 0.25},
-      "summon_at": 0.5, "summon_count": 4},
-    "ember": {"name": "Ember", "hp": 12, "poise": 0, "speed": 55, "radius": 4, "damage": 5, "windup": 0.35, "reach": 14, "cooldown": 0.9, "lunge": 120, "xp": 4,
-      "resist_fire": 0.35, "blaze": {"r": 10, "life": 2.0, "dmg": 3}},
-    "warden": {"name": "The Kiln Warden", "hp": 480, "poise": 4, "speed": 0, "radius": 22, "damage": 0, "xp": 60, "anchored": true, "guardian": true, "resist_fire": 0.4,
-      "phase1": {"ring_every": 2.2, "ring_windup": 0.9, "ring_speed": 75, "ring_width": 12, "ring_max": 240, "ring_gap": 0.9, "ring_damage": 22,
-        "ember_every": 6.0, "ember_n": 2, "cracks": ["kiln_w", "kiln_e"], "drip_every": 4.5, "drip_flinch": 0.5},
-      "phase2_at": 0.6,
-      "phase2": {"vent_every": 1.6, "vent_windup": 0.8, "vent_reach": 120, "vent_arc": 0.8, "vent_damage": 18, "vents": [0, 90, 180], "ring_every": 6.0,
-        "ember_every": 9.0},
-      "flooded": {"vuln_s": 20, "vuln_mult": 2.0}}
-  },
   "impact_reactions": ["none", "flinch", "stagger", "knockdown", "launch"],
   "reaction_time": {"flinch": 0.12, "stagger": 0.4, "knockdown": 0.85, "launch": 1.1}
 }

@@ -1,0 +1,32 @@
+{
+  "_doc": "Enemy kinds (design/combat/enemy-combat-spec.md \u00a72-\u00a74, \u00a76.4; build item N-6.1). tiers: the size of the numbers by tier (enemy spec \u00a73); `break` is the Break meter's size (0: no meter, any hit staggers it). break: each hit adds `per_impact` \u00d7 its Impact, +`behind` from behind and +`windup` while it winds up; full, the enemy is Broken for `broken_s` (by tier): it can't act and takes `broken_damage` \u00d7 damage; the meter drains `drain`/s after `drain_after` s without a hit. director: at most `melee` melee and `ranged` ranged enemies may start an attack on you at once, and none further than `reach` px from you (the off-screen rule). kinds: one record per kind: faction, role, tier, attack (melee, ranged; duel and boss kinds aren't counted by the director), body material, the lesson it teaches, then its numbers (hp, poise, speed, radius, damage, windup, reach or range, cooldown, xp, and per-kind keys).",
+  "tiers": {"minion": {"break": 0}, "soldier": {"break": 35}, "elite": {"break": 80}, "champion": {"break": 120}, "boss": {"break": 200}},
+  "break": {"per_impact": 10, "behind": 0.5, "windup": 0.5, "drain_after": 3.0, "drain": 10, "broken_s": {"soldier": 2.0, "elite": 2.5, "champion": 2.5, "boss": 3.0}, "broken_damage": 1.5},
+  "director": {"melee": 2, "ranged": 1, "reach": 320},
+  "kinds": {
+    "hollow": {"faction": "hollows", "role": "swarm", "tier": "minion", "attack": "melee", "body": "husk", "lesson": "Light and fire control a crowd.",
+      "name": "Dust Hollow", "hp": 22, "poise": 0, "speed": 34, "radius": 5, "damage": 6, "windup": 0.6, "reach": 13, "cooldown": 1.1, "xp": 6},
+    "slinger": {"faction": "hollows", "role": "skirmisher", "tier": "soldier", "attack": "ranged", "body": "husk", "lesson": "Close in, or keep a lamp between you.",
+      "name": "Hollow Slinger", "hp": 18, "poise": 0, "speed": 30, "radius": 5, "damage": 7, "windup": 0.75, "range": 150, "keep": 105, "shot_speed": 150, "shot_radius": 3.0, "cooldown": 2.4, "xp": 8},
+    "inverted": {"faction": "hollows", "role": "skirmisher", "tier": "soldier", "attack": "ranged", "body": "husk", "lesson": "Its stones fly home: stand off its line, not out of its reach.",
+      "name": "Backward Slinger", "hp": 18, "poise": 0, "speed": 30, "radius": 5, "damage": 8, "windup": 0.9, "range": 150, "keep": 95, "behind": 45, "shot_speed": 150, "shot_radius": 3.0, "cooldown": 2.8, "rise": 1.2, "xp": 10},
+    "rival": {"faction": "college", "role": "caster", "tier": "champion", "attack": "duel", "body": "flesh", "lesson": "A duel: read his wind-ups and break them.",
+      "name": "Silas Vane", "hp": 300, "poise": 1, "speed": 52, "radius": 6, "xp": 60,
+      "spark": {"damage": 9, "windup": 0.35, "speed": 210, "radius": 3.0},
+      "lance": {"damage": 18, "windup": 0.8, "length": 170, "width": 7, "impact": 2},
+      "storm": {"damage": 14, "delay": 1.0, "radius": 16, "cooldown": 6.0},
+      "blink": {"dist": 70, "cooldown": 3.0, "react": 0.25},
+      "summon_at": 0.5, "summon_count": 4},
+    "ember": {"faction": "sphere_born", "role": "swarm", "tier": "minion", "attack": "melee", "body": "ember", "lesson": "Fire barely touches it; water puts it out.",
+      "name": "Ember", "hp": 12, "poise": 0, "speed": 55, "radius": 4, "damage": 5, "windup": 0.35, "reach": 14, "cooldown": 0.9, "lunge": 120, "xp": 4,
+      "resist_fire": 0.35, "blaze": {"r": 10, "life": 2.0, "dmg": 3}},
+    "warden": {"faction": "constructs", "role": "warden", "tier": "boss", "attack": "boss", "body": "iron", "lesson": "Find what cools the kiln.",
+      "name": "The Kiln Warden", "hp": 480, "poise": 4, "speed": 0, "radius": 22, "damage": 0, "xp": 60, "anchored": true, "guardian": true, "resist_fire": 0.4,
+      "phase1": {"ring_every": 2.2, "ring_windup": 0.9, "ring_speed": 75, "ring_width": 12, "ring_max": 240, "ring_gap": 0.9, "ring_damage": 22,
+        "ember_every": 6.0, "ember_n": 2, "cracks": ["kiln_w", "kiln_e"], "drip_every": 4.5, "drip_flinch": 0.5},
+      "phase2_at": 0.6,
+      "phase2": {"vent_every": 1.6, "vent_windup": 0.8, "vent_reach": 120, "vent_arc": 0.8, "vent_damage": 18, "vents": [0, 90, 180], "ring_every": 6.0,
+        "ember_every": 9.0},
+      "flooded": {"vuln_s": 20, "vuln_mult": 2.0}}
+  }
+}

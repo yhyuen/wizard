@@ -42,6 +42,7 @@ func _initialize() -> void:
 			if not maps.has(ex["to"]) or not maps[ex["to"]]["spots"].has(ex["at"]):
 				problems.append("map %s: exit %s leads to %s %s, which isn't there" % [mid, ex["id"], ex["to"], ex["at"]])
 	var spells: Dictionary = _json("res://data/spells.json")
+	var foes: Dictionary = _json("res://data/enemies.json")["kinds"]
 	var flags_set := {}
 	for id in load("res://scripts/world/world.gd").FLAGS:
 		flags_set[id] = true  # set by the world itself
@@ -200,7 +201,7 @@ func _initialize() -> void:
 	for id in encounters:
 		for wave in encounters[id]["waves"] + encounters[id].get("waived", []):
 			for g in wave:
-				if not spells["enemies"].has(g["kind"]):
+				if not foes.has(g["kind"]):
 					problems.append("encounter %s: unknown enemy %s" % [id, g["kind"]])
 	for id in ledger:
 		var q: Dictionary = ledger[id]

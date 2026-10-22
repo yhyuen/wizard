@@ -105,6 +105,8 @@ school quest lines, combined spells, Grand spells needing the school's Adept ran
 
 ## Spell levels and mastery (`scripts/autoload/progression.gd`, `data/spells.json` `progression`)
 
+- `Progression.data` is `data/spells.json` plus the enemy records from `data/enemies.json`
+  (`enemies`, `foes`; [combat.md](combat.md), N-6.1).
 - A spell levels from its own hits: XP needed `xp_base` 8 + `xp_step` 4 per level, max 20.
 - **Stages** (spell spec §6, N-3): Novice 1–5, Adept 6–10, Master 11–15, Perfected 16–20
   (`stages`, `stage_top`). Under the slice's rules (`rules.walls`) a spell stops at the top of its

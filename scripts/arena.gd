@@ -690,6 +690,8 @@ func _update_unit(u: Unit, dt: float) -> void:
 	u.wall_check = maxf(0.0, u.wall_check - dt)
 	u.hp_lag = move_toward(u.hp_lag, u.hp, dt * u.max_hp * 0.8)
 	u.tick_cooldowns(dt)
+	if u.team == 1:
+		_break_tick(u, dt)
 	if u.dead:
 		u.death_t -= dt
 		return
@@ -809,6 +811,10 @@ func hit(u: Unit, dmg: float, impact: int, dir: Vector2, knock := 0.0, quiet := 
 			dmg *= float(e["resist_fire"])
 		if float(u.flags.get("vuln_t", 0.0)) > 0.0:
 			dmg *= float(u.flags.get("vuln_mult", 2.0))
+		if u.broken_t > 0.0:
+			dmg *= float(D["foes"]["break"]["broken_damage"])
+		if not quiet and impact > 0:
+			_add_break(u, impact, dir)
 	u.hp -= dmg
 	u.flash = 0.08
 	if u == player:
@@ -846,6 +852,54 @@ func hit(u: Unit, dmg: float, impact: int, dir: Vector2, knock := 0.0, quiet := 
 	if u.hp <= 0.0:
 		kill(u)
 	return true
+
+
+# --- the Break meter (enemy spec §4; N-6.1) ---------------------------------------------
+
+## How big an enemy's Break meter is (0: it has none, any hit staggers it).
+func break_max(u: Unit) -> float:
+	var tier: String = str(D["enemies"][u.kind].get("tier", "minion"))
+	return float(D["foes"]["tiers"].get(tier, {}).get("break", 0))
+
+
+## A hit fills the meter by its Impact: more from behind or into a wind-up. Full, the enemy is
+## Broken: knocked down, it can't act and takes more damage for a few seconds.
+func _add_break(u: Unit, impact: int, dir: Vector2) -> void:
+	var top := break_max(u)
+	if top <= 0.0 or u.broken_t > 0.0:
+		return
+	var B: Dictionary = D["foes"]["break"]
+	var k := 1.0
+	if dir.x * u.facing > 0.1:
+		k += float(B["behind"])  # it faces away from where the hit came from
+	if u.state == "windup":
+		k += float(B["windup"])
+	u.brk = minf(top, u.brk + float(impact) * float(B["per_impact"]) * k)
+	u.brk_t = 0.0
+	if u.brk >= top:
+		var tier: String = str(D["enemies"][u.kind].get("tier", "soldier"))
+		u.broken_t = float(B["broken_s"].get(tier, 2.0))
+		u.stun = maxf(u.stun, u.broken_t)
+		u.reaction = "knockdown"
+		u.reaction_t = u.broken_t
+		u.reaction_len = u.broken_t
+		cancel_zones(u.id)
+		u.state = "move" if u.state == "windup" else u.state
+		fx("ring", u.pos, {"color": PixelArt.GOLD, "r": u.radius + 10.0, "life": 0.45})
+		fx("clink", u.pos + Vector2(0, -12), {"life": 0.45})
+		stats["enemies_broken"] = int(stats.get("enemies_broken", 0)) + 1
+
+
+func _break_tick(u: Unit, dt: float) -> void:
+	if u.broken_t > 0.0:
+		u.broken_t -= dt
+		if u.broken_t <= 0.0:
+			u.brk = 0.0
+		return
+	u.brk_t += dt
+	var B: Dictionary = D["foes"]["break"]
+	if u.brk > 0.0 and u.brk_t > float(B["drain_after"]):
+		u.brk = maxf(0.0, u.brk - float(B["drain"]) * dt)
 
 
 ## First to `hits` clean hits wins a duel (Silas: College rules, no deaths).
@@ -1427,6 +1481,9 @@ func _draw_chunks(u: Unit, at: Vector2) -> void:
 		elif u.hp_lag > lo:
 			col = PixelArt.PAPER
 		draw_rect(Rect2(x0 + i * 3, roundf(at.y), 2, 1), col)
+	var top := break_max(u)
+	if top > 0.0 and (u.brk > 0.0 or u.broken_t > 0.0):
+		draw_rect(Rect2(x0, roundf(at.y) + 2, w * (1.0 if u.broken_t > 0.0 else u.brk / top), 1), PixelArt.GOLD)
 
 
 func _draw_stone(s: Dictionary) -> void:
