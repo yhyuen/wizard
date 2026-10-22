@@ -89,6 +89,19 @@ saving and the screen. Each has a "today vs target" section; the big gaps:
 | Three slots; soul, life, per-map damage files and meta; atomic writes, checksums, a crash-proof Turning, versions | One `user://ruins.json`, plain overwrite, no versions | [loop.md](loop.md) |
 | Four-star bar with stage rings, Focus and Overdraw, a 13-moon calendar with pins, Codex, region map | Four-star stand-in bar, Cadence, the calendar row (moons, weekday dots, calamity discs, time dial; no gold or silver pins yet), Ledger, map with the Reach and calendar tabs | [frame.md](frame.md) |
 
+## Economy and repair: the target vs the build
+
+The [economy, gear, crafting and repair](/mnt/project-files/design/economy/economy-and-repair-spec.md)
+design (2026-10-22, tracker M0-15) is how money, gear and repairs should work. Its §13 is the table:
+
+| Target says | As built | Where |
+| --- | --- | --- |
+| Crowns, shops with weekly stock, one price formula, selling, loans and the Reckoning | No money or shops; the save spec reserves `gold` and `items` | [world.md](world.md) |
+| Staff, robe, charms and a belt; fixed tiers and traits with caps | No gear | [growth.md](growth.md) |
+| Reagents, salvage, benches; Spark Artifice devices on charges refilled at a bench | No crafting or devices (N-5.2) | [combat.md](combat.md) |
+| Commissions board, homes, rent | None (N-7.6) | [world.md](world.md) |
+| Repair crews rebuild owned props over days from town stock | Every reaction resets when you wake (N-4.4) | [world.md](world.md) |
+
 ## Known differences inside the build
 
 | Doc says | As built | Where |

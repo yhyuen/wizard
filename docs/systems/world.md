@@ -74,6 +74,16 @@ grid, breaking and collapse, damage that lasts the life, owners and witnesses. T
   lamps, braziers and burning patches). The **staff strike** shoves the prop in front of it.
 - A lit or flaring lamp's pool (`light_r` 38) keeps `light_shy` kinds out.
 
+## Economy, gear and repair (not built)
+
+*Target design: [economy, gear, crafting and repair](/mnt/project-files/design/economy/economy-and-repair-spec.md)
+(2026-10-22, tracker M0-15; visual: [Crowns and Crews](https://claude.ai/artifact/NabgfdAiiuJw8ghJPuBkzL)):
+one coin (crowns), shops with weekly stock and one price formula (ring, season, scarcity, standing,
+infamy), gear slots with fixed tiers and traits, reagents, salvage and benches, Spark Artifice device
+charges, commissions, homes and loans, and repair crews who rebuild owned props on the environment
+spec's timers using each town's stock. Money, gear and the home reset each life. None of it is built
+yet; the gaps are in [drift.md](drift.md).*
+
 ## Tests
 
 `tools/tests/world_magic.gd` (each reaction, with real casts), `tools/tests/unit.gd` (maps load,
