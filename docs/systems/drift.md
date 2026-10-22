@@ -140,3 +140,16 @@ table; none of it is built:
 | The reaction ladder with numbers, suspicion for unwitnessed damage, amends within 3 days, fines and bounties | People flinch and complain; the captain scolds fire | [world.md](world.md) |
 | One named rival per road who duels you before each rank exam | No rivals | [story.md](story.md) |
 
+## People and side activities: the target spec vs the build
+
+The [people and side activities spec](/mnt/project-files/design/people/people-and-side-activities-spec.md)
+(2026-10-22, tracker M0-17) is the design for people, friendship and the side systems. Its §17 is the
+full table; the big gaps:
+
+| Target spec says | As built | Where |
+| --- | --- | --- |
+| About 20 named people in Ring 1 with schedule rows by slot, weekday, season, weather and events; reactions to weather, calamities, standing and what you did to them | 6 camp people with a schedule per time of day, overrides, `seek` and barks | [world.md](world.md) |
+| Six bond tiers with scene gates, gifts and tastes as knowledge, companions (Guard, Cutter, Mender, Guide), sworn friends, one romance | No friendship; the soul keeps only the lives spec's bond floors | [world.md](world.md), [loop.md](loop.md) |
+| Eight commissions, a six-rung dueling ladder, Star-charts and Sparks minigames | None | [story.md](story.md) |
+| Rumours (date, person, lead), overheard talk, every missable event with a rumour 7 days ahead | Ledger clues only | [story.md](story.md) |
+| Confrontations with three lamps; one inheritance per region | None | [story.md](story.md) |
