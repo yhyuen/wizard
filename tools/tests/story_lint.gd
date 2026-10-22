@@ -46,6 +46,16 @@ func _initialize() -> void:
 	var flags_set := {}
 	for id in load("res://scripts/world/world.gd").FLAGS:
 		flags_set[id] = true  # set by the world itself
+	for cid in _json("res://data/world/calamities.json")["calamities"]:
+		var cr: Dictionary = _json("res://data/world/calamities.json")["calamities"][cid]
+		flags_set["pinned_" + str(cr["event"])] = true  # set by calamity code (scripts/game/calamity.gd)
+		var hold: Dictionary = cr.get("onset_hold", {})
+		for k in ["kept", "taken"]:
+			if hold.has(k):
+				flags_set[str(hold[k])] = true
+		for t in cr["aftermath"]:
+			for fl in cr["aftermath"][t].get("flags", []):
+				flags_set[str(fl)] = true
 	var conds: Array = []  # [condition, where]
 	for s in story.scenes.values():
 		var where := "%s:%d (%s)" % [s["file"], s["line"], s["id"]]

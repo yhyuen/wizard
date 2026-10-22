@@ -1,11 +1,12 @@
 {
- "_doc": "The calamities (design/seasons/seasons-and-calamities-spec.md §6, §8, §10.2; build item N-7.5.1). Each keys on its calendar event (event: the id in data/world/calendar.json, whose moon and day it shares) and adds: onset, the time of day it starts, and onset_scene, the story scene that plays then if you're there (it begins the Peak); regions, where you must be at the Onset to stand in it (data/world/regions.json); signs, each with the first day it can be seen (signs are marked by the story's sign effect); signs_to_pin, how many seen signs pin an unnamed \"?\" on the calendar for its date; prep, the preparations the story marks with its prep effect, and prep_for_raise, how many raise the absent default a tier; peak, the encounter fought from the Onset (data/world/encounters.json, a survive fight; losing it ends the life with calamity:<id>); stakes, read at Dawn: lamps (the camp's circuit lamps still lit) and lost (people taken, Run.life calamity_lost); tiers, checked in order, each a rule over the stakes (lamps_at_least, lost_at_most, any: true for either), the last tier taken if none holds; default_absent, the tier when you weren't there; aftermath per tier: flags set, deeds done (their ids are SEALED story content: one opens a road), and shut, shortage and abandons, kept on the life for the economy (not built); ledger, the entry learned when it passes; end_card, the ending that follows its Dawn tally (Ring 1 ends here).",
+ "_doc": "The calamities (design/seasons/seasons-and-calamities-spec.md §6, §8, §10.2; build item N-7.5.1). Each keys on its calendar event (event: the id in data/world/calendar.json, whose moon and day it shares) and adds: onset, the time of day it starts, and onset_scene, the story scene that plays then if you're there (it begins the Peak); onset_hold (optional; SEALED names): if the life flag `stopped` is set the Onset douses nothing and sets `kept`, otherwise it sets `taken` and douses every circuit lamp but those on circuits whose `held_prefix` + circuit flag is set (re-wicked); regions, where you must be at the Onset to stand in it (data/world/regions.json); signs, each with the first day it can be seen (signs are marked by the story's sign effect); signs_to_pin, how many seen signs pin an unnamed \"?\" on the calendar for its date; prep, the preparations the story marks with its prep effect, and prep_for_raise, how many raise the absent default a tier; peak, the encounter fought from the Onset (data/world/encounters.json, a survive fight; losing it ends the life with calamity:<id>); stakes, read at Dawn: lamps (the camp's circuit lamps still lit) and lost (people taken, Run.life calamity_lost); tiers, checked in order, each a rule over the stakes (lamps_at_least, lost_at_most, any: true for either; flag: a life flag it also needs, the sealed stake), the last tier taken if none holds; default_absent, the tier when you weren't there; aftermath per tier: flags set, deeds done (their ids are SEALED story content: one opens a road), and shut, shortage and abandons, kept on the life for the economy (not built); ledger, the entry learned when it passes; end_card, the ending that follows its Dawn tally (Ring 1 ends here).",
  "calamities": {
   "lantern_night": {
    "name": "Lantern Night",
    "event": "calamity_1",
    "onset": "night",
    "onset_scene": "lantern_night_onset",
+   "onset_hold": {"stopped": "cut_stopped", "kept": "heart_kept", "taken": "heart_taken", "held_prefix": "rewick_"},
    "regions": ["camp"],
    "signs": {"flicker": 77, "mira_oil": 79, "stair_test": 81},
    "signs_to_pin": 2,
@@ -14,7 +15,7 @@
    "peak": "c1_peak",
    "stakes": {"lamps": 24, "people": 30},
    "tiers": [
-    {"id": "held", "name": "Held", "lamps_at_least": 16, "lost_at_most": 3},
+    {"id": "held", "name": "Held", "lamps_at_least": 16, "lost_at_most": 3, "flag": "heart_kept"},
     {"id": "scarred", "name": "Scarred", "lamps_at_least": 8, "lost_at_most": 10, "any": true},
     {"id": "fallen", "name": "Fallen"}
    ],

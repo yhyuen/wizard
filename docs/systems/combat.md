@@ -190,7 +190,9 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   in the world they come in the depot, square_choir and glassworks fights. Encounter `c1_peak` is
   Lantern Night's Peak (N-7.5.1): three waves over 480 s in the camp (Hollows and Slingers;
   Lantern-eaters, a Choir and Hollows; Husks, Hollows, a Lantern-eater and Slingers), up to 24
-  alive; losing it ends the life (`cause` `calamity:lantern_night`). The boss is N-7.5.2.
+  alive; losing it ends the life (`cause` `calamity:lantern_night`); with `shorter` (N-7.5.2) a
+  life flag cuts it to 300 s. Encounter `stair_test` is Lantern Night's third sign: three Hollows
+  and a Slinger at the north stair. The boss is not built yet.
 - **Brigands** (N-6.3, enemy spec §8.2; minds, guard, keg and net in `scripts/brigands.gd`, flesh
   bodies): the **Cutthroat** (Minion) stabs with a lunge and backs off; the **Crossbowman**
   (Soldier) keeps 170 px off, shoots a bolt (Impact 2, the Ward stops it) and stands reloading 3 s

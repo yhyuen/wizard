@@ -7,7 +7,10 @@ extends SceneTree
 ## it pass without you (Fallen), and four preparations raise that to Scarred; standing in the camp
 ## at Night plays the Onset and the Peak; surviving it with 16 lamps lit is Held (which opens the
 ## Lamplighter road for the next life); losing the Peak ends the life; after the Dawn tally, Ring 1's
-## end card ends the life, and the next life knows the date by name.
+## end card ends the life, and the next life knows the date by name. The story layer (N-7.5.2): a
+## preparation takes the time of day; at the lighting, stopping the cut keeps every lamp lit
+## through the Onset (the sealed stake Held needs); otherwise only re-wicked circuits hold, and 16
+## lamps lit by Dawn are only Scarred.
 
 var main
 var slice
@@ -28,6 +31,8 @@ func _go() -> void:
 	slice = main.slice
 	_pin_and_eve()
 	_absent()
+	_prep_time()
+	_taken()
 	_present()
 	_lost()
 	for f in failures:
@@ -73,6 +78,7 @@ func _absent() -> void:
 		if raise:
 			for p in ["rewick", "bridge_rails", "clear_hay", "shelter"]:
 				slice._effect("prep", "lantern_night " + p)
+			slice.after = []
 		slice.rest_until(86)
 		var t: Dictionary = slice.calamity.state("lantern_night").get("tally", {})
 		var want := "scarred" if raise else "fallen"
@@ -85,17 +91,101 @@ func _absent() -> void:
 	print("[calamity] without you it falls; four preparations make it Scarred; then Ring 1's end card")
 
 
-func _present() -> void:
-	_fresh(84, 3)
-	slice.world.load_map("camp")
-	slice.fight_resolver = func(_id):
+## Play the current scene through: `picks` are substrings of the choices to take, in order; any
+## other choice point takes its first choice.
+func _play_through(picks: Array) -> void:
+	var n := 0
+	while slice.screen == "world" and not slice.cur.is_empty() and n < 30:
+		n += 1
+		if not slice.pending.is_empty():
+			slice.advance()
+			continue
+		var at := 0
+		if not picks.is_empty():
+			for j in slice.opts.size():
+				if str(picks[0]) in str(slice.opts[j].get("text", "")):
+					at = j
+					picks.pop_front()
+					break
+		slice.choose(at)
+
+
+func _light(n_lit: int) -> Callable:
+	return func(_id):
 		var n := 0
 		for l in slice.world.lamps:
-			if l["circuit"] != "" and n < 16:
+			if l["circuit"] != "" and n < n_lit:
 				l["lit"] = true
 				l["by"] = "you"
 				n += 1
 		return true
+
+
+## The town lights the Market at Dusk (world.gd does it frame by frame; the test has no frames).
+func _town_lamps() -> void:
+	for l in slice.world.lamps:
+		if l["circuit"] != "":
+			l["lit"] = true
+			l["by"] = "town"
+
+
+func _prep_time() -> void:
+	_fresh(80, 0)
+	slice.world.load_map("camp")
+	run.set_flag("pinned_calamity_1")
+	slice.play("ready_watch")
+	_play_through(["braziers"])
+	if not {"t": "period"} in slice.world.requests or not slice.calamity.state("lantern_night")["prep"].has("braziers"):
+		failures.append("a preparation should count and take the time of day (%s, %s)" % [str(slice.world.requests), str(slice.calamity.state("lantern_night"))])
+	else:
+		print("[calamity] a preparation counts and takes the time of day")
+
+
+## At the lighting nobody stops the cut: the Onset douses all but the re-wicked circuit, the
+## stone is taken, and 16 lamps by Dawn are Scarred, not Held.
+func _taken() -> void:
+	_fresh(84, 2)
+	slice.world.load_map("camp")
+	run.set_flag("rewick_a")
+	slice.next_period()
+	if str(slice.cur.get("id", "")) != "lighting":
+		failures.append("at Dusk on Seedmoon 28 in the camp the lighting should play (%s)" % slice.cur.get("id", ""))
+		return
+	_play_through(["crowd", "Watch"])
+	if not run.knows("pell_lips"):
+		failures.append("the lighting should leave the coupling in the Ledger")
+	_town_lamps()
+	slice.fight_resolver = func(_id):
+		var a_lit: bool = slice.world.lamps.filter(func(l): return l["circuit"] == "A").all(func(l): return l["lit"])
+		var others_dark: bool = slice.world.lamps.filter(func(l): return l["circuit"] in ["B", "C", "D"]).all(func(l): return not l["lit"])
+		if not a_lit or not others_dark:
+			failures.append("at the Onset only the re-wicked circuit should hold")
+		return _light(16).call(_id)
+	slice.next_period()
+	_play_through([])
+	slice.fight_resolver = Callable()
+	var t: Dictionary = slice.calamity.state("lantern_night").get("tally", {})
+	if str(t.get("tier", "")) != "scarred" or not run.flag("heart_taken"):
+		failures.append("with the cut not stopped, 16 lamps should be Scarred (%s)" % str(t))
+	else:
+		print("[calamity] the cut not stopped: only the re-wicked circuit holds, and 16 lamps are Scarred")
+
+
+func _present() -> void:
+	_fresh(84, 2)
+	slice.world.load_map("camp")
+	run.set_flag("mira_sign_seat")
+	run.learn("pell_children")
+	slice.next_period()
+	_play_through(["crowd", "Look", "names"])
+	if not run.flag("cut_stopped"):
+		failures.append("saying the names at the lighting should stop the cut")
+		return
+	_town_lamps()
+	slice.fight_resolver = func(_id):
+		if not slice.world.lamps.filter(func(l): return l["circuit"] != "").all(func(l): return l["lit"]):
+			failures.append("with the cut stopped the Onset should leave the lamps lit")
+		return _light(16).call(_id)
 	slice.next_period()
 	if str(slice.cur.get("id", "")) != "lantern_night_onset":
 		failures.append("at Night on Seedmoon 28 in the camp the Onset should play (%s)" % slice.cur.get("id", ""))
@@ -108,7 +198,7 @@ func _present() -> void:
 		else:
 			slice.choose(0)
 	var t: Dictionary = slice.calamity.state("lantern_night").get("tally", {})
-	if slice.screen != "tally" or str(t.get("tier", "")) != "held" or int(t.get("lamps", 0)) != 16:
+	if slice.screen != "tally" or str(t.get("tier", "")) != "held" or int(t.get("lamps", 0)) < 16:
 		failures.append("surviving the Peak with 16 lamps lit should be Held (%s, %s)" % [slice.screen, str(t)])
 		return
 	if not run.can_turn():

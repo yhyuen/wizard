@@ -149,7 +149,19 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
   (`life.calamity`).
 - **Signs:** the story's `sign <id> <sign>` marks one seen; two pin an unnamed **"?"** on the
   calendar for its date (`pinned_<event>` life flag, `reach.gd`). **Preparations:** the story's
-  `prep <id> <prep>`, each counted once.
+  `prep <id> <prep>`, each counted once; doing one takes the time of day.
+- **Lantern Night's story layer** (N-7.5.2; SEALED scenes in `data/world/story/lantern_night.story`):
+  three signs (the Gate circuit flickers at Dusk in the Market, Seedmoon 21+; Mira's talk about
+  the oil, 23+; Hollows test the north stair at Night, 25+, fight `stair_test`); preparations
+  through Mira (re-wick a circuit, up to four; clear the hay; ask for helpers, which counts with 25
+  standing in the Guild or the College), Halloway (shelter the households; braziers), the Guild
+  bench on the Lamplighter road or with Spark Artifice at Master (bridge the rails; flare charges)
+  and Brogan (bridge the rails). The **lighting** is a fixed event (`lantern_lighting`, Seedmoon 28
+  Dusk, the camp; an appointment). The record's `onset_hold` names the life flags of the Onset:
+  if the cut was `stopped` at the lighting the Onset douses nothing and the stake is `kept`;
+  otherwise it is `taken` and every circuit lamp goes out but the re-wicked circuits (`rewick_a`
+  …). A cut only delayed (`cut_delayed`) makes the Peak shorter (encounter `shorter`). Held also
+  needs the kept stake (the tier's `flag`).
 - **The Eve:** a rest past a calamity whose date is on your calendar (pinned or named) stops on
   its day's Morning: "Lantern Night is tonight." (Travel doesn't stop.)
 - **The Onset:** at its slot, in one of its regions, its `onset_scene` plays (the life is saved
@@ -160,7 +172,7 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
   preparations).
 - **Dawn:** surviving the Peak, the story's `calamity_dawn` reads the stakes (the camp's circuit
   lamps still lit, people lost: `life.calamity_lost`) and picks the tier: **Held** (16+ lamps and
-  at most 3 lost), **Scarred** (8+ lamps or at most 10 lost), else **Fallen**. The tier's aftermath
+  at most 3 lost, and the sealed stake kept), **Scarred** (8+ lamps or at most 10 lost), else **Fallen**. The tier's aftermath
   sets its flags (`market_held` …) and deeds (SEALED: Held opens a road), keeps `shut`, `shortage`
   and `abandons` on the life for the economy, teaches the Ledger entry, keeps the date for every
   later life and lets the Hours be turned back. A **tally card** shows the tier and the stakes.

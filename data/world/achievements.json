@@ -49,6 +49,7 @@
   "brogan_home": {"kind": "story", "name": "Heavy Lifting", "hint": "Carry someone home.", "sealed": true, "when": "f(\"brogan_home\")"},
   "cass_portrait": {"kind": "story", "name": "Sit Still", "hint": "Sit for a portrait.", "sealed": true, "when": "f(\"cass_portrait\")"},
   "patient_way": {"kind": "story", "name": "Bread for Highsun", "hint": "Save the seed without a fire.", "sealed": true, "when": "f(\"seed_saved\")"},
+  "the_coupling": {"kind": "story", "name": "The Coupling", "hint": "Keep the light where it belongs.", "sealed": true, "when": "f(\"cut_stopped\")"},
   "two_on_watch": {"kind": "story", "name": "Two on the Watch", "hint": "Be where you were needed.", "sealed": true, "when": "f(\"tam_safe\")"},
   "rule_one": {"kind": "story", "name": "Rule One", "hint": "Pack your first device at the bench.", "sealed": true, "when": "f(\"rule_one\")"},
   "twenty_four": {"kind": "story", "name": "Twenty-Four", "hint": "Walk the whole round.", "sealed": true, "when": "f(\"round_done\")"},
