@@ -47,7 +47,7 @@ tracker M0-5) is how spells should look under the combat spec. The big gaps:
 ## Enemies: the target vs the build
 
 The [enemy combat spec](/mnt/project-files/design/combat/enemy-combat-spec.md) (2026-10-22, tracker
-M0-6) is how enemies should fight under the combat spec. Its §15 is the full table; the big gaps:
+M0-7) is how enemies should fight under the combat spec. Its §15 is the full table; the big gaps:
 
 | Target says | As built | Where |
 | --- | --- | --- |

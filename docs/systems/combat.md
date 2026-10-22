@@ -10,7 +10,7 @@ where the GDD is silent. Tracker: C-1 to C-5.*
 force × material table, and spell mastery with visible growth, breakthroughs and prerequisites. Nothing of it is built yet; its §15 lists today vs target, and
 [drift.md](drift.md) has the summary. Fighting enemies (tiers, Poise/Break/Focus/Guard, armour
 grades, AI and the fight director, eleven factions, bosses, scaling, rewards, worked fights) is in the
-[enemy combat spec](/mnt/project-files/design/combat/enemy-combat-spec.md) (tracker M0-6; visual
+[enemy combat spec](/mnt/project-files/design/combat/enemy-combat-spec.md) (tracker M0-7; visual
 page [Enemy Field Guide](https://claude.ai/artifact/NfkV4YFAufXzUP1pBuGcAK)). Until code lands, this page is right about the game.*
 
 ## The fight
