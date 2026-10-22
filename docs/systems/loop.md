@@ -23,12 +23,15 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
   `best_wells`, `insight` (0–3), `lives` (a page per life: number, road, cause, moon, day, time,
   insight, wells, what was learnt, Omens, deeds earned), `achievements` (id: life, moon, day),
   `titles` and the `title` worn, the Field Guide (`guide`: kind -> seen, beaten, found;
-  [combat.md](combat.md)), play time and frame stats for the run summary, hints seen.
+  [combat.md](combat.md)), play time and frame stats for the run summary, hints seen, each
+  person's best bond tier (`bond_best`, the next life's floor) and the `tastes` learned
+  ([world.md](world.md) Bonds), and `calamity_held` (lives each calamity was Held).
 - **`life`** is this year and resets at the Turning ("hands reset"): its number `n`, `road`
   (always `apprentice` until roads are built), the day, the time of day, flags, scenes seen, what
   was learnt, Practice, wells, the book, once-a-day actions done (`done_<op>`), items taken,
   `injured`, `losses` (each lost fight: day, time, cause, days slept), `calamities` passed,
-  `omens`, the achievements `earned` in it and how each fixed event went (`events`). The soul
+  `omens`, the achievements `earned` in it, how each fixed event went (`events`) and each
+  person's `bonds` (lamp, tier, caps used). The soul
   also keeps `dates` (fixed events seen come or go) and `appointments`.
   `Run.loop()` is the life's number.
 - **The Turning** (`Run.end_life(cause)`): `scripts/game/lives.gd` `carry(soul, life, cause)` is a
@@ -258,7 +261,8 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
   effect adds one to `mem.known`. Tabs: Questions, Clues, People, Insights (L).
 - A **question** opens when anything in its `opens` is known and lists the `clues` that bear on
   it; a deduction picks the answer once its clues are known (`deduction_ready`, `deduce`).
-- Knowing a person's entry lets the map (M) find them.
+- Knowing a person's entry lets the map (M) find them. The People tab adds your bond tier with
+  each person this life and every taste learned in any life (N-7.6.1).
 
 ## Tests
 
@@ -266,4 +270,4 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
 wakes Injured on day 4, lets the loop go at the shrine, then loop 2), `tools/tests/deaths.gd`
 (each first death or fall teaches something; a fall wakes you Injured two days later; resting
 until the next moon, and travelling; the Thaw examination; the stair fall that misses the watch), `tools/tests/unit.gd` (`_year`: the calendar, losses, the
-roads), `tools/tests/relearn.gd`.
+roads), `tools/tests/relearn.gd`, `tools/tests/people.gd` (bonds: tiers, caps, crossings, gifts, floors; rumours: overheard once, pinned, kept, drawn).

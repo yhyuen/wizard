@@ -1,0 +1,12 @@
+{
+ "_doc": "Rumours (design/people/people-and-side-activities-spec.md §10; build item N-7.6.2). Each: kind (date: when something will happen; person: where someone goes or what they like; lead: where to look), text (what you hear, kept in the Ledger's Rumours tab), points_at ({event: a calendar event id} pins that event's date on the calendar for every life once heard; {person: id} and optionally taste; {place: id}), pool (region:moon band, m1-3, m4-7, m8-10, m11-13: what minigames and companions draw from, the unheard rumour pointing at the soonest event first). Scenes give them with the story's `rumour <id>` effect (overhear scenes stand at a place in a window of days and times). Heard rumours carry (Run.soul rumours {id: life heard}). A data check (story_lint): every fixed event that is an appointment has a rumour pointing at it from a scene that can play at least 7 days before it. Rumours never hand over a key clue.",
+ "rumours": {
+  "r_knights": {"kind": "date", "text": "Riders on the plateau road: knights, under a banner like an iron ring. Here by the second evening, the watch reckons.", "points_at": {"event": "knights_arrive"}, "pool": "camp:m1-3"},
+  "r_iron_gate": {"kind": "date", "text": "The Knights mean to shut the Iron Gate at first light on Thaw 2. Whatever's outside then stays outside.", "points_at": {"event": "iron_gate_shuts"}, "pool": "camp:m1-3"},
+  "r_cinder_row": {"kind": "lead", "text": "A dwarf went down Cinder Row after ring-metal and hasn't come back up. Somewhere near the old bakery, they say. Around the tenth of Thaw, at night, folk heard tapping.", "points_at": {"event": "brogan_trapped"}, "pool": "camp:m1-3"},
+  "r_east_fence": {"kind": "date", "text": "Halloway's short on the Mill's east fence on the night of Seedmoon 12. Two on watch where there ought to be six.", "points_at": {"event": "two_on_watch"}, "pool": "camp:m1-3"},
+  "r_lighting": {"kind": "date", "text": "Mira means to light every lamp in the Market at once, from the great lamp, at Dusk on Seedmoon 28.", "points_at": {"event": "lantern_lighting"}, "pool": "camp:m1-3"},
+  "r_pell_cheap": {"kind": "person", "text": "Pell's oil is the cheapest in the camp. Nobody asks where he gets it.", "points_at": {"person": "pell"}, "pool": "camp:m1-3"},
+  "r_bett_flowers": {"kind": "person", "text": "Bett keeps a jar of wildflowers on the stall when she can find them. For the customers, she says.", "points_at": {"person": "bett", "taste": "flowers"}, "pool": "camp:m1-3"}
+ }
+}

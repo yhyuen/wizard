@@ -339,5 +339,7 @@ The mist thins. The east goes grey, then white, and the things on the stair go b
 [not f("heart_kept")] + learn veiled_woman
 [not f("heart_kept") and ring <= 1] She opens her hand toward you, and the less comes up the road like a tide.
 [not f("heart_kept") and ring > 1] She closes her hand, and walks backward into the less, and the less goes with her.
++ bond mira calamity lantern_night
++ bond wren calamity lantern_night
 + calamity_dawn lantern_night
 * Count the lamps

@@ -294,6 +294,19 @@ tiers, gifts and tastes, companions, sworn friends; what of them carries across 
 - **One seeker a day**: only one person walks up to you each day.
 - **Memories**: the story's `remember <who> <deed>` gives a person a memory of what you did to
   them this life, three at most (the newest kept); `remembers(who, deed)` reads it.
+- **Bonds** (N-7.6.1, people spec §4–5; `data/world/bonds.json`, `scripts/game/bonds.gd`): each
+  person with a track (kind full to Sworn, light to Close, role none) has a lamp (0–100) and a
+  tier: Stranger 0, Warm 10, Friendly 30, Close 60, then Kindred and Sworn at a full lamp. Warm
+  and Friendly come by the lamp alone; Close, Kindred and Sworn need a crossing scene (the story's
+  `bond_cross <who>`, only with the lamp full), and the lamp stops at the door till then. Gains by
+  source (`bond <who> <source> [key] [amount]`): `first_talk` fills to Warm (any talk, once a
+  life), `kindness` +15 and `calamity` +20 once per key, `commission` +6, `spar` +3 and minigames
+  +4/+2 once a week, `values` ±3, `story` its own size. A loss stops at the bottom of the tier;
+  `betray <who>` drops one. **Gifts** (`gift <who> <item>`): by the person's `tastes` (love +12,
+  like +6, plain +2, dislike −4, can't bear −10; an item or its gift kind), once a week per
+  person; the reaction is learned for every life. **Floors:** Close or Kindred in any life starts
+  the next at Warm, Sworn at Friendly. Hooks so far: freeing Brogan and keeping Tam safe
+  (kindness), Mira and Wren at Lantern Night's Dawn (calamity).
 - **Away needs a rumour**: the unit test walks the year and fails anyone away more than 7 days
   running without a rumour on the rows that send them.
 - They flinch and complain when you cast near them; the captain scolds fire in the College ruins;

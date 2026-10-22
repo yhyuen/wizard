@@ -237,4 +237,5 @@ Tam walks the goat home through the gate in the light, talking to it the whole w
 Tam: You're a bad goat. You're the worst goat.
 Dob: (letting his breath out) Two on the watch. Like it should be.
 + set tam_safe
++ bond tam kindness fence
 * Leave

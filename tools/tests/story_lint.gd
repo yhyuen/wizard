@@ -44,6 +44,8 @@ func _initialize() -> void:
 	var spells: Dictionary = _json("res://data/spells.json")
 	var foes: Dictionary = _json("res://data/enemies.json")["kinds"]
 	var flags_set := {}
+	var rumour_d: Dictionary = _json("res://data/world/rumours.json")["rumours"]
+	var rumour_from := {}  # rumour id -> the scenes that give it
 	for id in load("res://scripts/world/world.gd").FLAGS:
 		flags_set[id] = true  # set by the world itself
 	for cid in _json("res://data/world/calamities.json")["calamities"]:
@@ -135,6 +137,20 @@ func _initialize() -> void:
 				"omen":
 					if not root.get_node("Run").lives.get("omens", {}).has(arg):
 						problems.append("%s: no omen %s in data/world/lives.json" % [where, arg])
+				"rumour":
+					if not rumour_d.has(arg):
+						problems.append("%s: no rumour %s in data/world/rumours.json" % [where, arg])
+					else:
+						rumour_from[arg] = rumour_from.get(arg, []) + [s]
+				"bond", "gift", "bond_cross", "betray":
+					var bp := arg.split(" ")
+					var bd: Dictionary = _json("res://data/world/bonds.json")
+					if not people.has(bp[0]) or str(people[bp[0]].get("kind", "full")) == "role":
+						problems.append("%s: %s %s names nobody with a bond track" % [where, st["op"], arg])
+					elif st["op"] == "bond" and (bp.size() < 2 or not bd["sources"].has(bp[1])):
+						problems.append("%s: bond %s has no source from data/world/bonds.json" % [where, arg])
+					elif st["op"] == "gift" and bp.size() < 2:
+						problems.append("%s: gift %s names no item" % [where, arg])
 				"sound":
 					if not FileAccess.file_exists("res://assets/sfx/%s.wav" % arg):
 						problems.append("%s: no sound assets/sfx/%s.wav" % [where, arg])
@@ -178,7 +194,7 @@ func _initialize() -> void:
 				problems.append("achievement %s: no %s" % [id, key])
 	# Conditions: they parse, run, and name things that exist.
 	var re := RegEx.new()
-	re.compile("\\b(k|f|seen|died|count|omen|ended|attended|missed)\\(\"([a-z0-9_]+)\"\\)")
+	re.compile("\\b(k|f|seen|died|count|omen|ended|attended|missed|bond|bond_ready|rumour_heard)\\(\"([a-z0-9_]+)\"\\)")
 	for pair in conds:
 		var e := Expression.new()
 		if e.parse(pair[0], ["loop", "day", "time", "ring"]) != OK:
@@ -194,6 +210,10 @@ func _initialize() -> void:
 				problems.append("%s: k(\"%s\") is not a Ledger id" % [pair[1], id])
 			elif fn == "f" and not flags_set.has(id):
 				problems.append("%s: flag %s is never set" % [pair[1], id])
+			elif fn == "rumour_heard" and not rumour_d.has(id):
+				problems.append("%s: rumour_heard(\"%s\") is no rumour" % [pair[1], id])
+			elif fn in ["bond", "bond_ready"] and not people.has(id):
+				problems.append("%s: %s(\"%s\") is nobody in data/world/people.json" % [pair[1], fn, id])
 			elif fn == "seen" and not story.scenes.has(id):
 				problems.append("%s: seen(\"%s\") is not a scene" % [pair[1], id])
 			elif fn == "omen" and not run.lives.get("omens", {}).has(id):
@@ -233,6 +253,22 @@ func _initialize() -> void:
 		var lid: String = BEATS[beat]
 		if not story.scenes.values().any(func(sc): return sc["steps"].any(func(st): return st["t"] == "fx" and st["op"] == "learn" and st["arg"] == lid)):
 			problems.append("beat %s: no scene teaches %s" % [beat, lid])
+	# Every missable event has a rumour (people spec §10): a fixed event that is an appointment has a
+	# rumour pointing at it, from a scene that can play at least 7 days before it.
+	var calendar: Dictionary = _json("res://data/world/calendar.json")
+	for e in calendar["events"]:
+		if e.get("kind", "") != "fixed" or not e.get("appointment", false):
+			continue
+		var at: int = (int(e["moon"]) - 1) * 28 + int(e["day"])
+		var early := false
+		for rid in rumour_d:
+			if str(rumour_d[rid].get("points_at", {}).get("event", "")) != e["id"]:
+				continue
+			for sc in rumour_from.get(rid, []):
+				if sc["days"].is_empty() or int(sc["days"].min()) <= at - 7:
+					early = true
+		if not early:
+			problems.append("event %s: no rumour points at it from a scene 7 days before" % e["id"])
 	print("[story] %d scenes, %d Ledger entries, %d conditions checked" % [story.scenes.size(), ledger.size(), conds.size()])
 	for p in problems:
 		print("[story] PROBLEM: " + str(p))

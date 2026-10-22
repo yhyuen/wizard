@@ -1,9 +1,10 @@
 {
- "_doc": "Who is where (the Ring 1 roster, people spec §21.1; kind: full, light or role, people spec §3.1) in the survivors' camp (design/ruins/content.md §1). schedule: a spot (data/world/map.json spots) for each time of day, or \"\" for off the map. overrides: the first that holds wins: days (\"4\", \"1-7\", \"2,3\"), times (comma list or any), when (a story condition), spot, and seek: walk up to the wizard and start talking (once a loop). from_day: not in the camp before that day. barks: lines said over the head now and then, the first few that hold are picked at random; each can have days, times and when. figure: the look in data/visual.json figures. reach: how close you must be to talk (sim px). Nobody follows you into the ruin.",
+ "_doc": "Who is where (the Ring 1 roster, people spec §21.1; kind: full, light or role, people spec §3.1) in the survivors' camp (design/ruins/content.md §1). schedule: a spot (data/world/map.json spots) for each time of day, or \"\" for off the map. overrides: the first that holds wins: days (\"4\", \"1-7\", \"2,3\"), times (comma list or any), when (a story condition), spot, and seek: walk up to the wizard and start talking (once a loop). from_day: not in the camp before that day. barks: lines said over the head now and then, the first few that hold are picked at random; each can have days, times and when. figure: the look in data/visual.json figures. reach: how close you must be to talk (sim px). tastes (N-7.6.1, people spec §4.3): love, like, dislike and cant_bear, each a list of item ids or gift kinds (data/world/bonds.json gift_kinds); kind full people can reach Sworn, light ones Close, role ones have no bond. Nobody follows you into the ruin.",
  "people": {
   "mira": {
    "name": "Mira",
    "kind": "full",
+   "tastes": {"love": ["tools"], "like": ["drink"], "dislike": ["flowers"]},
    "figure": "mira",
    "schedule": {
     "morning": "mira_market",
@@ -82,6 +83,7 @@
   "wren": {
    "name": "Wren",
    "kind": "full",
+   "tastes": {"love": ["books"], "like": ["star-charts", "sweets"]},
    "figure": "wren",
    "rows": [
     {"slot": "morning,noon", "at": "college_tents", "doing": "work"},
@@ -115,6 +117,7 @@
   "fennick": {
    "name": "Fennick Brass",
    "kind": "full",
+   "tastes": {"love": ["tools"], "like": ["drink"], "dislike": ["books"]},
    "figure": "fennick",
    "rows": [
     {"slot": "morning,noon,afternoon", "at": "guild_bench", "doing": "trade"},
@@ -129,6 +132,7 @@
   "bett": {
    "name": "Bett",
    "kind": "light",
+   "tastes": {"love": ["flowers"], "like": ["sweets"], "cant_bear": ["drink"]},
    "figure": "bett",
    "rows": [
     {"slot": "morning,noon,afternoon,dusk", "at": "kitchen"},
