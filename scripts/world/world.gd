@@ -18,6 +18,7 @@ const People := preload("res://scripts/world/people.gd")
 const Matter := preload("res://scripts/world/matter.gd")
 const Cells := preload("res://scripts/world/cells.gd")
 const Deeds := preload("res://scripts/world/deeds.gd")
+const Gates := preload("res://scripts/world/gates.gd")
 const Tris := preload("res://scripts/ui/tris.gd")
 const MAPS := "res://data/world/maps.json"
 const CAMP := "camp"
@@ -30,6 +31,7 @@ var _saved := {}  # map id -> this loop's {props, lamps, braziers, scorches} whi
 var _in_exit := ""  # the exit you stand in (an exit asks once, when you step into it)
 var people
 var deeds  # scripts/world/deeds.gd: owners, witnesses and repairs (N-4.4)
+var gates  # scripts/world/gates.gd: the city's grade gates, winch and lens (N-7.1.2)
 var arena
 var run  # the Run autoload
 var story
@@ -82,6 +84,7 @@ func _init(the_run, the_story) -> void:
 	map.movers = movers
 	people = People.new(self)
 	deeds = Deeds.new(self)
+	gates = Gates.new(self)
 	_build_lamps()
 	reset_loop()
 
@@ -159,7 +162,8 @@ func _fresh_props() -> void:
 	for p in map.d.get("props", []):
 		props.append({"kind": str(p[0]), "pos": Vector2(p[1], p[2]), "home": Vector2(p[1], p[2]), "vel": Vector2.ZERO,
 			"rot": float(p[3]), "spin": 0.0, "state": "", "burn_t": 0.0, "embers": [],
-			"hp": float(prop_def(str(p[0])).get("hp", 1)), "integrity": "", "wet_t": 0.0, "heat_t": 0.0})
+			"hp": float(prop_def(str(p[0])).get("hp", 1)), "integrity": "", "wet_t": 0.0, "heat_t": 0.0,
+			"rot0": float(p[3]), "tag": str(p[4]) if p.size() > 4 else ""})
 
 
 ## Each structure's posts join the props (they burn, crack and break like any prop).
@@ -168,7 +172,7 @@ func _fresh_structures() -> void:
 	for d in sd["maps"].get(map_id, []):
 		var r: Array = d["rect"]
 		var st := {"id": str(d["id"]), "name": str(d["name"]), "rect": Rect2(r[0], r[1], r[2], r[3]), "h": float(d["h"]),
-			"supports": [], "state": "", "t": 0.0, "warn": 0.0}
+			"supports": [], "state": "", "t": 0.0, "warn": 0.0, "bridges": bool(d.get("bridges", false))}
 		for at in d["supports"]:
 			var p := {"kind": "post", "pos": Vector2(at[0], at[1]), "home": Vector2(at[0], at[1]), "vel": Vector2.ZERO,
 				"rot": 0.0, "spin": 0.0, "state": "", "burn_t": 0.0, "embers": [], "hp": float(prop_def("post")["hp"]),
@@ -227,6 +231,8 @@ func reset_loop() -> void:
 	for m in _maps.values():
 		for did in m.doors:
 			m.doors[did]["open"] = m.doors[did]["state"] == "open"
+			m.doors[did].erase("opened")
+		m.pits = m.pits_all.duplicate()
 	_in_exit = ""
 	_cache_movers()
 
@@ -288,6 +294,7 @@ func tick(dt: float) -> void:
 			request({"t": "period"})
 	people.update(dt)
 	deeds.update(dt)
+	gates.update()
 	_props(dt)
 	_cache_movers()
 	_magic()
@@ -423,6 +430,8 @@ func burn_ground(at: Vector2, r: float, grade: int) -> int:
 	if n > 0:
 		events_log.append(["ground_fire", cells.material_at(at)])
 		_sync_fire_zones()
+	gates.fire_at(at, r)
+	_reveal_cast(at, r, "fire")
 	return n
 
 
@@ -430,6 +439,7 @@ func burn_ground(at: Vector2, r: float, grade: int) -> int:
 ## cells' fires and wets them. Returns how many fires it put out.
 func wet_ground(at: Vector2, r: float, dir := Vector2.RIGHT, cone := TAU) -> int:
 	arena.ai.cult.wet(at, r)  # a Saboteur's oil, washed out before it's lit (N-6.7)
+	_reveal_cast(at, r, "water")
 	if cells == null:
 		return 0
 	var n := 0
@@ -464,8 +474,18 @@ func strike_ground(a: Vector2, b: Vector2, grade: int) -> int:
 			if l["circuit"] != "" and hit.has(cells.index(l["pos"])):
 				l["flare_t"] = float(pd["flare_s"])
 				events_log.append(["flare", l.get("id", l["group"])])
+		gates.struck(hit, grade)
 	_sync_fire_zones()
 	return hit.size()
+
+
+## Fire or water reaching a thing with `reveal` (soot over a plaque): its `cast:` scene plays.
+func _reveal_cast(at: Vector2, r: float, element: String) -> void:
+	for iid in map.items:
+		var it: Dictionary = map.items[iid]
+		if it.get("reveal", false) and it["at"].distance_to(at) <= r + 24.0 and item_visible(iid):
+			request({"t": "cast", "item": iid, "element": element})
+			return
 
 
 ## A shot of yours that ends (runs out or hits something): fire lights the ground it falls on.
@@ -574,6 +594,8 @@ func _collapse(st: Dictionary) -> void:
 				cells.make_rubble(i)
 	for k in 6:
 		arena.fx("dust", rc.position + Vector2(randf() * rc.size.x, randf() * rc.size.y), {"r": 16.0, "life": 0.9})
+	if st["bridges"]:
+		map.bridge_pits(rc)  # it fell across the gap: you can walk its length for the life
 	events_log.append(["collapse", st["id"]])
 
 
@@ -782,6 +804,8 @@ func apply_force(p: Dictionary, force: String, grade: int, impact := 1.0, dir :=
 	var def := prop_def(p["kind"])
 	if p["state"] == "ash" and force != "time":
 		return "none"
+	if def.get("turns", false) and force == "impact":
+		return gates.turn(p)  # the glassworks' mirrors turn instead of moving
 	var op: String = matter.result(force, grade, str(def.get("material", "wood")), def)
 	match op:
 		"burn":

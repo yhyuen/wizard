@@ -43,8 +43,8 @@ hits, and where shops, crews, powers and the two roads sit) is the
 (tracker M0-16; visual: [Ring 1 Atlas](https://claude.ai/artifact/WdcauyacBwZJN3vgvRkius)). What
 follows is the build today.*
 
-- **Regions** group maps: the survivors' camp (`camp`) and the fallen city of Vellmar (`city`,
-  whose one map so far is the College halls, arriving at `landing`). Each has a name, ring, a
+- **Regions** group maps: the survivors' camp (`camp`) and the fallen city of Vellmar (`city`:
+  the city's streets and the College halls under them, arriving at the `wall_gap`). Each has a name, ring, a
   place on the chart (`pos`), its `maps` (the first is where travel arrives), `arrive` (the spot)
   and a `blurb`. A region with no maps is a **card**: the Mill fields and east road (Ring 1) and
   four Ring 2 regions show their blurb and cost no time (the Wuxia rule).
@@ -55,6 +55,7 @@ follows is the build today.*
   you arrive at the region's spot that morning, behind the loading card, not rested. If the
   Eclipse falls on the road, it comes first.
 - The camp's north stair still leads straight down to the halls for free (the build's shortcut).
+  The halls' landing has a second stair up to the city's College steps.
 
 ## The camp (`data/world/map.json`)
 
@@ -90,6 +91,47 @@ workroom moving to the halls, shops, boards and crews behind the new places (N-7
   III 240, IV the whole circuit; the ground rule below), and **every circuit lamp on a charged cell
   flares** (logged `flare`), so a strong enough strike lights a whole run for a moment and none of
   the others.
+
+## The fallen city (`data/city/map.json`, `scripts/world/gates.gd`)
+
+*N-7.1.2, [Ring 1 places spec](/mnt/project-files/design/places/ring1-places-and-fights-spec.md)
+§4.1, §8, §9. Not built: the drain stair and the undercroft (N-7.1.3), the city's fights and
+night nests (N-7.1.6), the Old Watch's rope lift, ley points at shrines, buying the Wick Lane
+house, the bakery cellar's beam, the lens turned by Lamplight or the furnace light, and the
+Lamplighter trial at the depot.*
+
+- **The map** (3200 × 2400 px, ruin kit, the clock runs): a burned quarter inside the city wall.
+  You arrive at the **wall gap** (south), walk the avenue north to the **Sunken Square** (dry
+  fountain, six broken lamps, the city shrine, the broken east edge), and on to the **College
+  steps** (an exit down to the halls' landing). West: **Cinder Row**, the **bakery**, the
+  **glassworks** (three furnaces, the great lens, three mirrors) and the hidden **glassblower's
+  loft**. East: **Wick Lane** (the house for sale, a building you walk into), **Bell Street**, the
+  **Old Watch**, the **lamp depot** and the **crater's lip**. North-west: the **Archive gate**
+  (sealed: Ring 2). The ruin kit draws `blocks` as burned houses (broken walls round a charred
+  floor) and the circles `fountain`, `watchtower` and `furnace`.
+- **Gates** (`gates.gd`): a map door can carry `gate` (a prop's tag, the prop's 5th field), and
+  stands open while that prop is broken or burned to ash; if its owner mends the prop, the door
+  shuts again. Bell Street's **barricade** (wood: Fire II burns it, Impact II smashes it; the
+  Watch's, worth 30 cr), the depot's **shutter** (iron: Impact II bends it; the Guild's) and the
+  bakery's **heap** over the cellar hatch (stone, Impact II). A gate is drawn as its prop only.
+- **The winch**: a door's `winch` [x, y] and `grade`: lightning at that grade or more charging the
+  rail cell at the winch opens the door for the life ("The winch catches the charge…"). The
+  depot's shutter: grade II, on the depot's rail.
+- **The lens** (the map's `lens`): any Impact on a **mirror** prop turns it a quarter round
+  instead of moving it. When each mirror has the turn the map names (m1 1, m2 2, m3 3), by day
+  (not dusk or night), the sun through the lens burns the fuse: the **loft door** opens for the
+  life and you learn `glass_fuse` (a soul memory, Ledger insight). Once you know it, fire within
+  reach of the fuse opens the loft at once, in any life.
+- **The Old Watch** (`structures.json`, `bridges: true`): one post holds its gallery over the
+  square's broken east edge. Fell it and, as well as the collapse, the pits under its rect go for
+  the life: you can walk from the square to the tower. A new life puts the pits back
+  (`Map.pits_all`) and shuts every door a gate, winch or lens opened.
+- **Reveal**: an item with `reveal` (the Archive gate's sooted plaque) plays its `cast: water` or
+  `cast: fire` scene when Splash's water or fire reaches it; the plaque then reads, and you learn
+  `archive_key`.
+- **Owners**: the Watch (wall gap, square, Wick Lane, Bell Street), the Guild (the depot), the
+  College (its steps and the Archive gate); everything else is nobody's. Ground: stone, the
+  crater's lip earth.
 
 ## Weather (`data/world/weather.json`, `scripts/world/weather.gd`)
 
@@ -203,6 +245,8 @@ kind, grade gates in map data, people clearing rubble over days, Time mending a 
   a fire on its cell; an Impact shot at grade II or more clears the rubble it lands on.
 - A fallen structure stays down for the life (it stands again when you wake). Rewind mends a
   post but not what it held.
+- **`bridges`**: a structure that falls across a gap (the city's Old Watch) takes away the pits
+  under its rect for the life (`Map.bridge_pits`).
 
 ### Fire, water and charge on the ground (`data/world/ground.json`, `scripts/world/cells.gd`)
 
@@ -282,8 +326,10 @@ Spark Artifice part (reagents, salvage, the Lamplighters' bench and device charg
 ## Tests
 
 `tools/tests/world_magic.gd` (each reaction, with real casts, including a Pillar grass fire that
-spreads, Splash on a ground fire, a Spark on wet ground and a strike along a lamp rail),
+spreads, Splash on a ground fire, a Spark on wet ground, a strike along a lamp rail, and the city's
+barricade, winch, mirrors, Old Watch bridge and plaque),
 `tools/tests/unit.gd` (maps load, exits lead somewhere real, pits, reachability, per-map lamps; the
 ground grid: spread, stone and water stop fire, ash, wind, rain, the cap, lightning reach by grade;
-the camp's places and buildings, 24 lamps on 4 separate rail networks), `tools/map_preview.gd`
+the camp's places and buildings, 24 lamps on 4 separate rail networks; every city spot reachable
+from the wall gap with its gates open), `tools/map_preview.gd`
 (top-down PNG/SVG of every map with rails and circuit letters; CI artifact `map-preview`).

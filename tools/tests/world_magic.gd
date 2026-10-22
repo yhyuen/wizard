@@ -38,6 +38,11 @@ extends SceneTree
 ## two; dousing someone's burning bale earns standing and fame.
 ## N-7.1.1 (the camp re-dressed): lightning on a lamp rail runs along the iron and flares that
 ## circuit's lamps in reach, and no other circuit's.
+## N-7.1.2 (the fallen city): Bell Street's barricade smashed opens its gate, and mended it shuts;
+## lightning at grade II on the depot's rail runs the winch (grade I doesn't); the glassworks'
+## mirrors turned right by day open the loft and teach the fuse, and fire on the fuse opens it
+## again; the Old Watch felled bridges the square's broken edge; Splash on the Archive gate's
+## plaque washes the soot off.
 
 const BOOK := ["ember_bolt", "pebble", "splash", "undertow"]
 const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt"]
@@ -127,6 +132,11 @@ func _initialize() -> void:
 		["breaking a crate someone sees costs standing; one nobody sees is found later; its owner mends it", _deeds_setup, _deeds],
 		["putting out a burning bale someone owns earns standing and fame", _good_setup, _good_deed],
 		["lightning on a lamp rail runs along it: that circuit's lamps in reach flare, no other circuit's", _rail_setup, _rail_flared],
+		["in the fallen city, Bell Street's barricade smashed opens its gate, and mended it shuts again", _barricade_setup, _barricaded],
+		["lightning at grade II on the lamp depot's rail runs its winch and the shutter opens; grade I doesn't", _winch_setup, _winched],
+		["the glassworks' mirrors turned right by day open the loft and teach the fuse; fire on the fuse opens it", _mirror_setup, _mirrored],
+		["felling the Old Watch bridges the Sunken Square's broken edge", _watch_setup, _bridged],
+		["Splash on the Archive gate's plaque washes its soot off", _plaque_setup, _plaque_clean],
 	]
 
 
@@ -1225,3 +1235,101 @@ func _rail_flared() -> bool:
 			return false
 	return near >= 4
 
+
+# --- the fallen city (N-7.1.2) -----------------------------------------------------------------
+
+func _city_prop(tag: String) -> Dictionary:
+	for p in world.props:
+		if str(p.get("tag", "")) == tag:
+			return p
+	return {}
+
+
+func _barricade_setup() -> void:
+	world.load_map("city")
+	slice.set_screen("world")
+	main.enter_world(world.map.spots["sunken_square"])
+	_clear_enemies()
+	var p := _city_prop("barricade")
+	state["shut"] = world.map.solid_at((world.map.doors["bell_barricade"]["rect"] as Rect2).get_center())
+	world.apply_force(p, "impact", 2, 4.0)
+	state["p"] = p
+	state["phase"] = 0
+
+
+func _barricaded() -> bool:
+	var dr: Dictionary = world.map.doors["bell_barricade"]
+	if state["phase"] == 0:
+		if not dr["open"]:
+			return false
+		state["phase"] = 1
+		world.mend(state["p"])  # its owner puts it back
+		return false
+	return state["shut"] and not dr["open"] and state["p"]["integrity"] == ""
+
+
+func _winch_setup() -> void:
+	var w: Array = world.map.doors["depot_shutter"]["winch"]
+	state["w"] = Vector2(w[0], w[1])
+	world.strike_ground(state["w"], state["w"], 1)
+	state["weak"] = not world.map.doors["depot_shutter"]["open"]
+	world.cells.charge.fill(0.0)
+	world.strike_ground(state["w"], state["w"], 2)
+
+
+func _winched() -> bool:
+	var dr: Dictionary = world.map.doors["depot_shutter"]
+	return state["weak"] and dr["open"] and dr.get("opened", false) and not world.map.solid_at((dr["rect"] as Rect2).get_center())
+
+
+func _mirror_setup() -> void:
+	var L: Dictionary = world.map.d["lens"]
+	state["knew"] = run.knows(str(L["know"]))
+	for tag in L["mirrors"]:
+		var p := _city_prop(tag)
+		for k in int(L["mirrors"][tag]):
+			world.apply_force(p, "impact", 1, 1.0)
+	state["phase"] = 0
+
+
+func _mirrored() -> bool:
+	var L: Dictionary = world.map.d["lens"]
+	var dr: Dictionary = world.map.doors[str(L["door"])]
+	if state["phase"] == 0:
+		if not dr["open"] or not run.knows(str(L["know"])):
+			return false
+		state["phase"] = 1
+		# a later life: the mirrors are back as they were, but you know where the fuse is
+		dr["open"] = false
+		dr.erase("opened")
+		for tag in L["mirrors"]:
+			_city_prop(tag)["turn"] = 0
+		world.burn_ground(Vector2(L["fuse"][0], L["fuse"][1]), 12.0, 1)
+		return false
+	return not state["knew"] and dr["open"]
+
+
+func _watch_setup() -> void:
+	var post := {}
+	for p in world.props:
+		if p.get("holds", "") == "old_watch":
+			post = p
+	state["edge"] = Vector2(2124, 1150)
+	state["pit"] = world.map.in_pit(state["edge"])
+	world.apply_force(post, "impact", 3, 4.0)
+	state["long"] = true
+
+
+func _bridged() -> bool:
+	return state["pit"] and not world.map.in_pit(state["edge"]) and world.structures[0]["state"] == "down"
+
+
+func _plaque_setup() -> void:
+	state.erase("long")
+	_book(BOOK)
+	var at: Vector2 = world.map.items["archive_plaque"]["at"]
+	_cast_at(at + Vector2(0, 14), "splash", 50.0)
+
+
+func _plaque_clean() -> bool:
+	return run.flag("plaque_clean") and run.knows("archive_key")

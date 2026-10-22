@@ -128,6 +128,21 @@
    "title": "The short way to the Kiln",
    "text": "Through the rune door and the bell passage, the Kiln antechamber is a short walk, with no fight on the way."
   },
+  "glass_fuse": {
+   "kind": "insight",
+   "title": "The glassworks fuse",
+   "text": "Turned right, the glassworks' three mirrors pass the sun into the great lens, and the lens burns a fuse in the wall by the loft stair. Fire on that fuse opens the loft just as well."
+  },
+  "glass_notes": {
+   "kind": "clue",
+   "title": "The glassblower's notes",
+   "text": "Behind a false wall in the glassworks, a loft full of notes on light: how to fold it, how to keep it, how to send it back."
+  },
+  "archive_key": {
+   "kind": "clue",
+   "title": "The Archive gate",
+   "text": "The plaque on the Archive gate, under its soot: entry by the College's key alone."
+  },
   "crack_order": {
    "kind": "clue",
    "title": "Which crack glows first",
