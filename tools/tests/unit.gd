@@ -554,6 +554,7 @@ func _carry(R) -> void:
 	_events(R)
 	_weather(R)
 	_matter()
+	_cells()
 
 
 ## The save files (save spec §5, §12): a Turning cut short is finished on load, once.
@@ -731,6 +732,95 @@ func _matter() -> void:
 	ok(M.result("impact", 5, "warded") == "none" and M.result("fire", 5, "warded") == "none", "warded things don't answer to force")
 	ok(M.result("fire", 1, "wood", {"fire": 2}) == "smoulder" and M.result("impact", 1, "wood", {"break": 2}) == "crack", "a prop kind's own grades win (the barrel, the cart)")
 	ok(M.result("water", 1, "earth") == "mud" and M.result("growth", 1, "water") == "lilies" and M.result("light", 1, "stone") == "reveal", "forces with no grade gate work at grade I")
+
+
+## A stand-in map for the ground grid: 240 × 240, nothing solid, a pond in one corner.
+class GroundMap:
+	var bounds := Rect2(0, 0, 240, 240)
+	var places := {}
+	func in_water(p: Vector2) -> bool:
+		return p.x > 200 and p.y > 200
+	func solid_at(_p: Vector2) -> bool:
+		return false
+
+
+## The ground (spells-and-environment spec §5, N-4.2): fire spreads over fuel, stops at stone
+## and water, leaves ash that won't burn again; wind drives it; rain and water put it out; the
+## cap; lightning fills a wet network as far as its grade reaches.
+func _cells() -> void:
+	var M = load("res://scripts/world/matter.gd").new()
+	var gd: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/ground.json"))
+	var C := load("res://scripts/world/cells.gd")
+	var make := func(paint: Array) -> Object:
+		var c = C.new(GroundMap.new(), {"cell": 24, "default": "grass", "paint": paint}, gd["spread"], M.d["materials"])
+		c.rng.seed = 7
+		return c
+	var g = make.call([[120, 0, 24, 240, "stone"]])  # a stone path down the middle (column 5)
+	ok(g.w == 10 and g.h == 10 and g.material_at(Vector2(130, 10)) == "stone" and g.material_at(Vector2(230, 230)) == "water", "cells are painted: grass, a stone path, the pond")
+	ok(g.fire(g.index(Vector2(130, 50)), 3) == "none", "stone doesn't burn")
+	var start: int = g.index(Vector2(30, 120))
+	ok(g.fire(start, 1) == "burn", "grass catches at grade I")
+	for t in 400:
+		g.tick(0.25)
+	var right := 0
+	var left := 0
+	for i in g.ash:
+		if i % g.w > 5:
+			right += 1
+		elif i % g.w < 5:
+			left += 1
+	ok(left > 20 and right == 0, "fire burns the grass on its side and stops at the stone path (%d burnt, %d across)" % [left, right])
+	ok(g.ash.has(start) and g.fire(start, 4) == "none", "burnt-out ground is ash and can't burn again")
+	ok(g.burning.is_empty(), "the fire burns itself out")
+	# Water: a wet cell steams instead of catching, and dousing puts a fire out.
+	g = make.call([])
+	var a: int = g.index(Vector2(60, 60))
+	g.douse(a)
+	ok(g.fire(a, 2) == "steam" and g.burn[a] == 0.0, "fire on wet ground steams")
+	var b: int = g.index(Vector2(150, 150))
+	g.fire(b, 1)
+	ok(g.douse(b) and g.burn[b] == 0.0 and g.burning.is_empty(), "water puts a ground fire out")
+	# Wind: fire runs downwind much more than up.
+	g = make.call([])
+	g.wind = 2
+	g.downwind = Vector2(1, 0)
+	g.fire(g.index(Vector2(108, 108)), 1)
+	for t in 12:
+		g.tick(0.25)
+	var down := 0
+	var up := 0
+	for i in g.burning.keys() + g.ash.keys():
+		if i % g.w > 4:
+			down += 1
+		elif i % g.w < 4:
+			up += 1
+	ok(down > up, "wind drives the fire downwind (%d ahead, %d behind)" % [down, up])
+	# Rain: nothing outdoors catches, and a fire already burning goes out.
+	g = make.call([])
+	var f: int = g.index(Vector2(60, 60))
+	g.fire(f, 1)
+	g.raining = true
+	ok(g.fire(g.index(Vector2(150, 60)), 3) == "none", "nothing catches in the rain")
+	g.tick(0.25)
+	ok(g.burning.is_empty(), "rain puts out a burning cell")
+	# The cap: no more than max_burning cells burn at once on a map.
+	var sp: Dictionary = gd["spread"].duplicate()
+	sp["max_burning"] = 5
+	g = C.new(GroundMap.new(), {"cell": 24, "default": "grass"}, sp, M.d["materials"])
+	for i in 20:
+		g.fire(i, 1)
+	ok(g.burning.size() == 5, "a map burns at most max_burning cells at once")
+	# Lightning: a wet network carries a strike as far as its grade reaches; dry grass doesn't.
+	g = make.call([])
+	for x in 10:
+		g.douse(g.index(Vector2(12 + x * 24, 12)))  # a wet strip along the top row
+	var n1: int = g.strike(g.index(Vector2(12, 12)), 1).size()
+	for i in g.charge.size():
+		g.charge[i] = 0.0
+	var n3: int = g.strike(g.index(Vector2(12, 12)), 3).size()
+	ok(n1 == 2 and n3 == 10, "a strike runs along the wet strip by grade (I: %d cells, III: %d)" % [n1, n3])
+	ok(g.strike(g.index(Vector2(12, 120)), 3).is_empty(), "dry grass doesn't carry lightning")
+	ok(g.strike(g.index(Vector2(230, 230)), 1).size() >= 1, "the pond conducts")
 
 
 ## Spell mastery in the slice (spell spec §6.4, N-3): walls, trials, breakthroughs, remembered

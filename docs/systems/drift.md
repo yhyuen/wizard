@@ -55,7 +55,7 @@ The [spells and environment](/mnt/project-files/design/world/spells-and-environm
 | --- | --- | --- |
 | 16 materials plus flesh, scale and shade, one table (`data/materials.json`) by Force grade, with a weak version below grade | The table and grades are built (N-4.1) but act only on the four prop kinds; tiles, walls, lamps and units have no material yet; spells name their force in `materials.json` carriers, not in `spells.json` `forces`; most ops (reveal, steam clouds, freeze, explode...) have no thing to act on yet | [world.md](world.md) |
 | States in three lanes (moisture, heat, integrity) with timers | On props: smoulder, burning, ash, chilled, brittle, wet, cracked, broken; plus charged puddle and flared lamp | [world.md](world.md) |
-| Fire spreads on a 24 px cell grid with wind; water flows by height; charge fills a network by grade | Burning props catch props within `spread` px; puddles; one charged puddle | [world.md](world.md) |
+| Fire spreads on a 24 px cell grid with wind; water flows by height; charge fills a network by grade | Built (N-4.2): fire spreads on 24 px cells with wind, rain and a cap; water wets and puts out; lightning fills wet and metal networks by grade. Water doesn't flow; smoke doesn't block sight or drift; no cold or mud on cells; arena puddles are still their own zones beside the cells | [world.md](world.md) |
 | Break stages, supports and telegraphed collapse; warded things never break | Props crack and break by Impact grade and hp (a flattened heap, no broken meshes); no supports or collapse | [world.md](world.md) |
 | Changes last the life; people and nature repair over days; Time mends by grade | Every reaction resets when you wake; Rewind mends within 34 px | [world.md](world.md) |
 | Owners, values, witnesses, a reaction ladder, faction temperaments | People flinch and complain; the captain scolds fire | [world.md](world.md) |
@@ -98,7 +98,7 @@ year's seasons, weather and the four calamities. Its §11 has the full list; the
 
 | Target says | As built | Where |
 | --- | --- | --- |
-| Weather per region per day, the same every life; Almanac and forecast; weather acts on matter | Weather per region per day, the same every life, pinned calamity days, the Almanac on the calendar, Aldous's forecast (N-4.5.1). Not yet: weather on matter and sight, storm strikes, rain or snow on screen, a turn at a time slot, signs in the sky, a mark for days a spell changed | [world.md](world.md) |
+| Weather per region per day, the same every life; Almanac and forecast; weather acts on matter | Weather per region per day, the same every life, pinned calamity days, the Almanac on the calendar, Aldous's forecast (N-4.5.1); rain, wind and fire spread act on the ground (N-4.2). Not yet: frost and snow on matter, sight, storm strikes, rain or snow on screen, a turn at a time slot, signs in the sky, a mark for days a spell changed | [world.md](world.md) |
 | Seasons dress the world (fields, rivers, dark slots, regrowth, travel) | Moons carry a season name; nothing reads it | [loop.md](loop.md) |
 | A calamity: Signs, Eve stop, lethal zone, three waves, stakes, Held/Scarred/Fallen, aftermath, absent default | The four calamities are dated and pinned once known; none plays | [loop.md](loop.md) |
 

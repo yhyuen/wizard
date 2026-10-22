@@ -86,6 +86,10 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   embers), Jupiter (Pebble lodestones, Fling, Avalanche), Mercury (`storm_water.gd`: Spark, Arc
   Lance, Storm Call, rods), Luna (Splash Wet, Undertow puddles, Maelstrom), Hours (`hours.gd`:
   Rewind, `from_loop` 2, `ring` 0). Field caps and lives are `spells.json` `field`.
+- **The ground in a fight** ([world.md](world.md) "Fire, water and charge on the ground"): your
+  fire shots light the cell where they end (out of range, on a foe or at a wall), Pillar and Kindle
+  their area; burning and charged cells hurt anyone on them, you at half. A burning cell's flame is
+  an `ember` zone marked `cell`: the world deals its damage, not the arena's ember rule.
 - **Mastery in a fight** ([growth.md](growth.md)): a spell's stage sets its Force grade
   (`Progression.grade`, I–IV, capped by Ring) and grows its `minor` axis ×1.2 per stage. Pillar's
   and the meteor's zones draw a ring of sigils per stage (`arena.gd` `_sigils`). Signatures need

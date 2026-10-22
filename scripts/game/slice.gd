@@ -154,6 +154,7 @@ func begin_day() -> void:
 	cur = {}
 	main.enter_world(world.map.spots["cot"])
 	weather.note(region())
+	world.set_sky(weather.on(region()), weather.d["kinds"])  # rain wets the ground, wind drives fire
 	main.arena.kit.rest()  # a night's sleep: full Aether, no Strain
 	_hurt_state()
 	world.reset_day()
@@ -407,6 +408,7 @@ func go_map(id: String, spot: String) -> void:
 	_stop_talking()
 	world.load_map(id)
 	weather.note(region())
+	world.set_sky(weather.on(region()), weather.d["kinds"])
 	load_to = {"map": id, "spot": spot, "t": 0.0}
 	set_screen("loading")
 	main.change_map(world.map.spots[spot])

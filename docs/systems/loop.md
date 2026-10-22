@@ -50,7 +50,9 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
   with seasons), `date_name()` ("Moon 3 · Day 17"), `days_left()`. Story `days:` headers still
   name days of the year.
 - **Weather** ([world.md](world.md)): the soul keeps a `seed` (made with the soul, kept by the
-  Turning), so each day's weather repeats every life, and the Almanac (`soul.almanac`).
+  Turning), so each day's weather repeats every life, and the Almanac (`soul.almanac`). At each
+  dawn and on arriving in a region the game hands the day's weather to the ground
+  (`world.set_sky`: rain puts out fires, wind drives them).
 - **Weeks:** each moon is four weeks of seven days, the weekdays ruled by the Spheres from Sol's
   day (`weekday()`: sphere, name, colour). Nothing reads the weekday yet but the calendar.
 - **Dated events** (`events`): the four calamities; each is pinned once its `known` condition holds

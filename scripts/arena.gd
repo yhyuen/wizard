@@ -718,7 +718,7 @@ func _update_unit(u: Unit, dt: float) -> void:
 		u.vel = Vector2.ZERO
 	# Field objects under the unit.
 	for z in zones:
-		if z["kind"] == "ember" and u.team == 1 and u.pos.distance_to(z["pos"]) < 5.0 + u.radius:
+		if z["kind"] == "ember" and u.team == 1 and not z.has("cell") and u.pos.distance_to(z["pos"]) < 5.0 + u.radius:
 			z["tick"] = float(z.get("tick", 0.0))
 			if u.cooldown("ember_tick") <= 0.0:
 				u.cd["ember_tick"] = 0.5
@@ -1000,6 +1000,8 @@ func _update_projs(dt: float) -> void:
 		p["life"] -= dt
 		if p["life"] <= 0.0:
 			projs.erase(p)
+			if town != null:
+				town.on_spent(p)
 			continue
 		if p.get("ghost", false):
 			continue
@@ -1040,6 +1042,8 @@ func _update_projs(dt: float) -> void:
 				_src_kind = ""
 				if not keep:
 					projs.erase(p)
+					if town != null:
+						town.on_spent(p)
 				break
 
 
@@ -1271,6 +1275,8 @@ func _draw() -> void:
 		return
 	draw_texture(_tex["ground"], Vector2.ZERO)
 	_draw_shrine()
+	if town != null and player != null:
+		town.draw_ground(self, player.pos, 420.0)  # the ground's ash, water and charge
 	for z in zones:
 		_draw_zone(z)
 	kit.draw_field(self)
@@ -1311,6 +1317,8 @@ func _draw_marks() -> void:
 		draw_arc(leash["at"], leash["r"] - 5.0, 0, TAU, 72, Color(0.75, 0.8, 0.95, 0.12), 3.0, false)
 	if shrine_ready():
 		draw_arc(shrine_pos() + Vector2(0, -6), float(D["shrine"]["reach"]), 0, TAU, 32, Color(PixelArt.GOLD, 0.35), 1.0, false)
+	if town != null and player != null:
+		town.draw_ground(self, player.pos, 420.0)
 	for z in zones:
 		_draw_zone(z)
 	kit.draw_field(self)

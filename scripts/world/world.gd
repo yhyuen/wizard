@@ -16,6 +16,7 @@ extends RefCounted
 const Map := preload("res://scripts/world/map.gd")
 const People := preload("res://scripts/world/people.gd")
 const Matter := preload("res://scripts/world/matter.gd")
+const Cells := preload("res://scripts/world/cells.gd")
 const MAPS := "res://data/world/maps.json"
 const CAMP := "camp"
 
@@ -32,6 +33,13 @@ var story
 var cfg: Dictionary  # data/world/world.json
 var pd: Dictionary  # data/world/props.json
 var matter  # scripts/world/matter.gd: what a force does to a material
+var gd: Dictionary  # data/world/ground.json
+var cells  # scripts/world/cells.gd: this map's ground, where fire, water and charge spread
+var sky := {}  # today's weather here (scripts/world/weather.gd `on`), set by the game
+var sky_kinds := {}  # data/world/weather.json "kinds"
+var _cell_t := 0.0
+var _shock_t := 0.0
+var _fire_zones := {}  # burning cell -> its flame zone in the arena
 var requests: Array = []
 var busy: Callable  # func() -> bool: the game is showing a scene or a menu
 
@@ -60,6 +68,7 @@ func _init(the_run, the_story) -> void:
 	cfg = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/world.json"))
 	pd = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/props.json"))
 	matter = Matter.new()
+	gd = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/ground.json"))
 	for k in matter.kinds_of("fire"):
 		fire_proj[k] = true
 	for k in pd["light_shy"]:
@@ -93,7 +102,8 @@ func in_camp() -> bool:
 func load_map(id: String) -> void:
 	if id == map_id:
 		return
-	_saved[map_id] = {"props": props, "lamps": lamps, "braziers": braziers, "scorches": scorches}
+	_saved[map_id] = {"props": props, "lamps": lamps, "braziers": braziers, "scorches": scorches, "cells": cells}
+	_drop_fire_zones()
 	map.movers = Callable()
 	map_id = id
 	map = get_map(id)
@@ -104,11 +114,14 @@ func load_map(id: String) -> void:
 		scorches = []
 		_build_lamps()
 		_fresh_props()
+		_fresh_cells()
 	else:
 		props = st["props"]
 		lamps = st["lamps"]
 		braziers = st["braziers"]
 		scorches = st["scorches"]
+		cells = st["cells"]
+	_apply_sky()
 	_in_exit = ""
 	here = ""
 	_cache_movers()
@@ -139,6 +152,36 @@ func _fresh_props() -> void:
 			"hp": float(prop_def(str(p[0])).get("hp", 1)), "integrity": "", "wet_t": 0.0, "heat_t": 0.0})
 
 
+func _fresh_cells() -> void:
+	_drop_fire_zones()
+	var def: Dictionary = gd["maps"].get(map_id, {"default": "stone", "indoors": true})
+	def["cell"] = gd["cell"]
+	cells = Cells.new(map, def, gd["spread"], matter.d["materials"])
+	cells.rng.seed = hash(map_id)
+	_apply_sky()
+
+
+## Today's weather here, for the ground (seasons spec §4): the game calls this at dawn and on
+## arriving in a region.
+func set_sky(w: Dictionary, kinds: Dictionary) -> void:
+	sky = w
+	sky_kinds = kinds
+	_apply_sky()
+
+
+func _apply_sky() -> void:
+	if cells == null:
+		return
+	var k: Dictionary = sky_kinds.get(str(sky.get("kind", "")), {})
+	cells.wind = int(sky.get("wind", 0))
+	var dirs := ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+	var di := dirs.find(str(sky.get("dir", "N")))
+	# The wind blows from its direction: from the N toward the S (+y).
+	cells.downwind = Vector2.from_angle(-PI / 2.0 + di * PI / 4.0) * -1.0 if di >= 0 else Vector2.ZERO
+	cells.fire_k = float(k.get("fire_spread", 1.0))
+	cells.raining = bool(k.get("wet", false))
+
+
 ## Waking on day 1: everything the last loop burnt, shoved or took is back where it was, on
 ## every map, and you are in the camp.
 func reset_loop() -> void:
@@ -149,6 +192,7 @@ func reset_loop() -> void:
 		map = get_map(CAMP)
 		map.movers = movers
 	_fresh_props()
+	_fresh_cells()
 	_build_lamps()
 	scorches = []
 	events_log.clear()
@@ -219,6 +263,7 @@ func tick(dt: float) -> void:
 	_magic()
 	_lamps_by_time()
 	_lightning(dt)
+	_ground(dt)
 	_light_pools()
 	var now: String = map.place_at(player_pos())
 	if now != here:
@@ -321,6 +366,170 @@ func _storm_line(a: Vector2, b: Vector2, kind: String) -> void:
 	for pr in props:
 		if Geometry2D.get_closest_point_to_segment(pr["pos"], a, b).distance_to(pr["pos"]) < float(prop_def(pr["kind"])["r"]):
 			hit_prop(pr, kind)
+	strike_ground(a, b, grade_of(kind))
+
+
+# --- the ground: fire, water and charge on the cells (spells-and-environment spec §5) ------
+
+## Fire at `grade` on the ground within `r` of `at`: cells with fuel catch, wet ones steam.
+## Returns how many caught.
+func burn_ground(at: Vector2, r: float, grade: int) -> int:
+	if cells == null:
+		return 0
+	var n := 0
+	var steamed := false
+	for i in cells.within(at, r):
+		match cells.fire(i, grade):
+			"burn":
+				n += 1
+			"steam":
+				steamed = true
+	if steamed:
+		arena.fx("dust", at, {"r": r + 6.0, "life": 0.6})
+	if n > 0:
+		events_log.append(["ground_fire", cells.material_at(at)])
+		_sync_fire_zones()
+	return n
+
+
+## Water on the ground: within `r` of `at`, inside `cone` (radians) round `dir`. Puts out the
+## cells' fires and wets them. Returns how many fires it put out.
+func wet_ground(at: Vector2, r: float, dir := Vector2.RIGHT, cone := TAU) -> int:
+	if cells == null:
+		return 0
+	var n := 0
+	for i in cells.within(at, r):
+		var to: Vector2 = cells.centre(i) - at
+		if cone < TAU and to.length() > cells.size * 0.5 and absf(dir.angle_to(to)) > cone * 0.5 + 0.2:
+			continue
+		if cells.douse(i):
+			n += 1
+	if n > 0:
+		events_log.append(["ground_doused", n])
+		_sync_fire_zones()
+	return n
+
+
+## Lightning along a segment strikes each cell under it: a wet or metal cell fills its network.
+func strike_ground(a: Vector2, b: Vector2, grade: int) -> int:
+	if cells == null:
+		return 0
+	var hit := {}
+	var steps := maxi(1, int(ceil(a.distance_to(b) / (cells.size * 0.5))))
+	for s in steps + 1:
+		var i: int = cells.index(a.lerp(b, float(s) / steps))
+		if i < 0 or hit.has(i) or cells.charge[i] > 0.0:
+			continue
+		for c in cells.strike(i, grade):
+			hit[c] = true
+	if not hit.is_empty():
+		events_log.append(["ground_charged", hit.size()])
+	_sync_fire_zones()
+	return hit.size()
+
+
+## A shot of yours that ends (runs out or hits something): fire lights the ground it falls on.
+func on_spent(p: Dictionary) -> void:
+	if p.get("team", 0) == 0 and not p.get("ghost", false) and fire_proj.has(p["kind"]):
+		burn_ground(p["pos"], 0.0, grade_of(p["kind"]))
+
+
+func _ground(dt: float) -> void:
+	if cells == null:
+		return
+	_cell_t += dt
+	if _cell_t >= 0.25:
+		var res: Dictionary = cells.tick(_cell_t)
+		_cell_t = 0.0
+		if not res["ash"].is_empty():
+			events_log.append(["ground_ash", res["ash"].size()])
+		for i in res["out"]:
+			arena.fx("dust", cells.centre(i), {"r": 8.0, "life": 0.8})
+		# A burning prop lights the ground under it; a burning cell, the props standing on it.
+		for p in props:
+			var i: int = cells.index(p["pos"])
+			if i < 0:
+				continue
+			if p["state"] == "burning":
+				cells.fire(i, 1)
+			elif cells.burn[i] > 0.0 and p["state"] == "" and p["wet_t"] <= 0.0:
+				apply_force(p, "fire", 1)
+		_sync_fire_zones()
+	# Standing in fire burns and a charged cell shocks, foe or wizard (you take self_k of it).
+	_shock_t -= dt
+	if _shock_t > 0.0:
+		return
+	var sp: Dictionary = gd["spread"]
+	_shock_t = float(sp["shock_every"])
+	var fire_hit := float(sp["fire_dps"]) * float(sp["shock_every"])
+	for u in arena.enemies():
+		var i: int = cells.index(u.pos)
+		if i < 0:
+			continue
+		if cells.charge[i] > 0.0:
+			arena.kit.sw.storm_hit(u, float(sp["shock"]), 1, Vector2.ZERO, 0.0, "spark", 0.0)
+			arena.fx("zap", cells.centre(i), {"to": u.pos + Vector2(0, -4), "color": PixelArt.STORM, "life": 0.1, "_w": true})
+			events_log.append(["shock", u.kind])
+		if cells.burn[i] > 0.0:
+			arena._src_kind = "fire"
+			arena.hit(u, fire_hit, -1, Vector2.ZERO, 0.0, true)
+			arena._src_kind = ""
+	var me = arena.player
+	if me != null and not me.dead:
+		var i: int = cells.index(me.pos)
+		if i >= 0 and cells.charge[i] > 0.0:
+			arena.hit(me, float(sp["shock"]) * float(sp["self_k"]), -1, Vector2.ZERO, 0.0, true)
+		if i >= 0 and cells.burn[i] > 0.0:
+			arena.hit(me, fire_hit * float(sp["self_k"]), -1, Vector2.ZERO, 0.0, true)
+
+
+## Keeps one flame in the arena for every burning cell (the arena draws and the view lights
+## them; the arena forgets its zones when you change maps, so this puts them back).
+func _sync_fire_zones() -> void:
+	if cells == null or arena == null:
+		return
+	for i in _fire_zones.keys():
+		if cells.burn[i] <= 0.0:
+			arena.zones.erase(_fire_zones[i])
+			_fire_zones.erase(i)
+	for i in cells.burning:
+		if _fire_zones.has(i) and arena.zones.has(_fire_zones[i]):
+			continue
+		var jit := Vector2(fmod(i * 7.3, 9.0) - 4.5, fmod(i * 3.1, 9.0) - 4.5)
+		_fire_zones[i] = arena.add_zone({"kind": "ember", "pos": cells.centre(i) + jit, "life": 1.0e9, "world": true, "cell": i})
+
+
+func _drop_fire_zones() -> void:
+	if arena != null:
+		for z in _fire_zones.values():
+			arena.zones.erase(z)
+	_fire_zones.clear()
+
+
+## The ground's marks for the arena's decal layer, near `at`: soft blots of ash, water and fire,
+## and a crackle on charged cells (overlapping blots read as one patch, not a grid).
+func draw_ground(g: CanvasItem, at: Vector2, r: float) -> void:
+	if cells == null:
+		return
+	var s: float = cells.size
+	for i in cells.ash:
+		var c: Vector2 = cells.centre(i)
+		if c.distance_to(at) < r:
+			g.draw_circle(c, s * 0.7, Color(0.04, 0.03, 0.03, 0.45), true, -1.0, true)
+	var now := Time.get_ticks_msec() * 0.001
+	for i in cells.active:
+		var c: Vector2 = cells.centre(i)
+		if c.distance_to(at) >= r:
+			continue
+		if cells.burn[i] > 0.0:
+			g.draw_circle(c, s * 0.68, Color(PixelArt.FIRE, 0.28), true, -1.0, true)
+		elif cells.wet[i] > 0.0:
+			g.draw_circle(c, s * 0.68, Color(PixelArt.WATER, 0.22 * clampf(cells.wet[i] / 4.0, 0.3, 1.0)), true, -1.0, true)
+		if cells.charge[i] > 0.0:
+			var k := int(now * 12.0 + i) % 3
+			var a := c + Vector2(-s * 0.35, (k - 1) * s * 0.2)
+			var pts := PackedVector2Array([a, a + Vector2(s * 0.2, -s * 0.15), a + Vector2(s * 0.4, s * 0.12), a + Vector2(s * 0.7, -s * 0.05)])
+			g.draw_polyline(pts, Color(PixelArt.STORM, 0.9), 1.0, true)
 
 
 # --- props ----------------------------------------------------------------------------
@@ -613,6 +822,7 @@ func _magic() -> void:
 		for l in lamps:
 			if l["lit"] and l["pos"].distance_to(w["pos"]) < float(w["w"]) * 0.5 + 6.0:
 				_douse_lamp(l)
+		wet_ground(w["pos"], float(w["w"]) * 0.5)
 	# Pillar's column of fire, puddles and whirlpools: once each.
 	var quench := []
 	for z in arena.zones:
@@ -621,6 +831,7 @@ func _magic() -> void:
 		z["_w"] = true
 		match z["kind"]:
 			"column", "kindle":
+				burn_ground(z["pos"], float(z["r"]), grade_of(z["kind"]))
 				for pr in props:
 					if pr["pos"].distance_to(z["pos"]) < float(z["r"]) + float(prop_def(pr["kind"])["r"]):
 						hit_prop(pr, z["kind"])
@@ -644,6 +855,7 @@ func _magic() -> void:
 			"puddle", "whirl":
 				if z.get("millrace", false):
 					continue
+				wet_ground(z["pos"], float(z["r"]))
 				for pr in props:
 					if pr["pos"].distance_to(z["pos"]) < float(z["r"]) + float(prop_def(pr["kind"])["r"]):
 						hit_prop(pr, z["kind"])
@@ -663,6 +875,7 @@ func _magic() -> void:
 
 
 func _water_cone(at: Vector2, dir: Vector2, cone: float, r: float, kind: String) -> void:
+	wet_ground(at, r, dir, cone)
 	var inside := func(p: Vector2, pad: float) -> bool:
 		var to := p - at
 		return to.length() <= r + pad and absf(dir.angle_to(to)) <= cone * 0.5 + 0.2
@@ -702,6 +915,7 @@ func on_wall(p: Dictionary) -> void:
 	if p.get("team", 0) != 0 or not fire_proj.has(p["kind"]):
 		return
 	var at: Vector2 = p["pos"] - p["vel"].normalized() * 3.0
+	burn_ground(p["pos"] - p["vel"].normalized() * 12.0, 0.0, grade_of(p["kind"]))
 	scorches.append({"pos": at, "dir": p["vel"].normalized()})
 	events_log.append(["scorch", map_id])
 	if scorches.size() > 24:

@@ -2,7 +2,8 @@ extends SceneTree
 ## Screenshots of the first playable for review, with draw calls and frame time at each (needs a
 ## display, not --headless): the title, waking in the camp, the yard and the captain's cordon,
 ## the market at noon, the lane at dusk, the camp at night, a patrol fight, a burning hay bale,
-## the camp's map, the Reach and the calendar, and the spellbook; then the loading card, the halls' landing and shrine, the
+## a grass fire and a charged wet patch, the camp's map, the Reach and the calendar, and the
+## spellbook; then the loading card, the halls' landing and shrine, the
 ## entrance hall, the rune door, the halls' map, a crack glowing and the embers out of it, the
 ## refectory, the dark gallery, the bell passage, the burnt door, the cistern's sluice, the Kiln
 ## Warden's rings and vents, and the end card.
@@ -118,6 +119,19 @@ func _process(_dt: float) -> bool:
 					break
 		540:
 			_shot("09_mill_fire")
+			# The ground (N-4.2): a grass fire spreading, and a wet patch beside it taking a Spark.
+			var c = W.cells
+			for i in c.mat.size():
+				var p: Vector2 = c.centre(i)
+				if c.within(p, 60.0).all(func(j): return c.mats[c.mat[j]] == "grass") and not W.map.solid_at(p, 60.0):
+					_go(p + Vector2(70, 60), 2, 1)
+					W.set_sky({"kind": "clear", "wind": 2, "dir": "W"}, {})
+					W.burn_ground(p, 40.0, 1)
+					W.wet_ground(p + Vector2(110, 40), 40.0)
+					W.strike_ground(p + Vector2(80, 40), p + Vector2(130, 40), 3)
+					break
+		552:
+			_shot("09a_ground_fire")
 			slice.overlay = "map"
 		560:
 			_shot("10_camp_map")
