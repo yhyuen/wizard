@@ -44,6 +44,20 @@ tracker M0-5) is how spells should look under the combat spec. The big gaps:
 | One SDF telegraph shader; one MultiMesh per particle kind; a light manager giving 4 real lights to the strongest spells, pools for the rest | Marks drawn by the view; pooled shapes in `spells3d.gd`; spell lights capped at 4 | [art.md](art.md) |
 | A look per Sphere (shape, motion, light) and per school's casting act; material state looks | Colours per Sphere; fire, water, lightning prop effects only | [art.md](art.md), [world.md](world.md) |
 
+## Spells and the environment: the target vs the build
+
+The [spells and environment](/mnt/project-files/design/world/spells-and-environment-spec.md) design
+(2026-10-22, tracker M0-6) is how magic should change the world. Its §13 is the full table; the big gaps:
+
+| Target says | As built | Where |
+| --- | --- | --- |
+| 16 materials plus flesh, scale and shade, one table (`data/materials.json`) by Force grade, with a weak version below grade | Per-spell lists in `props.json` for fire, water, force, lightning | [world.md](world.md) |
+| States in three lanes (moisture, heat, integrity) with timers | Burning, ash, shoved, charged puddle, flared lamp | [world.md](world.md) |
+| Fire spreads on a 24 px cell grid with wind; water flows by height; charge fills a network by grade | Burning props catch props within `spread` px; puddles; one charged puddle | [world.md](world.md) |
+| Break stages, supports and telegraphed collapse; warded things never break | Shove only | [world.md](world.md) |
+| Changes last the life; people and nature repair over days; Time mends by grade | Every reaction resets when you wake; Rewind mends within 34 px | [world.md](world.md) |
+| Owners, values, witnesses, a reaction ladder, faction temperaments | People flinch and complain; the captain scolds fire | [world.md](world.md) |
+
 ## Enemies: the target vs the build
 
 The [enemy combat spec](/mnt/project-files/design/combat/enemy-combat-spec.md) (2026-10-22, tracker
