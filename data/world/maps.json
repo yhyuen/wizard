@@ -6,6 +6,8 @@
   "halls": {"path": "res://data/ruins/halls/map.json", "kit": "ruin", "name": "The College halls", "story": "res://data/ruins/halls/story/", "paths": "res://data/ruins/halls/paths.json",
    "mood": "ruin", "clock": false,
    "palette": {"wall_stone": "6a6670", "stone": "7a7880", "rock": "4e4c54", "rock2": "3c3a42"}},
-  "city": {"path": "res://data/city/map.json", "kit": "ruin", "name": "The fallen city of Vellmar", "story": "res://data/city/story/", "clock": true}
+  "city": {"path": "res://data/city/map.json", "kit": "ruin", "name": "The fallen city of Vellmar", "story": "res://data/city/story/", "clock": true},
+  "undercroft": {"path": "res://data/city/undercroft/map.json", "kit": "ruin", "name": "The undercroft", "story": "res://data/city/undercroft/story/",
+   "mood": "ruin", "clock": true, "palette": {"wall_stone": "5e6064", "stone": "6a6e72", "rock": "44484c", "rock2": "34383c"}}
  }
 }

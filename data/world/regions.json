@@ -4,7 +4,7 @@
  "regions": {
   "camp": {"name": "The survivors' camp", "ring": 1, "pos": [0.42, 0.62], "maps": ["camp"], "arrive": "cot",
    "blurb": "Tents and lanterns at the plateau's edge, a mile from the fallen city."},
-  "city": {"name": "The fallen city of Vellmar", "ring": 1, "pos": [0.5, 0.36], "maps": ["city", "halls"], "arrive": "wall_gap",
+  "city": {"name": "The fallen city of Vellmar", "ring": 1, "pos": [0.5, 0.36], "maps": ["city", "halls", "undercroft"], "arrive": "wall_gap",
    "blurb": "Burned streets inside a broken wall, and the College of Hours fallen at its heart. Its halls lie under the College steps."},
   "mill": {"name": "The Mill fields and east road", "ring": 1, "pos": [0.7, 0.58], "maps": [],
    "blurb": "Wheat gone to seed, a mill that still turns, and the road east off the plateau. Not built yet; it comes with Ring 1's next release."},

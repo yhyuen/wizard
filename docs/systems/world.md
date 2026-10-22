@@ -44,7 +44,7 @@ hits, and where shops, crews, powers and the two roads sit) is the
 follows is the build today.*
 
 - **Regions** group maps: the survivors' camp (`camp`) and the fallen city of Vellmar (`city`:
-  the city's streets and the College halls under them, arriving at the `wall_gap`). Each has a name, ring, a
+  the city's streets, the College halls and the undercroft under them, arriving at the `wall_gap`). Each has a name, ring, a
   place on the chart (`pos`), its `maps` (the first is where travel arrives), `arrive` (the spot)
   and a `blurb`. A region with no maps is a **card**: the Mill fields and east road (Ring 1) and
   four Ring 2 regions show their blurb and cost no time (the Wuxia rule).
@@ -55,7 +55,9 @@ follows is the build today.*
   you arrive at the region's spot that morning, behind the loading card, not rested. If the
   Eclipse falls on the road, it comes first.
 - The camp's north stair still leads straight down to the halls for free (the build's shortcut).
-  The halls' landing has a second stair up to the city's College steps.
+  The halls' landing has a second stair up to the city's College steps. Once you've opened the
+  undercroft's drain grate, the market cellar is a walk down to the undercroft and up into the
+  city's square: camp to city with no day passing (below).
 
 ## The camp (`data/world/map.json`)
 
@@ -132,6 +134,28 @@ Lamplighter trial at the depot.*
 - **Owners**: the Watch (wall gap, square, Wick Lane, Bell Street), the Guild (the depot), the
   College (its steps and the Archive gate); everything else is nobody's. Ground: stone, the
   crater's lip earth.
+
+### The undercroft (`data/city/undercroft/map.json`)
+
+*N-7.1.3, spec §4.3. Not built: the channel's fight (F9, N-7.1.6), the floor grate that holds a
+body, floating the crate to the grate on a flooded channel, Weighting the grate back down or
+freezing its chain to shut the Lantern Night approach (N-7.5).*
+
+- **Four rooms** (1400 × 1000 px, ruin kit, the ruin mood): the **drain stair** (an exit up to the
+  Sunken Square's `drain_top`; the square has the stair down), the **long channel** (knee-deep
+  water three cells wide, walkable, between two dry ledges), the **sluice room** and the **grate
+  hall**.
+- **The sluice**: a water rect can name a life flag (its 5th field); while the flag is set the
+  water is drained (`Map.set_drained`, checked each frame; the ground cells are rebuilt and the
+  water's mesh hides). The sluice wheel's scene sets `channel_dry` (drain) or clears it (fill). A
+  new life clears it.
+- **Exits `opened_by`** a soul memory work only once you know it (`World.exit_open`): the
+  undercroft's `grate_up` to the camp's `cellar_top`, and the camp's `drain_down` from the market
+  cellar grate to the undercroft's `grate_under`.
+- **Shortcuts** (the map's `shortcuts`, `gates.gd`): the **drain grate** opens for good when its
+  counterweight crate (a prop tagged `counterweight`) is shoved into the weight's rect, or
+  lightning at grade II charges the chain's rail at its post. You learn `drain_open` (a soul
+  memory, Ledger insight), so both exits work in this life and every later one.
 
 ## Weather (`data/world/weather.json`, `scripts/world/weather.gd`)
 
@@ -327,9 +351,9 @@ Spark Artifice part (reagents, salvage, the Lamplighters' bench and device charg
 
 `tools/tests/world_magic.gd` (each reaction, with real casts, including a Pillar grass fire that
 spreads, Splash on a ground fire, a Spark on wet ground, a strike along a lamp rail, and the city's
-barricade, winch, mirrors, Old Watch bridge and plaque),
+barricade, winch, mirrors, Old Watch bridge and plaque, the undercroft's sluice and counterweight),
 `tools/tests/unit.gd` (maps load, exits lead somewhere real, pits, reachability, per-map lamps; the
 ground grid: spread, stone and water stop fire, ash, wind, rain, the cap, lightning reach by grade;
 the camp's places and buildings, 24 lamps on 4 separate rail networks; every city spot reachable
-from the wall gap with its gates open), `tools/map_preview.gd`
+from the wall gap with its gates open, every undercroft spot from the drain stair), `tools/map_preview.gd`
 (top-down PNG/SVG of every map with rails and circuit letters; CI artifact `map-preview`).

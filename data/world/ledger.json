@@ -138,6 +138,11 @@
    "title": "The glassblower's notes",
    "text": "Behind a false wall in the glassworks, a loft full of notes on light: how to fold it, how to keep it, how to send it back."
   },
+  "drain_open": {
+   "kind": "insight",
+   "title": "The drain under the square",
+   "text": "The undercroft's grate opens into the camp's market cellar. Once the counterweight drags it up, it stays up: a walk from the camp to the city, with no day lost on the road."
+  },
   "archive_key": {
    "kind": "clue",
    "title": "The Archive gate",

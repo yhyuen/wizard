@@ -22,6 +22,7 @@ var bounds := Rect2()
 var rects: Array = []  # [Rect2, kind]
 var circles: Array = []  # [Vector2, r, kind]
 var water: Array = []  # Rect2
+var water_all: Array = []  # [Rect2, flag]: every water rect; while its flag is set it's drained (a sluice)
 var bridges: Array = []  # Rect2
 var doors := {}  # id -> {"rect": Rect2, "open": bool, "state": String}
 var pits: Array = []  # Rect2: collapsed floor, not walkable, open to shots
@@ -81,7 +82,8 @@ func _init(path := PATH, map_id := "camp", map_kit := "town") -> void:
 		circles.append([Vector2(c[0], c[1]), float(c[2]), str(c[4])])
 		_index_circle(circles.size() - 1)
 	for w in d.get("water", []):
-		water.append(Rect2(w[0], w[1], w[2], w[3]))
+		water_all.append([Rect2(w[0], w[1], w[2], w[3]), str(w[4]) if w.size() > 4 else ""])
+	water = water_all.map(func(w): return w[0])
 	for w in d.get("bridges", []):
 		bridges.append(Rect2(w[0], w[1], w[2], w[3]))
 	for did in d.get("doors", {}):
@@ -97,7 +99,8 @@ func _init(path := PATH, map_id := "camp", map_kit := "town") -> void:
 					doors[did][k] = dd[k]
 	for e in d.get("exits", []):
 		var r: Array = e["rect"]
-		exits[str(e["id"])] = {"rect": Rect2(r[0], r[1], r[2], r[3]), "to": str(e["to"]), "at": str(e["at"])}
+		exits[str(e["id"])] = {"rect": Rect2(r[0], r[1], r[2], r[3]), "to": str(e["to"]), "at": str(e["at"]),
+			"opened_by": str(e.get("opened_by", ""))}
 	for pid in d.get("places", {}):
 		places[pid] = d["places"][pid]
 	for sid in d.get("spots", {}):
@@ -501,3 +504,12 @@ func bridge_pits(r: Rect2) -> int:
 	pits = pits.filter(func(p: Rect2): return not p.intersects(r))
 	return n - pits.size()
 
+
+## The water that stands now, given the life flags set (`flag(id) -> bool`): a rect whose drain
+## flag is set is gone. Returns whether anything changed.
+func set_drained(flag: Callable) -> bool:
+	var now: Array = water_all.filter(func(w): return w[1] == "" or not flag.call(w[1])).map(func(w): return w[0])
+	if now.size() == water.size():
+		return false
+	water = now
+	return true

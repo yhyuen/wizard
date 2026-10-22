@@ -411,7 +411,7 @@ func _world() -> void:
 	ok(not m.solid_at(Vector2(m.d["tents"][0][0], m.d["tents"][0][1])), "your open shelter isn't")
 	var pd: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/props.json"))
 	var far: Array = []
-	for start in [["camp", "cot"], ["halls", "landing"], ["city", "wall_gap"]]:
+	for start in [["camp", "cot"], ["halls", "landing"], ["city", "wall_gap"], ["undercroft", "drain_stair"]]:
 		var mm = loaded[start[0]]
 		mm.set_day_doors(1)  # early in the month, when the burnt door stands open
 		var gate_props := {}
@@ -450,7 +450,7 @@ func _world() -> void:
 			if p.distance_to(b) > reach[tname]:
 				far.append("%s %s (%.0f px short)" % [start[0], tname, p.distance_to(b)])
 		mm.movers = Callable()
-	ok(far.is_empty(), "every spot, item and exit can be walked to from the cot, the landing and the wall gap: " + ", ".join(far))
+	ok(far.is_empty(), "every spot, item and exit can be walked to from the cot, the landing, the wall gap and the drain stair: " + ", ".join(far))
 	var people: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/people.json"))["people"]
 	var bad: Array = []
 	for pid in people:

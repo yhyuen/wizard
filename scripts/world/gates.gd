@@ -12,6 +12,10 @@ extends RefCounted
 ##     the fuse: the glassblower's loft opens for the life. Once you know the fuse is there (a
 ##     soul memory, `lens.know`), fire on it opens the door at once, in any later life.
 ## Doors these open stay open for the life; a new life shuts them.
+## A map's `shortcuts` (N-7.1.3) open for good instead: the undercroft's drain grate opens when its
+## `weight` prop (the counterweight crate) is shoved into the weight's rect, or lightning at `grade`
+## charges the chain's rail cell at `winch`. Opening one teaches its soul memory `know`, and the
+## exit that names it in `opened_by` works from then on, in this life and every later one.
 
 var W  # scripts/world/world.gd
 
@@ -50,6 +54,14 @@ func update() -> void:
 			elif not gone and dr["open"] and not dr.get("opened", false):
 				dr["open"] = false  # mended by its owner: shut again
 	_lens()
+	for sid in W.map.d.get("shortcuts", {}):
+		var sc: Dictionary = W.map.d["shortcuts"][sid]
+		if sc.has("weight") and not W.run.knows(str(sc["know"])):
+			var wt: Dictionary = sc["weight"]
+			var p := _prop(str(wt["prop"]))
+			var r: Array = wt["rect"]
+			if not p.is_empty() and Rect2(r[0], r[1], r[2], r[3]).has_point(p["pos"]):
+				_shortcut(sc, "weight")
 
 
 ## Lightning filled these cells at `grade`: a gate's winch on one of them runs.
@@ -63,6 +75,22 @@ func struck(hit: Dictionary, grade: int) -> void:
 				_open(did, "winch")
 				W.arena.fx("zap", Vector2(w[0], w[1]), {"to": (dr["rect"] as Rect2).get_center(), "color": PixelArt.STORM, "life": 0.3, "_w": true})
 				W.arena.toast.emit("The winch catches the charge and drags the shutter up.", PixelArt.STORM)
+	for sid in W.map.d.get("shortcuts", {}):
+		var sc: Dictionary = W.map.d["shortcuts"][sid]
+		if sc.has("winch") and grade >= int(sc.get("grade", 1)) and not W.run.knows(str(sc["know"])):
+			var w: Array = sc["winch"]
+			if hit.has(W.cells.index(Vector2(w[0], w[1]))):
+				_shortcut(sc, "winch")
+
+
+## A shortcut opens for good: you learn it, and its exit works from now on.
+func _shortcut(sc: Dictionary, why: String) -> void:
+	if not W.run.learn(str(sc["know"])):
+		return
+	W.events_log.append(["shortcut", str(sc["exit"]), why])
+	var at: Rect2 = W.map.exits[str(sc["exit"])]["rect"]
+	W.arena.fx("dust", at.get_center(), {"r": 30.0, "life": 0.9})
+	W.arena.toast.emit("The chain runs, and with a shriek of rust the grate swings up. The way to the camp is open.", PixelArt.GOLD)
 
 
 ## An Impact on a mirror turns it a quarter round instead of shoving it.

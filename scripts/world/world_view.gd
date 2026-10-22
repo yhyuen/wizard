@@ -780,6 +780,8 @@ func _sync_town(delta: float) -> void:
 		town.wheel.rotation.x += delta * 0.7
 	for did in town.door_nodes:
 		town.door_nodes[did].visible = not W.map.doors[did]["open"]
+	for wn in town.water_nodes:
+		wn[0].visible = W.map.water.has(wn[1])
 	for i in town.crack_mis.size():
 		var hot: bool = arena.crack_glow.has(str(W.map.cracks[i]["id"]))
 		town.crack_mis[i].material_override = town.crack_hot if hot else town.crack_mat

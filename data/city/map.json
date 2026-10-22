@@ -160,6 +160,7 @@
   "bell_street": [2600, 1350],
   "lamp_depot": [2330, 500],
   "college_steps": [1580, 330],
+  "drain_top": [1890, 1220],
   "archive_gate": [570, 320],
   "crater_lip": [2800, 250],
   "north_st": [1600, 800],
@@ -174,8 +175,8 @@
   "crater": {"name": "The crater's edge", "at": [2800, 110], "verb": "Look", "reach": 50},
   "lens": {"name": "The great lens", "at": [600, 1060], "verb": "Look", "reach": 34}
  },
- "exits": [{"id": "college_doors", "rect": [1550, 230, 70, 30], "to": "halls", "at": "city_stair"}],
- "stairwells": [[1550, 250, 70, 40]],
+ "exits": [{"id": "college_doors", "rect": [1550, 230, 70, 30], "to": "halls", "at": "city_stair"}, {"id": "drain_stair", "rect": [1860, 1140, 60, 44], "to": "undercroft", "at": "drain_stair"}],
+ "stairwells": [[1550, 250, 70, 40], [1860, 1140, 60, 44]],
  "lamps": [
   [1150, 1100, "broken"],
   [2050, 1100, "broken"],
