@@ -42,7 +42,8 @@ It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `c
   tomorrow's weather, [world.md](world.md)), `bench` (work at a bench: fill your devices from
   your reagents and take the time of day; `bench stock` gives the Lamplighters' spare reagents,
   [growth.md](growth.md) "Devices"). Conditions also have `mastered(school)` (that school at Master in this life or an earlier
-  one, N-5.3), `on_road(id)`,
+  one, N-5.3), `guide_found()` and `guide_mastered()` (Field Guide counts, N-6.5,
+  [combat.md](combat.md)), `on_road(id)`,
   `offered(id)`, `omen(id)`, `omens()`, `omens_offered()`, `ended(cause)`, `attended(id)` and `missed(id)` (fixed events, [loop.md](loop.md)) (only while a life's
   ending checks achievements). Achievements' conditions (`data/world/achievements.json`) are
   linted with the scenes'.

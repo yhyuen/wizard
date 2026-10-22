@@ -50,9 +50,11 @@ Reach and Calendar tabs (§5.5).*
   as built), **The Reach** (the region map and travel, [world.md](world.md)) and **Calendar**
   (the year's moons, click one to see its weeks by weekday, known dates, the weather glyphs you
   know, today's weather, Rest until…, [loop.md](loop.md)).
-- **The Ledger** (L) has seven tabs (1–7): Questions, Clues, People, Insights, **Appointments**
-  (missed fixed events, with date, place and who), **Lives** (a page per life lived) and **Deeds**
-  (achievements and titles, [loop.md](loop.md)).
+- **The Ledger** (L) has eight tabs (1–8): Questions, Clues, People, Insights, **Appointments**
+  (missed fixed events, with date, place and who), **Lives** (a page per life lived), **Deeds**
+  (achievements and titles, [loop.md](loop.md)) and **Guide** (the Field Guide: every kind of foe,
+  "?" until seen, then faction and tier, times beaten, the weakness found with its lesson, a gold
+  star once mastered; [combat.md](combat.md)).
 - **The main line:** a gold step under the vitals (outside fights) names the next main-story
   action ([loop.md](loop.md)). The calendar row pins known fixed events in gold and appointments
   in silver.

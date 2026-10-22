@@ -22,11 +22,13 @@ const Ai := preload("res://scripts/ai.gd")
 const Cutscene := preload("res://scripts/game/cutscene.gd")
 const Matter := preload("res://scripts/world/matter.gd")
 const Morale := preload("res://scripts/morale.gd")
+const FieldGuide := preload("res://scripts/field_guide.gd")
 
 var D: Dictionary  # data/spells.json
 var kit
 var ai
 var morale  # scripts/morale.gd: who yields or runs (N-6.4)
+var guide  # scripts/field_guide.gd: what you know of each kind (N-6.5)
 var rng := RandomNumberGenerator.new()
 
 var player: Unit
@@ -113,6 +115,7 @@ func _ready() -> void:
 	kit = Kit.new(self)
 	ai = Ai.new(self)
 	morale = Morale.new(self)
+	guide = FieldGuide.new(self)
 	start()
 
 
@@ -321,6 +324,7 @@ func spawn(kind: String, at: Vector2) -> Unit:
 	u.state_t = 0.5
 	_add(u)
 	morale.on_spawn(u)
+	guide.seen(u)
 	if e.get("anchored", false):
 		u.flags["anchored"] = true  # a guardian that never moves (the Kiln Warden)
 	if kind == "inverted":
@@ -832,6 +836,8 @@ func hit(u: Unit, dmg: float, impact: int, dir: Vector2, knock := 0.0, quiet := 
 			dmg *= float(u.flags.get("vuln_mult", 2.0))
 		if u.broken_t > 0.0:
 			dmg *= float(D["foes"]["break"]["broken_damage"])
+		if u.state == "reload" and not quiet:
+			guide.found(u, "reloading")  # caught a Crossbowman winding his bow
 		var fire: bool = _src_kind == "fire" or town != null and town.fire_proj.has(_src_kind)
 		# A Shieldman's shield takes a hit from the front (fire burns it away instead).
 		if not quiet and ai.brig.guards(u, dir, impact, fire):
@@ -919,6 +925,7 @@ func _add_break(u: Unit, impact: int, dir: Vector2) -> void:
 		fx("ring", u.pos, {"color": PixelArt.GOLD, "r": u.radius + 10.0, "life": 0.45})
 		fx("clink", u.pos + Vector2(0, -12), {"life": 0.45})
 		stats["enemies_broken"] = int(stats.get("enemies_broken", 0)) + 1
+		guide.found(u, "broken")
 		ai.hollows.on_broken(u)  # a Husk leaks its Aether
 
 
@@ -953,6 +960,7 @@ func catch_fire(u: Unit) -> bool:
 	var S: Dictionary = D["foes"]["states"]
 	u.burn_t = float(S["burn_s"]) * float(S["tier_k"].get(str(D["enemies"][u.kind].get("tier", "")), 1.0))
 	u.burn_tick = 0.0
+	guide.found(u, "burned")
 	stats["set_alight"] = int(stats.get("set_alight", 0)) + 1
 	return true
 
@@ -1020,6 +1028,7 @@ func kill(u: Unit) -> void:
 	morale.on_out(u)
 	if phase != "won":
 		stats["kills"] += 1  # not the ones that crumble when the fight is won
+		guide.beaten(u)
 	fx("burst", u.pos, {"color": PixelArt.HOURS if u.kind == "inverted" else PixelArt.PAPER, "r": 9.0, "life": 0.35})
 	Progression.add_wizard_xp(float(D["enemies"][u.kind]["xp"]))
 	var e: Dictionary = D["enemies"][u.kind]

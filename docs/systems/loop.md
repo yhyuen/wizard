@@ -22,7 +22,8 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
   keep"): known Ledger entries, deaths by cause, trials passed, the Echo (`echo`), `revisions`,
   `best_wells`, `insight` (0–3), `lives` (a page per life: number, road, cause, moon, day, time,
   insight, wells, what was learnt, Omens, deeds earned), `achievements` (id: life, moon, day),
-  `titles` and the `title` worn, play time and frame stats for the run summary, hints seen.
+  `titles` and the `title` worn, the Field Guide (`guide`: kind -> seen, beaten, found;
+  [combat.md](combat.md)), play time and frame stats for the run summary, hints seen.
 - **`life`** is this year and resets at the Turning ("hands reset"): its number `n`, `road`
   (always `apprentice` until roads are built), the day, the time of day, flags, scenes seen, what
   was learnt, Practice, wells, the book, once-a-day actions done (`done_<op>`), items taken,
@@ -118,9 +119,11 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
   ended. Earning one keeps it in the soul (with life, moon and day), adds its title (worn at once
   if you wear none), lists it on the life's page under Opened, writes the soul, and copies it to
   the profile (`user://profile.json`, save spec §3). A gold toast names the deed and its title.
-- Four so far, none from the story: **The First Ring** (a Ring's trial), **A Cold Kiln** (the
-  Kiln Warden), **To the Last Day** (a year to the Eclipse) and **Under a Bad Sky** (hidden: a
-  year finished, at the Eclipse or by turning, under an Omen).
+- Six so far, none from the story: **The First Ring** (a Ring's trial), **A Cold Kiln** (the
+  Kiln Warden), **To the Last Day** (a year to the Eclipse), **Under a Bad Sky** (hidden: a
+  year finished, at the Eclipse or by turning, under an Omen), and from the Field Guide **Field
+  Notes** (five kinds' weaknesses found, `guide_found()`) and **Old Hand** (three kinds mastered,
+  `guide_mastered()`).
 - The Ledger's **Deeds** tab (7): the titles earned (click one to wear it), then every
   achievement: earned ones in gold with when, hidden ones as "?" and the hint, sealed (story) ones
   as "A deed not yet done". A road's `opens_by` may name an achievement as well as a deed.

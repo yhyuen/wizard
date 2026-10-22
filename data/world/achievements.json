@@ -29,6 +29,20 @@
    "hidden": true,
    "when": "omens() > 0 and (ended(\"eclipse\") or ended(\"turned\"))",
    "grants": {"title": "Omen-Walker"}
+  },
+  "field_notes": {
+   "kind": "challenge",
+   "name": "Field Notes",
+   "hint": "Find the weakness of five kinds of foe (the Field Guide).",
+   "when": "guide_found() >= 5",
+   "grants": {"title": "Tracker"}
+  },
+  "old_hand": {
+   "kind": "challenge",
+   "name": "Old Hand",
+   "hint": "Master three kinds of foe in the Field Guide.",
+   "when": "guide_mastered() >= 3",
+   "grants": {"title": "Old Hand"}
   }
  }
 }

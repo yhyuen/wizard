@@ -86,6 +86,8 @@ func focus(u: Unit) -> int:
 ## A hit above its Focus breaks a wind-up: the telegraph goes away, a cracked sigil puffs over it,
 ## and the attack comes back at half its cooldown.
 func interrupt(u: Unit) -> void:
+	if u.state in ["hum", "windup", "spark", "lance", "smother"]:
+		A.guide.found(u, "interrupted")
 	if u.state == "hum":
 		hollows.hush(u)  # the Choir falls quiet
 		A.fx("clink", u.pos + Vector2(0, -12), {"life": 0.35})

@@ -2,7 +2,7 @@ extends SceneTree
 ## Screenshots of the first playable for review, with draw calls and frame time at each (needs a
 ## display, not --headless): the title, waking in the camp, the yard and the captain's cordon,
 ## the market at noon, the lane at dusk, the camp at night, a patrol fight, the brigands' toll fight, a burning hay bale,
-## a grass fire and a charged wet patch, the leaning gallery coming down, the camp's map, the Reach and the calendar, and the
+## a grass fire and a charged wet patch, the leaning gallery coming down, the camp's map, the Reach and the calendar, the Deeds and the Field Guide, and the
 ## spellbook; then the loading card, the halls' landing and shrine, the
 ## entrance hall, the rune door, the halls' map, a crack glowing and the embers out of it, the
 ## refectory, the dark gallery, the bell passage, the burnt door, the cistern's sluice, the Kiln
@@ -10,6 +10,8 @@ extends SceneTree
 ##
 ##   xvfb-run -a -s "-screen 0 1440x810x24" godot --rendering-driver opengl3 --resolution 1440x810 \
 ##       --fixed-fps 60 --script res://tools/world_shot.gd -- --out DIR
+
+const FieldGuide := preload("res://scripts/field_guide.gd")
 
 var main
 var slice
@@ -181,52 +183,60 @@ func _process(_dt: float) -> bool:
 			slice.deeds.earn("first_ring")
 		668:
 			_shot("10c_deeds")
+			# the Field Guide (N-6.5): the fights so far, a weakness found and one kind mastered
+			slice.ledger_tab = 7
+			var G: Dictionary = FieldGuide.book(run.soul)
+			G["hollow"] = {"seen": 1, "beaten": 12, "found": ["burned"]}
+			G["shieldman"] = {"seen": 1, "beaten": 2, "found": ["shield_burned"]}
+			G["choir"] = {"seen": 1, "beaten": 0, "found": []}
+		669:
+			_shot("10c1_field_guide")
 			slice.ledger_tab = 4
 			slice.run.settle_event(slice.run.fixed_events().filter(func(e): return e["id"] == "iron_gate_shuts")[0], "missed")
-		669:
+		671:
 			_shot("10d_appointments")
 			slice.ledger_tab = 0
 			slice.growth.practice()["pebble"].merge({"level": 10, "stage": 1, "xp": 20.0, "hits": 30}, true)  # at the Master wall, one trial short
 			slice.growth.practice()["ember_bolt"].merge({"level": 7, "stage": 1}, true)
 			slice.book_slot = slice.growth.book().find("pebble")
 			slice.overlay = "book"
-		670:
+		672:
 			_shot("11_book")
 			slice.overlay = ""
 			_go(sp["north_in"], 2, 0)
-		700:
+		702:
 			_shot("12_north_stair")
 			slice.go_map("halls", "landing")
-		706:
+		708:
 			_shot("13_loading")
-		790:
+		792:
 			_close()
-		800:
+		802:
 			_shot("14_halls_landing")
 			main.place_player(W.map.spots["hall_c"] + Vector2(0, 120))
-		840:
+		842:
 			_shot("15_entrance_hall")
 			main.place_player(W.map.items["rune_door"]["at"] + Vector2(-60, 0))
-		880:
+		882:
 			_shot("16_rune_door")
 			slice.overlay = "map"
-		900:
+		902:
 			_shot("17_halls_map")
 			slice.overlay = ""
 			main.place_player(W.map.spots["hall_s"] if W.map.spots.has("hall_s") else Vector2(1100, 1620))
 			main.start_world_cutscene("path:sighting", main.arena.player.pos)
-		1000:
+		1002:
 			_shot("17a_sighting_still")
-		1090:
+		1092:
 			_shot("17b_sighting_backwards")
-		1160:
+		1162:
 			main.mode = "world"
 			main.arena.cutscene = null
 			main.arena.phase = "explore"
 			main.arena.units = main.arena.units.filter(func(u): return u.team != 2)
 			main.place_player(W.map.items["great_clock"]["at"] + Vector2(-40, 0))
 			main.start_world_cutscene("path:provost_eclipse", main.arena.player.pos)
-		1360:
+		1362:
 			_shot("17c_provost_replay")
 			main.mode = "world"
 			main.arena.cutscene = null
@@ -234,40 +244,40 @@ func _process(_dt: float) -> bool:
 			main.arena.units = main.arena.units.filter(func(u): return u.team != 2)
 			main.place_player(W.map.spots["hall_c"] + Vector2(-260, -40))
 			slice._start_fight("hall_fight")
-		1500:
+		1502:
 			_shot("18_crack_glow")
-		1630:
+		1632:
 			_shot("19_hall_embers")
 			_end_fight()
 			_go(W.map.spots["refectory_c"], 2, 0)
-		1670:
+		1672:
 			_shot("20_refectory")
 			_go(W.map.spots["gallery_c"], 2, 0)
-		1710:
+		1712:
 			_shot("21_gallery_dark")
 			_go(W.map.spots["passage_c"] + Vector2(0, 60), 2, 0)
-		1750:
+		1752:
 			_shot("22_bell_passage")
 			_go(W.map.spots["ante_s"] + Vector2(0, -60), 2, 0)
-		1790:
+		1792:
 			_shot("23_burnt_door")
 			_go(W.map.spots["cistern_c"] + Vector2(120, 40), 2, 0)
-		1830:
+		1832:
 			_shot("24_cistern_sluice")
 			_go(W.map.spots["kiln_s"], 2, 0)
 			slice._start_fight("warden")
-		2140:
+		2142:
 			main.arena.player.hp = main.arena.player.max_hp
 			_shot("25_warden_rings")
 			var w = main.arena.enemies().filter(func(u): return u.kind == "warden")
 			if not w.is_empty():
 				w[0].hp = w[0].max_hp * 0.5
-		2340:
+		2342:
 			main.arena.player.hp = main.arena.player.max_hp
 			_shot("26_warden_vents")
 			_end_fight()
 			slice.end_loop("first_playable_end")
-		2360:
+		2362:
 			_shot("27_end_card")
 			var f := FileAccess.open(out.path_join("stats.txt"), FileAccess.WRITE)
 			f.store_string("\n".join(stats) + "\n")

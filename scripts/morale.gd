@@ -72,6 +72,7 @@ func check(u: Unit) -> bool:
 		A.fx("ring", u.pos, {"color": PixelArt.PAPER, "r": u.radius + 8.0, "life": 0.5})
 		A.stats["yielded"] = int(A.stats.get("yielded", 0)) + 1
 		Progression.add_wizard_xp(float(A.D["enemies"][u.kind]["xp"]))
+		A.guide.beaten(u)
 		if not A.stats.has("yield_seen"):
 			A.stats["yield_seen"] = true
 			A.toast.emit("The %s yields: weapon down, on one knee." % A.D["enemies"][u.kind]["name"], PixelArt.PAPER)
