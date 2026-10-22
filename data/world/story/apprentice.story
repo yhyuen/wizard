@@ -1,6 +1,7 @@
 # The Apprentice road's main line in Ring 1 (N-7.3; the Ring 1 story §4, scenes S1-S3). SEALED
 # story content: builders only. The first morning (life 1, and every life after), the glass note
-# at the crater's edge, and the two first lessons. The format is in scripts/game/story.gd.
+# at the crater's edge, the two first lessons (S1-S3), Aldous's ask (S4), the Thaw examination
+# (S6), and Wren's book (S7). The format is in scripts/game/story.gd.
 
 # --- S1. The first morning, life 1 ------------------------------------------------------------
 
@@ -288,4 +289,163 @@ talk: wren
 repeat: true
 priority: -10
 Wren: (not looking up) Found, found, not found. Found. Sorry. What?
+* Leave
+
+# --- S4, the cellar thing (the Mill) ------------------------------------------------------------
+
+# From Ashmoon 8 Aldous asks you down into his grain cellar. Two ways through it: the Kindle (the
+# mill burns, and the seed with it) or patience (a lamp an aisle, on three different days).
+=== cellar_ask
+talk: aldous
+priority: 11
+when: k("aldous") and day >= 8 and day <= 28 and not f("cellar_asked")
+Aldous: It's not a Hollow. I've seen Hollows now. I know how they walk. This one doesn't walk.
+Aldous: It waits. Down in the grain cellar, in the dark between the sacks.
+Aldous: Two of my lads went down for seed barley and came up white as flour and can't say what they saw.
+Aldous: I need that seed. If it isn't in the ground by the new moon there's no bread in the camp come Highsun.
+Aldous: The Magister says you've got a fire that's better than your draw. "Better". I don't know what it means. I'm hoping it means you'll go down there.
++ set cellar_asked
+* "I'll go." -> cellar_yes
+* "Not yet." -> cellar_later
+
+=== cellar_yes
+Aldous: Take a lantern. Take two. Tam, get the lantern. Not that one, the good one.
+Tam: (running, then not running because his father is looking) This one? It's the good one.
+* Leave
+
+=== cellar_later
+Aldous: It's not going anywhere. That's the trouble.
+* Leave
+
+# The cellar itself is in data/fields/story/fields.story.
+
+# --- S6, the Thaw examination (Thaw 21, Morning) ---------------------------------------------
+
+# Read Marrow's chart right and stand still for one honest second (Alignment, S3): passed.
+=== thaw_exam
+place: college_tents
+days: 49
+times: morning
+when: not seen("thaw_exam")
+known: true
+title: The Thaw examination
+Twelve apprentices sit the examination in a line of chalk circles on the frozen ground. Marrow sits on her crate with the board on her knees. Crane stands behind her with her hands in her sleeves.
+Silas Vane goes first. He reads the chart in the time it takes to breathe in, stands, and puts an Incant clean through the centre of the star stone. He doesn't look at anyone afterwards.
+[loop > 1] Silas glances at you before he casts. Not the way he used to. The way you'd check a clock.
+Marrow: Next. The quiet one.
+Marrow: (turning the board to you) The chart. Thaw, Morning, Sol's hour. Which stone is the figure aligned to?
+* The east stone, under the Sun -> thaw_cast_right
+* The west stone, under the Moon -> thaw_cast
+* The north stone, under Saturn -> thaw_cast
+
+=== thaw_cast_right
++ set thaw_chart
+You step into the circle facing east.
+* Stand still, and cast -> thaw_cast
+
+=== thaw_cast
+[not f("thaw_chart")] You step into the circle.
+The figure comes up under your hands. The star stone waits at the end of the ground, a long way off.
+* Cast [k("alignment") and f("thaw_chart")] -> thaw_pass
+* Cast [not k("alignment") or not f("thaw_chart")] -> thaw_fail
+
+=== thaw_pass
+Crane: (writing) Passed in form.
+Marrow: (to the vellum, not to you) You hold the figure like someone who has been shown it twice.
+[loop == 1] It's the nicest thing she has said to anyone all morning. You take it as one.
+[loop > 1] You don't know what to do with your face.
++ set exam_passed_thaw
++ deed exam_thaw
++ learn thaw_passed
+* Leave
+
+=== thaw_fail
+The bolt goes wide of the stone by a yard.
+Crane: Not today. (No weight on it at all.) Summer.
+Silas: (passing, low) Summer.
+* Leave
+
+# --- S7, Wren's book (Seedmoon) ----------------------------------------------------------------
+
+=== daybook_ask
+talk: wren
+priority: 11
+when: day >= 57 and day < 67 and not f("daybook_asked")
+Wren: I want a book.
+Wren: The Provost's daybook. It'll be in his study above the Archive stair, on the reading stand, open, because he never closed a book in his life.
+Wren: If anyone knows why it broke, it's in there.
+Wren: Crane won't send anyone. She says it's looting. (A pause.) She's right. I'm going anyway. The eleventh. Come with me or don't tell her.
++ set daybook_asked
+* "I'll come." -> daybook_yes
+* "Wren, don't." -> daybook_no
+
+=== daybook_yes
+Wren: The eleventh, at the Archive stair past the Kiln. Bring something that burns. Not too much.
++ set daybook_yes
+* Leave
+
+=== daybook_no
+Wren: (very evenly) All right. Then don't tell her.
++ set wren_alone
+* Leave
+
+# You wake in the camp after the fall on the stair (halls.story).
+=== daybook_wake
+arrive: tent
+priority: 25
+when: f("daybook") and not seen("daybook_wake")
+You wake with your leg in a splint and Mira's lamp beside the cot.
+Mira: Three days. You've been out three days. Don't. No, lie still, that's the leg that's broken, and the other one's not much better.
+* "Wren?" -> daybook_wren
+* "The book. Did we get the book?" -> daybook_wren
+
+=== daybook_wren
+Mira: Wren carried you up out of the halls on their back. Took most of the night. They're fine. They're angry, but they're fine.
+(She trims the wick.)
+Mira: It's not that.
+* "What is it?" [f("tam_taken")] -> tam_after
+* Sleep [not f("tam_taken")]
+
+# S8's other side: you weren't at the east fence on Seedmoon 12 (fields.story has the fence).
+=== tam_after
+It's the boy. Aldous's youngest. Tam, who brought you water at the Mill and couldn't make a Kindle light and laughed.
+On the second night you were out, the watch was short two wizards, because two wizards were in the halls looking for a book.
+Tam went to fetch the goat from the east fence. The goat came back.
+Tam is in the tent at the end of the row, sitting up. Not asleep and not awake. When you say his name he turns towards your voice, politely.
+His face isn't washed out. Not yet. But his eyes have the look of a page where someone has started to rub out the words.
+Aldous: (sitting by him, not looking at you) He knows the goat's name. He doesn't know mine.
+Aldous: They say it might stop there. They say it might not.
+Aldous: I'm not blaming you. I want you to know that. I've thought about it and I've decided I'm not going to blame you.
+Nobody died. That's what everyone keeps saying. Nobody died.
++ learn tam_fence
+That night you open the Ledger. A new line has written itself under "Don't trust the morning", in your own hand.
+"Tam. Night of Seedmoon 12. East fence. Two on the watch."
+You didn't write it. You understand, with a cold that starts in your stomach, that it isn't a note. It's an appointment.
+* Leave
+
+# The same news without the fall: Aldous tells you.
+=== tam_after_aldous
+talk: aldous
+priority: 12
+when: f("tam_taken") and not k("tam_fence")
+Aldous is sitting outside the tent at the end of the row. He doesn't get up.
+Aldous: Tam went to fetch the goat from the east fence, the night of the twelfth. The watch was short. The goat came back.
+Aldous: He knows the goat's name. He doesn't know mine.
+Aldous: They say it might stop there. They say it might not.
++ learn tam_fence
+That night you open the Ledger. A new line has written itself under "Don't trust the morning", in your own hand.
+"Tam. Night of Seedmoon 12. East fence. Two on the watch."
+* Leave
+
+# A later life where you were at the fence: Aldous tells you what came up out of his cellar.
+=== tam_safe_aldous
+talk: aldous
+priority: 12
+when: f("tam_safe") and k("tam_fence") and not k("mill_below")
+Aldous: Tam says you knew. He says you were waiting at the fence before he got there, like you knew.
+Aldous: (He looks at you a long time.) There's a thing I haven't told anyone. Before the dark sat down in my cellar, something came up out of it.
+Aldous: Through the floor. Cold. It went past me on the stair like a draught that knew where it was going.
+Aldous: Then it went still. Then the dark sat down. I've not been under that floor since and I'm not going.
++ learn mill_below
++ remember aldous tam_safe
 * Leave

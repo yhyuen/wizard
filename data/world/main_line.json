@@ -3,6 +3,11 @@
  "steps": [
   {"when": "not seen(\"crane_lesson\") and day <= 4", "text": "Be on the practice ground by the College tents at Morning on Ashmoon 3: Crane wants every apprentice."},
   {"when": "not seen(\"marrow_lesson\") and day <= 6", "text": "Lector Marrow teaches on the practice ground at Morning on Ashmoon 5."},
+  {"when": "day >= 8 and day <= 28 and not f(\"cellar_asked\")", "text": "Aldous at the Mill has been asking for you."},
+  {"when": "f(\"cellar_asked\") and not f(\"cellar_done\") and day <= 28", "text": "Aldous needs his seed barley. Go down into the Mill cellar, under the mill."},
+  {"when": "day <= 49 and not seen(\"thaw_exam\")", "text": "The Thaw examination is at Morning on Thaw 21, on the practice ground by the College tents."},
+  {"when": "day >= 57 and day < 67 and not f(\"daybook_asked\")", "text": "Wren has been looking for you."},
+  {"when": "f(\"daybook_yes\") and day <= 67 and not f(\"daybook\")", "text": "Meet Wren at the Archive stair, past the Kiln, on Seedmoon 11."},
   {"when": "not k(\"trial_warden\")", "text": "Go down the north stair and find a way through the College halls to the Kiln."},
   {"when": "not seen(\"archive_stair\")", "text": "Go on past the Kiln hall, deeper into the College."}
  ]
