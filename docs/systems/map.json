@@ -29,7 +29,8 @@
       "paths": [
         "scripts/world/map.gd", "scripts/world/world.gd", "scripts/world/people.gd",
         "data/world/maps.json", "data/world/world.json", "data/world/props.json",
-        "data/world/regions.json", "scripts/game/reach.gd"
+        "data/world/regions.json", "scripts/game/reach.gd",
+        "scripts/world/weather.gd", "data/world/weather.json"
       ]
     },
     "story": {
