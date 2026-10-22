@@ -30,7 +30,7 @@ table; the big gaps:
 | Cantrips from the pool (Kindle, Douse, Lamplight, Stone Stair…), 2 slotted | Kindle and Douse only, fixed (`start_cantrips`) | [combat.md](combat.md) |
 | Rest points change the book | Your desk (the story's `book` effect) | [combat.md](combat.md) |
 | Eight schools, each with its own casting act and rule | No schools; Spheres only | [combat.md](combat.md) |
-| One force × material table for props, tiles and units | Per-spell lists in `props.json` for fire, water, force, lightning | [world.md](world.md) |
+| One force × material table for props, tiles and units | One table (`data/materials.json`), on props only so far | [world.md](world.md) |
 | Combined spells from two mastered schools | Magicks (old Mill fight only) | [combat.md](combat.md) |
 | Spells grow on seven visible axes over 20 levels in four stages, with breakthrough trials, Force grades I–V and prerequisite spells | 20 levels in four stages with walls and trials (feat, insight, meditation), grades I–IV by stage, one minor axis per spell, prerequisites for the four signatures (N-3). Not yet: Sphere Comprehension, insight entries in the Ledger, meditation only at Sympathy places, grade V, the 1st Ring is still the yard trial alone | [growth.md](growth.md) |
 
@@ -53,10 +53,10 @@ The [spells and environment](/mnt/project-files/design/world/spells-and-environm
 
 | Target says | As built | Where |
 | --- | --- | --- |
-| 16 materials plus flesh, scale and shade, one table (`data/materials.json`) by Force grade, with a weak version below grade | Per-spell lists in `props.json` for fire, water, force, lightning | [world.md](world.md) |
-| States in three lanes (moisture, heat, integrity) with timers | Burning, ash, shoved, charged puddle, flared lamp | [world.md](world.md) |
+| 16 materials plus flesh, scale and shade, one table (`data/materials.json`) by Force grade, with a weak version below grade | The table and grades are built (N-4.1) but act only on the four prop kinds; tiles, walls, lamps and units have no material yet; spells name their force in `materials.json` carriers, not in `spells.json` `forces`; most ops (reveal, steam clouds, freeze, explode...) have no thing to act on yet | [world.md](world.md) |
+| States in three lanes (moisture, heat, integrity) with timers | On props: smoulder, burning, ash, chilled, brittle, wet, cracked, broken; plus charged puddle and flared lamp | [world.md](world.md) |
 | Fire spreads on a 24 px cell grid with wind; water flows by height; charge fills a network by grade | Burning props catch props within `spread` px; puddles; one charged puddle | [world.md](world.md) |
-| Break stages, supports and telegraphed collapse; warded things never break | Shove only | [world.md](world.md) |
+| Break stages, supports and telegraphed collapse; warded things never break | Props crack and break by Impact grade and hp (a flattened heap, no broken meshes); no supports or collapse | [world.md](world.md) |
 | Changes last the life; people and nature repair over days; Time mends by grade | Every reaction resets when you wake; Rewind mends within 34 px | [world.md](world.md) |
 | Owners, values, witnesses, a reaction ladder, faction temperaments | People flinch and complain; the captain scolds fire | [world.md](world.md) |
 

@@ -553,6 +553,7 @@ func _carry(R) -> void:
 	_deeds(R)
 	_events(R)
 	_weather(R)
+	_matter()
 
 
 ## The save files (save spec §5, §12): a Turning cut short is finished on load, once.
@@ -698,6 +699,38 @@ func _weather(R) -> void:
 	R.life = R.fresh_life()
 	ok(wx.known("camp", 30) == year[29] and wx.known("camp", 31) == "" and int(R.soul["seed"]) == 4242, "the Almanac and the seed carry into the next life")
 	R.new_run()
+
+
+## The matter core (spells and the environment spec §2-§4, N-4.1): every table cell names an op
+## the build knows, carriers name real spells, and the grade gates work both ways.
+func _matter() -> void:
+	var M = load("res://scripts/world/matter.gd").new()
+	const OPS := ["burn", "smoulder", "scorch", "wet", "chill", "brittle", "damage", "crack", "mend", "charge",
+		"flatten", "grow", "sprout", "reveal", "split", "lean", "dry", "dig", "dust", "freeze", "mud", "hot", "slick", "root",
+		"wash", "shatter", "store", "focus", "dent", "reflect", "ring", "steam", "splash", "flood", "lilies", "glitter",
+		"still", "melt", "refract", "burst", "spatter", "thicken", "spread", "explode", "scatter", "damp", "ruin",
+		"burn_off", "blow", "rime", "glow", "sign", "stagger", "shock", "dazzle", "unmake", "none"]
+	var bad: Array = []
+	for mat in M.d["materials"]:
+		if not M.d["results"].has(mat):
+			bad.append(mat + ": no row")
+	for mat in M.d["results"]:
+		for force in M.d["results"][mat]:
+			if not force in M.d["forces"]:
+				bad.append("%s: no force %s" % [mat, force])
+			for op in M.d["results"][mat][force]:
+				if not op in OPS:
+					bad.append("%s × %s: unknown op %s" % [mat, force, op])
+	ok(bad.is_empty(), "every table cell is a known op (%s)" % ", ".join(bad))
+	var spells: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/spells.json"))["spells"]
+	var c: Dictionary = M.d["carriers"]
+	ok(c.keys().all(func(k): return c[k]["force"] in M.d["forces"] and (not c[k].has("spell") or spells.has(c[k]["spell"]))), "every carrier names a force and a real spell")
+	ok(M.result("fire", 1, "wood") == "burn" and M.result("fire", 1, "living_wood") == "smoulder" and M.result("fire", 2, "living_wood") == "burn", "fire lights wood at I, living wood only at II")
+	ok(M.result("impact", 4, "stone") == "damage" and M.result("impact", 3, "stone") == "crack" and M.result("impact", 2, "stone") == "dent", "Impact: breaks stone at IV, cracks it at III, only dents below")
+	ok(M.result("lightning", 1, "iron") == "charge" and M.result("lightning", 1, "wood") == "scorch" and M.result("lightning", 2, "wood") == "burn" and M.result("lightning", 1, "cloth") == "burn", "lightning conducts in iron, lights wood at II and hay at I")
+	ok(M.result("impact", 5, "warded") == "none" and M.result("fire", 5, "warded") == "none", "warded things don't answer to force")
+	ok(M.result("fire", 1, "wood", {"fire": 2}) == "smoulder" and M.result("impact", 1, "wood", {"break": 2}) == "crack", "a prop kind's own grades win (the barrel, the cart)")
+	ok(M.result("water", 1, "earth") == "mud" and M.result("growth", 1, "water") == "lilies" and M.result("light", 1, "stone") == "reveal", "forces with no grade gate work at grade I")
 
 
 ## Spell mastery in the slice (spell spec §6.4, N-3): walls, trials, breakthroughs, remembered

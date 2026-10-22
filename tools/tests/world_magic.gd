@@ -9,6 +9,9 @@ extends SceneTree
 ## OW2: a Spark flares an iron lamp and charges a puddle that then shocks a Hollow in it; Rewind
 ## mends the shoved crate; a Hollow won't step into a lit lamp's pool; fire in the College ruins
 ## makes the watch captain flinch and scold; lighting Mira's lane gets her thanks.
+## N-4.1 (the matter core, spells and the environment spec §4): a Pebble at grade I only cracks the
+## cart (wood, breaks at II); it breaks a crate already cracked; an Ember Bolt only smoulders a
+## barrel (catches at Fire II) and only steams wet hay; a Spark sets hay alight.
 
 const BOOK := ["ember_bolt", "pebble", "splash", "undertow"]
 const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt"]
@@ -50,6 +53,12 @@ func _initialize() -> void:
 			func(): return _logged("flinch", "captain") and _logged("scold", "captain")],
 		["lighting Mira's lane gets her thanks", _lane_setup,
 			func(): return run.flag("lit_lane") and slice.story.talk_scene("mira") == "mira_thanks"],
+		["a Pebble at grade I only cracks the cart", _cart_setup, func(): return state["prop"]["integrity"] == "cracked"],
+		["a Pebble breaks a cracked crate", _break_setup, func(): return state["prop"]["integrity"] == "broken"],
+		["an Ember Bolt at grade I only smoulders a barrel", _barrel_setup, func(): return state["prop"]["state"] == "smoulder"],
+		["an Ember Bolt only steams wet hay", _wet_hay_setup,
+			func(): return _logged("steam", "hay") and state["prop"]["state"] != "burning"],
+		["a Spark sets hay alight", _spark_hay_setup, func(): return state["prop"]["state"] == "burning"],
 	]
 
 
@@ -310,3 +319,41 @@ func _lane_setup() -> void:
 			break
 	state["lamp"]["lit"] = false
 	_cast_at(state["lamp"]["pos"], "ember_bolt")
+
+
+func _prop_of(kind: String, skip := {}) -> Dictionary:
+	for p in world.props:
+		if p["kind"] == kind and p["state"] == "" and p["integrity"] == "" and p != skip:
+			return p
+	return {}
+
+
+func _cart_setup() -> void:
+	_book(BOOK)
+	state["prop"] = _prop_of("cart")
+	_cast_at(state["prop"]["pos"], "pebble", 44.0)
+
+
+func _break_setup() -> void:
+	state["prop"] = _prop_of("crate")
+	state["prop"]["integrity"] = "cracked"
+	state["prop"]["hp"] = 1.0
+	_cast_at(state["prop"]["pos"], "pebble")
+
+
+func _barrel_setup() -> void:
+	state["prop"] = _prop_of("barrel")
+	state["prop"]["pos"] = _dark_spot()  # the camp's barrels stand against walls: roll one into the open
+	_cast_at(state["prop"]["pos"], "ember_bolt")
+
+
+func _wet_hay_setup() -> void:
+	state["prop"] = _prop_of("hay")
+	world.apply_force(state["prop"], "water", 1)
+	_cast_at(state["prop"]["pos"], "ember_bolt")
+
+
+func _spark_hay_setup() -> void:
+	_book(STORM_BOOK)
+	state["prop"] = _prop_of("hay", state["prop"])
+	_cast_at(state["prop"]["pos"], "spark", 40.0)
