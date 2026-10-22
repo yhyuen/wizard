@@ -688,12 +688,15 @@ func _schools(P) -> void:
 	var G = load("res://scripts/game/growth.gd").new(R, P)
 	var bad: Array = []
 	for id in P.data["spells"]:
-		if not P.schools["schools"].has(P.school_of(id)):
+		if P.spell(id).get("wild", false):
+			if P.school_of(id) != "":
+				bad.append(id + " (a wild spell has no school)")
+		elif not P.schools["schools"].has(P.school_of(id)):
 			bad.append(id)
 	for r in R.lives["roads"]:
 		if not P.schools["schools"].has(str(R.lives["roads"][r]["school"])):
 			bad.append("road " + r)
-	ok(bad.is_empty(), "every spell and road names a real school (%s)" % ", ".join(bad))
+	ok(bad.is_empty(), "every spell (but a wild one) and road names a real school (%s)" % ", ".join(bad))
 	ok(G.school() == "astral_rite" and G.school_rank() == 0 and G.rank_name(0) == "Initiate", "life 1's Apprentice road starts you as an Initiate of Astral Rite")
 	G.begin_fight()
 	ok(P.school_k("ember_bolt") == 1.0, "your own school's spells cost what they say")

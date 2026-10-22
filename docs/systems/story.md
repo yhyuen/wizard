@@ -169,6 +169,17 @@ It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `c
   real evidence, enough breaks for `need`, a bot wins with everything), evidence conditions parse,
   and every scene that confronts has an outcome for each close (and `lost` unless soft).
 
+## Inheritances (`inherit <id>`, people spec §12; N-7.6.8)
+
+- `inherit <id>` begins an inheritance's trial rooms (the map's `trials`, run by
+  `scripts/world/trials.gd`; the rules are in [world.md](world.md) "Trial rooms"). Passing the rooms
+  sets its `done` flag and asks for its reward scene, which gives the gift (`model <spell>`, a wild
+  spell) and teaches its `know` (a Ledger entry, so later lives need only `later` rooms).
+- **Ring 1** (`data/ruins/halls/story/wrayburn.story`, SPOILER: sealed content): one inheritance,
+  in the halls' sealed cell behind the Kiln.
+- **Data check** (story_lint): the trials exist on the scene's map, every room has a door, a place
+  and a known kind, the reward scene exists and `know` is a Ledger entry.
+
 ## Cutscenes (`scripts/game/cutscene.gd`)
 
 - Short scenes in the fight view where time runs the wrong way: the Fire and the Mourner, and
@@ -178,4 +189,4 @@ It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `c
 ## Tests
 
 `tools/tests/story_lint.gd` (every scene against its own map's people, items, spots and exits;
-parse errors; the 7-day rumour check; the commissions', the ladder's, the minigames' and the confrontations' checks), `tools/tests/route.gd`, `tools/tests/people.gd`.
+parse errors; the 7-day rumour check; the commissions', the ladder's, the minigames', the confrontations' and the inheritances' checks), `tools/tests/route.gd`, `tools/tests/people.gd`.

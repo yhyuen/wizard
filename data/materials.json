@@ -56,6 +56,7 @@
  "carriers": {
   "ember":       {"spell": "ember_bolt", "force": "fire"},
   "pyro":        {"spell": "pyroclasm", "force": "fire"},
+  "lattice":     {"spell": "cinder_lattice", "force": "fire"},
   "column":      {"spell": "pillar", "force": "fire"},
   "kindle":      {"force": "fire"},
   "pebble":      {"spell": "pebble", "force": "impact", "shove": 1.0},

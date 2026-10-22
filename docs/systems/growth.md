@@ -86,6 +86,16 @@ A power's rank ladder is under Powers below.*
   devices and starts the life with 3 Spark Flask charges, 4 oil and 4 glass.
 - **Salvage** ([world.md](world.md)): breaking a crate, barrel or cart near you adds its reagents.
 
+### Wild spells (`spells.json` `wild`; N-7.6.8)
+
+*Spell spec (wild spells: teachers, tombs and inheritances). Built: one, **Cinder Lattice**, the
+Ring 1 inheritance's gift ([world.md](world.md) "Trial rooms"; how it fights is in
+[combat.md](combat.md)).*
+
+- A wild spell names **no school**: any road casts it at its listed Aether and wind-up, and its
+  Practice counts toward no school's rank. It needs no Ring (`ring` 0). Its Model is learned once
+  and kept by the soul, like any Model.
+
 ### Combined spells (`schools.json` `combined`; N-5.3)
 
 *Spell spec §6.5, §8. Built: the first, for Astral Rite + Spark Artifice. How it fights is in

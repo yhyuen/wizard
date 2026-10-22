@@ -164,6 +164,12 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   12 s, a gold light with a 40 px ring of turning stars: any spell you **begin** standing inside the
   ring is Aligned (×1.3 reach) at once, whatever its school and without standing still
   (`artifice.gd` `in_lantern`), and its light keeps light-shy enemies out like a lamp's pool.
+- **Cinder Lattice** (N-7.6.8, a wild spell, [growth.md](growth.md) "Wild spells"): a weave
+  (wind-up 0.8 s, 24 Aether, cooldown 8 s, range 130) that sets a net of small fires on a circle
+  (radius 24, +0.8 a level) for 2 s (+0.06 a level). A foe in it is held still (`net_t`) and burns
+  (half its 6 damage every 0.5 s); the ground under it burns out at once and spreads nothing (a
+  firebreak: `cells.gd` `burn_out`), a fire there is spent, and it lights lamps and braziers but
+  not props (`world.gd` "lattice"). Practice comes from each foe it first holds.
 - **Mastery in a fight** ([growth.md](growth.md)): a spell's stage sets its Force grade
   (`Progression.grade`, I–IV, capped by Ring) and grows its `minor` axis ×1.2 per stage. Pillar's
   and the meteor's zones draw a ring of sigils per stage (`arena.gd` `_sigils`). Signatures need

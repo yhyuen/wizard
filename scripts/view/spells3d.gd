@@ -550,6 +550,22 @@ func _zones(glow_k: float) -> void:
 				o.scale = Vector3.ONE * 0.6
 				var col: Color = PixelArt.STORM if z["device"] == "arc_rod" else (PixelArt.FIRE if z["device"] == "spark_flask" else PixelArt.PAPER)
 				paint(o, col, _glow(glow_k, 0.8, 1.6))
+			"lattice":
+				# Cinder Lattice: a net of small held flames on its circle, still as a drawing
+				var fade := clampf((float(z["life"]) - t) / 0.4, 0.0, 1.0)
+				var r: float = float(z["r"])
+				for i in 12:
+					var a := i * TAU / 12.0
+					var f := take("flame")
+					f.position = _w(z["pos"] + Vector2(cos(a), sin(a)) * r)
+					f.scale = Vector3(0.5, 0.45 * fade, 0.5)
+				for i in 6:
+					var a := i * TAU / 6.0 + 0.5
+					var f := take("flame")
+					f.position = _w(z["pos"] + Vector2(cos(a), sin(a)) * r * 0.5)
+					f.scale = Vector3(0.45, 0.4 * fade, 0.45)
+				halo(_w(z["pos"], 0.3), PixelArt.FIRE, r * view.S * 1.6 * fade, 0.8)
+				view.want_light(_w(z["pos"], 0.8), PixelArt.FIRE, 1.6 * fade, 4.0)
 			"lantern":
 				# the Star Lantern hangs at head height, a gold light (N-5.3)
 				var o := take("orb")
