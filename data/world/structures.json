@@ -13,6 +13,10 @@
   "city": [
    {"id": "old_watch", "name": "The Old Watch's gallery", "rect": [2090, 1120, 330, 60], "h": 6.0,
     "supports": [[2180, 1150]], "bridges": true}
+  ],
+  "east_road": [
+   {"id": "quarry_scaffold", "name": "The quarry scaffold", "rect": [2820, 1020, 200, 90], "h": 4.0,
+    "supports": [[2830, 1004], [3010, 1004]]}
   ]
  }
 }

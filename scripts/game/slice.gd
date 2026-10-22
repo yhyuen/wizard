@@ -654,6 +654,7 @@ func _effect(op: String, arg: String) -> bool:
 				toast("Omen taken: %s." % run.lives["omens"][arg]["name"])
 		"open":
 			world.map.doors[arg]["open"] = true
+			world.map.doors[arg]["opened"] = true  # for the life, even a gate whose prop still stands
 			Sfx.play("chime")
 		"goto":
 			if lines.is_empty():

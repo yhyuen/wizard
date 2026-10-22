@@ -161,7 +161,7 @@ freezing its chain to shut the Lantern Night approach (N-7.5).*
 ## The Mill fields (`data/fields/map.json`)
 
 *N-7.1.4, [Ring 1 places spec](/mnt/project-files/design/places/ring1-places-and-fights-spec.md)
-§6. Not built: the farm track's exit to the east road (N-7.1.5), the fields' fights (F10, F11,
+§6. Not built: the fields' fights (F10, F11,
 F17: N-7.1.6), the granary's flooded cellar (D8), the mill wheel as a motor (P3), the islet's ley
 point, the footbridge breaking (P8), freezing or planking across the pond, Aldous complaining
 when the pond is drained, the bramble commission and the granary's bread shortage.*
@@ -174,7 +174,7 @@ when the pond is drained, the bramble commission and the granary's bread shortag
   cellar** and its sealed **cold crack**, a Ring 2 lock), **Aldous's barns**, the **granary** on
   its stone legs, the **bramble field** and its barn, the **wayside shrine**, the **webbed
   orchard** and the **east fence** (posts facing the moor, the scarecrow brazier) to the **farm
-  track**.
+  track**, whose exit goes on to the east road.
 - **Deep water**: a water rect's 6th field `deep` makes it a wall to walkers (`Map.deep`; shots
   fly over it). The mill pond is deep round the **islet stone**; its **sluice** (an item) drains
   it (life flag `pond_dry`), the islet becomes a walk, and the mill wheel stops while it's dry.
@@ -185,6 +185,36 @@ when the pond is drained, the bramble commission and the granary's bread shortag
 - **Owners**: Aldous (`miller`) owns the fields; the bridge, the shrine and the track are
   nobody's.
 - The loading card's line under a map's name is the map's `card` in maps.json.
+
+## The east road (`data/fields/east_road/map.json`)
+
+*N-7.1.5, [Ring 1 places spec](/mnt/project-files/design/places/ring1-places-and-fights-spec.md)
+§7. Not built: the road's fights (the Knights' picket F3, the toll F13 and its talk route, the
+smugglers F14, the ledge camp F15: N-7.1.6), the toll bridge breaking under the brigands (the
+ford for the rest of the life), smoking the cellar with a Smoke Jar or flooding it, the Knights
+arriving only from Ashmoon 2, and the Holds themselves (Ring 2).*
+
+- **The map** (4000 × 1400 px, country kit), the second map of the Mill region: the fields' **farm
+  track** exit leads to the **road's end**, and back. West to east along the road: the **Knights'
+  picket** (two tents, the watch fire, the alarm bell, a barrier each side of the road), the
+  **toll bridge** over a shallow stream (wade it: the ford) with the toll hut, a hay cart and a
+  powder keg, the **waystation** (a ruined coaching inn you walk into; its **hearth** is a rest,
+  a night's sleep) with its stable and the **smugglers' cellar** behind it, the **quarry** to the
+  south-east (scree, a powder store, the dwarves' **claim stone**, the ledge camp's tents) and the
+  **Holds gate** across a cutting at the east end.
+- **The cellar door** (D9) is a gate: the bar across it (a `barricade`, wood) broken by Impact II
+  or burned by Fire II opens it. Or **smoke them out** (P10): fire on the **vent** behind the
+  cellar burns the hay heaped against it, the door opens (the story's `open`, for the life) and
+  you learn `smoke_vent` (Ledger clue).
+- **The quarry scaffold** (P7; `data/world/structures.json`) stands on two posts over the ledge
+  camp; break one and it comes down on whoever is under it.
+- **The Holds gate** (D10) is a calendar door (`open_days` [1, 28]): open through Ashmoon, shut
+  and barred from Thaw 1. Past it the road to the Holds is a stand-in (an item); seeing the gate
+  shut, or reading the road, teaches `holds_shut` (Ledger clue).
+- **Owners**: nobody owns the road; the picket is the Knights' (they mend), the quarry the
+  dwarves' (they don't, they aren't here).
+- A story `open <door>` now also marks the door opened for the life, so a gate whose prop still
+  stands stays open.
 
 ## Weather (`data/world/weather.json`, `scripts/world/weather.gd`)
 

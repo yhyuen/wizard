@@ -50,6 +50,8 @@ extends SceneTree
 ## to the camp (and the camp's down) works from then on.
 ## N-7.1.4 (the Mill fields): the sluice drains the mill pond and the islet becomes a walk; Fire I
 ## burns the webs off an apple tree and leaves the tree standing.
+## N-7.1.5 (the east road): Impact II breaks the bar across the waystation cellar's door and the
+## door opens; breaking a quarry scaffold post brings the scaffold down on the ledge camp.
 
 const BOOK := ["ember_bolt", "pebble", "splash", "undertow"]
 const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt"]
@@ -148,6 +150,8 @@ func _initialize() -> void:
 		["shoving the counterweight opens the drain grate for good (a soul memory): its exits up and down work", _weight_setup, _weighted],
 		["in the Mill fields, draining the pond at its sluice makes the islet a walk", _pond_setup, _pond_walk],
 		["Fire I burns the webs off an apple tree and leaves the tree standing", _web_setup, _webs_gone],
+		["on the east road, Impact II breaks the bar on the waystation cellar's door and it opens", _bar_setup, _cellar_open],
+		["breaking a quarry scaffold post brings the scaffold down on the ledge camp", _scaffold_setup, _scaffold_down],
 	]
 
 
@@ -1432,3 +1436,40 @@ func _webs_gone() -> bool:
 	if state["web"]["state"] != "ash":
 		return false
 	return state["tree"]["state"] != "burning" and state["tree"]["state"] != "ash"
+
+
+# --- the east road (N-7.1.5) -------------------------------------------------------------------
+
+func _bar_setup() -> void:
+	state.erase("long")
+	world.load_map("east_road")
+	slice.set_screen("world")
+	main.enter_world(world.map.spots["waystation"])
+	_clear_enemies()
+	var bar := {}
+	for p in world.props:
+		if str(p.get("tag", "")) == "cellar_bar":
+			bar = p
+	state["shut"] = not world.map.doors["cellar_door"]["open"]
+	world.apply_force(bar, "impact", 2, 4.0)
+
+
+func _cellar_open() -> bool:
+	var dr: Dictionary = world.map.doors["cellar_door"]
+	return state["shut"] and dr["open"] and not world.map.solid_at((dr["rect"] as Rect2).get_center())
+
+
+func _scaffold_setup() -> void:
+	var post := {}
+	for p in world.props:
+		if p.get("holds", "") == "quarry_scaffold":
+			post = p
+	world.apply_force(post, "impact", 3, 4.0)
+	state["long"] = true
+
+
+func _scaffold_down() -> bool:
+	for st in world.structures:
+		if st["id"] == "quarry_scaffold":
+			return st["state"] == "down"
+	return false
