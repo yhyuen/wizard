@@ -87,6 +87,7 @@ repeat: true
 priority: -10
 [time == "dusk"] Mira: Can't stop. Lamps don't light themselves.
 [time != "dusk"] Mira: Stay where the lamps are, after dark. Whatever came up out of the College doesn't like the light.
+* A game of Sparks [game_open("mira")] -> sparks_mira
 * Leave
 
 === pell_first
@@ -106,6 +107,7 @@ repeat: true
 priority: -10
 [time == "morning" or time == "noon"] Pell: Still here if you need anything. Anything at all.
 [time != "morning" and time != "noon"] Pell: Someone should go down there. Someone who knows the College. Someone like you.
+* A game of Sparks [game_open("pell")] -> sparks_pell
 * Leave
 
 === captain_first

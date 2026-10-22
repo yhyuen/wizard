@@ -1,0 +1,12 @@
+{
+ "_doc": "Sparks, the Lamplighters' dice (design/people/people-and-side-activities-spec.md §9; build item N-7.6.5): liar's dice with brass dice, you against one player. Each starts with `dice` dice; a bid is a count and a face across both cups ('three 5s'), ones (lamps) count as any face but are bid as themselves; each bid must be more dice, or as many on a higher face. Call 'dark' to open the cups: if the bid holds, the caller loses a die, if not the bidder does. Out of dice, out of the game. Each opponent: nerve (how far past what they can see they bid before they call dark: higher is bolder), bluff (the chance they bid a face they don't hold), stake (crowns a win pays; a loss costs it if you have it), tell (`tell` explains it, `sign` shows when their bid is a bluff; learned the first time you beat them, for every life), work (the game as a job: `wage` crowns and a rumour, half a day). Never played for coin without playing.",
+ "dice": 4,
+ "opponents": {
+  "mira": {"name": "Mira", "nerve": 1.2, "bluff": 0.35, "stake": 4,
+   "tell": "Mira turns her cup a quarter-turn when she's lying.", "sign": "Mira turns her cup a quarter-turn."},
+  "pell": {"name": "Pell", "nerve": 0.5, "bluff": 0.1, "stake": 3,
+   "tell": "Pell can't look at you when he bids past what he holds.", "sign": "Pell is looking at the table."},
+  "kestrel": {"name": "Kestrel", "nerve": 0.9, "bluff": 0.25, "stake": 5, "work": {"wage": 6, "text": "Run the market table for the night"},
+   "tell": "Kestrel goes very still when she bluffs. Kestrel is never still.", "sign": "Kestrel has gone very still."}
+ }
+}

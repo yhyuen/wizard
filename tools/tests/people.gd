@@ -14,6 +14,11 @@ extends SceneTree
 ## +50% unless what it spares burned, the board pays, and a later life knows the way (no time).
 ## The ladder (§7.1; N-7.6.4): challenge only at Dusk and once a week, a win takes the rung and its
 ## purse, a loss costs no days, and a beaten duelist's book is known next life.
+## Minigames (§9; N-7.6.5): each game's core plays alone and ends (a sharp Star-charts player wins,
+## one who always waits mostly loses; Sparks counts lamps as any face and only takes higher bids);
+## free play is once a week and none in a calamity's week; a win pays the stake, gains bond, learns
+## the tell for every life and, once a season, picks a rumour; work pays a wage and a rumour and
+## costs half a day; a Star-charts opponent beaten in a past life pays for coin, never at dice.
 
 var main
 var slice
@@ -89,10 +94,11 @@ func _go() -> void:
 	_rumours()
 	_commissions()
 	_ladder()
+	_minigames()
 	for f in failures:
 		print("[people] FAIL: " + f)
 	if failures.is_empty():
-		print("[people] bonds, rumours, commissions and the ladder hold")
+		print("[people] bonds, rumours, commissions, the ladder and the minigames hold")
 	quit(1 if not failures.is_empty() else 0)
 
 
@@ -213,6 +219,105 @@ func _ladder() -> void:
 	slice.wake()
 	_check(l.rung() == 0 and l.book_known(1) and not l.book_known(2), "the rung resets; a beaten duelist's book carries")
 	_check(slice.story.test("ladder_book(1)"), "ladder_book() reads it")
+
+
+func _minigames() -> void:
+	slice.new_month()
+	slice.finish_scene()
+	slice.world.load_map("camp")
+	var g = slice.games
+	var SC = g.StarCharts
+	var SP = g.Sparks
+	# Star-charts alone: a sharp player always wins; one who always waits mostly loses to Marrow.
+	var sharp := 0
+	var slow := 0
+	for seed_ in 20:
+		if SC.new(g.d["star_charts"], g.opp("wren"), seed_, {}).bot(1.0):
+			sharp += 1
+		if SC.new(g.d["star_charts"], g.opp("marrow"), seed_, {}).bot(0.0):
+			slow += 1
+	_check(sharp == 20 and slow < 8, "Star-charts: a sharp player wins (%d/20), a waiting one mostly loses (%d/20)" % [sharp, slow])
+	var easy = SC.new(g.d["star_charts"], g.opp("wren"), 3, {}, true)
+	_check(easy.struck >= 0 and easy.options()[easy.struck] != easy.riddle()["answer"] and easy.tell, "easy mode strikes out a wrong answer and shows the tell")
+	var told = SC.new(g.d["star_charts"], g.opp("wren"), 3, {}, false, true)
+	var hush: bool = told.sign() == "" if told.stage < told.buzz[0] else true
+	while told.stage < told.buzz[0]:
+		told.wait()
+	_check(hush and told.sign() != "", "the tell shows only when they're about to answer")
+	# Sparks alone: lamps count, bids only go up, every game ends, the same seed plays the same game.
+	_check(SP.count([1, 5, 5, 3], 5) == 3 and SP.count([1, 1, 4], 1) == 2, "lamps count as any face, but only as themselves when bid")
+	var sp = SP.new(g.d["sparks"], g.opp("mira"), 5)
+	sp.bid = [2, 5]
+	_check(sp.legal(2, 6) and not sp.legal(2, 4) and sp.legal(3, 2) and sp.min_on(4) == 3, "a bid must be more dice, or as many on a higher face")
+	var ends := true
+	var same := true
+	var wins := 0
+	for seed_ in 20:
+		var a = SP.new(g.d["sparks"], g.opp("pell"), seed_)
+		var w: bool = a.bot(1.0)
+		ends = ends and a.over()
+		same = same and SP.new(g.d["sparks"], g.opp("pell"), seed_).bot(1.0) == w
+		wins += 1 if w else 0
+	_check(ends and same and wins > 0 and wins < 20, "Sparks games end, play the same by seed, and go both ways (%d/20)" % wins)
+	# The frame in the camp: Star-charts only at Dusk and Night; Sparks any time.
+	run.life["day"] = 10
+	run.life["time"] = 1
+	var chs: Array = slice.story.choices(slice.story.scenes["wren"])
+	_check(not chs.any(func(c): return c["target"] == "charts_wren"), "no Star-charts by day")
+	run.life["time"] = 3
+	chs = slice.story.choices(slice.story.scenes["wren"])
+	_check(chs.any(func(c): return c["target"] == "charts_wren") and not chs.any(func(c): return c["target"] == "charts_wren_coin"), "Star-charts at Dusk; no coin before you've won")
+	# A win: the stake, the bond, the tell for every life; once a week.
+	slice.game_resolver = func(_core): return true
+	var crowns := int(run.life.get("crowns", 0))
+	var lamp := float(slice.bonds.state("mira")["lamp"])
+	_play("sparks_mira")
+	_check(int(run.life.get("crowns", 0)) == crowns + 4 and float(slice.bonds.state("mira")["lamp"]) > lamp, "a win pays the stake and gains bond")
+	_check(g.tell_known("mira") and not g.open("mira") and not slice.story.test("game_open(\"mira\")"), "the tell is learned; one free game a week")
+	_check(slice.story.test("minigame_beaten(\"mira\")"), "minigame_beaten() reads it")
+	run.life["day"] = 15
+	_check(g.open("mira"), "free play again the next week")
+	# The first win in a season picks a rumour; the second doesn't.
+	var first: Dictionary = g.finish("pell", "free", true, null, "camp")
+	var again: Dictionary = g.finish("pell", "free", true, null, "camp")
+	_check(not first["pick"].is_empty() and again["pick"].is_empty(), "a first win this season offers a pick, once (%s)" % str(first["pick"]))
+	var picked: String = g.pick("person", "camp")
+	_check(picked != "" and str(slice.rumours.rec(picked)["kind"]) == "person" and slice.rumours.heard(picked), "the pick hears a rumour of that kind")
+	# Work: a wage, a rumour, half a day.
+	slice.world.requests.clear()
+	crowns = int(run.life.get("crowns", 0))
+	var heard: int = run.soul.get("rumours", {}).size()
+	slice.game_resolver = func(_core): return false
+	_play("sparks_kestrel_work")
+	_check(int(run.life.get("crowns", 0)) == crowns + 6 and run.soul.get("rumours", {}).size() == heard + 1, "work pays its wage and a rumour, win or lose")
+	_check(slice.world.requests.filter(func(q): return q["t"] == "period").size() == 2 and not g.work_open("kestrel"), "work costs half a day, once a day")
+	# A loss costs the stake if you have it.
+	crowns = int(run.life.get("crowns", 0))
+	_play("sparks_mira")
+	_check(int(run.life.get("crowns", 0)) == crowns - 4, "a loss costs the stake")
+	# No games in a calamity's week.
+	run.life["day"] = 80
+	_check(not g.open("wren") and not g.work_open("kestrel"), "no games in a calamity's week")
+	# Star-charts answers carry; beaten in a past life, they pay for coin (never at dice).
+	run.life["day"] = 17
+	var sc = g.start("wren", "free")
+	sc.bot(1.0)
+	g.finish("wren", "free", true, sc, "camp")
+	slice.game_resolver = Callable()
+	slice.world.requests.clear()
+	slice.end_loop("turned")
+	slice.wake()
+	run.life["day"] = 10
+	run.life["time"] = 3
+	var charts: Dictionary = run.soul.get("charts", {})
+	var again_sc = SC.new(g.d["star_charts"], g.opp("wren"), 0, charts)
+	while not again_sc.over() and not again_sc.remembered():
+		again_sc.wait()
+	_check(charts.size() >= 2 and (again_sc.remembered() or not again_sc.order.any(func(id): return charts.has(id))), "Star-charts answers carry (%s)" % str(charts.keys()))
+	_check(g.coin_open("wren") and not g.coin_open("mira") and g.tell_known("mira"), "coin for Star-charts, never for dice; tells carry")
+	crowns = int(run.life.get("crowns", 0))
+	_play("charts_wren_coin")
+	_check(int(run.life.get("crowns", 0)) == crowns + 5 and not g.open("wren"), "playing for coin pays the stake and takes the week's game")
 
 
 ## Plays a scene through its fight, taking the first choice anywhere else.

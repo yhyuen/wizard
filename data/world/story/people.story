@@ -213,6 +213,8 @@ talk: kestrel
 repeat: true
 priority: -10
 Kestrel: Nothing for you today. Ask me tomorrow. Ask me with food.
+* A game of Sparks [game_open("kestrel")] -> sparks_kestrel
+* Work the market table (half a day) [game_work("kestrel")] -> sparks_kestrel_work
 * Leave
 
 === jory_first
@@ -333,4 +335,6 @@ talk: brogan
 repeat: true
 priority: -10
 Brogan: Still owe you a road. Dwarves pay their debts. Slowly, but we pay them.
+* A round of Star-charts [(time == "dusk" or time == "night") and game_open("brogan")] -> charts_brogan
+* Star-charts for coin [(time == "dusk" or time == "night") and game_coin("brogan")] -> charts_brogan_coin
 * Leave

@@ -1,0 +1,30 @@
+{
+ "_doc": "Star-charts (design/people/people-and-side-activities-spec.md §9; build item N-7.6.5): a riddle race on the night sky. A match is `rounds` riddles; first to `to_win` takes it. Each riddle shows its clues one at a time; answer at any clue, or ask for the next. An opponent answers once you wait past clue `buzz` (a range: seeded per riddle), right with chance `sure`; a wrong answer gives the riddle to the other side. tier: which riddles they ask (by riddle `tier`). tell: the habit you can read (`tell` explains it, `sign` is what you see when they're about to answer); learned the first time you beat them, for every life. stake: crowns a win pays (a loss costs it, if you have it). Riddles: kind (constellation, phase or sphere), three clues, the answer and four options (the answer among them); one you've answered right in any life shows its answer (Run.soul charts). A riddle's `rumour` is heard when you answer it right (a soft hint at a dated event).",
+ "rounds": 3,
+ "to_win": 2,
+ "opponents": {
+  "wren": {"name": "Wren", "tier": [1, 2], "buzz": [2, 3], "sure": 0.7, "stake": 5,
+   "tell": "Wren hums while she's thinking. When the humming stops, she has it.", "sign": "Wren has stopped humming."},
+  "brogan": {"name": "Brogan", "tier": [1], "buzz": [3, 3], "sure": 0.6, "stake": 4,
+   "tell": "Brogan strokes his beard once he's sure. Not before.", "sign": "Brogan is stroking his beard."},
+  "marrow": {"name": "Lector Marrow", "tier": [2, 3], "buzz": [1, 2], "sure": 0.9, "stake": 10,
+   "tell": "Marrow closes her eyes a breath before she answers.", "sign": "Marrow's eyes are closed."}
+ },
+ "riddles": {
+  "mars": {"tier": 1, "kind": "sphere", "clues": ["Red, and it never twinkles.", "It rules the third day of the week.", "Soldiers swear by it."], "answer": "Mars", "options": ["Mars", "Venus", "Jupiter", "Saturn"]},
+  "full": {"tier": 1, "kind": "phase", "clues": ["It rises as the sun sets.", "It's up all night.", "It casts the sharpest shadows of the month."], "answer": "The full moon", "options": ["The full moon", "The new moon", "The first quarter", "The waning crescent"]},
+  "plough": {"tier": 1, "kind": "constellation", "clues": ["Seven stars, low in the north.", "Farmers sow when its handle points east.", "A blade and a handle."], "answer": "The Plough", "options": ["The Plough", "The Scales", "The Heron", "The Key"]},
+  "hound": {"tier": 1, "kind": "constellation", "clues": ["It follows the Ferryman across the sky.", "One bright eye, reddish.", "Sailors say it barks at nothing."], "answer": "The Hound", "options": ["The Hound", "The Heron", "The Anvil", "The Bell"]},
+  "venus": {"tier": 1, "kind": "sphere", "clues": ["The brightest thing up there after the Moon.", "You only see it near dawn or dusk.", "The lovers' star. It rules the sixth day."], "answer": "Venus", "options": ["Venus", "Mercury", "Mars", "Sol"]},
+  "last_quarter": {"tier": 2, "kind": "phase", "clues": ["It rises around midnight.", "Lit on its left side.", "Half a face, going dark."], "answer": "The last quarter", "options": ["The last quarter", "The first quarter", "The waxing gibbous", "The new moon"]},
+  "lantern": {"tier": 2, "kind": "constellation", "clues": ["Four stars in a box, one hanging below.", "Highest at the end of spring.", "Lamplighters drink to it."], "answer": "The Lantern", "options": ["The Lantern", "The Bell", "The Key", "The Broken Crown"], "rumour": "r_lighting"},
+  "saturn": {"tier": 2, "kind": "sphere", "clues": ["Slow. A year in each house, near enough.", "Pale gold, and steady.", "It rules the last day of the week, and time."], "answer": "Saturn", "options": ["Saturn", "Jupiter", "Sol", "Luna"]},
+  "ferryman": {"tier": 2, "kind": "constellation", "clues": ["A long line of stars across the river of the sky.", "It rows west all winter.", "Pay him in silver, the old song says."], "answer": "The Ferryman", "options": ["The Ferryman", "The Heron", "The Plough", "The Hound"]},
+  "crescent": {"tier": 2, "kind": "phase", "clues": ["You only see it in the west after sunset.", "A thin bow, lit on the right.", "Two days past the dark."], "answer": "The waxing crescent", "options": ["The waxing crescent", "The waning crescent", "The last quarter", "The full moon"]},
+  "crown": {"tier": 3, "kind": "constellation", "clues": ["Seven stars in a ring, and a gap where the eighth should be.", "It rises as the Hound sets.", "Kings once crowned themselves under it."], "answer": "The Broken Crown", "options": ["The Broken Crown", "The Scales", "The Lantern", "The Bell"]},
+  "mercury": {"tier": 3, "kind": "sphere", "clues": ["It never strays far from the Sun.", "Quick. A few weeks and it's gone again.", "Messengers and thieves."], "answer": "Mercury", "options": ["Mercury", "Venus", "Luna", "Mars"]},
+  "heron": {"tier": 3, "kind": "constellation", "clues": ["It stands on one leg in the summer sky.", "Its beak points to the pole.", "Its eye is two stars, if your eyes are good."], "answer": "The Heron", "options": ["The Heron", "The Hound", "The Ferryman", "The Anvil"]},
+  "gibbous": {"tier": 3, "kind": "phase", "clues": ["It rises an hour or two after sunset.", "More than half, less than full.", "Going, not coming."], "answer": "The waning gibbous", "options": ["The waning gibbous", "The waxing gibbous", "The full moon", "The last quarter"]},
+  "anvil": {"tier": 3, "kind": "constellation", "clues": ["A squat four, dull to the eye.", "It rises before dawn at Harvest.", "Smiths say the Moon was beaten flat on it."], "answer": "The Anvil", "options": ["The Anvil", "The Bell", "The Key", "The Scales"]}
+ }
+}

@@ -155,6 +155,21 @@ func _initialize() -> void:
 				"ladder":
 					if not arg in ["bout", "win"]:
 						problems.append("%s: ladder %s is not bout or win" % [where, arg])
+				"game":
+					var gp := arg.split(" ")
+					var gd := {"star_charts": _json("res://data/world/minigames/star_charts.json"), "sparks": _json("res://data/world/minigames/sparks.json")}
+					var gg := ""
+					for g in gd:
+						if gd[g]["opponents"].has(gp[0]):
+							gg = g
+					if gp.size() != 2 or gg == "" or not gp[1] in ["free", "work", "coin"]:
+						problems.append("%s: game %s is not <opponent in data/world/minigames/> <free|work|coin>" % [where, arg])
+					elif gp[1] == "work" and not gd[gg]["opponents"][gp[0]].has("work"):
+						problems.append("%s: %s has no work to play" % [where, gp[0]])
+					elif gp[1] == "coin" and gg == "sparks":
+						problems.append("%s: dice are never played for coin without playing (people spec §9.1)" % where)
+					elif gp[1] != "coin" and not (s["outcomes"].has("won") and s["outcomes"].has("lost")):
+						problems.append("%s: a game needs ? won and ? lost" % where)
 				"bond", "gift", "bond_cross", "betray":
 					var bp := arg.split(" ")
 					var bd: Dictionary = _json("res://data/world/bonds.json")
@@ -302,6 +317,26 @@ func _initialize() -> void:
 			problems.append("ladder rung %d: no enemy kind %s" % [n, lk])
 		elif not story.scenes.values().any(func(sc): return sc["steps"].any(func(st): return st["t"] == "fx" and st["op"] == "fight" and st["arg"] == lid)):
 			problems.append("ladder rung %d: no scene fights %s" % [n, lid])
+	# Minigames (people spec §9): every opponent is a person with a talk scene that plays their game,
+	# and every Star-charts riddle's answer is among its options.
+	for g in ["star_charts", "sparks"]:
+		var gdat: Dictionary = _json("res://data/world/minigames/%s.json" % g)
+		for who in gdat["opponents"]:
+			if not people.has(who):
+				problems.append("%s: no person %s" % [g, who])
+			elif not story.scenes.values().any(func(sc): return sc["steps"].any(func(st): return st["t"] == "fx" and st["op"] == "game" and st["arg"].begins_with(who + " "))):
+				problems.append("%s: no scene plays %s" % [g, who])
+		if g == "star_charts":
+			for rid in gdat["riddles"]:
+				var rd: Dictionary = gdat["riddles"][rid]
+				if not rd["answer"] in rd["options"] or rd["clues"].size() != 3:
+					problems.append("star_charts riddle %s: three clues, and the answer among the options" % rid)
+				if rd.has("rumour") and not _json("res://data/world/rumours.json")["rumours"].has(rd["rumour"]):
+					problems.append("star_charts riddle %s: no rumour %s" % [rid, rd["rumour"]])
+			for who in gdat["opponents"]:
+				var tiers: Array = gdat["opponents"][who]["tier"].map(func(t): return int(t))
+				if gdat["riddles"].values().filter(func(rd): return int(rd["tier"]) in tiers).size() < int(gdat["rounds"]):
+					problems.append("star_charts: too few riddles for %s" % who)
 	# Every missable event has a rumour (people spec §10): a fixed event that is an appointment has a
 	# rumour pointing at it, from a scene that can play at least 7 days before it.
 	var calendar: Dictionary = _json("res://data/world/calendar.json")

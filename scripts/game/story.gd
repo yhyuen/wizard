@@ -45,6 +45,9 @@ extends RefCounted
 ## commission_lost, commission_clean and commission_board_empty.
 ## N-7.6.4 adds `ladder bout|win` (scripts/game/ladder.gd) and the conditions rung(), ladder_open()
 ## and ladder_book(n).
+## N-7.6.5 adds `game <who> free|work|coin` (a minigame against who: scripts/game/minigames/; it
+## stops the scene like a fight, with `? won` and `? lost`) and the conditions game_open(who),
+## game_work(who), game_coin(who) and minigame_beaten(who).
 
 const FieldGuide := preload("res://scripts/field_guide.gd")
 const MAPS := "res://data/world/maps.json"
@@ -52,7 +55,7 @@ const HEADER_KEYS := ["place", "days", "times", "when", "force", "priority", "re
 	"talk", "use", "arrive", "cast"]
 const EFFECTS := ["learn", "set", "clear", "fight", "wells", "train", "meditate", "goto", "end_loop",
 	"model", "trial", "sound", "cutscene", "move", "take", "sleep", "book", "today", "go", "open", "play_path", "road", "deed", "omen", "forecast", "bench", "remember", "ignite", "downed", "standing", "merit", "exam", "sign", "prep", "calamity_onset", "calamity_dawn",
-	"bond", "bond_cross", "betray", "gift", "rumour", "commission", "ladder"]
+	"bond", "bond_cross", "betray", "gift", "rumour", "commission", "ladder", "game"]
 
 var scenes := {}  # id -> scene dictionary
 var errors: Array = []  # parse errors, for the linter
@@ -70,6 +73,7 @@ class Ctx:
 	var rumours  # scripts/game/rumours.gd, when the slice has one
 	var commissions  # scripts/game/commissions.gd, when the slice has one
 	var ladder  # scripts/game/ladder.gd, when the slice has one
+	var games  # scripts/game/minigames/games.gd, when the slice has one
 
 	## A once-a-day action (meditate, train) already done today.
 	func done(op: String) -> bool:
@@ -197,6 +201,20 @@ class Ctx:
 
 	func ladder_book(n: int) -> bool:
 		return ladder.book_known(n) if ladder != null else false
+
+	## Minigames (people spec §9; N-7.6.5): free play open this week, work open today, playing for
+	## coin (beaten in a past life, never at dice), and beaten in any life.
+	func game_open(who: String) -> bool:
+		return games.open(who) if games != null else false
+
+	func game_work(who: String) -> bool:
+		return games.work_open(who) if games != null else false
+
+	func game_coin(who: String) -> bool:
+		return games.coin_open(who) if games != null else false
+
+	func minigame_beaten(who: String) -> bool:
+		return games != null and run.soul.get("games_beaten", {}).has(who)
 
 	## Your bond tier with a person (0 Stranger .. 5 Sworn; people spec §4.1).
 	func bond(who: String) -> int:
