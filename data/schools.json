@@ -1,5 +1,5 @@
 {
- "_doc": "The schools (流派) (design/combat/spell-and-combat-spec.md §5.1, §7, §8; build item N-5.1). A school says how you cast: each spell names its school in data/spells.json (`school`), and each road takes a school (data/world/lives.json roads). schools: name, power, Spheres, casting act, and the rule it bends (only `alignment` is built). ranks: a school's ladder, with the Practice gained on its spells this life that each rank needs (`at`); a rank below the best you held in an earlier life comes `echo` times faster. outside: spells of a school that isn't this life's cost `trained` more Aether and wind-up if you hold a rank in it (or held only Initiate before), `never` more if you never trained in it, and nothing extra once an earlier life took it to `free_rank` (Adept). alignment (Astral Rite): stand still `still_s` before you begin a spell of your school and it gets `range_k` range.",
+ "_doc": "The schools (流派) (design/combat/spell-and-combat-spec.md §5.1, §7, §8; build item N-5.1). A school says how you cast: each spell names its school in data/spells.json (`school`), and each road takes a school (data/world/lives.json roads). schools: name, power, Spheres, casting act, and the rule it bends (only `alignment` is built). ranks: a school's ladder, with the Practice gained on its spells this life that each rank needs (`at`); a rank below the best you held in an earlier life comes `echo` times faster. outside: spells of a school that isn't this life's cost `trained` more Aether and wind-up if you hold a rank in it (or held only Initiate before), `never` more if you never trained in it, and nothing extra once an earlier life took it to `free_rank` (Adept). alignment (Astral Rite): stand still `still_s` before you begin a spell of your school and it gets `range_k` range. devices (Spark Artifice, economy spec §5.3; N-5.2): a device's charges are `base` plus its stage; a bench refills every device in one period, paying each spell's `reagents` per charge. A wizard who trained the school but isn't on its road pays `outside_extra` more of the first reagent per charge; one who never trained it pays `never_k` times the reagents (a stand-in for ready-made charges until crowns are built). `reagents` names them; `teaches` is the device the Lamplighters' bench shows anyone, with a `starter` stock once a life.",
  "schools": {
   "astral_rite": {"name": "Astral Rite", "power": "The College of Hours", "spheres": ["mars", "luna", "jupiter", "mercury", "saturn"],
    "act": "A chant read from a star chart", "rule": "alignment",
@@ -16,5 +16,7 @@
  ],
  "echo": 3,
  "outside": {"trained": 0.25, "never": 0.5, "free_rank": 1},
- "alignment": {"still_s": 1.0, "range_k": 1.3}
+ "alignment": {"still_s": 1.0, "range_k": 1.3},
+ "devices": {"base": 3, "outside_extra": 1, "never_k": 2, "teaches": "spark_flask", "starter": {"oil": 2, "glass": 2},
+  "reagents": {"oil": "lamp oil", "glass": "glass vial", "wire": "copper wire", "tar": "tar", "powder": "smoke powder"}}
 }

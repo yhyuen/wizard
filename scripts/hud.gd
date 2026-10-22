@@ -559,7 +559,10 @@ func _draw_star_slot(c: Vector2, slot: String, id: String) -> void:
 	if Progression.mutated(id):
 		star(c + Vector2(_text_w(label, 12) / 2.0 + 6, RING_R + 10), 3.0)
 	var cost: float = kit.aether_cost(id)
-	if cost > 0.0:
+	var charges: int = Progression.charges(id) if Progression.is_device(id) else -1
+	if charges >= 0:
+		_text(c + Vector2(-50, RING_R + 27), "%d charge%s" % [charges, "" if charges == 1 else "s"], 9, AETHER if charges > 0 else PixelArt.DANGER, HORIZONTAL_ALIGNMENT_CENTER, 100)
+	elif cost > 0.0:
 		_text(c + Vector2(-50, RING_R + 27), "%d aether  ·  %s" % [int(cost), kit.band(id).capitalize()], 9, AETHER if kit.aether >= cost else PixelArt.DANGER, HORIZONTAL_ALIGNMENT_CENTER, 100)
 
 

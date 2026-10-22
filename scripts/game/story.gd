@@ -36,12 +36,14 @@ extends RefCounted
 ## R2 adds `open <door>` (that door of this map stands open for the rest of the loop),
 ## `play_path <id>` (a recorded path from the map's paths file plays, as a cutscene) and
 ## `cast: hours` (Rewind's shard formed on the item).
+## N-5.2 adds `bench` (work at a bench: fill your devices from your reagents, a time of day) and
+## `bench stock` (the Lamplighters' spare reagents, data/schools.json devices.starter).
 
 const MAPS := "res://data/world/maps.json"
 const HEADER_KEYS := ["place", "days", "times", "when", "force", "priority", "repeat", "known", "title", "slot", "backdrop",
 	"talk", "use", "arrive", "cast"]
 const EFFECTS := ["learn", "set", "clear", "fight", "wells", "train", "meditate", "goto", "end_loop",
-	"model", "trial", "sound", "cutscene", "move", "take", "sleep", "book", "today", "go", "open", "play_path", "road", "deed", "omen", "forecast"]
+	"model", "trial", "sound", "cutscene", "move", "take", "sleep", "book", "today", "go", "open", "play_path", "road", "deed", "omen", "forecast", "bench"]
 
 var scenes := {}  # id -> scene dictionary
 var errors: Array = []  # parse errors, for the linter

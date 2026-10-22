@@ -95,6 +95,19 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
 - **Schools** ([growth.md](growth.md) "Schools"): spells outside this life's school cost more
   Aether and wind up longer (×1.25 or ×1.5). Astral Rite's **Alignment**: stood still 1 s, your
   next spell of the school reaches ×1.3 further (`kit.gd` `still_t`, `aligned()`).
+- **Devices** (N-5.2, Spark Artifice, `artifice.gd`; charges and the bench are in
+  [growth.md](growth.md) "Devices"): a device (`spells.json` `device`) has no wind-up and costs no
+  Aether; each throw spends a charge, and an empty device won't throw ("…is empty. Refill it at a
+  bench."). Cooldown 1–1.5 s. Holding the key shows a line and a ring where it lands (its range)
+  and the size of what it leaves; it flies 0.3–0.35 s, then:
+  **Spark Flask** (range 110) bursts in a 16 px fire (16 damage, Impact 2, 2 flame pips) and leaves
+  a `flask` mark the world burns with (ground, props, lamps); **Arc Rod** (90) plants a rod that
+  arcs into the nearest foe within 50 px every 0.9 s (8 damage) for 8 s and strikes the ground it
+  stands on; **Smoke Jar** (100) leaves a 28 px cloud for 5 s, and a foe inside it can't start an
+  attack (its attack cooldown is held at 0.3 s); **Tar Pot** (100) leaves a 26 px pool for 12 s that
+  slows anyone in it (as gravel does) and turns the ground under it to oil; any fire touching the
+  pool (an ember, a flask, Kindle, Pillar, a burning cell) sets it all alight at once. The HUD shows
+  a device's charges where a spell shows its Aether.
 - **Mastery in a fight** ([growth.md](growth.md)): a spell's stage sets its Force grade
   (`Progression.grade`, I–IV, capped by Ring) and grows its `minor` axis ×1.2 per stage. Pillar's
   and the meteor's zones draw a ring of sigils per stage (`arena.gd` `_sigils`). Signatures need

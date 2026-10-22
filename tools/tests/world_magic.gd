@@ -18,10 +18,14 @@ extends SceneTree
 ## after its telegraph the gallery comes down on a Hollow under it and leaves slow rubble.
 ## N-5.1 (schools): standing still a breath before casting Pillar (Astral Rite's Alignment) puts
 ## its column further out than its listed range.
+## N-5.2 (Spark Artifice): breaking a crate leaves glass you pick up; a Spark Flask spends a charge
+## and sets grass burning; a Tar Pot's tar slows a Hollow and goes up when a flask lands in it; an
+## empty device won't throw; the bench fills devices from reagents and takes the time of day.
 
 const BOOK := ["ember_bolt", "pebble", "splash", "undertow"]
 const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt"]
 const GROUND_BOOK := ["pillar", "splash", "spark"]
+const DEVICE_BOOK := ["spark_flask", "tar_pot", "arc_rod", "smoke_jar"]
 const WAIT := 150  # frames a case may take
 const LIGHT_WAIT := 240  # the lamp-pool case watches a Hollow for this long
 
@@ -61,7 +65,8 @@ func _initialize() -> void:
 		["lighting Mira's lane gets her thanks", _lane_setup,
 			func(): return run.flag("lit_lane") and slice.story.talk_scene("mira") == "mira_thanks"],
 		["a Pebble at grade I only cracks the cart", _cart_setup, func(): return state["prop"]["integrity"] == "cracked"],
-		["a Pebble breaks a cracked crate", _break_setup, func(): return state["prop"]["integrity"] == "broken"],
+		["a Pebble breaks a cracked crate, and you pick up its glass", _break_setup,
+			func(): return state["prop"]["integrity"] == "broken" and int(slice.growth.reagents().get("glass", 0)) > state["glass"]],
 		["an Ember Bolt at grade I only smoulders a barrel", _barrel_setup, func(): return state["prop"]["state"] == "smoulder"],
 		["an Ember Bolt only steams wet hay", _wet_hay_setup,
 			func(): return _logged("steam", "hay") and state["prop"]["state"] != "burning"],
@@ -74,6 +79,11 @@ func _initialize() -> void:
 			func(): return world.events_log.any(func(e): return e[0] == "ground_charged")],
 		["a Pebble breaks the gallery's post and it comes down on a Hollow", _gallery_setup, _crushed],
 		["an Aligned Pillar reaches past its listed range", _align_setup, _far_column],
+		["a Spark Flask spends a charge and sets grass burning", _flask_setup,
+			func(): return int(slice.growth.devices()["spark_flask"]) == 2 and _logged_since("ground_fire")],
+		["a Tar Pot slows a Hollow, and a flask sets the tar alight", _tar_setup, _tar_lit],
+		["an empty device won't throw", _empty_setup, _no_throw],
+		["the bench fills a flask (double reagents outside the school) and takes the time of day", _bench_setup, _benched],
 	]
 
 
@@ -353,6 +363,7 @@ func _cart_setup() -> void:
 
 
 func _break_setup() -> void:
+	state["glass"] = int(slice.growth.reagents().get("glass", 0))
 	state["prop"] = _prop_of("crate")
 	state["prop"]["integrity"] = "cracked"
 	state["prop"]["hp"] = 1.0
@@ -469,3 +480,92 @@ func _far_column() -> bool:
 			state.erase("long")
 			return true
 	return false
+
+
+# --- N-5.2: Spark Artifice -----------------------------------------------------------------
+
+## A Lamplighter's book: the four devices, with charges.
+func _devices(charges: Dictionary) -> void:
+	for id in DEVICE_BOOK:
+		run.soul["known"]["model_" + id] = 1
+	for id in charges:
+		slice.growth.devices()[id] = charges[id]
+	_book(DEVICE_BOOK)
+
+
+func _logged_since(kind: String) -> bool:
+	return world.events_log.slice(state["log_n"]).any(func(e): return e[0] == kind)
+
+
+## A patch of grass nothing has burned yet.
+func _fresh_grass() -> Vector2:
+	var c = world.cells
+	for i in c.mat.size():
+		var p: Vector2 = c.centre(i)
+		if c.within(p, 30.0).all(func(j): return c.mats[c.mat[j]] == "grass" and c.fuel[j] > 0.0 and c.burn[j] <= 0.0) \
+				and not world.map.solid_at(p, 30.0) and p.distance_to(state.get("at", Vector2.ZERO)) > 200.0:
+			return p
+	return world.map.spots["market"]
+
+
+func _flask_setup() -> void:
+	_clear_enemies()
+	_devices({"spark_flask": 3, "tar_pot": 2})
+	world.set_sky({"kind": "clear", "wind": 0, "dir": "N"}, {})
+	state["log_n"] = world.events_log.size()
+	_cast_at(_fresh_grass(), "spark_flask", 60.0)
+
+
+func _tar_setup() -> void:
+	var at := _dark_spot() + Vector2(0, 30)
+	state["tar_at"] = at
+	state["lit"] = int(main.arena.stats.get("tar_lit", 0))
+	state.erase("slowed")
+	state.erase("flask")
+	state["hollow"] = main.arena.spawn("hollow", at)
+	state["hollow"].stun = 9.0
+	_cast_at(at, "tar_pot", 60.0)
+
+
+## The tar lands and slows the Hollow standing in it; then a flask thrown into it sets it alight.
+func _tar_lit() -> bool:
+	if state["hollow"].slow_t > 0.0 and main.arena.zones.any(func(z): return z["kind"] == "tar"):
+		state["slowed"] = true
+	if state.has("slowed") and not state.has("flask") and cast["f"] > 8 and main.arena.kit.recover_t <= 0.0:
+		state["flask"] = true
+		main.arena.player.cd.clear()
+		cast = {"slot": main.arena.kit.slot_of("spark_flask"), "aim": state["tar_at"], "f": 0}
+	if int(main.arena.stats.get("tar_lit", 0)) > state["lit"]:
+		_clear_enemies()
+		return state.has("slowed")
+	return false
+
+
+func _empty_setup() -> void:
+	slice.growth.devices()["spark_flask"] = 0
+	state["empty_t"] = 0
+	state.erase("threw")
+	_cast_at(_dark_spot(), "spark_flask", 50.0)
+
+
+func _no_throw() -> bool:
+	if main.arena.zones.any(func(z): return z["kind"] == "throw"):
+		state["threw"] = true
+	state["empty_t"] += 1
+	return state["empty_t"] > 40 and not state.has("threw") and int(slice.growth.devices()["spark_flask"]) == 0
+
+
+func _bench_setup() -> void:
+	cast = {}
+	slice.growth.devices()["spark_flask"] = 0
+	slice.growth.reagents()["oil"] = 2
+	slice.growth.reagents()["glass"] = 5
+	state["time"] = run.time()
+	slice.after.clear()
+	slice._effect("bench", "")
+
+
+## An Apprentice never trained in Spark Artifice pays double: 2 oil fill one flask.
+func _benched() -> bool:
+	return int(slice.growth.devices()["spark_flask"]) == 1 and int(slice.growth.reagents()["oil"]) == 0 \
+		and (slice.after.has("period") or run.time() != state["time"])

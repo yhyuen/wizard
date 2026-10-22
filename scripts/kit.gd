@@ -13,11 +13,13 @@ const GHOST_CASTS := 5
 const FireEarth := preload("res://scripts/spells/fire_earth.gd")
 const StormWater := preload("res://scripts/spells/storm_water.gd")
 const HoursKit := preload("res://scripts/spells/hours.gd")
+const Artifice := preload("res://scripts/spells/artifice.gd")
 
 var A  # the arena
 var fe  # Fire and Earth spells
 var sw  # Storm and Water spells
 var hr  # Hours: Rewind, from loop 2
+var ar  # Spark Artifice's devices
 var modules: Array = []
 var aether = 100.0
 var strain = 0.0  # from Overdraw: lowers max Aether one for one until you rest
@@ -50,7 +52,8 @@ func _init(arena) -> void:
 	fe = FireEarth.new(arena, self)
 	sw = StormWater.new(arena, self)
 	hr = HoursKit.new(arena, self)
-	modules = [fe, sw, hr]
+	ar = Artifice.new(arena, self)
+	modules = [fe, sw, hr, ar]
 	Progression.spell_leveled.connect(_on_leveled)
 
 
@@ -144,6 +147,8 @@ func max_aether() -> float:
 func aether_cost(id: String) -> float:
 	if is_cantrip(id):
 		return float(cantrip(id)["aether"])
+	if Progression.is_device(id):
+		return 0.0  # a device spends a charge instead
 	var s: Dictionary = Progression.spell(id)
 	return float(s.get("aether", A.D["aether"]["costs"].get(band(id), 20))) * Progression.school_k(id)
 
@@ -342,6 +347,9 @@ func begin(slot: String) -> void:
 	if id == "" or not wind.is_empty() or recover_t > 0.0 or A.player.cooldown(id) > 0.0:
 		denied[slot] = 0.4
 		return
+	if Progression.charges(id) == 0:
+		_out_of_charges(slot, id)
+		return
 	warding = false
 	var b := band(id)
 	wind = {"slot": slot, "id": id, "t": 0.0, "need": windup(id) + slow_start, "band": b, "commit": false}
@@ -418,11 +426,16 @@ func cast(slot: String) -> void:
 	if id == "" or P.cooldown(id) > 0.0:
 		denied[slot] = 0.4
 		return
+	if Progression.charges(id) == 0:
+		_out_of_charges(slot, id)
+		return
 	var m = _module_for(id)
 	var ok = m != null and _run(m, id)
 	if not ok:
 		denied[slot] = 0.4
 		return
+	if Progression.is_device(id):
+		Progression.use_charge(id)
 	_pay(aether_cost(id))
 	_cadence(id)
 	var lock := base_cooldown(id)
@@ -436,6 +449,13 @@ func cast(slot: String) -> void:
 
 ## Spends `cost` Aether. Short of it, the missing part is Overdrawn: paid in HP and Strain, and at
 ## high Strain the backlash stuns you.
+## A device with no charges left: refilled only at a bench, never mid-fight (economy spec §5.3).
+func _out_of_charges(slot: String, id: String) -> void:
+	if not denied.has(slot):
+		A.toast.emit("%s is empty. Refill it at a bench." % Progression.spell(id)["name"], PixelArt.DANGER)
+	denied[slot] = 0.4
+
+
 func _pay(cost: float) -> void:
 	var P: Unit = A.player
 	if aether < cost:

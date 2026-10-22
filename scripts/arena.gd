@@ -1084,7 +1084,7 @@ func _update_zones(dt: float) -> void:
 	for z in zones.duplicate():
 		z["t"] += dt
 		match z["kind"]:
-			"ember", "gravel", "column", "rod", "puddle", "blaze", "kindle", "douse":
+			"ember", "gravel", "column", "rod", "puddle", "blaze", "kindle", "douse", "flask", "arc_rod", "smoke", "tar":
 				if z["t"] >= z["life"]:
 					zones.erase(z)
 			"ring":

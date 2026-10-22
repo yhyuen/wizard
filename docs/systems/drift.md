@@ -29,7 +29,7 @@ table; the big gaps:
 | Ley points refill Aether at 10/s; rest at shrines, camp fires, home | No ley points yet (they come with Ring 1's regions, N-7.1); rest is waking at dawn and meditating | [combat.md](combat.md) |
 | Cantrips from the pool (Kindle, Douse, Lamplight, Stone Stair…), 2 slotted | Kindle and Douse only, fixed (`start_cantrips`) | [combat.md](combat.md) |
 | Rest points change the book | Your desk (the story's `book` effect) | [combat.md](combat.md) |
-| Eight schools, each with its own casting act and rule | Two schools named (`data/schools.json`); every spell is Astral Rite, whose Alignment is built; outside-school cost and school rank with the Echo (N-5.1). No other school's rule yet; rank comes from Practice alone, not the power's merit, standing and exam; no casting acts in the art | [growth.md](growth.md), [combat.md](combat.md) |
+| Eight schools, each with its own casting act and rule | Two schools built (`data/schools.json`): the 13 sphere spells are Astral Rite (Alignment, N-5.1); four devices are Spark Artifice (charges and the bench, N-5.2). Devices' Smoke Jar is Luna/water and the Tar Pot Mars/fire in the build's element terms. No other school yet; rank comes from Practice alone, not the power's merit, standing and exam; no casting acts in the art | [growth.md](growth.md), [combat.md](combat.md) |
 | One force × material table for props, tiles and units | One table (`data/materials.json`), on props only so far | [world.md](world.md) |
 | Combined spells from two mastered schools | Magicks (old Mill fight only) | [combat.md](combat.md) |
 | Spells grow on seven visible axes over 20 levels in four stages, with breakthrough trials, Force grades I–V and prerequisite spells | 20 levels in four stages with walls and trials (feat, insight, meditation), grades I–IV by stage, one minor axis per spell, prerequisites for the four signatures (N-3). Not yet: Sphere Comprehension, insight entries in the Ledger, meditation only at Sympathy places, grade V, the 1st Ring is still the yard trial alone | [growth.md](growth.md) |
@@ -111,7 +111,9 @@ design (2026-10-22, tracker M0-15) is how money, gear and repairs should work. I
 | --- | --- | --- |
 | Crowns, shops with weekly stock, one price formula, selling, loans and the Reckoning | No money or shops; the save spec reserves `gold` and `items` | [world.md](world.md) |
 | Staff, robe, charms and a belt; fixed tiers and traits with caps | No gear | [growth.md](growth.md) |
-| Reagents, salvage, benches; Spark Artifice devices on charges refilled at a bench | No crafting or devices (N-5.2) | [combat.md](combat.md) |
+| Reagents, salvage, benches; Spark Artifice devices on charges refilled at a bench | Built (N-5.2): four devices on charges, five reagents, salvage from crates, barrels and carts, the Lamplighters' bench in the camp. Not yet: crowns, ready-made charges at 2× (a never-trained wizard pays double reagents at the bench instead), the bench's 2 cr fee, Quicksilver at Adept, the Economy axis trimming glass, the Field kit charm, other benches, herb gathering | [growth.md](growth.md), [combat.md](combat.md) |
+| Refilling takes one hour on the clock | It takes the time of day (the clock has no hours yet) | [growth.md](growth.md) |
+| Taking salvage from owned debris is theft if witnessed | Salvage ignores ownership until owners and witnesses (N-4.4) | [world.md](world.md) |
 | Commissions board, homes, rent | None (N-7.6) | [world.md](world.md) |
 | Repair crews rebuild owned props over days from town stock | Every reaction resets when you wake (N-4.4) | [world.md](world.md) |
 

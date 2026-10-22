@@ -206,6 +206,25 @@ Aldous squints at the rim, where the cloud comes up off the plain.
 
 # --- the square, the east gate -------------------------------------------------------
 
+=== bench
+use: bench
+repeat: true
+The Lamplighters' bench: a vice, a spirit lamp, racks of empty flasks and coils of copper wire.
+[not k("model_spark_flask")] A Lamplighter looks up from her soldering. "Want to see how a flask is packed? Oil, a spark in the stopper, and keep it away from your face."
+[not k("model_spark_flask")] + model spark_flask
+* Fill your devices (it takes a while) -> bench_fill
+* Ask for spare stock [not f("bench_stock")] -> bench_stock
+* Leave
+
+=== bench_fill
+You pour, stopper, wind wire and wipe your hands.
++ bench
+
+=== bench_stock
+The Lamplighter pushes a crate of oil and empty vials across the bench. "Bring me back the glass."
++ set bench_stock
++ bench stock
+
 === targets
 use: targets
 repeat: true

@@ -67,6 +67,7 @@
   "douse":       {"force": "water"},
   "zap":         {"spell": "spark", "force": "lightning"},
   "beam":        {"spell": "arc_lance", "force": "lightning"},
-  "rewind_form": {"spell": "rewind", "force": "time"}
+  "rewind_form": {"spell": "rewind", "force": "time"},
+  "flask": {"spell": "spark_flask", "force": "fire"}
  }
 }
