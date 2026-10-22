@@ -35,6 +35,14 @@
 
 ## Regions and travel (`data/world/regions.json`, `scripts/game/reach.gd`)
 
+*Target: Ring 1 as places to walk and fight in (the camp re-dressed, the fallen city and its
+undercroft beside the halls, the Mill fields and the east road; place ids, landmarks, grade gates
+and their second routes, puzzle sites, every fight's room and terrain hooks, where Lantern Night
+hits, and where shops, crews, powers and the two roads sit) is the
+[Ring 1 places and fights spec](/mnt/project-files/design/places/ring1-places-and-fights-spec.md)
+(tracker M0-16; visual: [Ring 1 Atlas](https://claude.ai/artifact/WdcauyacBwZJN3vgvRkius)). What
+follows is the build today.*
+
 - **Regions** group maps: the survivors' camp (`camp`) and the fallen city of Vellmar (`city`,
   whose one map so far is the College halls, arriving at `landing`). Each has a name, ring, a
   place on the chart (`pos`), its `maps` (the first is where travel arrives), `arrive` (the spot)

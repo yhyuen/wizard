@@ -3,7 +3,10 @@
 *A content spec: where content lives and its conventions. `spec_check.py` exempts these paths
 (`map.json` `exempt`); a change that needs a new key, effect or rule changes the owning system's
 spec instead ([world.md](world.md), [story.md](story.md), [loop.md](loop.md)). Design:
-[design/ruins/content.md](/mnt/project-files/design/ruins/content.md) (beats, people, places).*
+[design/ruins/content.md](/mnt/project-files/design/ruins/content.md) (beats, people, places).
+Ring 1's target layout (place ids, map sizes, fights by room) is the
+[Ring 1 places and fights spec](/mnt/project-files/design/places/ring1-places-and-fights-spec.md)
+and its layout data `ring1-layout.json` beside it (M0-16).*
 
 ## Where it lives
 

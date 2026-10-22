@@ -115,6 +115,20 @@ design (2026-10-22, tracker M0-15) is how money, gear and repairs should work. I
 | Commissions board, homes, rent | None (N-7.6) | [world.md](world.md) |
 | Repair crews rebuild owned props over days from town stock | Every reaction resets when you wake (N-4.4) | [world.md](world.md) |
 
+## Ring 1 places and fights: the target vs the build
+
+The [Ring 1 places and fights spec](/mnt/project-files/design/places/ring1-places-and-fights-spec.md)
+(2026-10-22, tracker M0-16) lays out Ring 1's maps, gates, puzzles and fights. Its §17 is the table;
+the big gaps:
+
+| Target says | As built | Where |
+| --- | --- | --- |
+| Three regions, six maps: camp, city + halls + undercroft, fields + east road | Two maps (camp, halls); the Mill fields region is a card | [world.md](world.md) |
+| The drain from the undercroft to the market cellar, kept open in later lives | Only the camp's free north stair to the halls | [world.md](world.md) |
+| 24 Market lamps on 4 iron rail circuits meeting at the great lamp | 28 lamps in `street`, `lane` and `broken` groups; no rails | [world.md](world.md) |
+| Twelve gates up to grade II, each with a second route; three Ring 2 locks | Three built doors in the halls (rune, burnt, collapsed stair) | [world.md](world.md) |
+| 16 placed fights over 16 enemy kinds and a rival, 2 bosses (Kiln Warden, Lightdrinker), each with 2–3 terrain hooks | The patrol, four halls fights and the Warden | [combat.md](combat.md) |
+
 ## Known differences inside the build
 
 | Doc says | As built | Where |
