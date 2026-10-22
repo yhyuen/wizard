@@ -17,6 +17,7 @@ const Map := preload("res://scripts/world/map.gd")
 const People := preload("res://scripts/world/people.gd")
 const Matter := preload("res://scripts/world/matter.gd")
 const Cells := preload("res://scripts/world/cells.gd")
+const Deeds := preload("res://scripts/world/deeds.gd")
 const Tris := preload("res://scripts/ui/tris.gd")
 const MAPS := "res://data/world/maps.json"
 const CAMP := "camp"
@@ -28,6 +29,7 @@ var _maps := {}  # map id -> Map, built once
 var _saved := {}  # map id -> this loop's {props, lamps, braziers, scorches} while you're elsewhere
 var _in_exit := ""  # the exit you stand in (an exit asks once, when you step into it)
 var people
+var deeds  # scripts/world/deeds.gd: owners, witnesses and repairs (N-4.4)
 var arena
 var run  # the Run autoload
 var story
@@ -79,6 +81,7 @@ func _init(the_run, the_story) -> void:
 		light_shy[k] = true
 	map.movers = movers
 	people = People.new(self)
+	deeds = Deeds.new(self)
 	_build_lamps()
 	reset_loop()
 
@@ -239,6 +242,7 @@ func reset_day() -> void:
 	for b in braziers:
 		b["lit"] = b["kept"]
 	people.reset_day()
+	deeds.new_day()  # owners put back what was broken long enough ago
 	here = map.place_at(player_pos())
 	_in_exit = map.exit_at(player_pos())
 
@@ -282,6 +286,7 @@ func tick(dt: float) -> void:
 			clock = period_s()
 			request({"t": "period"})
 	people.update(dt)
+	deeds.update(dt)
 	_props(dt)
 	_cache_movers()
 	_magic()
@@ -730,6 +735,7 @@ func ignite(p: Dictionary) -> bool:
 		z["off"] = off
 		p["embers"].append(z)
 	events_log.append(["burn", p["kind"]])
+	deeds.damaged(p, "burned")
 	return true
 
 
@@ -750,6 +756,7 @@ func douse(p: Dictionary) -> bool:
 	p["state"] = ""
 	p["burn_t"] = 0.0
 	events_log.append(["doused", p["kind"]])
+	deeds.good(p, "doused")
 	return true
 
 
@@ -821,6 +828,7 @@ func _break(p: Dictionary) -> void:
 	p["integrity"] = "broken"
 	p["hp"] = 0.0
 	p["vel"] = Vector2.ZERO
+	deeds.damaged(p, "broke")
 	arena.fx("dust", p["pos"], {"r": float(prop_def(p["kind"])["r"]) * 1.4, "life": 0.5})
 	# Salvage (economy spec §5.1): what it was made of, picked up if you're near (N-5.2).
 	var got: Dictionary = prop_def(p["kind"]).get("salvage", {})
@@ -854,6 +862,14 @@ func hit_prop(p: Dictionary, kind: String, dir := Vector2.ZERO) -> String:
 func mend(p: Dictionary) -> bool:
 	if p["state"] == "" and p["integrity"] == "" and p["pos"].distance_to(p["home"]) < 2.0:
 		return false
+	deeds.good(p, "mended")
+	restore(p)
+	events_log.append(["mended", p["kind"]])
+	return true
+
+
+## Back to how it stood this morning: unburnt, whole and home (Rewind, or its owner mending it).
+func restore(p: Dictionary) -> void:
 	_put_out(p)
 	p["state"] = ""
 	p["burn_t"] = 0.0
@@ -864,8 +880,6 @@ func mend(p: Dictionary) -> bool:
 	p["pos"] = p["home"]
 	p["vel"] = Vector2.ZERO
 	p["spin"] = 0.0
-	events_log.append(["mended", p["kind"]])
-	return true
 
 
 func prop_at(at: Vector2, r := 0.0) -> Dictionary:

@@ -207,6 +207,30 @@ ice on the cells, mud from water on earth.*
   blots and a crackle on charged cells, drawn as one batch of triangles, the ash and rubble from a
   cache rebuilt when they change (`world.gd` `draw_ground`).
 
+### Owners and witnesses (`data/world/owners.json`, `scripts/world/deeds.gd`)
+
+*N-4.4, environment spec §7.3, §9. Not built: faction temperaments, the guards coming (a toast for
+now), fines, paying or fixing what you owe, nature regrowing, amends within 3 days, scar shapes as
+evidence.*
+
+- **Every prop has an owner** by map and place: in the camp the market's things are the traders',
+  the Mill's the Mill's, the rest the camp's; the College ruins, the hill, the road and the whole
+  halls are nobody's (nothing is owed there and nothing repairs, so a ruin remembers you for the
+  life). Each kind has a **value** in crowns: hay 2, crate 4, barrel 6, post 20, cart 40.
+- **Breaking or setting alight** an owned prop counts once until it's put back. If someone can see
+  it (in town, 110 px by day, 55 at dusk and night, nothing solid between) the nearest one
+  reacts by its value: under 10 crowns a grumble (−1 standing with the owner), up to 100 a demand
+  ("That's 40 crowns you owe the camp", −3, counted in `owed`), over that the watch is called (−10,
+  +1 infamy, a toast). Setting a thing alight costs at least −3.
+- **Nobody saw?** It goes on the life's `unseen` list; the next person to see where it was says so
+  (−1 standing, +1 suspicion with the owner).
+- **Good deeds:** putting out an owned prop's fire, or mending a damaged one with Rewind, is +1
+  standing and +1 fame (someone near says thanks).
+- **Owners mend** at dawn what was broken or burned `repair_days` ago (hay and crates 1, barrels
+  and posts 2, the cart 3), on every map this life (`world.restore`).
+- It all lives in `Run.life` (`standing`, `owed`, `fame`, `infamy`, `suspicion`, `unseen`) for the
+  reputation and the economy to read when they're built; a new life starts clean.
+
 ## Economy, gear and repair (not built)
 
 *Target design: [economy, gear, crafting and repair](/mnt/project-files/design/economy/economy-and-repair-spec.md)
