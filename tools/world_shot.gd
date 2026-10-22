@@ -129,10 +129,14 @@ func _process(_dt: float) -> bool:
 			_shot("10b_calendar")
 			slice.map_tab = 0
 			slice.overlay = "ledger"
-			slice.ledger_tab = 5
+			slice.ledger_tab = 6
 			slice.deeds.earn("first_ring")
 		568:
 			_shot("10c_deeds")
+			slice.ledger_tab = 4
+			slice.run.settle_event(slice.run.fixed_events().filter(func(e): return e["id"] == "iron_gate_shuts")[0], "missed")
+		569:
+			_shot("10d_appointments")
 			slice.ledger_tab = 0
 			slice.overlay = "book"
 		570:

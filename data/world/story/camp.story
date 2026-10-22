@@ -275,3 +275,14 @@ The Eclipse comes. Under the ruin, the Orrery's heart wakes a second time.
 The light has no colour, and this time it doesn't stop at the College.
 + learn second_blast
 + end_loop eclipse
+
+# --- fixed events (lives spec §6.2; data/world/calendar.json) -------------------------------
+
+=== knights_arrive
+backdrop: east_gate
+Hooves on the east road. A column of riders in grey iron comes up to the camp's edge and stops at the gate, banners furled.
+The watch captain walks out to meet them alone. Words pass that you can't hear. The riders don't get down from their horses.
+By evening their tents stand a bowshot from the fence, and nobody in the camp sleeps well.
++ learn knights_camp
++ set knights_camped
+* Watch them a while

@@ -25,7 +25,7 @@ const HINTS := {
 	"talk": "Number keys or a click pick a choice; Space carries on. L opens the Ledger at any time.",
 	"death": "Death resets your power, never what you know. Everything in the Ledger comes with you.",
 }
-const LEDGER_TABS := ["Questions", "Clues", "People", "Insights", "Lives", "Deeds"]
+const LEDGER_TABS := ["Questions", "Clues", "People", "Insights", "Appointments", "Lives", "Deeds"]
 ## The Ledger entry that means you know a person well enough to find them on the map.
 const MAX_BARKS := 2  # speech bubbles shown at once
 const KNOWN_PEOPLE := {"mira": "mira", "aldous": "aldous", "pell": "pell", "captain": "captain"}
@@ -43,6 +43,7 @@ var deeds_t := 0.0  # seconds since the achievements were last checked
 var encounters: Dictionary = {}
 var ledger: Dictionary = {}  # data/world/ledger.json "entries"
 var death_texts: Dictionary = {}
+var main_steps: Array = []  # data/world/main_line.json "steps"
 
 var screen := "title"  # title, world, loading (the card between maps), death, hurt (a lost fight)
 var load_to := {}  # while the loading card is up: {"map", "spot", "t"}
@@ -89,6 +90,7 @@ func setup(the_main) -> void:
 	var ld = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/ledger.json"))
 	ledger = ld["entries"]
 	death_texts = ld["deaths"]
+	main_steps = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/main_line.json"))["steps"]
 	world = World.new(run, story)
 	reach = Reach.new(run, story)
 	deeds = Achievements.new(run, story)
@@ -161,7 +163,7 @@ func begin_day() -> void:
 ## other (lives spec §3.3, §5.2).
 func _morning_notes() -> void:
 	if run.day() == 1 and run.loop() > 1:
-		toast("The Ledger has a new page: Life %d (L, then 5)." % (run.loop() - 1))
+		toast("The Ledger has a new page: Life %d (L, then 6)." % (run.loop() - 1))
 		var offers: Array = run.road_offers()
 		if offers.size() > 1:
 			toast("Roads open to you: " + ", ".join(offers.map(func(r): return run.road_name(r))))
@@ -172,11 +174,43 @@ func _morning_notes() -> void:
 
 ## A new time of day: a forced event if one is due, else whatever happens where you stand.
 func _start_period() -> void:
+	if _fixed_events():
+		return
 	var f: String = story.forced()
 	if f != "":
 		play(f)
 		return
 	world.request({"t": "arrive", "place": world.here})
+
+
+## The main line's gold step (UI spec §3.4): the first step whose condition holds, or "".
+func main_line() -> String:
+	for st in main_steps:
+		if story.test(str(st["when"])):
+			return str(st["text"])
+	return ""
+
+
+## Fixed events (lives spec §6.2, N-1.5): each happens once a life, at its date and time of day.
+## If you're in its region then, its scene plays (the life is saved first, so a crash replays the
+## event, not the day); if you're elsewhere or the hour went by while you slept, rested or
+## travelled, its default (`missed`) runs instead, and a missed event that costs something becomes
+## an appointment the Ledger keeps for every later life. Returns true if a scene is playing.
+func _fixed_events() -> bool:
+	var here: String = reach.region_of(world.map_id)
+	for e in run.due_events():
+		var now: bool = int(e["at_day"]) == run.day() and int(e["at_time"]) == run.time()
+		if now and str(e.get("region", "")) == here and story.scenes.has(str(e.get("scene", ""))):
+			run.settle_event(e, "attended")
+			run.save()
+			play(str(e["scene"]))
+			return true
+		for fx in e.get("missed", []):
+			var parts: PackedStringArray = str(fx).split(" ", false, 1)
+			_effect(parts[0], parts[1] if parts.size() > 1 else "")
+		if run.settle_event(e, "missed"):
+			toast("The Ledger keeps a date you missed: %s, %s." % [e["name"], run.date_name(int(e["at_day"]))])
+	return false
 
 
 ## The time of day ran out (or you waited): on to the next, or to sleep after Night.
@@ -916,7 +950,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		toggle_map()
 	elif k == KEY_ESCAPE and overlay != "":
 		overlay = ""
-	elif overlay == "ledger" and k >= KEY_1 and k <= KEY_6:
+	elif overlay == "ledger" and k >= KEY_1 and k <= KEY_7:
 		ledger_tab = k - KEY_1
 	elif overlay == "map" and k >= KEY_1 and k <= KEY_3:
 		map_tab = k - KEY_1
@@ -1313,7 +1347,7 @@ func _draw_calendar() -> void:
 	var events: Array = reach.events()
 	var known_on := {}
 	for e in events:
-		if e["known"]:
+		if e["known"] or e["appointment"]:
 			known_on[int(e["day"])] = e
 	# the year: one row of moons
 	var x0 := MAP_RECT.position.x + 30.0
@@ -1325,9 +1359,12 @@ func _draw_calendar() -> void:
 		if now:
 			draw_arc(c, 13.0, 0, TAU, 24, HAIR, 1.0)
 		for e in events:
-			if e["known"] and (int(e["day"]) - 1) / run.MOON_DAYS == m:
-				draw_circle(c + Vector2(8, -8), 4.0, Color(0, 0, 0))
-				draw_arc(c + Vector2(8, -8), 4.5, 0, TAU, 12, Color(GOLD, 0.8), 1.0)
+			if (e["known"] or e["appointment"]) and (int(e["day"]) - 1) / run.MOON_DAYS == m:
+				if e["kind"] == "calamity":
+					draw_circle(c + Vector2(8, -8), 4.0, Color(0, 0, 0))
+					draw_arc(c + Vector2(8, -8), 4.5, 0, TAU, 12, Color(GOLD, 0.8), 1.0)
+				else:
+					draw_circle(c + Vector2(-8, -9), 2.2, SILVER if e["appointment"] else GOLD)
 		text(c + Vector2(-31, 26), run.moon_name(m + 1), 10, GOLD if now else DIM, HORIZONTAL_ALIGNMENT_CENTER, 62)
 	# this moon: four weeks of seven days
 	var gx := MAP_RECT.position.x + 40.0
@@ -1344,9 +1381,15 @@ func _draw_calendar() -> void:
 		draw_rect(cell, Color(HAIR, 0.8 if d == run.day() else 0.18), false, 1.0)
 		text(cell.position + Vector2(6, 15), str(i + 1), 12, PAPER if d >= run.day() else DIM)
 		if known_on.has(d):
-			draw_circle(cell.position + Vector2(44, 12), 5.0, Color(0, 0, 0))
-			draw_arc(cell.position + Vector2(44, 12), 5.5, 0, TAU, 14, GOLD, 1.0)
-			para(cell.position + Vector2(4, 30), str(known_on[d]["name"]), 54, 9, GOLD)
+			var ev: Dictionary = known_on[d]
+			var pc: Color = SILVER if ev["appointment"] else GOLD  # appointments silver, fixed events gold
+			if ev["kind"] == "calamity":
+				draw_circle(cell.position + Vector2(44, 12), 5.0, Color(0, 0, 0))
+				draw_arc(cell.position + Vector2(44, 12), 5.5, 0, TAU, 14, GOLD, 1.0)
+			else:
+				draw_line(cell.position + Vector2(46, 8), cell.position + Vector2(46, 16), pc, 1.0)
+				draw_circle(cell.position + Vector2(46, 7), 3.0, pc)
+			para(cell.position + Vector2(4, 30), str(ev["name"]), 54, 9, pc)
 	# Rest until…
 	var rx := MAP_RECT.position.x + 490.0
 	var ry := gy
@@ -1506,21 +1549,23 @@ func _draw_ledger() -> void:
 	title(r.position + Vector2(28, 36), "The Ledger", 24, GOLD)
 	var x := r.position.x + 186.0
 	for i in LEDGER_TABS.size():
-		var tr := Rect2(x, r.position.y + 14, 90, 28)
+		var tr := Rect2(x, r.position.y + 14, text_w("%d  %s" % [i + 1, LEDGER_TABS[i]], 13) + 18.0, 28)
 		var on := i == ledger_tab
 		draw_rect(tr, Color(GOLD, 0.25) if on else Color(0, 0, 0, 0.3))
 		draw_rect(tr, Color(GOLD, 0.8 if on else 0.3), false, 1.0)
 		text(tr.position + Vector2(10, 19), "%d  %s" % [i + 1, LEDGER_TABS[i]], 13, GOLD if on else PAPER)
 		buttons.append({"r": tr, "act": func(): ledger_tab = i, "key": 0})
-		x += 94.0
+		x += tr.size.x + 4.0
 	var y := r.position.y + 76.0
 	var w := r.size.x - 56.0
 	match ledger_tab:
 		0:
 			_draw_questions(r)
 		4:
-			_draw_lives(r)
+			_draw_appointments(r)
 		5:
+			_draw_lives(r)
+		6:
 			_draw_deeds(r)
 		1, 2, 3:
 			var kinds: Array = [["clue"], ["person"], ["insight", "model"]][ledger_tab - 1]
@@ -1537,6 +1582,34 @@ func _draw_ledger() -> void:
 	if run.known_ids().is_empty() and ledger_tab < 4:
 		text(Vector2(r.position.x + 28, y), "Nothing yet.", 14, DIM)
 	button(Rect2(r.end.x - 120, r.end.y - 36, 100, 26), "Close  (L)", toggle_ledger, 0, 13)
+
+
+## The Appointments tab (lives spec §6.2, UI spec §5.3): every fixed event you missed in a life
+## that cost something, with its date, time, place and who; they're pinned in silver on the calendar.
+func _draw_appointments(r: Rect2) -> void:
+	var x := r.position.x + 28.0
+	var y := r.position.y + 78.0
+	var ap: Dictionary = run.soul.get("appointments", {})
+	if ap.is_empty():
+		para(Vector2(x, y - 12), "No appointments yet. When something happens without you and costs something, the Ledger keeps its date here, for the next life.", r.size.x - 56, 13, DIM)
+		return
+	var ids: Array = ap.keys()
+	ids.sort_custom(func(a, b): return run.day_of(int(ap[a]["moon"]), int(ap[a]["day"])) < run.day_of(int(ap[b]["moon"]), int(ap[b]["day"])))
+	for id in ids:
+		var a: Dictionary = ap[id]
+		var d: int = run.day_of(int(a["moon"]), int(a["day"]))
+		var gone: bool = d < run.day() or run.event_state(id) != ""
+		star(Vector2(x + 6, y - 5), 4.5, Color(SILVER, 0.4 if gone else 1.0))
+		text(Vector2(x + 20, y), str(a["name"]), 14, Color(SILVER, 0.5 if gone else 1.0), HORIZONTAL_ALIGNMENT_LEFT, 280)
+		var where: String = str(reach.region(str(a["region"])).get("name", a["region"]))
+		var line := "%s, %s  ·  %s  ·  %s" % [run.date_name(d), str(a["time"]), where, str(a["who"])]
+		if run.event_state(id) == "attended":
+			line += "  ·  you were there"
+		elif run.event_state(id) == "missed" and run.loop() > int(a.get("life", run.loop())):
+			line += "  ·  missed again"
+		y = para(Vector2(x + 310, y), line, r.size.x - 370, 12, PAPER if not gone else DIM, 1.2) + 8.0
+		if y > r.end.y - 50:
+			break
 
 
 var ledger_life := -1  # the life page shown on the Lives tab (-1: the latest)

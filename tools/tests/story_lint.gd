@@ -134,6 +134,26 @@ func _initialize() -> void:
 				problems.append("%s: outcome must be won or lost, not %s" % [where, o])
 			if not story.scenes.has(s["outcomes"][o]):
 				problems.append("%s: outcome goes to missing scene %s" % [where, s["outcomes"][o]])
+	# Fixed events (data/world/calendar.json, N-1.5): their scene, region, time and defaults exist.
+	var regions: Dictionary = _json("res://data/world/regions.json")["regions"]
+	for e in _json("res://data/world/calendar.json")["events"]:
+		if e.get("kind", "") != "fixed":
+			continue
+		var where := "fixed event " + str(e["id"])
+		if str(e.get("scene", "")) != "" and not story.scenes.has(str(e["scene"])):
+			problems.append("%s: no scene %s" % [where, e["scene"]])
+		if not regions.has(str(e.get("region", ""))):
+			problems.append("%s: no region %s" % [where, e.get("region", "")])
+		if not str(e.get("time", "")) in run.TIMES:
+			problems.append("%s: time must be one of %s" % [where, run.TIMES])
+		for fx in e.get("missed", []):
+			var parts: PackedStringArray = str(fx).split(" ")
+			if parts.size() != 2 or not parts[0] in ["set", "clear", "learn", "deed"]:
+				problems.append("%s: missed effect %s must be set, clear, learn or deed with an id" % [where, fx])
+			elif parts[0] == "learn" and not ledger.has(parts[1]):
+				problems.append("%s: learns unknown Ledger entry %s" % [where, parts[1]])
+			elif parts[0] == "set":
+				flags_set[parts[1]] = true
 	# Achievements' conditions too (data/world/achievements.json).
 	var ach: Dictionary = _json("res://data/world/achievements.json")["list"]
 	for id in ach:
@@ -144,7 +164,7 @@ func _initialize() -> void:
 				problems.append("achievement %s: no %s" % [id, key])
 	# Conditions: they parse, run, and name things that exist.
 	var re := RegEx.new()
-	re.compile("(k|f|seen|died|count|omen|ended)\\(\"([a-z0-9_]+)\"\\)")
+	re.compile("(k|f|seen|died|count|omen|ended|attended|missed)\\(\"([a-z0-9_]+)\"\\)")
 	for pair in conds:
 		var e := Expression.new()
 		if e.parse(pair[0], ["loop", "day", "time", "ring"]) != OK:
@@ -164,6 +184,8 @@ func _initialize() -> void:
 				problems.append("%s: seen(\"%s\") is not a scene" % [pair[1], id])
 			elif fn == "omen" and not run.lives.get("omens", {}).has(id):
 				problems.append("%s: omen(\"%s\") is not an Omen" % [pair[1], id])
+			elif fn in ["attended", "missed"] and not run.cal["events"].any(func(ev): return ev["id"] == id and ev.get("kind", "") == "fixed"):
+				problems.append("%s: %s(\"%s\") is not a fixed event" % [pair[1], fn, id])
 			elif fn in ["died", "ended"] and not deaths.has(id):
 				problems.append("%s: died(\"%s\") is not a death cause" % [pair[1], id])
 	# Everyone you can walk up to says something, and every item does something, on any day.
