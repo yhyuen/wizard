@@ -88,6 +88,8 @@ priority: -10
 [time == "dusk"] Mira: Can't stop. Lamps don't light themselves.
 [time != "dusk"] Mira: Stay where the lamps are, after dark. Whatever came up out of the College doesn't like the light.
 * A game of Sparks [game_open("mira")] -> sparks_mira
+* Walk with me [companion_can("mira")] -> walk_mira
+* Part ways for now [companion() == "mira"] -> part_mira
 * Leave
 
 === pell_first

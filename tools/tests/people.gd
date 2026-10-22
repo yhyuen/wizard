@@ -19,6 +19,11 @@ extends SceneTree
 ## free play is once a week and none in a calamity's week; a win pays the stake, gains bond, learns
 ## the tell for every life and, once a season, picks a rumour; work pays a wage and a rumour and
 ## costs half a day; a Star-charts opponent beaten in a past life pays for coin, never at dice.
+## Companions (§4.4-4.5; N-7.6.6): one walks with you once Close (Brogan once home), follows you,
+## fights beside you in 1 vs many only (a Cutter cuts a wind-up, a Guard shoves an enemy off you,
+## their kills train nothing), a won fight is +2 bond once a day, a night talk plays as you wake
+## (one a night), the Guide passes on a rumour on reaching a region once a season; at most three
+## Sworn a life.
 
 var main
 var slice
@@ -95,10 +100,11 @@ func _go() -> void:
 	_commissions()
 	_ladder()
 	_minigames()
+	_companions()
 	for f in failures:
 		print("[people] FAIL: " + f)
 	if failures.is_empty():
-		print("[people] bonds, rumours, commissions, the ladder and the minigames hold")
+		print("[people] bonds, rumours, commissions, the ladder, the minigames and companions hold")
 	quit(1 if not failures.is_empty() else 0)
 
 
@@ -318,6 +324,96 @@ func _minigames() -> void:
 	crowns = int(run.life.get("crowns", 0))
 	_play("charts_wren_coin")
 	_check(int(run.life.get("crowns", 0)) == crowns + 5 and not g.open("wren"), "playing for coin pays the stake and takes the week's game")
+
+
+func _companions() -> void:
+	slice.new_month()
+	slice.finish_scene()
+	slice.world.load_map("camp")
+	var c = slice.companions
+	var b = slice.bonds
+	run.life["day"] = 10
+	run.life["time"] = 1
+	_check(not c.can_join("mira"), "nobody walks with you before Close")
+	b.gain("mira", "story", "a", 100)
+	b.cross("mira")
+	b.gain("brogan", "story", "a", 100)
+	b.cross("brogan")
+	_check(c.can_join("mira") and not c.can_join("brogan"), "Close opens the walk; Brogan waits until he's home")
+	_check(slice.story.choices(slice.story.scenes["mira"]).any(func(ch): return ch["target"] == "walk_mira"), "Mira offers to walk with you")
+	_play("walk_mira")
+	_check(c.who() == "mira" and slice.story.test("companion() == \"mira\""), "Mira walks with you")
+	run.set_flag("brogan_home")
+	_check(not c.can_join("brogan"), "one companion at a time")
+	var mp = slice.world.people.get_person("mira")
+	mp.pos = slice.world.player_pos() + Vector2(600, 0)
+	slice.world.people.think()
+	_check(mp.on and mp.mode == "follow" and mp.pos.distance_to(slice.world.player_pos()) < 60.0, "your companion follows you (%s, %s)" % [mp.mode, str(mp.pos)])
+	# In a fight: only 1 vs many; a Guide stays out.
+	var A = main.arena
+	_check(A._ally_for({"hits": 3}) == null and A._ally_for({}) != null, "a companion fights in 1 vs many, never a duel")
+	var Ally = A.Ally
+	var cut = Ally.new(A, "mira", c.rec("mira"), A.player.pos + Vector2(10, 0), 72.0)
+	var foe = A.spawn("hollow", A.player.pos + Vector2(24, 0))
+	foe.state = "windup"
+	foe.state_t = 1.0
+	cut.tick(0.05)
+	_check(cut.helps == 1 and foe.state != "windup", "a Cutter cuts short a wind-up near you (%s)" % foe.state)
+	var kills: int = A.stats["kills"]
+	foe.hp = 1.0
+	cut._hit(foe, 5.0, 1, 0.0)
+	_check(foe.dead and A.stats["kills"] == kills, "what a companion finishes trains nothing of yours")
+	var guard = Ally.new(A, "brogan", c.rec("brogan"), A.player.pos, 72.0)
+	var foe2 = A.spawn("hollow", A.player.pos + Vector2(20, 0))
+	guard.tick(0.05)
+	_check(guard.helps == 0, "a Guard waits while you stand")
+	A.player.hp = A.player.max_hp * 0.2
+	guard.tick(0.05)
+	_check(guard.helps == 1 and foe2.vel.length() > 50.0, "a Guard shoves the nearest enemy off you when you're low")
+	A.player.hp = A.player.max_hp
+	for u in A.enemies():
+		u.dead = true
+	# A fight won together: +2 bond, once a day.
+	var lamp := float(b.state("mira")["lamp"])
+	slice.fight_id = "com_goat"
+	slice.cur = {"steps": [], "choices": [], "outcomes": {}}
+	slice.idx = 0
+	slice.fight_done(true)
+	slice.cur = {"steps": [], "choices": [], "outcomes": {}}
+	slice.idx = 0
+	slice.fight_done(true)
+	_check(float(b.state("mira")["lamp"]) - lamp == 2.0, "a fight won together is +2 bond, once a day (%s)" % str(float(b.state("mira")["lamp"]) - lamp))
+	slice.finish_scene()
+	# A night talk as you wake, one a night.
+	slice.world.requests.clear()
+	slice.begin_day()
+	_check(slice.world.requests.any(func(q): return q.get("id", "") == "night_mira_1"), "a night talk plays as you wake")
+	run.mark_seen("night_mira_1")
+	_check(c.next_talk() == "", "one night talk a night")
+	run.life["day"] = 11
+	_check(c.next_talk() == "night_mira_2", "the next night, the next talk")
+	# The Guide's road sense: a rumour on reaching a region, once a season.
+	_play("part_mira")
+	slice.world.people.think()
+	_check(c.who() == "" and mp.mode != "follow", "parting sends them home")
+	b.gain("wren", "story", "a", 100)
+	b.cross("wren")
+	_play("walk_wren")
+	_check(A._ally_for({}) == null, "a Guide stays out of the fight")
+	var pool: String = slice.rumours.pool_now("camp")
+	var has_one: bool = slice.rumours.draw(pool) != ""
+	var got: String = c.region_rumour("camp")
+	_check((got != "") == has_one and c.region_rumour("camp") == "", "the Guide passes on a rumour on reaching a region, once a season")
+	# At most three Sworn a life.
+	for who in ["pell", "fennick", "silas"]:
+		b.state(who)["tier"] = 5
+		b.state(who)["lamp"] = 100.0
+	b.state("marrow")["tier"] = 4
+	b.state("marrow")["lamp"] = 100.0
+	_check(b.sworn() == 3 and b.ready_to_cross("marrow") and not b.cross("marrow"), "at most three Sworn a life")
+	slice.end_loop("turned")
+	slice.wake()
+	_check(c.who() == "", "a new life walks alone")
 
 
 ## Plays a scene through its fight, taking the first choice anywhere else.

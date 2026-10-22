@@ -24,6 +24,7 @@ const Matter := preload("res://scripts/world/matter.gd")
 const Morale := preload("res://scripts/morale.gd")
 const FieldGuide := preload("res://scripts/field_guide.gd")
 const Armour := preload("res://scripts/armour.gd")
+const Ally := preload("res://scripts/ally.gd")
 
 var D: Dictionary  # data/spells.json
 var kit
@@ -73,6 +74,7 @@ var crack_glow := {}  # crack id -> seconds it glows before its embers burst out
 var _src_kind := ""  # the projectile dealing the hit being applied, for resistances
 const LEASH_R := 220.0
 var cutscene = null  # scripts/game/cutscene.gd when a short scene plays instead of a fight
+var ally = null  # scripts/ally.gd: the companion fighting beside you in this fight, or null
 var enc_wave := -1
 var duel_hits := [0, 0]  # a duel to N hits ("hits"): [hits landed on the rival, hits taken]
 var duel_hit_t := [0.0, 0.0]  # a hit only counts once per second, per side
@@ -237,7 +239,23 @@ func begin_encounter(enc: Dictionary, spawns: Array) -> void:
 	duel_hit_t = [0.0, 0.0]
 	stats = {"casts": 0, "damage_taken": 0.0, "kills": 0, "by_spell": {}}
 	kit.slow_start = slow_start
+	ally = _ally_for(enc)
 	set_phase("intro")
+
+
+## The companion walking with you joins a 1 vs many fight (never a duel), if their role fights
+## (people spec §4.4).
+func _ally_for(enc: Dictionary):
+	var who := str(Run.life.get("companion", ""))
+	if who == "" or enc.has("hits") or town == null:
+		return null
+	var cd: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/companions.json"))
+	var r: Dictionary = cd["companions"].get(who, {})
+	if r.is_empty() or str(r["role"]) == "guide":
+		return null
+	var pp = town.people.get_person(who)
+	var at: Vector2 = pp.pos if pp != null and pp.on else player.pos + Vector2(-20, 12)
+	return Ally.new(self, who, r, at, float(cd["speed"]))
 
 
 ## After a fight lost that doesn't kill (the yard trial, the duel): the wizard gets up, the
@@ -247,6 +265,7 @@ func resume_explore() -> void:
 		u.dead = true
 		u.death_t = 0.0
 	units = units.filter(func(u): return u.team == 0)
+	ally = null
 	projs.clear()
 	spawn_queue.clear()
 	zones = zones.filter(func(z): return z["owner"] == 0 and z["kind"] != "blaze")
@@ -543,6 +562,7 @@ func _flow(dt: float) -> void:
 				leash = {}
 				encounter = {}
 				cutscene = null
+				ally = null
 				units = units.filter(func(u): return u.team != 2)
 				player.flags.erase("pose")
 				player.flags.erase("face")
@@ -612,6 +632,8 @@ func _physics_process(dt: float) -> void:
 				u.pos = mr["pos"] + out * (float(mr["r"]) + u.radius)
 			if world != null and world.in_water(u.pos, u.radius):
 				u.pos = world.out_of_water(u.pos, u.radius + 0.5)  # Hollows never step into running water
+	if ally != null and phase == "enc":
+		ally.tick(dt)
 	duel_hit_t[0] = maxf(0.0, duel_hit_t[0] - dt)
 	duel_hit_t[1] = maxf(0.0, duel_hit_t[1] - dt)
 	_separate()

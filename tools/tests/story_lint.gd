@@ -155,6 +155,10 @@ func _initialize() -> void:
 				"ladder":
 					if not arg in ["bout", "win"]:
 						problems.append("%s: ladder %s is not bout or win" % [where, arg])
+				"companion":
+					var cpa := arg.split(" ")
+					if cpa.size() != 2 or not _json("res://data/world/companions.json")["companions"].has(cpa[0]) or not cpa[1] in ["join", "part"]:
+						problems.append("%s: companion %s is not <who in data/world/companions.json> <join|part>" % [where, arg])
 				"game":
 					var gp := arg.split(" ")
 					var gd := {"star_charts": _json("res://data/world/minigames/star_charts.json"), "sparks": _json("res://data/world/minigames/sparks.json")}
@@ -317,6 +321,21 @@ func _initialize() -> void:
 			problems.append("ladder rung %d: no enemy kind %s" % [n, lk])
 		elif not story.scenes.values().any(func(sc): return sc["steps"].any(func(st): return st["t"] == "fx" and st["op"] == "fight" and st["arg"] == lid)):
 			problems.append("ladder rung %d: no scene fights %s" % [n, lid])
+	# Companions (people spec §4.4): each is a person, with a role, a scene that joins them and one
+	# that parts them, and night talks that exist.
+	var comp: Dictionary = _json("res://data/world/companions.json")["companions"]
+	for who in comp:
+		var cr: Dictionary = comp[who]
+		if not people.has(who) or str(people[who].get("kind", "full")) == "role":
+			problems.append("companion %s: no person with a bond track" % who)
+		if not str(cr["role"]) in ["guard", "cutter", "guide"]:
+			problems.append("companion %s: no role %s" % [who, cr["role"]])
+		for op in ["join", "part"]:
+			if not story.scenes.values().any(func(sc): return sc["steps"].any(func(st): return st["t"] == "fx" and st["op"] == "companion" and st["arg"] == who + " " + op)):
+				problems.append("companion %s: no scene does companion %s %s" % [who, who, op])
+		for t in cr["talks"]:
+			if not story.scenes.has(t):
+				problems.append("companion %s: no night talk %s" % [who, t])
 	# Minigames (people spec §9): every opponent is a person with a talk scene that plays their game,
 	# and every Star-charts riddle's answer is among its options.
 	for g in ["star_charts", "sparks"]:

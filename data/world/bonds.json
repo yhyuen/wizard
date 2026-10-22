@@ -1,5 +1,5 @@
 {
- "_doc": "Bonds (design/people/people-and-side-activities-spec.md §4-5; build item N-7.6.1). Each person you know has a lamp (0 to full) and a tier. tiers: in order, each with its name, the lamp it starts at (from) and whether crossing into it needs a scene (scene: the story's `bond_cross <who>` effect, which works only with the lamp full for the tier below); a tier without a scene is reached by the lamp alone. Points stop at the top of the current tier until its crossing scene plays; a loss falls at most to the bottom of the current tier; only betrayal drops a tier. caps: the highest tier by people.json kind (role people have no track: -1). sources: what gains bond: gain (lamp points; story gains give their own), per (key: once per key a life; week: once a week per person; life: once a life), fill: true sets the lamp to the next tier's start (a first talk makes you Warm). gifts: the gain by the person's taste for the item (people.json tastes: love, like, dislike, cant_bear, each a list of item ids or gift kinds; anything else is plain); a gift is once a week per person and its reaction is learned for every later life (Run.soul tastes). floors: the tier the next life starts at, by the best tier reached in any life (Close or Kindred: Warm; Sworn: Friendly).",
+ "_doc": "Bonds (design/people/people-and-side-activities-spec.md §4-5; build item N-7.6.1). Each person you know has a lamp (0 to full) and a tier. tiers: in order, each with its name, the lamp it starts at (from) and whether crossing into it needs a scene (scene: the story's `bond_cross <who>` effect, which works only with the lamp full for the tier below); a tier without a scene is reached by the lamp alone. Points stop at the top of the current tier until its crossing scene plays; a loss falls at most to the bottom of the current tier; only betrayal drops a tier. caps: the highest tier by people.json kind (role people have no track: -1). sources: what gains bond: gain (lamp points; story gains give their own), per (key: once per key a life; day: once a day per person; week: once a week per person; life: once a life), fill: true sets the lamp to the next tier's start (a first talk makes you Warm). gifts: the gain by the person's taste for the item (people.json tastes: love, like, dislike, cant_bear, each a list of item ids or gift kinds; anything else is plain); a gift is once a week per person and its reaction is learned for every later life (Run.soul tastes). floors: the tier the next life starts at, by the best tier reached in any life (Close or Kindred: Warm; Sworn: Friendly). sworn_max: how many may be Sworn in one life (a crossing into Sworn past it is refused). walk: a fight won together with a companion (N-7.6.6).",
  "full": 100,
  "tiers": [
   {"name": "Stranger", "from": 0},
@@ -18,6 +18,7 @@
   "spar": {"gain": 3, "per": "week"},
   "minigame_win": {"gain": 4, "per": "week"},
   "minigame_loss": {"gain": 2, "per": "week"},
+  "walk": {"gain": 2, "per": "day"},
   "night_talk": {"gain": 3, "per": "key"},
   "values": {"gain": 3, "per": "key"},
   "values_against": {"gain": -3, "per": "key"},
@@ -25,5 +26,6 @@
  },
  "gifts": {"love": 12, "like": 6, "plain": 2, "dislike": -4, "cant_bear": -10},
  "gift_kinds": {"barley_cake": "sweets", "honey_cake": "sweets", "wildflowers": "flowers", "star_chart": "star-charts", "old_book": "books", "spirit_flask": "drink", "brass_gear": "tools"},
- "floors": {"3": 1, "4": 1, "5": 2}
+ "floors": {"3": 1, "4": 1, "5": 2},
+ "sworn_max": 3
 }

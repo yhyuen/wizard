@@ -82,6 +82,10 @@ func gain(who: String, source: String, key := "", amount := 0) -> float:
 			if int(st["weeks"].get(source, -1)) == wk:
 				return 0.0
 			st["weeks"][source] = wk
+		"day":
+			if int(st["weeks"].get(source + ":day", -1)) == run.day():
+				return 0.0
+			st["weeks"][source + ":day"] = run.day()
 	var t := int(st["tier"])
 	var before := float(st["lamp"])
 	if src.get("fill", false):
@@ -124,9 +128,17 @@ func cross(who: String) -> bool:
 	if not ready_to_cross(who):
 		return false
 	var st := state(who)
+	if int(st["tier"]) + 1 == d["tiers"].size() - 1 and sworn() >= int(d.get("sworn_max", 3)):
+		return false  # Sworn: at most three a life (people spec §4.5)
 	st["tier"] = int(st["tier"]) + 1
 	_best(who, int(st["tier"]))
 	return true
+
+
+## How many are Sworn to you this life.
+func sworn() -> int:
+	var top: int = d["tiers"].size() - 1
+	return run.life.get("bonds", {}).values().filter(func(b): return int(b["tier"]) >= top).size()
 
 
 ## Betrayal (a broken promise, an attack, a sell-out): one tier down, the lamp at its bottom.

@@ -302,6 +302,8 @@ priority: -10
 Wren: (not looking up) Found, found, not found. Found. Sorry. What?
 * A round of Star-charts [(time == "dusk" or time == "night") and game_open("wren")] -> charts_wren
 * Star-charts for coin [(time == "dusk" or time == "night") and game_coin("wren")] -> charts_wren_coin
+* Walk with me [companion_can("wren")] -> walk_wren
+* Part ways for now [companion() == "wren"] -> part_wren
 * Leave
 
 # --- S4, the cellar thing (the Mill) ------------------------------------------------------------

@@ -20,6 +20,7 @@ const Rumours := preload("res://scripts/game/rumours.gd")
 const Commissions := preload("res://scripts/game/commissions.gd")
 const Ladder := preload("res://scripts/game/ladder.gd")
 const Games := preload("res://scripts/game/minigames/games.gd")
+const Companions := preload("res://scripts/game/companions.gd")
 const World := preload("res://scripts/world/world.gd")
 const Reach := preload("res://scripts/game/reach.gd")
 const Weather := preload("res://scripts/world/weather.gd")
@@ -53,6 +54,7 @@ var rumours  # scripts/game/rumours.gd: what you've heard, in any life
 var commissions  # scripts/game/commissions.gd: the board's paid jobs, and crowns
 var ladder  # scripts/game/ladder.gd: the camp's dueling ladder
 var games  # scripts/game/minigames/games.gd: Star-charts and Sparks, and what carries
+var companions  # scripts/game/companions.gd: who walks with you, their night talks and road sense
 var game  # the match being played (star_charts.gd or sparks.gd), or null
 var game_who := ""
 var game_mode := ""  # free or work
@@ -124,6 +126,8 @@ func setup(the_main) -> void:
 	story.ctx.ladder = ladder
 	games = Games.new(run, bonds, rumours, commissions)
 	story.ctx.games = games
+	companions = Companions.new(run, story, rumours)
+	story.ctx.companions = companions
 	story.load_all()
 	for e in story.errors:
 		push_error("story: " + str(e))
@@ -200,6 +204,10 @@ func begin_day() -> void:
 	Sfx.play("chime")
 	_morning_notes()
 	_start_period()
+	var nt: String = companions.next_talk()  # a night by the fire: your companion talks as you wake
+	if nt != "":
+		companions.talked()
+		world.request({"t": "scene", "id": nt})
 
 
 ## The first morning of a later life points at the Ledger's new page and the roads on offer; on
@@ -542,7 +550,12 @@ func go_map(id: String, spot: String) -> void:
 	opts = []
 	pending = {}
 	_stop_talking()
+	var was := region()
 	world.load_map(id)
+	if region() != was:
+		var gr: String = companions.region_rumour(region())  # the Guide's road sense
+		if gr != "":
+			toast("%s, as you arrive: %s" % [bonds.people[companions.who()]["name"], rumours.rec(gr)["text"]])
 	weather.note(region())
 	world.set_sky(weather.on(region()), weather.d["kinds"])
 	load_to = {"map": id, "spot": spot, "t": 0.0}
@@ -871,6 +884,13 @@ func _effect(op: String, arg: String) -> bool:
 		"fight", "end_loop":
 			pending = {"op": op, "arg": arg}
 			return true
+		"companion":
+			var cp: PackedStringArray = arg.split(" ", false)
+			if cp[1] == "join" and companions.join(cp[0]):
+				toast("%s walks with you." % bonds.people[cp[0]]["name"], true)
+			elif cp[1] == "part" and companions.who() == cp[0]:
+				companions.part()
+				toast("%s goes home." % bonds.people[cp[0]]["name"])
 		"game":
 			var gp: PackedStringArray = arg.split(" ", false)
 			if gp.size() > 1 and gp[1] == "coin":
@@ -1081,6 +1101,9 @@ func cutscene_done() -> void:
 func fight_done(won: bool, kills := 0) -> void:
 	if kills > 0:
 		gain_wells(kills * int(growth.d["wells"]["kill"]))
+	var cw: String = companions.who()
+	if won and cw != "" and not encounters[fight_id].has("hits") and str(companions.rec(cw)["role"]) != "guide":
+		bonds.gain(cw, "walk")  # a fight won together (people spec §4.4)
 	var lethal := bool(encounters[fight_id].get("lethal", true))
 	if not won and not lethal and main != null and not fight_resolver.is_valid():
 		main.arena.resume_explore()
