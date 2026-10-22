@@ -61,7 +61,12 @@ page [Enemy Field Guide](https://claude.ai/artifact/NfkV4YFAufXzUP1pBuGcAK)). Un
   | `com_bully` (C6) | east road, quarry | while the job is open | the Quarry Bully, 2 Cutthroats |
   | `com_rats` (C7) | fields, granary | while the job is open | 3 waves of 4 Granary Rats |
 
-  The `com_*` fights are the commissions' ([story.md](story.md) Commissions), none lethal.
+  | `ladder_1`..`ladder_6` | camp, duel ring | Dusk, once a week, from the slate | one duelist each, a duel to 3 hits |
+
+  The `com_*` fights are the commissions' ([story.md](story.md) Commissions), none lethal. The
+  `ladder_*` fights are the camp ladder's duels ([story.md](story.md) The camp ladder): `hits: 3`,
+  a **clean hit** being `hit_min` (8) damage or Impact 3 either way (enemy spec §9), or a KO; any
+  enemy in a duel counts as the duelist. Not lethal: a loss is a bruise.
 
   The terrain hooks are the places' own props and ground (the keg, the hay cart, the scaffold, the
   stream, the channel's water). `encounters.gd` plays each placed fight from its spot.
@@ -252,6 +257,12 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   knot of thorn with spikes) and the **Granary Rat** (Minion, tiny, hp 6) fight like Hollows; the
   **Quarry Bully** (Soldier, leader) fights like a Shieldman behind a narrower guard and kneels like
   any man. Beasts (`beasts`) run when hurt (morale) or set alight (panic).
+- **The ladder's duelists** (N-7.6.4, faction `duelists`, minds borrowed with `mind`): the
+  **Stave Brawler** (a Cutthroat's rush and back-off, longer reach, no magic), the **Hedge-witch**
+  (a Saboteur's oil and fuse), the **Lamplighter Journeyman** (a Crossbowman's long shot as a
+  gold `spark`, then the reload), the Knights' **Oath Squire**, the **Drowned Novice** (an
+  Acolyte's quick bolt as pale `frost`, without the run for help: an Acolyte runs only when its kind
+  has an `alarm`) and **Silas Vane** (his tell on: the Arc Lance first).
 - **The Field Guide** (N-6.5, enemy spec §12.1, `foes.guide`, `scripts/field_guide.gd`): what
   you know of each kind, kept in the soul (`Run.soul["guide"]`), so it carries to every life. A
   kind is **Seen** when it spawns, **Beaten** when killed or it yields, its weakness **Found** the

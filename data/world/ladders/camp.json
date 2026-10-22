@@ -1,0 +1,20 @@
+{
+ "_doc": "The camp's dueling ladder (design/people/people-and-side-activities-spec.md §7.1; build item N-7.6.4). A venue: the camp place it is fought at (the chalk ring in the College yard), the time of day bouts are held, how many days must pass between bouts (once a week), and its rungs, bottom to top. Each rung: the duelist (a role, in words; the top rung is Silas Vane, the Apprentice road's rival), the enemy kind and the encounter fought (data/world/encounters.json ladder_<n>: a duel to three clean hits), the style it shows, the purse in crowns, and the duelist's book (opening, range, tell), learned for every later life once beaten. You challenge the rung above yours; win and you hold it and take its purse; lose and you pick yourself up (bruised, no days lost) and may try again next week. Rung and purses reset each life; books carry (Run.soul ladder_books).",
+ "place": "duel_ring",
+ "time": "dusk",
+ "every": 7,
+ "rungs": [
+  {"name": "Garrow Pike, a camp brawler", "kind": "stave_brawler", "style": "Close, no magic", "purse": 10,
+   "book": "Opens with a rush and a lunge. Wants to be close. Backs off after every swing: that's when to cast."},
+  {"name": "Mother Thistle, a hedge-witch", "kind": "hedge_witch", "style": "Fields and slows", "purse": 15,
+   "book": "Opens by throwing oil where you stand. Keeps a stride off. The circle shows before it lights: step out, or wash it."},
+  {"name": "Dunstan Webb, a Lamplighter journeyman", "kind": "journeyman", "style": "Devices and sparks", "purse": 20,
+   "book": "Opens with a spark from across the ring. Stays far. Stands winding his charge after every shot."},
+  {"name": "Aldric Vey, a Knights' squire", "kind": "oath_squire", "style": "Blade and shield", "purse": 30,
+   "book": "Opens shield up, walking you down. Wants to be close. His guard faces you: go round it, or break it."},
+  {"name": "Nerys Hale, a Drowned novice", "kind": "drowned_novice", "style": "Ice and water", "purse": 40,
+   "book": "Opens with frost from the far side of the ring. Stays far. Her wind-up is short but it breaks."},
+  {"name": "Silas Vane, the College's best apprentice", "kind": "rival", "style": "Storm, far and patient", "purse": 60,
+   "book": "Always opens with the Arc Lance from across the ring, then stands admiring it. Punish that."}
+ ]
+}

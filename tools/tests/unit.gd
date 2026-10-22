@@ -516,7 +516,8 @@ func _world() -> void:
 	var story = Story.new(run)
 	story.load_all()
 	# N-7.1.6: every Ring 1 fight is placed: its place and spot are on its map, the map says where
-	# its foes come from, and a scene arriving at the place starts it (there or one choice on).
+	# its foes come from, and a scene arriving at the place, or using an item that stands in it (the
+	# ladder's slate in the duel ring), starts it (there or one choice on).
 	var encs: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/encounters.json"))["encounters"]
 	var unplaced: Array = []
 	for eid in encs:
@@ -527,7 +528,8 @@ func _world() -> void:
 		var starts := false
 		for sid in story.scenes:
 			var s: Dictionary = story.scenes[sid]
-			if not pl[1] in s["arrives"]:
+			var item_here: bool = s["use"] != "" and pm.d["items"].has(s["use"]) and pm.in_place(pl[1], Vector2(pm.d["items"][s["use"]]["at"][0], pm.d["items"][s["use"]]["at"][1]))
+			if not pl[1] in s["arrives"] and not item_here:
 				continue
 			var reach: Array = [s]
 			for c in s["choices"]:

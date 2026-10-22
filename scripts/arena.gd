@@ -824,7 +824,7 @@ func hit(u: Unit, dmg: float, impact: int, dir: Vector2, knock := 0.0, quiet := 
 	# every frame meanwhile.
 	if u.stun > 0.0 and u.reaction == "knockdown" and u.kind in encounter.get("unkillable", []):
 		return false
-	if encounter.has("hits") and not quiet and dmg >= float(encounter.get("hit_min", 1.0)) and phase == "enc":
+	if encounter.has("hits") and not quiet and (dmg >= float(encounter.get("hit_min", 1.0)) or impact >= 3) and phase == "enc":
 		_duel_hit(u)
 	# The Ward stops a hit from the front; a heavy one breaks it and staggers you.
 	if u == player and not quiet and kit.ward_stops(dir, impact):
@@ -1002,9 +1002,10 @@ func _burn_tick(u: Unit, dt: float) -> void:
 			catch_fire(o)
 
 
-## First to `hits` clean hits wins a duel (Silas: College rules, no deaths).
+## First to `hits` clean hits wins a duel (Silas: College rules, no deaths; the camp ladder). A clean
+## hit is `hit_min` damage or Impact 3 (enemy spec §9).
 func _duel_hit(u: Unit) -> void:
-	var side := 1 if u == player else (0 if u.kind == "rival" else -1)
+	var side := 1 if u == player else (0 if u.team == 1 else -1)
 	if side < 0 or duel_hit_t[side] > 0.0:
 		return
 	duel_hit_t[side] = 1.0

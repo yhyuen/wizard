@@ -152,6 +152,9 @@ func _initialize() -> void:
 						if not com_ops.has(cp[0]):
 							com_ops[cp[0]] = {}
 						com_ops[cp[0]][cp[1]] = int(com_ops[cp[0]].get(cp[1], 0)) + 1
+				"ladder":
+					if not arg in ["bout", "win"]:
+						problems.append("%s: ladder %s is not bout or win" % [where, arg])
 				"bond", "gift", "bond_cross", "betray":
 					var bp := arg.split(" ")
 					var bd: Dictionary = _json("res://data/world/bonds.json")
@@ -287,6 +290,18 @@ func _initialize() -> void:
 		var is_com: bool = s["id"].begins_with("com_") or str(s["file"]).ends_with("commissions.story")
 		if is_com and s["steps"].any(func(st): return st["t"] == "fx" and st["op"] in ["learn", "road", "merit", "trial", "model", "exam"]):
 			problems.append("%s: a commission's scene gives something the main line needs (people spec §6.1)" % s["id"])
+	# The camp ladder (people spec §7.1): every rung has its encounter, a duel, of its duelist's kind,
+	# and some scene fights it.
+	var lad: Dictionary = _json("res://data/world/ladders/camp.json")
+	for n in range(1, lad["rungs"].size() + 1):
+		var lid := "ladder_%d" % n
+		var lk := str(lad["rungs"][n - 1]["kind"])
+		if not encounters.has(lid) or not encounters[lid].has("hits") or str(encounters[lid]["waves"][0][0]["kind"]) != lk:
+			problems.append("ladder rung %d: no duel %s of %s in data/world/encounters.json" % [n, lid, lk])
+		elif not foes.has(lk):
+			problems.append("ladder rung %d: no enemy kind %s" % [n, lk])
+		elif not story.scenes.values().any(func(sc): return sc["steps"].any(func(st): return st["t"] == "fx" and st["op"] == "fight" and st["arg"] == lid)):
+			problems.append("ladder rung %d: no scene fights %s" % [n, lid])
 	# Every missable event has a rumour (people spec §10): a fixed event that is an appointment has a
 	# rumour pointing at it, from a scene that can play at least 7 days before it.
 	var calendar: Dictionary = _json("res://data/world/calendar.json")

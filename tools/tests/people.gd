@@ -12,6 +12,8 @@ extends SceneTree
 ## Commissions (§6; N-7.6.3): the board posts in a window and not in a calamity's week; a job is
 ## taken, its fight moves it on, a lost fight opens the slow way at half pay, the matter hook pays
 ## +50% unless what it spares burned, the board pays, and a later life knows the way (no time).
+## The ladder (§7.1; N-7.6.4): challenge only at Dusk and once a week, a win takes the rung and its
+## purse, a loss costs no days, and a beaten duelist's book is known next life.
 
 var main
 var slice
@@ -86,10 +88,11 @@ func _go() -> void:
 	_check(slice.bonds.tastes_known("wren").get("old_book", "") == "love", "tastes carry")
 	_rumours()
 	_commissions()
+	_ladder()
 	for f in failures:
 		print("[people] FAIL: " + f)
 	if failures.is_empty():
-		print("[people] bonds, rumours and commissions hold")
+		print("[people] bonds, rumours, commissions and the ladder hold")
 	quit(1 if not failures.is_empty() else 0)
 
 
@@ -183,3 +186,44 @@ func _commissions() -> void:
 	slice._effect("commission", "c2_bramble work")
 	_check("period" in slice.after, "an unknown job's work takes the time of day")
 	slice.after = []
+
+
+func _ladder() -> void:
+	slice.new_month()
+	slice.finish_scene()
+	var l = slice.ladder
+	run.life["day"] = 10
+	run.life["time"] = 1
+	var ch: Array = slice.story.choices(slice.story.scenes["ladder_post"])
+	_check(slice.story.use_scene("ladder_post") == "ladder_post" and not ch.any(func(c): return c["target"] == "ladder_1"), "no bouts but at Dusk")
+	run.life["time"] = 3
+	ch = slice.story.choices(slice.story.scenes["ladder_post"])
+	_check(ch.any(func(c): return c["target"] == "ladder_1") and not ch.any(func(c): return c["target"] == "ladder_2"), "at Dusk you challenge the first rung only")
+	slice.fight_resolver = func(_id): return true
+	_play("ladder_1")
+	_check(l.rung() == 1 and int(run.life.get("crowns", 0)) == 10, "a win takes the rung and its purse (%d, %d)" % [l.rung(), int(run.life.get("crowns", 0))])
+	_check(not l.open(), "one bout a week")
+	run.life["day"] = 17
+	slice.fight_resolver = func(_id): return false
+	var day_before: int = run.day()
+	_play("ladder_2")
+	_check(l.rung() == 1 and run.day() == day_before and slice.screen == "world", "a loss keeps your rung and costs no days")
+	slice.fight_resolver = Callable()
+	slice.end_loop("turned")
+	slice.wake()
+	_check(l.rung() == 0 and l.book_known(1) and not l.book_known(2), "the rung resets; a beaten duelist's book carries")
+	_check(slice.story.test("ladder_book(1)"), "ladder_book() reads it")
+
+
+## Plays a scene through its fight, taking the first choice anywhere else.
+func _play(id: String) -> void:
+	slice.play(id)
+	var n := 0
+	while not slice.cur.is_empty() and n < 10:
+		n += 1
+		if not slice.pending.is_empty():
+			slice.advance()
+		elif slice.opts.size() > 0:
+			slice.choose(0)
+		else:
+			slice.finish_scene()

@@ -375,13 +375,15 @@ func _projs(glow_k: float) -> void:
 			"bolt":
 				# a crossbow bolt: a dark shaft, no glow
 				_stick(at - dir * 0.35, at + dir * 0.35, 0.035, Color("5a4630"), 0.0)
-			"shade":
-				# an Acolyte's shadow bolt (N-6.7): a dark orb with a faint violet rim
+			"shade", "frost", "spark":
+				# an Acolyte's shadow bolt (N-6.7): a dark orb with a faint violet rim; the ladder's
+				# Drowned Novice throws frost and its Journeyman a spark (N-7.6.4), the same orb lit
+				var look: Array = {"shade": ["1a1420", "6a4a9a", 0.0], "frost": ["cfe8ff", "8fd0ff", 0.6], "spark": ["ffe7a0", "ffc04a", 1.2]}[p["kind"]]
 				var o := take("orb")
 				o.position = at
 				o.scale = Vector3.ONE * hit_m * 2.4
-				paint(o, Color("1a1420"), 0.0)
-				halo(at, Color("6a4a9a"), hit_m * 3.0, 0.6)
+				paint(o, Color(str(look[0])), float(look[2]))
+				halo(at, Color(str(look[1])), hit_m * 3.0, 0.6)
 			"net":
 				var n := take("ring")
 				n.position = at
