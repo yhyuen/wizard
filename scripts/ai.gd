@@ -7,11 +7,13 @@ extends RefCounted
 const Brigands := preload("res://scripts/brigands.gd")
 const Hollows := preload("res://scripts/hollows.gd")
 const Knights := preload("res://scripts/knights.gd")
+const Cult := preload("res://scripts/cult.gd")
 
 var A
 var brig  # brigands' minds, guard, keg and net (N-6.3)
 var hollows  # the Lantern-eater, the Choir and the Husk (N-6.3)
 var knights  # the Knights' picket: Squire, Shieldknight, Silencer (N-6.6)
+var cult  # the cult's first cell: Acolyte, Saboteur (N-6.7)
 
 
 func _init(arena) -> void:
@@ -19,6 +21,7 @@ func _init(arena) -> void:
 	brig = Brigands.new(arena, self)
 	hollows = Hollows.new(arena, self)
 	knights = Knights.new(arena, self)
+	cult = Cult.new(arena, self)
 
 
 func update(u: Unit, dt: float) -> void:
@@ -46,7 +49,7 @@ func update(u: Unit, dt: float) -> void:
 	if u.flags.get("dummy", false):
 		_step(u, A.player.pos - u.pos, dt, 0.3 if u.pos.distance_to(A.player.pos) > 30.0 else 0.0)
 		return
-	if brig.mind(u, dt) or hollows.mind(u, dt) or knights.mind(u, dt):
+	if brig.mind(u, dt) or hollows.mind(u, dt) or knights.mind(u, dt) or cult.mind(u, dt):
 		return
 	match u.kind:
 		"hollow":

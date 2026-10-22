@@ -7,8 +7,9 @@
   "guide": {"master_n": 10, "answers": {"burned": "Set it alight", "broken": "Break it", "interrupted": "Break its wind-up or hum",
     "flooded": "Flood the kiln first", "reloading": "Catch him reloading", "shield_burned": "Burn the shield",
     "flanked": "Go round the shield", "keg": "Fire on the keg", "sundered": "Strip the armour",
-    "conducted": "Lightning through the metal", "heated": "Heat the metal", "bell_broken": "Break the bell"}},
-  "morale": {"yield_at": 0.25, "half_out": 0.5, "flee_s": 2.5, "factions": ["brigands", "knights"]},
+    "conducted": "Lightning through the metal", "heated": "Heat the metal", "bell_broken": "Break the bell",
+    "caught_runner": "Catch the runner", "defused": "Wash out the oil"}},
+  "morale": {"yield_at": 0.25, "half_out": 0.5, "flee_s": 2.5, "factions": ["brigands", "knights", "cult"]},
   "armour": {"leather": {"name": "Leather", "grade": 1, "hp": 15, "through": 0.75},
     "mail": {"name": "Mail", "grade": 2, "hp": 25, "through": 0.5, "metal": true},
     "plate": {"name": "Plate", "grade": 3, "hp": 40, "through": 0.25, "metal": true},
@@ -87,6 +88,15 @@
       "body": "flesh", "armour": "mail",
       "lesson": "Its bell stops spells in a circle. Step out, or break the bell with a heavy blow.", "name": "Silencer",
       "hp": 50, "poise": 1, "speed": 30, "radius": 6, "damage": 9, "windup": 0.5, "reach": 14, "cooldown": 1.8, "xp": 20, "keep": 80,
-      "range": 130, "bell": {"windup": 0.8, "r": 35, "hush_s": 2.0, "cooldown": 6.0, "breaks_at": 3}}
+      "range": 130, "bell": {"windup": 0.8, "r": 35, "hush_s": 2.0, "cooldown": 6.0, "breaks_at": 3}},
+    "acolyte": {"answers": ["caught_runner"], "faction": "cult", "role": "skirmisher", "tier": "minion", "attack": "ranged", "body": "flesh",
+      "lesson": "The first one runs for help. Catch it before it's gone.", "name": "Acolyte",
+      "hp": 14, "poise": 0, "speed": 46, "radius": 5, "damage": 6, "impact": 1, "windup": 0.35, "range": 140, "keep": 100,
+      "shot_kind": "shade", "shot_speed": 260, "shot_radius": 3, "cooldown": 2.4, "xp": 5,
+      "alarm": {"run_s": 5.0, "kind": "acolyte", "n": 2}},
+    "saboteur": {"answers": ["defused"], "faction": "cult", "role": "trapper", "tier": "soldier", "attack": "ranged", "body": "flesh",
+      "lesson": "It splashes oil and lights it. Water on the oil before the fuse burns down.", "name": "Saboteur",
+      "hp": 30, "poise": 1, "speed": 42, "radius": 6, "damage": 8, "windup": 0.5, "reach": 13, "keep": 90, "cooldown": 1.8, "xp": 12,
+      "oil": {"range": 150, "r": 26, "fuse_s": 2.2, "cooldown": 6.5, "damage": 10, "burn_s": 4.0, "burn_dps": 6}}
   }
 }

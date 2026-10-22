@@ -26,7 +26,8 @@ page [Enemy Field Guide](https://claude.ai/artifact/NfkV4YFAufXzUP1pBuGcAK)). Un
 - **Fights in place.** A story `fight <id>` effect starts an encounter from
   `data/world/encounters.json` where you stand. `waves` run one after another (the next starts
   when the field is clear); `survive > 0` runs them on a timer instead. `leash` (sim px, default
-  220) is the ring of mist that holds you near where it began. `lethal` means losing ends the
+  220) is the ring of mist that holds you near where it began, and the enemies too (so none backs
+  off behind a wall out of reach). `lethal` means losing ends the
   loop. Groups can come out of a named map crack (`crack`, glowing `glow` s, default 1) after `at`
   seconds; `guardian` + `flooded_by` lets a once-a-day action (the sluice) start the guardian
   quenched; `waived` waves replace the first ones once you know that trial.
@@ -193,16 +194,28 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   every 6 s. A hit of Impact 3 or more, or Breaking it, breaks the bell, and then it fights with its
   mace. Encounter `picket` (two Shieldknights, two Squires, a Silencer; not lethal) waits for its
   place on the camp's edge (N-7.1); until then only the fight tests play it, in the camp yard.
+- **The cult's first cell** (N-6.7, enemy spec §8.11, `scripts/cult.gd`, flesh): the **Acolyte**
+  (Minion) keeps 100 px off and throws a quick shadow bolt (a line telegraph, Impact 1). The first
+  Acolyte in a fight **runs for help**: it runs from you for 5 s (a toast says so), and if it's
+  still up it is gone and the alarm brings two more Acolytes (who don't run); kill it while it runs
+  and the Guide notes the runner caught. The **Saboteur** (Soldier) keeps 90 px off and every 6.5 s
+  splashes **oil** where you stand: a 26 px dark circle whose inner ring closes as the 2.2 s fuse
+  burns; then it goes up (10 damage if you're in it, the ground catches, and a fire burns there for
+  4 s). Water on the oil first (any water spell that wets the ground there, through
+  `world.wet_ground`) washes it out. Up close it swings a knife. Encounter `watch_cell` (three
+  Acolytes and a Saboteur, places spec F8; not lethal) waits for the Old Watch (N-7.1); until then
+  only the fight tests play it, in the camp yard.
 - **The Field Guide** (N-6.5, enemy spec §12.1, `foes.guide`, `scripts/field_guide.gd`): what
   you know of each kind, kept in the soul (`Run.soul["guide"]`), so it carries to every life. A
   kind is **Seen** when it spawns, **Beaten** when killed or it yields, its weakness **Found** the
   first time you do one of its `answers` to it (set it alight, Break it, break its wind-up or hum,
   catch the Crossbowman reloading, burn or go round the shield, fire on the keg, flood the kiln
-  first, strip the armour, lightning or fire on the metal, break the bell; a gold toast gives its lesson), and **Mastered** once beaten 10 times with its weakness
+  first, strip the armour, lightning or fire on the metal, break the bell, catch the runner, wash out the
+  oil; a gold toast gives its lesson), and **Mastered** once beaten 10 times with its weakness
   found. The Ledger's Guide tab shows it ([frame.md](frame.md)); achievements count it
   ([loop.md](loop.md)).
 - **Morale** (N-6.4, enemy spec §6.5, `foes.morale`, `scripts/morale.gd`): people yield, Hollows,
-  constructs, embers and Silas don't (`brigands` and `knights` so far). Once a side's leader is dead or half
+  constructs, embers and Silas don't (`brigands`, `knights` and `cult` so far). Once a side's leader is dead or half
   of it is out of the fight, any of it at 25% HP or less gives up: a Minion runs for 2.5 s and is
   gone (not a kill); the rest **kneel**, out of the fight (team 2: spells, AI and the win check pass
   them by) and give their XP and wells as if beaten. The leader going down toasts that the rest lose
@@ -211,7 +224,7 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
 - `scripts/bot.gd` plays the wizard for tests and F2 autoplay: one committed spell at a time, waiting
   for Aether rather than Overdrawing, the Ward against shots, the staff when something is close. It
   goes for a foe whose shield isn't facing it first and circles wider round one that is, and steps
-  out of a Silencer's ring.
+  out of a Silencer's ring and a Saboteur's oil.
 
 ## Tests
 
