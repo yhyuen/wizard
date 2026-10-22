@@ -26,7 +26,13 @@
   "fence": {"r": 5, "h": 1.3, "mass": 0, "burns": 14.0, "spread": 18, "dps": 6, "material": "wood", "hp": 3, "break": 2,
    "_doc": "a post of the east fence facing the moor"},
   "post":   {"r": 5, "h": 2.6, "mass": 0, "burns": 20.0, "spread": 20, "dps": 8, "material": "wood", "hp": 3, "break": 2,
-   "_doc": "a timber prop holding up a structure (data/world/structures.json): breaks at Impact II (a grade I hit cracks it, the next breaks it); burnt to ash, it fails too"}
+   "_doc": "a timber prop holding up a structure (data/world/structures.json): breaks at Impact II (a grade I hit cracks it, the next breaks it); burnt to ash, it fails too"},
+  "seal": {"r": 12, "h": 2.4, "mass": 0, "material": "stone", "hp": 4, "break": 1,
+   "_doc": "a bricked-up doorway (the halls' sealed cell, N-7.6.8): any Impact knocks bricks out, four hits bring it down; its door is a gate"},
+  "vent": {"r": 8, "h": 1.6, "mass": 0, "material": "iron", "hp": 99, "slams": true,
+   "_doc": "an iron draught-door in a wall (the cell's room of seven doors, N-7.6.8): any Impact, or a staff strike, slams it shut for a while; it never breaks"},
+  "shelf": {"r": 10, "h": 1.8, "mass": 0, "burns": 20.0, "spread": 0, "dps": 6, "material": "wood", "hp": 6, "break": 3,
+   "_doc": "a shelf of old books (the cell's rush room, N-7.6.8): what the fire there must not reach"}
  },
  "shove": {"speed": 260, "friction": 4.0, "roll_friction": 1.2},
  "lamp_reach": 14,

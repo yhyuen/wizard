@@ -113,6 +113,17 @@ func pillar() -> bool:
 	return true
 
 
+## Cinder Lattice (a wild spell, N-7.6.8): a net of small fires held still on a circle. Foes caught
+## in it are held and burn; the ground under it burns out at once (world.gd), a firebreak.
+func cinder_lattice() -> bool:
+	var reach_len := Progression.reach("cinder_lattice")
+	var at: Vector2 = A.clamp_in(A.player.pos + (K.aim - A.player.pos).limit_length(reach_len))
+	A.add_zone({"kind": "lattice", "pos": at, "r": Progression.stat("cinder_lattice", "radius"),
+		"life": Progression.stat("cinder_lattice", "hold"), "dmg": Progression.stat("cinder_lattice", "damage"), "held": []})
+	A.fx("ring", at, {"color": PixelArt.FIRE, "r": Progression.stat("cinder_lattice", "radius"), "life": 0.35})
+	return true
+
+
 func _pillar_target() -> Vector2:
 	var reach_len = Progression.reach("pillar")
 	return A.clamp_in(A.player.pos + (K.aim - A.player.pos).limit_length(reach_len))
@@ -342,6 +353,13 @@ func draw_preview(c: CanvasItem, id: String, ghost_old: int) -> bool:
 			c.draw_circle(at, r, Color(PixelArt.FIRE, 0.12), true, -1.0, false)
 			if ghost_old > 0:
 				A.draw_dashed_circle(at, Progression.stat("pillar", "radius", ghost_old), ghost_col)
+		"cinder_lattice":
+			var at: Vector2 = A.clamp_in(P.pos + (K.aim - P.pos).limit_length(Progression.reach("cinder_lattice")))
+			var r = Progression.stat("cinder_lattice", "radius")
+			c.draw_arc(at, r, 0, TAU, 32, Color(PixelArt.FIRE, 0.9), 1.0, false)
+			for i in 6:
+				var a := i * PI / 6.0
+				c.draw_line(at - Vector2(cos(a), sin(a)) * r, at + Vector2(cos(a), sin(a)) * r, Color(PixelArt.FIRE, 0.3), 1.0)
 		"fling":
 			var reach_len = Progression.reach("fling") * (1.5 if Progression.has_mut("pebble", "far_fling") else 1.0)
 			K.draw_cone(c, K.aim_dir(), deg_to_rad(Progression.stat("fling", "cone")), reach_len, Color(PixelArt.EARTH, 0.9))

@@ -889,6 +889,8 @@ func _effect(op: String, arg: String) -> bool:
 		"fight", "end_loop":
 			pending = {"op": op, "arg": arg}
 			return true
+		"inherit":
+			world.trials.start(arg)
 		"companion":
 			var cp: PackedStringArray = arg.split(" ", false)
 			if cp[1] == "join" and companions.join(cp[0]):

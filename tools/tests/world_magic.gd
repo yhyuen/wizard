@@ -53,6 +53,11 @@ extends SceneTree
 ## N-7.1.5 (the east road): Impact II breaks the bar across the waystation cellar's door and the
 ## door opens; breaking a quarry scaffold post brings the scaffold down on the ledge camp.
 ## N-7.3.2 (the cellar thing): the Kindle way's `ignite mill_cellar` sets the seed sacks burning.
+## N-7.6.8 (the inheritance): the cell's bricked-up doorway falls to Impact and its door opens; the
+## dark room fails if its floor burns and passes when its lamps are lit; the room of seven doors
+## loses its fire to a draught and holds it with every door slammed; water fails the rush room and
+## a Cinder Lattice (cast for real) on the embers' line chokes its pyre; the reward teaches the
+## spell, and once you know her, a later life opens every room and needs one.
 
 const BOOK := ["ember_bolt", "pebble", "splash", "undertow"]
 const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt"]
@@ -154,6 +159,11 @@ func _initialize() -> void:
 		["in the Mill cellar, the Kindle way sets the seed sacks burning", _cellar_fire_setup, _cellar_burned],
 		["on the east road, Impact II breaks the bar on the waystation cellar's door and it opens", _bar_setup, _cellar_open],
 		["breaking a quarry scaffold post brings the scaffold down on the ledge camp", _scaffold_setup, _scaffold_down],
+		["in the halls, knocking the bricks out of the Kiln's west doorway opens the sealed cell", _seal_setup, _seal_open],
+		["the cell's dark room: fire on its rugs fails it; its lamps lit cleanly pass it", _dark_setup, _dark_passed],
+		["the room of seven doors: a draught puts the fire out; with every door slammed it holds", _wind_setup, _wind_passed],
+		["the rush room: water fails it; a Cinder Lattice on the embers' line chokes the pyre", _rush_setup, _rush_passed],
+		["the three rooms passed, the reward teaches Cinder Lattice; a later life needs one room", _reward_setup, _rewarded],
 	]
 
 
@@ -178,7 +188,7 @@ func _process(_dt: float) -> bool:
 		passed.append(cases[i][0])
 		print("[magic] ok: " + cases[i][0])
 		return _next()
-	if t > (LIGHT_WAIT + 20 if state.has("hollow_light") or state.has("long") else WAIT):
+	if t > int(state.get("limit", LIGHT_WAIT + 20 if state.has("hollow_light") or state.has("long") else WAIT)):
 		failures.append(cases[i][0] + " (nothing happened)")
 		return _next()
 	return false
@@ -1490,3 +1500,142 @@ func _scaffold_down() -> bool:
 		if st["id"] == "quarry_scaffold":
 			return st["state"] == "down"
 	return false
+
+
+# --- the inheritance in the halls (N-7.6.8) --------------------------------------------------
+
+func _tagged(tag: String) -> Dictionary:
+	for p in world.props:
+		if str(p.get("tag", "")) == tag:
+			return p
+	return {}
+
+
+func _room(id: String) -> Dictionary:
+	for r in world.map.d["trials"]["wrayburn"]["rooms"]:
+		if r["id"] == id:
+			return r
+	return {}
+
+
+func _seal_setup() -> void:
+	state.erase("long")
+	world.load_map("halls")
+	run.set_flag("warden_down")  # the Kiln hall is quiet
+	slice.set_screen("world")
+	main.enter_world(world.map.spots["kiln_s"])
+	_clear_enemies()
+	state["shut"] = not world.map.doors["cell_door"]["open"]
+	for n in 4:
+		world.apply_force(_tagged("cell_seal"), "impact", 1, 1.0)
+
+
+func _seal_open() -> bool:
+	return state["shut"] and world.map.doors["cell_door"]["open"]
+
+
+func _dark_setup() -> void:
+	main.place_player(world.map.spots["cell_c"])
+	slice._effect("inherit", "wrayburn")
+	state["open"] = world.map.doors["dark_door"]["open"] and not world.map.doors["wind_door"]["open"]
+	main.place_player(Vector2(470, 125))
+	world.burn_ground(Vector2(470, 150), 6.0, 1)
+	state["phase"] = 0
+	state["limit"] = 400
+
+
+func _dark_passed() -> bool:
+	if state["phase"] == 0:
+		if not _logged("trial_failed", "dark"):
+			return false
+		state["phase"] = 1
+		state["failed_clean"] = world.cells.burning.is_empty() or not world.cells.burning.keys().any(
+			func(i): return Rect2(400, 60, 140, 130).has_point(world.cells.centre(i)))
+		return false
+	if state["phase"] == 1:
+		if world.trials.live.get("dark", {}).get("wait", 0.0) > 0.0:
+			return false
+		for l in world.lamps:
+			if l["group"] == "cell":
+				world.light_lamp(l, "you")
+		state["phase"] = 2
+		return false
+	return state["open"] and state["failed_clean"] and _logged("trial", "dark") and world.map.doors["wind_door"]["open"]
+
+
+func _wind_setup() -> void:
+	state.erase("limit")
+	main.place_player(Vector2(470, 300))
+	world.braziers[int(_room("wind")["brazier"])]["lit"] = true
+	state["phase"] = 0
+	state["long"] = true
+
+
+func _wind_passed() -> bool:
+	var b: Dictionary = world.braziers[int(_room("wind")["brazier"])]
+	if state["phase"] == 0:
+		if b["lit"] or not _logged("gust", "wind"):
+			return false
+		for p in world.props:
+			if str(p.get("tag", "")) == "vent":
+				world.apply_force(p, "impact", 1, 1.0)
+		b["lit"] = true
+		world.trials.live["wind"]["hold"] = float(_room("wind")["hold_s"]) - 0.5  # skip the wait
+		state["phase"] = 1
+		return false
+	return _logged("trial", "wind") and world.map.doors["fire_door"]["open"]
+
+
+func _rush_setup() -> void:
+	run.soul["known"]["model_cinder_lattice"] = 1
+	_book(["cinder_lattice", "splash", "ember_bolt", "pebble"])
+	_room("fire")["every"] = 0.5  # embers every half second, for the test
+	main.place_player(Vector2(300, 150))
+	world.wet_ground(Vector2(200, 200), 10.0)
+	state["phase"] = 0
+	state["limit"] = 900
+
+
+func _rush_passed() -> bool:
+	if state["phase"] == 0:
+		# water before the pyre is even awake fails nothing; once it is, it does
+		if not world.trials.live.has("fire") or world.braziers[int(_room("fire")["brazier"])]["lit"] == false:
+			return false
+		world.wet_ground(Vector2(200, 200), 10.0)
+		state["phase"] = 1
+		return false
+	if state["phase"] == 1:
+		if not _logged("trial_failed", "fire"):
+			return false
+		var pyre: Vector2 = world.braziers[int(_room("fire")["brazier"])]["pos"]
+		var to: Vector2 = _tagged("wr_shelf")["pos"]
+		state["line"] = pyre + (to - pyre).normalized() * world.cells.size * 7.0
+		main.place_player(state["line"] + Vector2(0, -60))
+		_cast_at(state["line"], "cinder_lattice", 60.0)
+		state["phase"] = 2
+		return false
+	if state["phase"] == 2:
+		if not world.events_log.any(func(e): return e[0] == "ground_held"):
+			return false
+		main.place_player(Vector2(300, 150))
+		state["phase"] = 3
+		return false
+	return _logged("trial", "fire") and _tagged("wr_shelf")["state"] == ""
+
+
+func _reward_setup() -> void:
+	state.erase("long")
+	state.erase("limit")
+
+
+func _rewarded() -> bool:
+	if not (run.flag("wrayburn_three_done") and run.knows("model_cinder_lattice") and run.knows("wrayburn")):
+		return false
+	# A later life: every room's door opens at once, and one room is enough.
+	run.life.erase("trials")
+	for r in world.map.d["trials"]["wrayburn"]["rooms"]:
+		world.map.doors[r["door"]]["open"] = false
+	world.trials.reset()
+	world.trials.start("wrayburn")
+	return world.trials.need("wrayburn") == 1 and world.map.d["trials"]["wrayburn"]["rooms"].all(
+		func(r): return world.map.doors[r["door"]]["open"])

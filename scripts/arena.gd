@@ -779,6 +779,17 @@ func _update_unit(u: Unit, dt: float) -> void:
 				_src_kind = "fire"
 				hit(u, float(D["field"]["ember_dps"]) * 0.5, -1, Vector2.ZERO, 0.0, true)
 				_src_kind = ""
+		elif z["kind"] == "lattice" and u.team == 1 and u.pos.distance_to(z["pos"]) < float(z["r"]) + u.radius:
+			# Cinder Lattice holds what it catches, and it burns
+			u.flags["net_t"] = 0.15
+			if not u.id in z["held"]:
+				z["held"].append(u.id)
+				Progression.add_xp("cinder_lattice", float(Progression.spell("cinder_lattice")["xp_hit"]))
+			if u.cooldown("lattice_tick") <= 0.0:
+				u.cd["lattice_tick"] = 0.5
+				_src_kind = "fire"
+				hit(u, float(z["dmg"]) * 0.5, -1, Vector2.ZERO, 0.0, true)
+				_src_kind = ""
 		elif z["kind"] == "gravel" and u.team == 1 and u.pos.distance_to(z["pos"]) < float(z["r"]):
 			u.slow_t = 0.2
 		elif z["kind"] == "blaze" and u == player and u.pos.distance_to(z["pos"]) < float(z["r"]) + u.radius:
@@ -1271,7 +1282,7 @@ func _update_zones(dt: float) -> void:
 	for z in zones.duplicate():
 		z["t"] += dt
 		match z["kind"]:
-			"ember", "gravel", "column", "rod", "puddle", "blaze", "kindle", "douse", "flask", "arc_rod", "smoke", "tar", "lantern", "leak", "hush":
+			"ember", "gravel", "column", "rod", "puddle", "blaze", "kindle", "douse", "flask", "arc_rod", "smoke", "tar", "lantern", "leak", "hush", "lattice":
 				if z["t"] >= z["life"]:
 					zones.erase(z)
 			"ring":

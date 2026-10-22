@@ -435,6 +435,30 @@ ice on the cells, mud from water on earth.*
   blots and a crackle on charged cells, drawn as one batch of triangles, the ash and rubble from a
   cache rebuilt when they change (`world.gd` `draw_ground`).
 
+### Trial rooms (a map's `trials`, `scripts/world/trials.gd`)
+
+*N-7.6.8, people spec §12 (inheritances). Not built: a meditation method as part of the gift,
+guardian fights, duels with a master's echo, an inheritance in any region but Ring 1.*
+
+- **The halls' sealed cell** (SPOILER for whose it is: [story.md](story.md) "Inheritances"): a
+  bricked-up doorway in the Kiln hall's west wall (`seal`, stone: any Impact knocks bricks out,
+  four hits bring it down) is the gate of `cell_door`. Behind it, a study (`wrayburn_cell`) and three
+  rooms behind shut doors: the dark room (`wr_dark`, cloth rugs, four `cell` lamps), the room of
+  seven doors (`wr_wind`, a brazier and seven iron draught-doors, `vent`) and the rush room
+  (`wr_fire`, dry rushes (grass), a pyre in a grate and a shelf of books on a stone apron).
+- **The rules:** the story's `inherit <id>` opens the way into the first room (every room once you
+  know the inheritance). A room runs only while you stand in it; passing it opens the next.
+  **lamps**: light every lamp of the room's group while none of its floor burns (a burning or
+  burnt cell fails it). **keep**: keep the brazier alight 8 s; while any draught-door stands open,
+  a lit fire lasts 1.2 s. Any Impact or a staff strike slams a door shut for 45 s (`slams` props
+  never move or break). **choke**: the pyre wakes as you enter and throws an ember every 2 s, a
+  cell further each time along the line to the shelf, from 2 cells out; an ember landing on ash
+  chokes the pyre (passed), one that reaches the shelf burns it, and water anywhere in the room
+  fails it. A failed room goes back as it was (floor whole, lamps and fires out, the shelf mended)
+  after 3 s, with the room's line as a toast (the map's `lines`).
+- All rooms passed (or `later` of them once you know it), the `done` flag is set and the reward
+  scene plays. A life's progress is `Run.life.trials`; a new life seals the doors again.
+
 ### Owners and witnesses (`data/world/owners.json`, `scripts/world/deeds.gd`)
 
 *N-4.4, environment spec §7.3, §9. Not built: faction temperaments, the guards coming (a toast for

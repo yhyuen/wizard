@@ -51,6 +51,9 @@ func _initialize() -> void:
 	var com_ops := {}  # commission id -> {op: scenes giving it}
 	for id in load("res://scripts/world/world.gd").FLAGS:
 		flags_set[id] = true  # set by the world itself
+	for mid in maps:
+		for tid in maps[mid].get("trials", {}):
+			flags_set[str(maps[mid]["trials"][tid]["done"])] = true  # set by scripts/world/trials.gd
 	for cid in _json("res://data/world/calamities.json")["calamities"]:
 		var cr: Dictionary = _json("res://data/world/calamities.json")["calamities"][cid]
 		flags_set["pinned_" + str(cr["event"])] = true  # set by calamity code (scripts/game/calamity.gd)
@@ -157,6 +160,20 @@ func _initialize() -> void:
 				"ladder":
 					if not arg in ["bout", "win"]:
 						problems.append("%s: ladder %s is not bout or win" % [where, arg])
+				"inherit":
+					var T: Dictionary = map.get("trials", {}).get(arg, {})
+					if T.is_empty():
+						problems.append("%s: no trials %s on the map %s" % [where, arg, mid])
+					else:
+						if not story.scenes.has(str(T["scene"])):
+							problems.append("%s: trials %s reward scene %s is missing" % [where, arg, T["scene"]])
+						if not ledger.has(str(T["know"])):
+							problems.append("%s: trials %s know %s is no Ledger entry" % [where, arg, T["know"]])
+						for room in T["rooms"]:
+							if not map["doors"].has(str(room["door"])) or not map["places"].has(str(room["place"])):
+								problems.append("%s: trials %s room %s needs a door and a place on the map" % [where, arg, room["id"]])
+							if not str(room["kind"]) in ["lamps", "keep", "choke"]:
+								problems.append("%s: trials %s room %s has no kind %s" % [where, arg, room["id"], room["kind"]])
 				"confront":
 					var cr: Dictionary = Confront.load_scene(arg)
 					if cr.is_empty():

@@ -284,6 +284,15 @@
         "radius": {"label": "Width", "base": 4.5, "per": 0.1, "fmt": "%.1f"}
       }
     },
+    "cinder_lattice": {"minor": ["radius"], "wild": true, "name": "Cinder Lattice", "element": "fire", "slot": "control", "cast": "weave", "windup": 0.8, "aether": 24, "ring": 0,
+      "blurb": "A net of small fires, held still where you aim. Whatever is caught in it is held and burns; the ground under it burns out at once and carries no fire past it.",
+      "cooldown": 8.0, "range": 130, "impact": 0, "xp_hit": 3,
+      "stats": {
+        "radius": {"label": "Radius", "base": 24, "per": 0.8},
+        "hold": {"label": "Holds", "base": 2.0, "per": 0.06, "fmt": "%.1f s"},
+        "damage": {"label": "Damage", "base": 6, "per": 0.5, "fmt": "%.0f", "hidden": true}
+      }
+    },
     "spark_flask": {
       "school": "spark_artifice", "device": true, "ring": 0, "name": "Spark Flask", "element": "fire", "slot": "bolt", "cast": "swift", "windup": 0.0, "aether": 0,
       "blurb": "A flask of lamp oil with a spark in the stopper. Thrown, it bursts into flame where it lands.",

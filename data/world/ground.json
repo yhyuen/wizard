@@ -13,7 +13,7 @@
    "paint": [[300, 1270, 3300, 60, "earth"], [2190, 1330, 60, 230, "earth"], [1770, 1330, 60, 150, "earth"], [2880, 450, 380, 800, "earth"]]},
   "east_road": {"default": "grass", "places": [["road_end", "earth"], ["knights_picket", "earth"], ["toll_bridge", "earth"], ["quarry", "stone"], ["holds_road", "stone"]],
    "paint": [[0, 650, 4000, 100, "earth"], [1800, 420, 380, 220, "wood"], [1830, 170, 300, 190, "stone"], [1960, 360, 60, 60, "earth"], [1180, 0, 60, 1400, "earth"], [980, 440, 600, 520, "earth"]]},
-  "halls": {"default": "stone", "indoors": true, "places": [], "paint": []}
+  "halls": {"default": "stone", "indoors": true, "places": [["wr_dark", "cloth"], ["wr_fire", "grass"]], "paint": [[328, 244, 52, 72, "stone"]]}
  },
  "spread": {
   "base": 0.3, "downwind": 2.0, "upwind": 0.5, "into_fast": 3.0, "fast": ["cloth", "oil"],

@@ -194,6 +194,34 @@ func douse(i: int) -> bool:
 	return was
 
 
+## Cell `i` as the map made it: no fire, water, charge or ash, its fuel whole (a trial room put
+## back, N-7.6.8).
+func renew(i: int) -> void:
+	if i < 0:
+		return
+	burn[i] = 0.0
+	burning.erase(i)
+	ash.erase(i)
+	wet[i] = 0.0
+	charge[i] = 0.0
+	fuel[i] = float(mdef[mat[i]].get("fuel_s", 0.0)) if int(mdef[mat[i]].get("fire", 0)) > 0 else 0.0
+
+
+## A held fire on cell `i` (Cinder Lattice, N-7.6.8): what can burn there burns out at once, with no
+## spreading, and a fire already there is spent. Returns true if anything burned.
+func burn_out(i: int) -> bool:
+	if i < 0 or (fuel[i] <= 0.0 and burn[i] <= 0.0):
+		return false
+	burn[i] = 0.0
+	burning.erase(i)
+	fuel[i] = -1.0
+	ash[i] = true
+	wet[i] = 0.0
+	smoke[i] = float(sp["smoke_s"])
+	active[i] = true
+	return true
+
+
 ## A lightning strike on cell `i` at `grade` (spec §5.3): a conductor fills its connected
 ## network breadth-first as far as the grade reaches (capped); cloth and grass catch fire at
 ## their lightning grade. Returns the charged cells.

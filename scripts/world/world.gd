@@ -19,6 +19,7 @@ const Matter := preload("res://scripts/world/matter.gd")
 const Cells := preload("res://scripts/world/cells.gd")
 const Deeds := preload("res://scripts/world/deeds.gd")
 const Gates := preload("res://scripts/world/gates.gd")
+const Trials := preload("res://scripts/world/trials.gd")
 const Tris := preload("res://scripts/ui/tris.gd")
 const MAPS := "res://data/world/maps.json"
 const CAMP := "camp"
@@ -32,6 +33,7 @@ var _in_exit := ""  # the exit you stand in (an exit asks once, when you step in
 var people
 var deeds  # scripts/world/deeds.gd: owners, witnesses and repairs (N-4.4)
 var gates  # scripts/world/gates.gd: the city's grade gates, winch and lens (N-7.1.2)
+var trials  # scripts/world/trials.gd: an inheritance's trial rooms (N-7.6.8)
 var arena
 var run  # the Run autoload
 var story
@@ -86,6 +88,7 @@ func _init(the_run, the_story) -> void:
 	people = People.new(self)
 	deeds = Deeds.new(self)
 	gates = Gates.new(self)
+	trials = Trials.new(self)
 	_build_lamps()
 	reset_loop()
 
@@ -218,6 +221,7 @@ func _apply_sky() -> void:
 ## every map, and you are in the camp.
 func reset_loop() -> void:
 	_saved.clear()
+	trials.reset()
 	if map_id != CAMP:
 		map.movers = Callable()
 		map_id = CAMP
@@ -302,6 +306,7 @@ func tick(dt: float) -> void:
 	people.update(dt)
 	deeds.update(dt)
 	gates.update()
+	trials.update(dt)
 	if map.set_drained(run.flag):
 		_fresh_cells()  # a sluice turned: the channel drains (or floods) and its cells with it
 	_props(dt)
@@ -525,6 +530,7 @@ func burn_ground(at: Vector2, r: float, grade: int) -> int:
 ## cells' fires and wets them. Returns how many fires it put out.
 func wet_ground(at: Vector2, r: float, dir := Vector2.RIGHT, cone := TAU) -> int:
 	arena.ai.cult.wet(at, r)  # a Saboteur's oil, washed out before it's lit (N-6.7)
+	trials.wet(at, r)
 	_reveal_cast(at, r, "water")
 	if cells == null:
 		return 0
@@ -876,6 +882,9 @@ func douse(p: Dictionary) -> bool:
 
 func shove(p: Dictionary, dir: Vector2, power := 1.0) -> void:
 	var def := prop_def(p["kind"])
+	if def.get("slams", false):
+		trials.slam(p)
+		return
 	var mass := float(def.get("mass", 0))
 	if mass <= 0.0 or p["state"] == "ash" or p["integrity"] == "broken":
 		return
@@ -890,6 +899,8 @@ func apply_force(p: Dictionary, force: String, grade: int, impact := 1.0, dir :=
 	var def := prop_def(p["kind"])
 	if p["state"] == "ash" and force != "time":
 		return "none"
+	if def.get("slams", false) and force == "impact":
+		return trials.slam(p)  # a draught-door slams shut instead of moving
 	if def.get("turns", false) and force == "impact":
 		return gates.turn(p)  # the glassworks' mirrors turn instead of moving
 	var op: String = matter.result(force, grade, str(def.get("material", "wood")), def)
@@ -1090,6 +1101,22 @@ func _magic() -> void:
 				for pr in props:
 					if pr["pos"].distance_to(z["pos"]) < float(z["r"]) + float(prop_def(pr["kind"])["r"]):
 						hit_prop(pr, z["kind"])
+				for l in lamps:
+					if l["pos"].distance_to(z["pos"]) < float(z["r"]) + 6.0:
+						light_lamp(l, "you")
+				for b in braziers:
+					if b["pos"].distance_to(z["pos"]) < float(z["r"]) + 6.0:
+						b["lit"] = true
+			"lattice":
+				# Cinder Lattice: a held fire. The floor under it burns out at once and goes no
+				# further (a firebreak, and a fire there is spent); it lights lamps, not props.
+				var n := 0
+				for i in cells.within(z["pos"], float(z["r"])) if cells != null else []:
+					if cells.burn_out(i):
+						n += 1
+				if n > 0:
+					events_log.append(["ground_held", n])
+					_sync_fire_zones()
 				for l in lamps:
 					if l["pos"].distance_to(z["pos"]) < float(z["r"]) + 6.0:
 						light_lamp(l, "you")
