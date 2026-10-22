@@ -255,7 +255,7 @@ tiers, gifts and tastes, companions, sworn friends; what of them carries across 
 - **The Ring 1 roster** (N-7.2.2, people spec §21.1): 18 people, each with a `kind` (full, light
   or role; spec §3.1). In the camp: Mira, Pell, Fennick Brass (Guild bench by day, the great lamp
   at dusk, the inn at night), Aldous, Bett (the kitchen), Tam (with his father in the fields on
-  work days), Captain Halloway (the board, the College cordon, the east gate at dusk), Sister
+  work days), Captain Halloway (the College cordon by day, the east gate at dusk), Sister
   Nobody (the grief circle at Night only, from Ashmoon 4; Pell sits there too), Silas Vane
   (drilling in the yard, then the market), Cass Vane (moons 1–3 only), Kestrel (the market; the
   east road's waystation on Mars's and Venus's days), Healer Pike (the infirmary), Old Jory (the

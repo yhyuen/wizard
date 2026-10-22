@@ -53,8 +53,7 @@
    "kind": "light",
    "figure": "captain",
    "rows": [
-    {"slot": "morning", "at": "board"},
-    {"slot": "noon,afternoon", "at": "captain"},
+    {"slot": "morning,noon,afternoon", "at": "captain"},
     {"slot": "dusk", "at": "east_gate", "doing": "drill"},
     {"slot": "night", "at": ""}
    ],
