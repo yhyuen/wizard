@@ -79,9 +79,20 @@
   "pell": {"kind": "person", "title": "Pell", "text": "Eager to help with anything. Knew the College, or says so."},
   "captain": {
    "kind": "person",
-   "title": "The watch captain",
-   "text": "Holds the cordon at the College gate. Nobody goes down, except that I do."
+   "title": "Captain Halloway",
+   "text": "The watch's captain, eleven watchmen left. Holds the cordon at the College gate. Nobody goes down, except that I do."
   },
+  "fennick": {"kind": "person", "title": "Fennick Brass", "text": "Guild artificer up from Lantern Quay. Runs the Lantern Market and sells everything, out of forty pockets."},
+  "bett": {"kind": "person", "title": "Bett", "text": "Aldous's wife. Runs the camp kitchen and feeds whoever comes."},
+  "tam": {"kind": "person", "title": "Tam", "text": "Aldous's youngest, ten. Carries the water. Can't make a Kindle light yet."},
+  "nobody": {"kind": "person", "title": "Sister Nobody", "text": "Keeps a fire at the camp's edge each night for anyone who's lost someone. I can never quite picture her face afterwards."},
+  "silas": {"kind": "person", "title": "Silas Vane", "text": "Second-year Storm student. Brilliant, and can't stand me."},
+  "cass": {"kind": "person", "title": "Cass Vane", "text": "Silas's sister, sixteen. Laughs too loudly and draws on everything."},
+  "kestrel": {"kind": "person", "title": "Kestrel", "text": "Guild courier. Sharp, always eating something, and never lets go of the satchel."},
+  "dunmore": {"kind": "person", "title": "Knight-Captain Dunmore", "text": "Leads the Knights' envoy on the east road. Courteous. Watches everything."},
+  "maud": {"kind": "person", "title": "Dame Maud Ashby", "text": "A knight of the envoy, in lead-sealed plate. Very tired eyes."},
+  "pike": {"kind": "person", "title": "Healer Pike", "text": "Runs the infirmary. Ex-College, very good with bones."},
+  "jory": {"kind": "person", "title": "Old Jory", "text": "The fiddler. His fiddle came through the Shattering. He knows four songs."},
   "model_rewind": {
    "kind": "model",
    "title": "Rewind (Hours)",

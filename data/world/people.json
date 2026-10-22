@@ -1,8 +1,9 @@
 {
- "_doc": "Who is where in the survivors' camp (design/ruins/content.md §1). schedule: a spot (data/world/map.json spots) for each time of day, or \"\" for off the map. overrides: the first that holds wins: days (\"4\", \"1-7\", \"2,3\"), times (comma list or any), when (a story condition), spot, and seek: walk up to the wizard and start talking (once a loop). from_day: not in the camp before that day. barks: lines said over the head now and then, the first few that hold are picked at random; each can have days, times and when. figure: the look in data/visual.json figures. reach: how close you must be to talk (sim px). Nobody follows you into the ruin.",
+ "_doc": "Who is where (the Ring 1 roster, people spec §21.1; kind: full, light or role, people spec §3.1) in the survivors' camp (design/ruins/content.md §1). schedule: a spot (data/world/map.json spots) for each time of day, or \"\" for off the map. overrides: the first that holds wins: days (\"4\", \"1-7\", \"2,3\"), times (comma list or any), when (a story condition), spot, and seek: walk up to the wizard and start talking (once a loop). from_day: not in the camp before that day. barks: lines said over the head now and then, the first few that hold are picked at random; each can have days, times and when. figure: the look in data/visual.json figures. reach: how close you must be to talk (sim px). Nobody follows you into the ruin.",
  "people": {
   "mira": {
    "name": "Mira",
+   "kind": "full",
    "figure": "mira",
    "schedule": {
     "morning": "mira_market",
@@ -20,6 +21,7 @@
   },
   "aldous": {
    "name": "Aldous",
+   "kind": "light",
    "figure": "aldous",
    "rows": [
     {"seasons": ["spring", "autumn"], "weekdays": ["sol", "mars", "jupiter"], "slot": "morning,noon,afternoon", "map": "fields", "at": "barns", "doing": "work"},
@@ -33,17 +35,29 @@
   },
   "pell": {
    "name": "Pell",
+   "kind": "full",
    "figure": "pell",
-   "schedule": {"morning": "pell_market", "noon": "pell_market", "afternoon": "pell_gate", "dusk": "pell_gate", "night": ""},
+   "rows": [
+    {"slot": "morning,noon", "at": "pell_market", "doing": "trade"},
+    {"slot": "afternoon,dusk", "at": "pell_gate"},
+    {"days": "4-364", "slot": "night", "at": "grief_circle", "doing": "mourn"},
+    {"slot": "night", "at": ""}
+   ],
    "barks": [
     {"text": "Anything you need, I'll find it. Anything."},
     {"times": "afternoon,dusk", "text": "Someone should go down there. Someone brave."}
    ]
   },
   "captain": {
-   "name": "The watch captain",
+   "name": "Captain Halloway",
+   "kind": "light",
    "figure": "captain",
-   "schedule": {"morning": "captain", "noon": "captain", "afternoon": "captain", "dusk": "captain", "night": ""},
+   "rows": [
+    {"slot": "morning", "at": "board"},
+    {"slot": "noon,afternoon", "at": "captain"},
+    {"slot": "dusk", "at": "east_gate", "doing": "drill"},
+    {"slot": "night", "at": ""}
+   ],
    "flinch": ["Put that away!", "Not near my cordon."],
    "barks": [
     {"text": "Nobody goes past the gate."}, {"text": "Count your people. Then count them again."},
@@ -52,6 +66,7 @@
   },
   "pie_seller": {
    "name": "The pie-seller",
+   "kind": "role",
    "figure": "pie_seller",
    "cover": "inn",
    "schedule": {"morning": "pie_seller", "noon": "pie_seller", "afternoon": "pie_seller", "dusk": "", "night": ""},
@@ -59,10 +74,168 @@
   },
   "dog": {
    "name": "A stray dog",
+   "kind": "role",
    "figure": "dog",
    "reach": 22,
    "schedule": {"morning": "dog_square", "noon": "dog_square", "afternoon": "dog_square", "dusk": "dog_square", "night": ""},
    "barks": [{"text": "Wuff."}, {"times": "morning", "text": "(sniffs at your boots)"}]
+  },
+  "fennick": {
+   "name": "Fennick Brass",
+   "kind": "full",
+   "figure": "fennick",
+   "rows": [
+    {"slot": "morning,noon,afternoon", "at": "guild_bench", "doing": "trade"},
+    {"slot": "dusk", "at": "great_lamp", "doing": "work"},
+    {"slot": "night", "at": "inn", "doing": "drink"}
+   ],
+   "barks": [
+    {"text": "Forty pockets and every one of them for sale."}, {"text": "Guild work. Built to last, priced to match."},
+    {"times": "dusk", "text": "Mind the rails. They bite."}
+   ]
+  },
+  "bett": {
+   "name": "Bett",
+   "kind": "light",
+   "figure": "bett",
+   "rows": [
+    {"slot": "morning,noon,afternoon,dusk", "at": "kitchen"},
+    {"slot": "night", "at": ""}
+   ],
+   "barks": [
+    {"text": "Bowl. Spoon. Sit. Eat."}, {"times": "noon", "text": "Soup's on. Thin, but on."},
+    {"times": "dusk", "text": "Has anyone seen my Tam?"}
+   ]
+  },
+  "tam": {
+   "name": "Tam",
+   "kind": "light",
+   "figure": "tam",
+   "rows": [
+    {"seasons": ["spring", "autumn"], "weekdays": ["sol", "mars", "jupiter"], "slot": "morning,noon,afternoon", "map": "fields", "at": "mill_bridge"},
+    {"slot": "morning,noon", "at": "mill_east"},
+    {"slot": "afternoon,dusk", "at": "kitchen"},
+    {"slot": "night", "at": ""}
+   ],
+   "barks": [
+    {"text": "Want some water? I carry the water."}, {"text": "I nearly lit a Kindle yesterday. Nearly."},
+    {"times": "dusk", "text": "Mum says inside before the lamps."}
+   ]
+  },
+  "nobody": {
+   "name": "Sister Nobody",
+   "kind": "light",
+   "figure": "nobody",
+   "rows": [
+    {"days": "4-364", "slot": "night", "at": "grief_circle", "doing": "mourn"},
+    {"slot": "any", "at": ""}
+   ],
+   "barks": [
+    {"text": "Sit, if you like. The fire doesn't ask questions."}, {"text": "Say their names. It helps. It does."}
+   ]
+  },
+  "silas": {
+   "name": "Silas Vane",
+   "kind": "full",
+   "figure": "silas",
+   "rows": [
+    {"slot": "morning,noon", "at": "silas_drill", "doing": "drill"},
+    {"slot": "afternoon,dusk", "at": "cass_market"},
+    {"slot": "night", "at": ""}
+   ],
+   "barks": [
+    {"times": "morning,noon", "text": "Again. Cleaner. Again."}, {"times": "afternoon,dusk", "text": "Cass. Don't draw on that, it's someone's."},
+    {"text": "Oh. You."}
+   ]
+  },
+  "cass": {
+   "name": "Cass Vane",
+   "kind": "light",
+   "figure": "cass",
+   "rows": [
+    {"moons": "1-3", "slot": "morning,noon", "at": "college_tents"},
+    {"moons": "1-3", "slot": "afternoon,dusk", "at": "cass_draw"},
+    {"slot": "any", "at": ""}
+   ],
+   "barks": [
+    {"text": "Hold still. No, you moved. Hold still."}, {"text": "Silas says I laugh too loud. Silas is wrong."},
+    {"times": "dusk", "text": "The lamps look like little moons from up here."}
+   ]
+  },
+  "pip": {
+   "name": "Pip",
+   "kind": "role",
+   "figure": "pip",
+   "talk_none": true,
+   "rows": [
+    {"slot": "morning", "at": "shrine"},
+    {"slot": "noon", "at": "stairs"},
+    {"slot": "afternoon", "at": "dog_square"},
+    {"slot": "dusk", "at": "mira_door"},
+    {"slot": "night", "at": ""}
+   ],
+   "barks": [{"text": "(watches you from a safe distance)"}, {"times": "dusk", "text": "(trails after the lamplighter)"}]
+  },
+  "kestrel": {
+   "name": "Kestrel",
+   "kind": "light",
+   "figure": "kestrel",
+   "rows": [
+    {"weekdays": ["mars", "venus"], "slot": "morning,noon,afternoon", "map": "east_road", "at": "waystation", "doing": "work"},
+    {"slot": "morning,noon,afternoon", "at": "kestrel_market", "doing": "trade"},
+    {"slot": "dusk", "at": "inn", "doing": "eat"},
+    {"slot": "night", "at": ""}
+   ],
+   "barks": [
+    {"text": "Letters, parcels, bad news. Same rate."}, {"text": "Don't touch the satchel. Guild seal."},
+    {"times": "dusk", "text": "(chewing) Mm. Don't ask what it is."}
+   ]
+  },
+  "dunmore": {
+   "name": "Knight-Captain Dunmore",
+   "kind": "light",
+   "figure": "dunmore",
+   "rows": [
+    {"slot": "morning,noon,afternoon,dusk", "map": "east_road", "at": "knights_picket", "doing": "drill"},
+    {"slot": "night", "at": ""}
+   ],
+   "barks": [
+    {"text": "Good day, wizard. Keep your hands where I can see them, if you'd be so kind."},
+    {"text": "The Oath keeps the road. For now."}
+   ]
+  },
+  "maud": {
+   "name": "Dame Maud Ashby",
+   "kind": "light",
+   "figure": "maud",
+   "rows": [
+    {"slot": "afternoon", "at": "east_gate", "if": "f(\"knights_camped\")"},
+    {"slot": "morning,noon,dusk", "map": "east_road", "at": "knights_picket", "doing": "drill"},
+    {"slot": "night", "at": ""}
+   ],
+   "barks": [{"text": "(says nothing, and watches you go by)"}, {"text": "Move along."}]
+  },
+  "pike": {
+   "name": "Healer Pike",
+   "kind": "light",
+   "figure": "pike",
+   "rows": [
+    {"slot": "morning,noon,afternoon,dusk", "at": "infirmary", "doing": "work"},
+    {"slot": "night", "at": "infirmary", "doing": "sleep"}
+   ],
+   "busy_line": "Bones first. Talk later.",
+   "barks": [{"text": "Sit. Don't move. That's an order and a diagnosis."}, {"text": "Clean water. Clean linen. Prayers optional."}]
+  },
+  "jory": {
+   "name": "Old Jory",
+   "kind": "role",
+   "figure": "jory",
+   "rows": [
+    {"slot": "noon,afternoon", "at": "inn", "doing": "drink"},
+    {"slot": "dusk", "at": "jory"},
+    {"slot": "any", "at": ""}
+   ],
+   "barks": [{"times": "dusk", "text": "(plays the second of his four songs)"}, {"text": "Four songs. All of them sad. Pick one."}]
   }
  },
  "_crowd_doc": "Survivors who wander the market and the square by day: how many at each time of day, and where they wander.",

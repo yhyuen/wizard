@@ -113,6 +113,12 @@
   ]
  },
  "spots": {
+  "kitchen": [1560, 1060],
+  "jory": [990, 1150],
+  "kestrel_market": [830, 1080],
+  "cass_market": [1160, 1080],
+  "cass_draw": [1180, 1130],
+  "silas_drill": [1200, 640],
   "cot": [990, 1152],
   "north_in": [1100, 300],
   "yard_c": [950, 580],

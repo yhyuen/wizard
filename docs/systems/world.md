@@ -252,6 +252,19 @@ tiers, gifts and tastes, companions, sworn friends; what of them carries across 
 [people and side activities spec](/mnt/project-files/design/people/people-and-side-activities-spec.md)
 §3–5 (tracker M0-17; visual: [Folk and Pastimes Atlas](https://claude.ai/artifact/H9gh2FHhiCZ6Sm8iu7zkvS)).*
 
+- **The Ring 1 roster** (N-7.2.2, people spec §21.1): 18 people, each with a `kind` (full, light
+  or role; spec §3.1). In the camp: Mira, Pell, Fennick Brass (Guild bench by day, the great lamp
+  at dusk, the inn at night), Aldous, Bett (the kitchen), Tam (with his father in the fields on
+  work days), Captain Halloway (the board, the College cordon, the east gate at dusk), Sister
+  Nobody (the grief circle at Night only, from Ashmoon 4; Pell sits there too), Silas Vane
+  (drilling in the yard, then the market), Cass Vane (moons 1–3 only), Kestrel (the market; the
+  east road's waystation on Mars's and Venus's days), Healer Pike (the infirmary), Old Jory (the
+  inn, then fiddling in the market at dusk), Pip (keeps her distance: no talk, `talk_none`), the
+  pie-seller and the dog. On the east road: Knight-Captain Dunmore and Dame Maud Ashby at the
+  picket (Maud at the camp's east gate in the afternoon once the Knights have camped). Each but
+  Pip has a first talk that puts them in the Ledger (`people.story`); a person's `busy_line`
+  replaces the shared one. Mira has the first "notices" line (life 2+). Wren, Crane and Marrow
+  come with the main line (N-7.3), Brogan and Red Annet with their side quests.
 - Each person has a `schedule` of camp spots per time of day, or **schedule rows** (N-7.2.1,
   people spec §3.2), `overrides` (days, times, `when`, `spot`, `seek` to walk up and talk once a
   loop; camp only), `from_day`, and `barks` heard within 170 px every 7–15 s (a bark can need a

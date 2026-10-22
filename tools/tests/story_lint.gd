@@ -189,9 +189,10 @@ func _initialize() -> void:
 				problems.append("%s: %s(\"%s\") is not a fixed event" % [pair[1], fn, id])
 			elif fn in ["died", "ended"] and not deaths.has(id):
 				problems.append("%s: died(\"%s\") is not a death cause" % [pair[1], id])
-	# Everyone you can walk up to says something, and every item does something, on any day.
+	# Everyone you can walk up to says something, and every item does something, on any day
+	# (talk_none: people you can't talk to, like Pip, who keeps her distance).
 	for id in people:
-		if id != "walker" and not story.scenes.values().any(func(sc): return sc["talk"] == id and sc["days"].is_empty() and sc["when"] == ""):
+		if id != "walker" and not people[id].get("talk_none", false) and not story.scenes.values().any(func(sc): return sc["talk"] == id and sc["days"].is_empty() and sc["when"] == ""):
 			problems.append("person %s: no fallback talk scene (no days, no when)" % id)
 	for mid in maps:
 		for id in maps[mid]["items"]:
