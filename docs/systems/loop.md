@@ -11,6 +11,11 @@ Turning, save moments, versions, desktop and browser); visual page [Lives, Saves
 the year (N-1.1) and waking injured (N-1.3); the rest is in [drift.md](drift.md). This page is
 right about the game.*
 
+*Seasons and calamities target: the [seasons, weather and calamities spec](/mnt/project-files/design/seasons/seasons-and-calamities-spec.md) (tracker M0-13;
+visual: [Year Almanac](https://claude.ai/artifact/J7A45goxfoENHyv2nKRR2o)): four seasons on the calendar, daily weather that repeats every
+life, and how a calamity plays (Signs, Eve, Onset, Peak, Dawn, Aftermath; Held, Scarred or Fallen).
+Nothing of it is built beyond the four dated events below; the gaps are in [drift.md](drift.md).*
+
 ## Two layers of state (`scripts/game/run.gd`, the `Run` autoload)
 
 - **`mem`** is what you remember and keeps across loops: the loop number, known Ledger entries,
