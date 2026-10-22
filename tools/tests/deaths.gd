@@ -122,13 +122,14 @@ func _rest_and_travel() -> void:
 func _fixed_events() -> void:
 	slice.new_month()
 	slice.finish_scene()
-	run.life["day"] = 12
+	run.life["day"] = 2
+	run.life["time"] = 2  # afternoon: the Knights ride in at dusk
 	slice.next_period()
 	if str(slice.cur.get("id", "")) != "knights_arrive" or run.event_state("knights_arrive") != "attended":
-		failures.append("the Knights should arrive while you're in the camp at noon on Ashmoon 12 (%s, %s)" % [slice.cur.get("id", ""), run.event_state("knights_arrive")])
+		failures.append("the Knights should arrive while you're in the camp at dusk on Ashmoon 2 (%s, %s)" % [slice.cur.get("id", ""), run.event_state("knights_arrive")])
 	slice.finish_scene()
 	if not slice.rest_until(40) or run.event_state("iron_gate_shuts") != "missed" or not run.flag("iron_gate_shut"):
-		failures.append("resting past Thaw 7 should run the Iron Gate's default (%s)" % run.event_state("iron_gate_shuts"))
+		failures.append("resting past Thaw 2 should run the Iron Gate's default (%s)" % run.event_state("iron_gate_shuts"))
 	elif not run.soul["appointments"].has("iron_gate_shuts") or run.soul["appointments"].has("knights_arrive"):
 		failures.append("only a missed event that costs something becomes an appointment: %s" % str(run.soul["appointments"].keys()))
 	else:
@@ -136,7 +137,7 @@ func _fixed_events() -> void:
 		if not ("knights_arrive" in pinned and "iron_gate_shuts" in pinned):
 			failures.append("fixed events seen or missed should be pinned from then on: %s" % str(pinned))
 		else:
-			print("[deaths] the Knights came at noon on Ashmoon 12; the Iron Gate shut while you rested, and the Ledger kept the date")
+			print("[deaths] the Knights came at dusk on Ashmoon 2; the Iron Gate shut while you rested, and the Ledger kept the date")
 
 
 ## The shrine turns back the Hours only once a calamity has passed in this life (lives spec §3.1).

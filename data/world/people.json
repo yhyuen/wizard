@@ -195,8 +195,8 @@
    "kind": "light",
    "figure": "dunmore",
    "rows": [
-    {"slot": "morning,noon,afternoon,dusk", "map": "east_road", "at": "knights_picket", "doing": "drill"},
-    {"slot": "night", "at": ""}
+    {"slot": "morning,noon,afternoon,dusk", "map": "east_road", "at": "knights_picket", "doing": "drill", "if": "f(\"knights_camped\")"},
+    {"slot": "any", "at": ""}
    ],
    "barks": [
     {"text": "Good day, wizard. Keep your hands where I can see them, if you'd be so kind."},
@@ -209,8 +209,8 @@
    "figure": "maud",
    "rows": [
     {"slot": "afternoon", "at": "east_gate", "if": "f(\"knights_camped\")"},
-    {"slot": "morning,noon,dusk", "map": "east_road", "at": "knights_picket", "doing": "drill"},
-    {"slot": "night", "at": ""}
+    {"slot": "morning,noon,dusk", "map": "east_road", "at": "knights_picket", "doing": "drill", "if": "f(\"knights_camped\")"},
+    {"slot": "any", "at": ""}
    ],
    "barks": [{"text": "(says nothing, and watches you go by)"}, {"text": "Move along."}]
   },
@@ -224,6 +224,17 @@
    ],
    "busy_line": "Bones first. Talk later.",
    "barks": [{"text": "Sit. Don't move. That's an order and a diagnosis."}, {"text": "Clean water. Clean linen. Prayers optional."}]
+  },
+  "brogan": {
+   "name": "Brogan Tallowmere",
+   "kind": "light",
+   "figure": "brogan",
+   "rows": [
+    {"slot": "morning,noon,afternoon,dusk", "at": "smith", "if": "f(\"brogan_freed\")"},
+    {"slot": "night", "at": "inn", "doing": "drink", "if": "f(\"brogan_freed\")"},
+    {"slot": "any", "at": ""}
+   ],
+   "barks": [{"text": "Your beer is a crime against stone."}, {"text": "West. The Holds are always west."}]
   },
   "jory": {
    "name": "Old Jory",
