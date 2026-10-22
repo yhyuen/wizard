@@ -13,6 +13,14 @@ blame for damage, what carries across lives); visual page
 conditions (`standing`, `rank`, `fame`, `nickname`, `wanted`) and effects (`+ standing`, `+ merit`,
 `+ fame`, `+ join`) that are not built yet; see [drift.md](drift.md).*
 
+*Target for the side activities (commissions, the dueling ladder, minigames, rumours and overheard
+talk, confrontations, inheritances) and the people's bonds: the
+[people and side activities spec](/mnt/project-files/design/people/people-and-side-activities-spec.md)
+(tracker M0-17; visual [Folk and Pastimes Atlas](https://claude.ai/artifact/H9gh2FHhiCZ6Sm8iu7zkvS)).
+It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `commission_done`,
+`rung`, `minigame_beaten`) and effects (`+ bond`, `+ rumour`, `+ companion`, `+ commission`,
+`+ confront`) that are not built yet; see [drift.md](drift.md). Its §21 is SEALED story content.*
+
 ## Scenes (`scripts/game/story.gd`)
 
 - Each map's story folder (`maps.json` `story`) holds plain-text `.story` files of scenes:
