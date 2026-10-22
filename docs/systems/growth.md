@@ -7,7 +7,9 @@ C-1 (spell levels and milestones).*
 *Target for the long-loop direction: what carries between lives (spells known, best levels and
 the Echo, remembered trials, Sphere Comprehension, school rank, insight) is the carry table in the
 [lives, carry-over and achievements spec](/mnt/project-files/design/lives/lives-and-carryover-spec.md) §4 (tracker M0-10); spell growth itself is the
-[spell and combat spec](/mnt/project-files/design/combat/spell-and-combat-spec.md) §6. Not built yet.*
+[spell and combat spec](/mnt/project-files/design/combat/spell-and-combat-spec.md) §6. Gear (slots, tiers, traits and their caps) is the
+[economy spec](/mnt/project-files/design/economy/economy-and-repair-spec.md) §4 (tracker M0-15).
+Not built yet.*
 
 There are two layers, and the ruins game uses the first on top of the second.
 

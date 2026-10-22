@@ -49,6 +49,10 @@
 
 ## People (`scripts/world/people.gd`, `data/world/people.json`)
 
+*Target: how people and powers judge what you do (standing, fame and infamy, the numbered blame
+ladder, suspicion, amends, bounties) is the [powers and reputation spec](/mnt/project-files/design/powers/powers-and-reputation-spec.md)
+§9 (tracker M0-14). What follows is the build today.*
+
 - Camp only (nobody follows you into the ruin). Each person has a `schedule` of spots per time
   of day, `overrides` (days, times, `when`, `spot`, `seek` to walk up and talk once a loop),
   `from_day`, and `barks` heard within 170 px every 7–15 s.
@@ -74,6 +78,16 @@ grid, breaking and collapse, damage that lasts the life, owners and witnesses. W
   and braziers, sets props burning) and Douse like a splash all round its point (puts out props,
   lamps, braziers and burning patches). The **staff strike** shoves the prop in front of it.
 - A lit or flaring lamp's pool (`light_r` 38) keeps `light_shy` kinds out.
+
+## Economy, gear and repair (not built)
+
+*Target design: [economy, gear, crafting and repair](/mnt/project-files/design/economy/economy-and-repair-spec.md)
+(2026-10-22, tracker M0-15; visual: [Crowns and Crews](https://claude.ai/artifact/NabgfdAiiuJw8ghJPuBkzL)):
+one coin (crowns), shops with weekly stock and one price formula (ring, season, scarcity, standing,
+infamy), gear slots with fixed tiers and traits, reagents, salvage and benches, Spark Artifice device
+charges, commissions, homes and loans, and repair crews who rebuild owned props on the environment
+spec's timers using each town's stock. Money, gear and the home reset each life. None of it is built
+yet; the gaps are in [drift.md](drift.md).*
 
 ## Tests
 
