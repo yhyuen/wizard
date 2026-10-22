@@ -11,6 +11,8 @@ signal magick_learned(id: String)
 signal hint_learned(id: String)
 signal loadout_changed
 signal breakthrough(id: String, stage: int)
+signal practised(id: String, amount: float)  # Practice gained on a spell (school rank, N-5.1)
+signal school_ranked(school: String, rank: int)
 
 const SAVE_PATH := "user://progress.json"
 
@@ -25,6 +27,10 @@ var boost: Dictionary = {}
 ## (scripts/game/growth.gd): {"hp", "aether", "blinks", "open", "echo", "echo_mult", "fluency",
 ## "revisions", "ward"}. Empty outside the slice, where the old Mill fight's rules apply.
 var rules: Dictionary = {}
+## data/schools.json (spell spec §7): a spell's school, the outside-school cost, Alignment.
+var schools: Dictionary = {}
+## The spell being cast with Astral Rite's Alignment (its range grows), or "".
+var align := ""
 
 const SIZE_KEYS := ["radius", "size", "cone", "width"]
 const BOOK_SIZE := 4
@@ -34,6 +40,7 @@ const COUNT_KEYS := ["bounces", "strikes", "chains"]
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	data = load_data()
+	schools = JSON.parse_string(FileAccess.get_file_as_string("res://data/schools.json"))
 	p = fresh()
 	if "--script" in OS.get_cmdline_args():
 		save_enabled = false
@@ -120,10 +127,56 @@ func stat(id: String, key: String, lv := -1) -> float:
 			v *= float(boost["size"])
 		elif key in COUNT_KEYS:
 			v += int(boost["count"])
+	if key == "range" and current and align == id:
+		v *= float(schools["alignment"]["range_k"])
 	# The telegraph never lands faster than a wizard-speed target can leave it.
 	if id == "pillar" and key == "delay":
 		v = maxf(v, fair_delay(stat("pillar", "radius", -1 if current else lv)))
 	return v
+
+
+## A spell's reach now: its range stat, or its fixed range, longer while it is cast Aligned.
+func reach(id: String) -> float:
+	var s: Dictionary = spell(id)
+	if s.get("stats", {}).has("range"):
+		return stat(id, "range")
+	return float(s.get("range", 0.0)) * (float(schools["alignment"]["range_k"]) if align == id else 1.0)
+
+
+# --- schools (spell spec §5.1, §7, §8; N-5.1) ------------------------------------------
+
+func school_of(id: String) -> String:
+	return str(spell(id).get("school", "")) if data["spells"].has(id) else ""
+
+
+func school_name(sid: String) -> String:
+	return str(schools["schools"].get(sid, {}).get("name", "no school"))
+
+
+## This life's school (from its road; the slice's rules), or "" with no road yet.
+func school() -> String:
+	return str(rules.get("school", ""))
+
+
+## What a spell's Aether and wind-up are multiplied by for its school (spec §5.1): ×1 in your own
+## school or one an earlier life took to Adept; ×1.25 in one you hold only a lower rank in; ×1.5 in
+## one you never trained. Outside the slice's rules, ×1.
+func school_k(id: String) -> float:
+	var sid := school_of(id)
+	if rules.is_empty() or sid == "" or sid == school():
+		return 1.0
+	var o: Dictionary = schools["outside"]
+	var best := int(rules.get("school_best", {}).get(sid, -1))
+	if best >= int(o["free_rank"]):
+		return 1.0
+	if best >= 0 or rules.get("school_ranks", {}).has(sid):
+		return 1.0 + float(o["trained"])
+	return 1.0 + float(o["never"])
+
+
+## Whether this life's school bends the rules with `rule` (e.g. "alignment").
+func school_rule(rule: String) -> bool:
+	return str(schools["schools"].get(school(), {}).get("rule", "")) == rule
 
 
 ## The shortest fair delay for a circle telegraph of radius `r`: a target as fast as the wizard,
@@ -162,6 +215,7 @@ func add_xp(id: String, amount: float, practice := true) -> void:
 	if old >= max_level():
 		return
 	s["xp"] = float(s["xp"]) + amount * xp_mult(id)
+	practised.emit(id, amount)
 	_climb(id)
 	if int(s["level"]) != old:
 		spell_leveled.emit(id, old, int(s["level"]))

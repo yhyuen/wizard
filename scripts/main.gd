@@ -60,6 +60,7 @@ func _ready() -> void:
 	Progression.spell_leveled.connect(_on_spell_leveled)
 	Progression.mutation_picked.connect(_on_mutation)
 	Progression.breakthrough.connect(_on_breakthrough)
+	Progression.school_ranked.connect(_on_school_ranked)
 	slice.main = self
 	add_child(slice)
 	slice.screen_changed.connect(_on_slice_screen)
@@ -368,6 +369,10 @@ func _on_spell_leveled(id: String, old: int, new: int) -> void:
 
 
 ## A breakthrough (spell spec §6.4): a new stage, a bigger step, a higher Force grade.
+func _on_school_ranked(sid: String, rank: int) -> void:
+	hud.push_toast("%s: you reach the rank of %s." % [Progression.school_name(sid), slice.growth.rank_name(rank)])
+
+
 func _on_breakthrough(id: String, stage: int) -> void:
 	hud.push_toast("Breakthrough: %s is %s now (Force grade %d)." % [Progression.spell(id)["name"], Progression.stage_name(stage),
 		Progression.grade(id)], PixelArt.GOLD)

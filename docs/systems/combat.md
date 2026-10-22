@@ -92,6 +92,9 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   an `ember` zone marked `cell`: the world deals its damage, not the arena's ember rule.
   Rubble from a fallen structure slows everyone on it by 30% (`move_speed` asks
   `world.ground_speed`); a collapse is Impact 3 to everyone under it.
+- **Schools** ([growth.md](growth.md) "Schools"): spells outside this life's school cost more
+  Aether and wind up longer (×1.25 or ×1.5). Astral Rite's **Alignment**: stood still 1 s, your
+  next spell of the school reaches ×1.3 further (`kit.gd` `still_t`, `aligned()`).
 - **Mastery in a fight** ([growth.md](growth.md)): a spell's stage sets its Force grade
   (`Progression.grade`, I–IV, capped by Ring) and grows its `minor` axis ×1.2 per stage. Pillar's
   and the meteor's zones draw a ring of sigils per stage (`arena.gd` `_sigils`). Signatures need

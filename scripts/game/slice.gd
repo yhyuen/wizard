@@ -176,6 +176,7 @@ func _morning_notes() -> void:
 			toast("Roads open to you: " + ", ".join(offers.map(func(r): return run.road_name(r))))
 	if run.road() == "" and run.day() >= int(run.lives["road_by_day"]):
 		run.take_road("apprentice")
+		growth.refresh()  # the road's school: its spells at their own cost
 		toast("The College's intake day: you walk the Apprentice road this year.")
 
 
@@ -621,6 +622,7 @@ func _effect(op: String, arg: String) -> bool:
 			run.life["done_" + arg] = run.day()
 		"road":
 			if run.take_road(arg):
+				growth.refresh()
 				toast("You walk the %s road this year." % run.road_name(arg))
 		"deed":
 			run.deed(arg)
@@ -1452,7 +1454,8 @@ func _draw_book() -> void:
 	panel(r, Color(GOLD, 0.6))
 	title(r.position + Vector2(40, 40), "Your spellbook", 22, GOLD)
 	var at := Vector2(r.position.x + 40, r.position.y + 70)
-	var line := "%s  ·  %d wells  ·  Vitality %d  ·  Aether %d" % [growth.ring_name(), growth.wells(), int(growth.max_hp()), int(growth.max_aether())]
+	var sch: String = "no school yet" if growth.school() == "" else "%s %s" % [growth.prog.school_name(growth.school()), growth.rank_name(growth.school_rank())]
+	var line := "%s  ·  %s  ·  %d wells  ·  Vitality %d  ·  Aether %d" % [growth.ring_name(), sch, growth.wells(), int(growth.max_hp()), int(growth.max_aether())]
 	title(at, line, 15, HAIR)
 	var next := "The yard trial opens the 1st Ring." if growth.ring() == 0 else ""
 	if growth.wells_to_next() > 0:
@@ -1510,6 +1513,8 @@ func _draw_book() -> void:
 			label += "  (%s)" % growth.ring_name(growth.tier_ring(id)).trim_suffix(" Ring")
 		elif not ok:
 			label += "  (not yet)"  # its prerequisites (spell spec §6.5)
+		elif growth.prog.school_k(id) > 1.0:
+			label += "  +%d%%" % roundi((growth.prog.school_k(id) - 1.0) * 100.0)  # outside your school (spec §5.1)
 		button(rr, label, _put_model.bind(id), 0, 12, ok and book_slot < growth.slots())
 	button(Rect2(r.position.x + r.size.x / 2.0 - 80, r.end.y - 48, 160, 32), "Close  (Space)", func(): overlay = "", 0, 14)
 

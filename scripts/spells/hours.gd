@@ -43,7 +43,7 @@ func form_point() -> Vector2:
 	var s: Dictionary = Progression.spell("rewind")
 	var P: Unit = A.player
 	var d: Vector2 = K.aim - P.pos
-	var reach_len := clampf(d.length(), float(s["min_range"]), float(s["range"]))
+	var reach_len := clampf(d.length(), float(s["min_range"]), Progression.reach("rewind"))
 	return A.clamp_in(P.pos + K.aim_dir() * reach_len)
 
 

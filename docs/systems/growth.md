@@ -37,6 +37,30 @@ There are two layers, and the ruins game uses the first on top of the second.
   slots, echo, `fluency` (the insight bonus), no Magicks); `end_fight()` takes them back. A book saved with six slots
   keeps its first four.
 
+## Schools (`data/schools.json`; N-5.1)
+
+*Spell spec §5.1, §7, §8. Built: the frame and Astral Rite's rule. Not yet: other schools' rules
+(Spark Artifice is N-5.2), a power's rank ladder with merit, standing and an exam (N-7.3), school
+quest lines, combined spells, Grand spells needing the school's Adept rank.*
+
+- **Every spell names its school** (`spells.json` `school`): the 13 spells are all **Astral
+  Rite** (the College). Each road names its school (`lives.json` `roads`): Apprentice → Astral
+  Rite, Lamplighter → Spark Artifice. **This life's school** is your road's; before you take a
+  road (a later life's first days) you have none.
+- **Outside your school** a spell costs more Aether and winds up longer (`kit.gd` `aether_cost`
+  and `windup` × `Progression.school_k`): ×1.25 in a school you hold a rank in (this life, or only
+  Initiate in an earlier one), ×1.5 in one you never trained, ×1 again once an earlier life took
+  that school to **Adept** (`outside.free_rank`). The book shows the extra cost on a Model ("+25%").
+- **School rank:** Initiate, Adept, Master, Grandmaster at 0 / 150 / 600 / 1500 Practice gained on
+  your school's spells this life (`life.schools`, from `Progression.practised`); insight adds to it
+  as to all Practice, and below the best rank an earlier life reached it comes ×3 (`echo`). A new
+  rank toasts. The Turning keeps the best rank per school (`soul.schools`). The spellbook's header
+  shows your school and rank.
+- **Astral Rite's Alignment:** stand still for 1 s (`alignment.still_s`; a ring of eight gold stars
+  turns round your feet when you're Aligned), then begin a spell of your school: it gets ×1.3
+  range (`range_k`), its telegraph included (`Progression.align`, `reach()`). Moving or casting
+  resets it.
+
 ## Spell levels and mastery (`scripts/autoload/progression.gd`, `data/spells.json` `progression`)
 
 - A spell levels from its own hits: XP needed `xp_base` 8 + `xp_step` 4 per level, max 20.
@@ -70,4 +94,6 @@ There are two layers, and the ruins game uses the first on top of the second.
 ## Tests
 
 `tools/tests/relearn.gd` (loop 3 is back to loop 1's wells and Practice by day 3),
-`tools/tests/unit.gd` (walls, trials, banking, remembered stages, prerequisites, Ring stages).
+`tools/tests/unit.gd` (walls, trials, banking, remembered stages, prerequisites, Ring stages;
+schools: every spell and road has one, the outside cost, rank from Practice and its Echo, the
+carry, Alignment's reach), `tools/tests/world_magic.gd` (an Aligned Pillar lands past its range).

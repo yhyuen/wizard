@@ -42,6 +42,7 @@ var denied = {}  # slot -> seconds left on the "not ready" flash
 var slow_start := 0.0  # Injured: extra wind-up on this fight's first spell (set by the arena)
 var aim = Vector2.ZERO
 var move = Vector2.ZERO
+var still_t := 0.0  # seconds the wizard has stood still (Astral Rite's Alignment, spell spec §7)
 
 
 func _init(arena) -> void:
@@ -131,7 +132,7 @@ func band(id: String) -> String:
 
 
 func windup(id: String) -> float:
-	return float(Progression.spell(id).get("windup", 0.4))
+	return float(Progression.spell(id).get("windup", 0.4)) * Progression.school_k(id)
 
 
 # --- Aether and Cadence -------------------------------------------------------
@@ -144,7 +145,7 @@ func aether_cost(id: String) -> float:
 	if is_cantrip(id):
 		return float(cantrip(id)["aether"])
 	var s: Dictionary = Progression.spell(id)
-	return float(s.get("aether", A.D["aether"]["costs"].get(band(id), 20)))
+	return float(s.get("aether", A.D["aether"]["costs"].get(band(id), 20))) * Progression.school_k(id)
 
 
 ## Casting the same spell again no longer dulls it (cooldowns stop repeats): always 1.
@@ -263,6 +264,10 @@ func update(dt: float, intent: Dictionary) -> void:
 		_cancel()
 		warding = false
 		return
+	if move.length() > 0.01 or P.vel.length() > 4.0:
+		still_t = 0.0
+	else:
+		still_t += dt
 	if move.length() > 0.01:
 		var v = move.normalized() * A.move_speed(P) * move_mult()
 		if v.length() > 0.01:
@@ -340,9 +345,17 @@ func begin(slot: String) -> void:
 	warding = false
 	var b := band(id)
 	wind = {"slot": slot, "id": id, "t": 0.0, "need": windup(id) + slow_start, "band": b, "commit": false}
+	if aligned() and Progression.school_of(id) == Progression.school():
+		Progression.align = id  # its telegraph and the cast reach further
+		A.fx("ring", A.player.pos, {"color": PixelArt.GOLD, "r": 12.0, "life": 0.35})
 	slow_start = 0.0
 	holding = slot
 	hold_t = 0.0
+
+
+## Astral Rite's Alignment is ready: your school bends that rule and you've stood still long enough.
+func aligned() -> bool:
+	return Progression.school_rule("alignment") and still_t >= float(Progression.schools["alignment"]["still_s"])
 
 
 ## The key came up: cast if the wind-up is full; a Swift spell (or any spell under smart cast) is
@@ -366,6 +379,7 @@ func wind_k() -> float:
 
 
 func _cancel() -> void:
+	Progression.align = ""
 	wind = {}
 	holding = ""
 	hold_t = 0.0
@@ -394,6 +408,7 @@ func _fire() -> void:
 	var b: String = wind["band"]
 	cast(slot)
 	_cancel()
+	still_t = 0.0
 	recover_t = float(A.D["casting"][b]["recovery"])
 
 
@@ -594,6 +609,11 @@ func draw_field(c: CanvasItem) -> void:
 ## line). After a level-up, a dashed ghost shows the old size for a few casts.
 func draw(c: CanvasItem) -> void:
 	var P: Unit = A.player
+	if not P.dead and aligned():
+		# Aligned: a ring of eight stars round your feet (Astral Rite, spell spec §7)
+		for i in 8:
+			var at: Vector2 = P.pos + Vector2(0, 1) + Vector2.from_angle(TAU * i / 8.0 + still_t * 0.6) * Vector2(11, 5)
+			c.draw_circle(at, 0.9, Color(PixelArt.GOLD, 0.85))
 	if P.dead or holding == "":
 		return
 	var id = slot_spell(holding)

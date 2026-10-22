@@ -114,7 +114,7 @@ func pillar() -> bool:
 
 
 func _pillar_target() -> Vector2:
-	var reach_len = float(Progression.spell("pillar")["range"])
+	var reach_len = Progression.reach("pillar")
 	return A.clamp_in(A.player.pos + (K.aim - A.player.pos).limit_length(reach_len))
 
 
@@ -200,7 +200,7 @@ func fling() -> bool:
 		return false
 	var dir = K.aim_dir()
 	var cone = deg_to_rad(Progression.stat("fling", "cone"))
-	var reach_len = float(s["range"]) * (1.5 if Progression.has_mut("pebble", "far_fling") else 1.0)
+	var reach_len = Progression.reach("fling") * (1.5 if Progression.has_mut("pebble", "far_fling") else 1.0)
 	var n = orb.size()
 	for i in n:
 		var st: Dictionary = orb[i]
@@ -257,7 +257,7 @@ func avalanche_target() -> Unit:
 			best = u
 	if best:
 		return best
-	best_d = float(Progression.spell("avalanche")["range"])
+	best_d = Progression.reach("avalanche")
 	for u in A.enemies():
 		var d = u.pos.distance_to(A.player.pos)
 		if d < best_d:
@@ -343,7 +343,7 @@ func draw_preview(c: CanvasItem, id: String, ghost_old: int) -> bool:
 			if ghost_old > 0:
 				A.draw_dashed_circle(at, Progression.stat("pillar", "radius", ghost_old), ghost_col)
 		"fling":
-			var reach_len = float(Progression.spell("fling")["range"]) * (1.5 if Progression.has_mut("pebble", "far_fling") else 1.0)
+			var reach_len = Progression.reach("fling") * (1.5 if Progression.has_mut("pebble", "far_fling") else 1.0)
 			K.draw_cone(c, K.aim_dir(), deg_to_rad(Progression.stat("fling", "cone")), reach_len, Color(PixelArt.EARTH, 0.9))
 			if ghost_old > 0:
 				K.draw_cone(c, K.aim_dir(), deg_to_rad(Progression.stat("fling", "cone", ghost_old)), reach_len, ghost_col)

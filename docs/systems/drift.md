@@ -29,7 +29,7 @@ table; the big gaps:
 | Ley points refill Aether at 10/s; rest at shrines, camp fires, home | No ley points yet (they come with Ring 1's regions, N-7.1); rest is waking at dawn and meditating | [combat.md](combat.md) |
 | Cantrips from the pool (Kindle, Douse, Lamplight, Stone Stair…), 2 slotted | Kindle and Douse only, fixed (`start_cantrips`) | [combat.md](combat.md) |
 | Rest points change the book | Your desk (the story's `book` effect) | [combat.md](combat.md) |
-| Eight schools, each with its own casting act and rule | No schools; Spheres only | [combat.md](combat.md) |
+| Eight schools, each with its own casting act and rule | Two schools named (`data/schools.json`); every spell is Astral Rite, whose Alignment is built; outside-school cost and school rank with the Echo (N-5.1). No other school's rule yet; rank comes from Practice alone, not the power's merit, standing and exam; no casting acts in the art | [growth.md](growth.md), [combat.md](combat.md) |
 | One force × material table for props, tiles and units | One table (`data/materials.json`), on props only so far | [world.md](world.md) |
 | Combined spells from two mastered schools | Magicks (old Mill fight only) | [combat.md](combat.md) |
 | Spells grow on seven visible axes over 20 levels in four stages, with breakthrough trials, Force grades I–V and prerequisite spells | 20 levels in four stages with walls and trials (feat, insight, meditation), grades I–IV by stage, one minor axis per spell, prerequisites for the four signatures (N-3). Not yet: Sphere Comprehension, insight entries in the Ledger, meditation only at Sympathy places, grade V, the 1st Ring is still the yard trial alone | [growth.md](growth.md) |

@@ -118,6 +118,7 @@ func _run() -> void:
 	_controls(P)
 	_kit(P)
 	_growth(P)
+	_schools(P)
 	_world()
 	_year()
 	print("[unit] %d check(s), %d failed" % [checks, fails])
@@ -503,6 +504,59 @@ func _year() -> void:
 	var t: Array = reach.rest_targets()
 	ok(not t.is_empty() and t[0]["id"] == "moon" and int(t[0]["day"]) == 29 and t[-1]["id"] == "eclipse", "rest targets: the next moon first, the Great Eclipse last")
 	ok(t.filter(func(e): return e["id"] == "calamity_1").is_empty(), "a calamity you don't know of isn't on the calendar")
+	R.new_run()
+
+
+## Schools (spell spec §5.1, §7, §8; N-5.1): every spell names a school, the outside-school cost,
+## school rank from Practice with the Echo below the best, the carry, and Astral Rite's Alignment.
+func _schools(P) -> void:
+	var R = root.get_node("Run")
+	R.new_run()
+	var G = load("res://scripts/game/growth.gd").new(R, P)
+	var bad: Array = []
+	for id in P.data["spells"]:
+		if not P.schools["schools"].has(P.school_of(id)):
+			bad.append(id)
+	for r in R.lives["roads"]:
+		if not P.schools["schools"].has(str(R.lives["roads"][r]["school"])):
+			bad.append("road " + r)
+	ok(bad.is_empty(), "every spell and road names a real school (%s)" % ", ".join(bad))
+	ok(G.school() == "astral_rite" and G.school_rank() == 0 and G.rank_name(0) == "Initiate", "life 1's Apprentice road starts you as an Initiate of Astral Rite")
+	G.begin_fight()
+	ok(P.school_k("ember_bolt") == 1.0, "your own school's spells cost what they say")
+	P.rules["school"] = ""
+	P.rules["school_ranks"] = {}
+	ok(is_equal_approx(P.school_k("ember_bolt"), 1.5), "a school you never trained in: +50%")
+	P.rules["school_ranks"] = {"astral_rite": 0}
+	ok(is_equal_approx(P.school_k("ember_bolt"), 1.25), "a school you hold a rank in but don't walk: +25%")
+	P.rules["school_best"] = {"astral_rite": 1}
+	ok(P.school_k("ember_bolt") == 1.0, "a school an earlier life took to Adept: no extra cost")
+	G.end_fight()
+	# Rank from Practice: 150 to Adept; the Echo triples it below the best an earlier life reached.
+	G.begin_fight()
+	for i in 10:
+		P.add_xp("ember_bolt", 10.0)
+	ok(G.school_rank() == 0 and is_equal_approx(float(R.life["schools"]["astral_rite"]["progress"]), 100.0), "Practice on the school's spells counts toward its rank")
+	for i in 5:
+		P.add_xp("pebble", 10.0)
+	ok(G.school_rank() == 1, "150 Practice makes an Adept")
+	G.end_fight()
+	var s: Dictionary = load("res://scripts/game/lives.gd").carry(R.soul, R.life, "eclipse", R.lives)
+	ok(int(s["schools"]["astral_rite"]) == 1, "the soul remembers the best rank")
+	R.soul = s
+	R.life = R.fresh_life()
+	R.life["road"] = "apprentice"
+	G.begin_fight()
+	for i in 5:
+		P.add_xp("ember_bolt", 10.0)
+	ok(G.school_rank() == 1, "below the best rank, rank comes three times as fast")
+	G.end_fight()
+	# Alignment: the spell being cast Aligned reaches 30% further, and only it.
+	P.align = "pillar"
+	ok(is_equal_approx(P.reach("pillar"), float(P.spell("pillar")["range"]) * 1.3) and is_equal_approx(P.reach("fling"), float(P.spell("fling")["range"])), "Alignment lengthens the cast spell's reach")
+	P.align = "spark"
+	ok(is_equal_approx(P.reach("spark"), P.stat("spark", "range", P.level("spark")) * 1.3), "on a spell with a range track too")
+	P.align = ""
 	R.new_run()
 
 

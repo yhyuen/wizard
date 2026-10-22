@@ -16,6 +16,8 @@ extends SceneTree
 ## puts a ground fire out; a Spark on wet ground charges it.
 ## N-4.3 (supports and collapse, spec §6.4): a Pebble breaks the leaning gallery's cracked post, and
 ## after its telegraph the gallery comes down on a Hollow under it and leaves slow rubble.
+## N-5.1 (schools): standing still a breath before casting Pillar (Astral Rite's Alignment) puts
+## its column further out than its listed range.
 
 const BOOK := ["ember_bolt", "pebble", "splash", "undertow"]
 const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt"]
@@ -71,6 +73,7 @@ func _initialize() -> void:
 		["a Spark on wet ground charges it", _wet_ground_setup,
 			func(): return world.events_log.any(func(e): return e[0] == "ground_charged")],
 		["a Pebble breaks the gallery's post and it comes down on a Hollow", _gallery_setup, _crushed],
+		["an Aligned Pillar reaches past its listed range", _align_setup, _far_column],
 	]
 
 
@@ -185,6 +188,9 @@ func _intent(A) -> Dictionary:
 	if cast.is_empty() or cast["slot"] == "":
 		return out
 	out["aim"] = cast["aim"]
+	if int(cast.get("delay", 0)) > 0:
+		cast["delay"] -= 1  # standing still first (Alignment)
+		return out
 	if cast["f"] == 0 and (not A.kit.wind.is_empty() or A.kit.recover_t > 0.0 or A.hitstop > 0.0):
 		return out  # the last spell is still being cast, or a hit froze the frame (input is lost then)
 	cast["f"] += 1
@@ -436,3 +442,30 @@ func _crushed() -> bool:
 	_clear_enemies()
 	state.erase("long")
 	return ok
+
+
+func _align_setup() -> void:
+	_book(GROUND_BOOK)
+	state["long"] = true
+	var at := _dark_spot()
+	var far := float(root.get_node("Progression").spell("pillar")["range"]) * 1.25
+	var target := at
+	for k in 16:
+		var p: Vector2 = at + Vector2.from_angle(k * TAU / 16.0) * far
+		if not world.map.solid_at(p, 16.0) and world.map.clear_line(at, p, 2.0):
+			target = p
+			break
+	main.place_player(at)
+	main.arena.kit.aether = main.arena.kit.max_aether()
+	main.arena.player.cd.clear()
+	main.arena.kit.still_t = 0.0
+	state["from"] = at
+	cast = {"slot": main.arena.kit.slot_of("pillar"), "aim": target, "f": 0, "delay": 80}
+
+
+func _far_column() -> bool:
+	for z in main.arena.zones:
+		if z["kind"] == "column" and z["pos"].distance_to(state["from"]) > float(root.get_node("Progression").spell("pillar")["range"]) + 10.0:
+			state.erase("long")
+			return true
+	return false

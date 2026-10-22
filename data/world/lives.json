@@ -1,5 +1,5 @@
 {
- "_doc": "How a life goes (design/lives/lives-and-carryover-spec.md §3–4; build items N-1.2, N-1.3). endings: the causes that end a life (any calamity:<id> does too): the Eclipse, turning back the Hours at a shrine (turned), the build-end card and the first playable's end card; every other lost fight or story loss wakes you injured instead. turning_needs_calamity: the Hours can be turned back only once a calamity has passed in this life. insight: +1 at each Turning up to cap; each point adds per to all Practice gained. wake_injured: days that pass (wild_days if you fell on a map marked wild), the share of Vitality you can hold until your next full night's sleep, and the extra wind-up on the first spell of each fight while Injured. roads (lives spec §5): each road's name, power, school, starting cantrip and opens_by (a soul flag set by a deed with the story's deed effect, or empty for always open; the deeds are SEALED, owned by the story threads). Life 1 is always the Apprentice road; later lives take an offered road by accepting it (the story's road effect), or the Apprentice road on moon 1, day road_by_day. The road you took last life isn't offered again unless nothing else is. ledger_lines: the Ledger's line for the header of each life's page, by life number (SEALED, story text; empty until the story threads write them). omens (lives spec §6.4): curses you may take on the first morning of life 2 onwards, read at waking; each holds for the whole life, can't be put down, and adds omen_insight to insight's effect (as a share of it). Their numbers: enemy_hp (every enemy's Vitality multiplied), aether_regen (Aether regained multiplied), calamity_early (moons earlier the first calamity comes; read by N-7.5).",
+ "_doc": "How a life goes (design/lives/lives-and-carryover-spec.md §3–4; build items N-1.2, N-1.3). endings: the causes that end a life (any calamity:<id> does too): the Eclipse, turning back the Hours at a shrine (turned), the build-end card and the first playable's end card; every other lost fight or story loss wakes you injured instead. turning_needs_calamity: the Hours can be turned back only once a calamity has passed in this life. insight: +1 at each Turning up to cap; each point adds per to all Practice gained. wake_injured: days that pass (wild_days if you fell on a map marked wild), the share of Vitality you can hold until your next full night's sleep, and the extra wind-up on the first spell of each fight while Injured. roads (lives spec §5): each road's name, power, school (data/schools.json), starting cantrip and opens_by (a soul flag set by a deed with the story's deed effect, or empty for always open; the deeds are SEALED, owned by the story threads). Life 1 is always the Apprentice road; later lives take an offered road by accepting it (the story's road effect), or the Apprentice road on moon 1, day road_by_day. The road you took last life isn't offered again unless nothing else is. ledger_lines: the Ledger's line for the header of each life's page, by life number (SEALED, story text; empty until the story threads write them). omens (lives spec §6.4): curses you may take on the first morning of life 2 onwards, read at waking; each holds for the whole life, can't be put down, and adds omen_insight to insight's effect (as a share of it). Their numbers: enemy_hp (every enemy's Vitality multiplied), aether_regen (Aether regained multiplied), calamity_early (moons earlier the first calamity comes; read by N-7.5).",
  "endings": [
   "eclipse",
   "turned",
@@ -21,14 +21,14 @@
   "apprentice": {
    "name": "Apprentice",
    "power": "The College of Hours",
-   "school": "Astral Rite",
+   "school": "astral_rite",
    "cantrip": "kindle",
    "opens_by": ""
   },
   "lamplighter": {
    "name": "Lamplighter",
    "power": "The Lamplighters",
-   "school": "Spark Artifice",
+   "school": "spark_artifice",
    "cantrip": "kindle",
    "opens_by": "road_lamplighter"
   }

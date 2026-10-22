@@ -225,7 +225,7 @@ func _strike_shape() -> Dictionary:
 func storm_call() -> bool:
 	var s: Dictionary = Progression.spell("storm_call")
 	var shape := _strike_shape()
-	var centre: Vector2 = K.aim_point(float(s["range"]))
+	var centre: Vector2 = K.aim_point(Progression.reach("storm_call"))
 	var spots := strike_spots(centre, int(Progression.stat("storm_call", "strikes")), shape["r"])
 	for z in A.zones:
 		z["hero"] = false
@@ -258,7 +258,7 @@ func strike_hits(z: Dictionary) -> void:
 func splash() -> void:
 	var s: Dictionary = Progression.spell("splash")
 	var dir: Vector2 = K.aim_dir()
-	var reach_len := float(s["range"])
+	var reach_len := Progression.reach("splash")
 	var cone := deg_to_rad(Progression.stat("splash", "width"))
 	var o: Vector2 = A.player.pos + Vector2(0, -4)
 	A.fx("spray", o, {"dir": dir, "cone": cone, "r": reach_len, "life": 0.25})
@@ -325,7 +325,7 @@ func maelstrom() -> bool:
 	var s: Dictionary = Progression.spell("maelstrom")
 	for z in A.zones:
 		z["hero"] = false
-	A.add_zone({"kind": "whirl", "pos": K.aim_point(float(s["range"])), "r": Progression.stat("maelstrom", "radius"),
+	A.add_zone({"kind": "whirl", "pos": K.aim_point(Progression.reach("maelstrom")), "r": Progression.stat("maelstrom", "radius"),
 		"life": Progression.stat("maelstrom", "duration"), "tick": 0.0, "dmg": Progression.stat("maelstrom", "damage"), "hero": true})
 	return true
 
@@ -468,7 +468,7 @@ func draw_preview(c: CanvasItem, id: String, ghost_old: int) -> bool:
 				A.draw_dashed_line(a, a + dir * Progression.stat("arc_lance", "range", ghost_old), ghost_col)
 		"storm_call":
 			var shape := _strike_shape()
-			var centre: Vector2 = K.aim_point(float(Progression.spell("storm_call")["range"]))
+			var centre: Vector2 = K.aim_point(Progression.reach("storm_call"))
 			for p in strike_spots(centre, int(Progression.stat("storm_call", "strikes")), shape["r"]):
 				c.draw_arc(p, shape["r"], 0, TAU, 24, Color(PixelArt.STORM, 0.9), 1.0, false)
 			if ghost_old > 0:
@@ -486,7 +486,7 @@ func draw_preview(c: CanvasItem, id: String, ghost_old: int) -> bool:
 				A.draw_dashed_line(a + go, b + go, ghost_col)
 				A.draw_dashed_line(a - go, b - go, ghost_col)
 		"maelstrom":
-			var at: Vector2 = K.aim_point(float(Progression.spell("maelstrom")["range"]))
+			var at: Vector2 = K.aim_point(Progression.reach("maelstrom"))
 			var r := Progression.stat("maelstrom", "radius")
 			c.draw_arc(at, r, 0, TAU, 32, Color(PixelArt.WATER, 0.9), 1.0, false)
 			c.draw_circle(at, r, Color(PixelArt.WATER, 0.12), true, -1.0, false)
