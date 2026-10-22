@@ -57,3 +57,9 @@ func _chunks(u: Unit, at: Vector2) -> void:
 		elif u.hp_lag > lo:
 			col = PixelArt.PAPER
 		draw_rect(Rect2(x0 + i * 6, at.y, 5, 3), col)
+	# the Break meter under it (enemy spec §4): gold as it fills, flashing while Broken
+	var top: float = arena.break_max(u)
+	if top > 0.0 and (u.brk > 0.0 or u.broken_t > 0.0):
+		var k: float = 1.0 if u.broken_t > 0.0 else u.brk / top
+		var on: bool = u.broken_t <= 0.0 or int(u.anim * 8.0) % 2 == 0
+		draw_rect(Rect2(x0, at.y + 4, w * k, 1.5), Color(PixelArt.GOLD, 0.95 if on else 0.4))

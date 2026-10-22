@@ -29,6 +29,9 @@ var iframes := 0.0
 var slow_t := 0.0
 var wet_t := 0.0  # Wet (Water): lightning chains further and discovers Conductor
 var wall_check := 0.0  # Pin: a stone hit recently, so a wall hit stuns
+var brk := 0.0  # the Break meter (enemy spec §4): full, it is Broken
+var brk_t := 0.0  # seconds since the last hit filled it (it drains after a while)
+var broken_t := 0.0  # Broken: can't act, takes more damage
 
 var anim := 0.0
 var moving := false

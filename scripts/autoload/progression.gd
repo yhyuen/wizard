@@ -53,6 +53,11 @@ static func load_data() -> Dictionary:
 	if typeof(parsed) != TYPE_DICTIONARY:
 		push_error("data/spells.json could not be parsed")
 		return {}
+	# Enemy kinds live in their own file (enemy spec §14; N-6.1): `enemies` is the kinds, `foes`
+	# the rules (tiers, the Break meter, the fight director).
+	var foes = JSON.parse_string(FileAccess.get_file_as_string("res://data/enemies.json"))
+	parsed["enemies"] = foes["kinds"]
+	parsed["foes"] = foes
 	return parsed
 
 

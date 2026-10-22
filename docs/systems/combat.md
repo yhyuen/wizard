@@ -127,7 +127,21 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
 
 - **Impact vs Poise:** reactions none, flinch, stagger, knockdown, launch (`impact_reactions`,
   `reaction_time`). Hit-stop and shake scale with the share of HP removed.
-- **Enemies** (`spells.json` `enemies`, minds in `scripts/ai.gd`): Dust Hollow, Hollow Slinger,
+- **Enemy records** (N-6.1, `data/enemies.json`; loaded into `Progression.data` as `enemies`
+  (the kinds) and `foes` (the rules)): each kind names its faction, role, tier, attack (melee or
+  ranged), body material and the lesson it teaches, then its numbers. Tiers today: Dust Hollow and
+  embers are Minions, the Slingers Soldiers, Silas a Champion, the Kiln Warden a Boss.
+- **Break** (N-6.1, enemy spec §4, `foes.break`): Soldiers and up have a Break meter (Soldier 35,
+  Elite 80, Champion 120, Boss 200), a thin gold bar under the HP chunks. Each hit adds Impact × 10,
+  +50% from behind (the hit travels the way it faces) and +50% into a wind-up. Full, it is
+  **Broken**: knocked down for 2 s (Soldier), 2.5 s (Elite, Champion) or 3 s (Boss), its telegraphs
+  cancelled, taking ×1.5 damage; the bar flashes. The meter drains 10/s after 3 s without a hit.
+  Minions have none (any hit staggers them). `arena.gd` `_add_break`, `_break_tick`.
+- **The fight director** (N-6.1, enemy spec §6.4, `foes.director`): at most 2 melee and 1 ranged
+  enemies may be winding up an attack on you at once, and none further than 320 px from you; the
+  rest keep moving until a turn frees up (`ai.gd` `may_attack`). The duellist and bosses aren't
+  counted.
+- **Enemies** (minds in `scripts/ai.gd`): Dust Hollow, Hollow Slinger,
   Backward Slinger (`inverted`: rises from the dead, its stones fly home), embers from cracks,
   the Kiln Warden (anchored guardian, two phases), Silas Vane (Storm rival). Hollows won't step
   into a lit lamp's pool unless the encounter sets `light_shy: false` ([world.md](world.md)).

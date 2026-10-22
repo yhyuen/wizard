@@ -7,7 +7,7 @@
       "paths": [
         "scripts/arena.gd", "scripts/kit.gd", "scripts/unit.gd", "scripts/ai.gd", "scripts/bot.gd",
         "scripts/spells/**",
-        "data/spells.json", "data/world/encounters.json"
+        "data/spells.json", "data/world/encounters.json", "data/enemies.json"
       ]
     },
     "growth": {
