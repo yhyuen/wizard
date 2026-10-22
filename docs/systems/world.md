@@ -64,7 +64,8 @@ ladder, suspicion, amends, bounties) is the [powers and reputation spec](/mnt/pr
 *Target design: [spells and the environment](/mnt/project-files/design/world/spells-and-environment-spec.md)
 (2026-10-22, tracker M0-6; visual: [World Matter Atlas](https://claude.ai/artifact/2kDFnWVKykbTzChnjmPNhD)):
 one force × material table for props, tiles and units, states, fire/water/charge spreading on a cell
-grid, breaking and collapse, damage that lasts the life, owners and witnesses. The gaps are in
+grid, breaking and collapse, damage that lasts the life, owners and witnesses. Weather and the seasons acting on matter are in the
+[seasons, weather and calamities spec](/mnt/project-files/design/seasons/seasons-and-calamities-spec.md) (M0-13). The gaps are in
 [drift.md](drift.md). What follows is the build today.*
 
 - **Fire** spells (`fire_spells`) light lamps and braziers and set hay, crates and carts burning

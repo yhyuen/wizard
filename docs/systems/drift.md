@@ -89,6 +89,17 @@ saving and the screen. Each has a "today vs target" section; the big gaps:
 | Three slots; soul, life, per-map damage files and meta; atomic writes, checksums, a crash-proof Turning, versions | One `user://ruins.json`, plain overwrite, no versions | [loop.md](loop.md) |
 | Four-star bar with stage rings, Focus and Overdraw, a 13-moon calendar with pins, Codex, region map | Four-star stand-in bar, Cadence, the calendar row (moons, weekday dots, calamity discs, time dial; no gold or silver pins yet), Ledger, map with the Reach and calendar tabs | [frame.md](frame.md) |
 
+## Seasons, weather and calamities: the target vs the build
+
+The [seasons, weather and calamities spec](/mnt/project-files/design/seasons/seasons-and-calamities-spec.md) (M0-13, 2026-10-22) is the design for the
+year's seasons, weather and the four calamities. Its §11 has the full list; the big gaps:
+
+| Target says | As built | Where |
+| --- | --- | --- |
+| Weather per region per day, the same every life; Almanac and forecast; weather acts on matter | No weather | [world.md](world.md) |
+| Seasons dress the world (fields, rivers, dark slots, regrowth, travel) | Moons carry a season name; nothing reads it | [loop.md](loop.md) |
+| A calamity: Signs, Eve stop, lethal zone, three waves, stakes, Held/Scarred/Fallen, aftermath, absent default | The four calamities are dated and pinned once known; none plays | [loop.md](loop.md) |
+
 ## Economy and repair: the target vs the build
 
 The [economy, gear, crafting and repair](/mnt/project-files/design/economy/economy-and-repair-spec.md)
