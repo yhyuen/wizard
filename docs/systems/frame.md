@@ -36,7 +36,8 @@ Reach and Calendar tabs (§5.5).*
 - `scripts/hud.gd`: the Star Atlas HUD (spellbook constellation of four stars, two cantrip rings
   with their charges, the Ward diamond; Vitality and Aether lines with Strain as a red end, Focus;
   a wind-up ring at the reticle; field-object caps, Cadence stars, the calendar row, the duelist's
-  plate, toasts, milestone picker, Orrery menu). "Injured" by the Vitality line, with the part it
+  plate, toasts, milestone picker, Orrery menu). The field-object count leaves out ground fires
+  (zones marked `cell`). "Injured" by the Vitality line, with the part it
   can't fill drawn red.
 - **The calendar row** (top centre): the 13 moons (this one ringed, past ones dim), then this
   moon's 28 days as four weeks of dots in their weekday Sphere's colour, today ringed, known

@@ -445,7 +445,7 @@ func field_count(element: String) -> Dictionary:
 
 
 func _zones_of(kind: String) -> int:
-	return arena.zones.filter(func(z): return z["kind"] == kind).size()
+	return arena.zones.filter(func(z): return z["kind"] == kind and not z.has("cell")).size()
 
 
 ## The spellbook as a constellation: the four stars joined by fine gold lines over a long arc,

@@ -59,9 +59,9 @@ follows is the build today.*
 ## Weather (`data/world/weather.json`, `scripts/world/weather.gd`)
 
 *Target: the [seasons, weather and calamities spec](/mnt/project-files/design/seasons/seasons-and-calamities-spec.md)
-§3–§5 (tracker N-4.5). Built: N-4.5.1, the roll, the Almanac and the forecast. The world doesn't
-read the weather yet (N-4.5.2: wet, wind, frost, sight, storm strikes), and there is no rain or
-snow on screen.*
+§3–§5 (tracker N-4.5). Built: N-4.5.1, the roll, the Almanac and the forecast; the ground reads
+rain, wind and fire spread (N-4.2, below). Not yet (N-4.5.2): frost, sight, storm strikes, and
+rain or snow on screen.*
 
 - **Nine kinds:** Clear, Overcast, Mist, Rain, Storm, Wind, Heat, Frost, Snow, each with a glyph
   colour, a wind range 0–3 and the world inputs N-4.5.2 will read (`wet`, `dry`, `fire_spread`,
@@ -137,6 +137,41 @@ grid, breaking and collapse, damage that lasts the life, owners and witnesses. W
   lamps, braziers and burning patches). The **staff strike** shoves the prop in front of it.
 - A lit or flaring lamp's pool (`light_r` 38) keeps `light_shy` kinds out.
 
+### Fire, water and charge on the ground (`data/world/ground.json`, `scripts/world/cells.gd`)
+
+*N-4.2, spec §5. Not built: water flowing by height, smoke that blocks sight or drifts, cold and
+ice on the cells, mud from water on earth.*
+
+- **Every map is cut into 24 px cells**, each with a material: the map's `default` (camp earth,
+  halls stone), then whole `places` (streets, market, square, lane, College stone; the hill grass;
+  mill and road earth), then `paint` rects (the camp's grass patches). Water areas are water and
+  solid ground is brick, whatever the paint. The grid is made the first time you step on a map
+  in a life and **lasts the life**, so burnt ground stays ash until you wake again.
+- **Fire** lights cells with fuel (grass, cloth, wood) at their Fire grade; earth, stone, brick
+  and water never burn. A burning cell burns its material's `fuel_s` and then is **ash**, which
+  can't burn again this life. Each second it lights each of its 8 neighbours with chance `base`
+  0.3 (diagonals ×0.7, ×3 into cloth and oil), as a grade I fire. **Wind** (the day's weather) ×2
+  downwind and ×0.5 upwind; a gale (wind 3) throws an ember 3 cells downwind every 2 s. A map has at
+  most `max_burning` 96 burning cells; over that the oldest burn twice as fast.
+- **What lights the ground:** Pillar's column and Kindle over their area; a fire shot where it
+  ends (runs out, hits a foe or a wall); a burning prop under it. A burning cell sets the props
+  on it alight (grade I).
+- **Water** (Splash's cone, Douse, puddles and whirlpools, Undertow's wave) puts burning cells
+  out in a puff of steam and wets cells for `wet_s` 20 s. A wet cell doesn't catch: fire on it
+  only steams it dry. A doused cell keeps its unburnt fuel.
+- **Lightning** strikes the cells along its line. A conducting cell (wet, water, iron) fills its
+  connected network breadth-first as far as the Force grade reaches (`reach`: I 24 px, II 60,
+  III 240, IV the whole network; at most 256 cells), charged for 4 s. Dry grass or cloth struck
+  by lightning catches fire instead (`lightning_fire`).
+- **Standing in it:** every 0.5 s a foe on a charged cell takes a 5 shock and on a burning cell
+  `fire_dps` 8 a second; the wizard takes `self_k` ½ of either.
+- **Weather** (`world.set_sky`, called at dawn and on arriving): `rain`/`storm` (weather `wet`)
+  puts out every fire outdoors and nothing outdoors catches; `fire_spread` scales spread (heat
+  ×1.5, snow ×0.5); wind and its direction drive it. The halls are `indoors`: no weather.
+- **Shown:** burning cells are flames (arena `ember` zones with `cell`, drawn and lit by the
+  view, not counted as your Embers); the ground decal has dark ash blots, blue wet blots and a
+  crackle on charged cells.
+
 ## Economy, gear and repair (not built)
 
 *Target design: [economy, gear, crafting and repair](/mnt/project-files/design/economy/economy-and-repair-spec.md)
@@ -149,6 +184,8 @@ yet; the gaps are in [drift.md](drift.md).*
 
 ## Tests
 
-`tools/tests/world_magic.gd` (each reaction, with real casts), `tools/tests/unit.gd` (maps load,
-exits lead somewhere real, pits, reachability, per-map lamps), `tools/map_preview.gd` (top-down
+`tools/tests/world_magic.gd` (each reaction, with real casts, including a Pillar grass fire that
+spreads, Splash on a ground fire and a Spark on wet ground), `tools/tests/unit.gd` (maps load,
+exits lead somewhere real, pits, reachability, per-map lamps; the ground grid: spread, stone and
+water stop fire, ash, wind, rain, the cap, lightning reach by grade), `tools/map_preview.gd` (top-down
 PNG/SVG of every map; CI artifact `map-preview`).

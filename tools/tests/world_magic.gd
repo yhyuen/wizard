@@ -12,9 +12,12 @@ extends SceneTree
 ## N-4.1 (the matter core, spells and the environment spec §4): a Pebble at grade I only cracks the
 ## cart (wood, breaks at II); it breaks a crate already cracked; an Ember Bolt only smoulders a
 ## barrel (catches at Fire II) and only steams wet hay; a Spark sets hay alight.
+## N-4.2 (the ground, spec §5): Pillar on grass sets the ground burning and it spreads; Splash
+## puts a ground fire out; a Spark on wet ground charges it.
 
 const BOOK := ["ember_bolt", "pebble", "splash", "undertow"]
 const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt"]
+const GROUND_BOOK := ["pillar", "splash", "spark"]
 const WAIT := 150  # frames a case may take
 const LIGHT_WAIT := 240  # the lamp-pool case watches a Hollow for this long
 
@@ -59,6 +62,12 @@ func _initialize() -> void:
 		["an Ember Bolt only steams wet hay", _wet_hay_setup,
 			func(): return _logged("steam", "hay") and state["prop"]["state"] != "burning"],
 		["a Spark sets hay alight", _spark_hay_setup, func(): return state["prop"]["state"] == "burning"],
+		["Pillar on grass sets the ground burning, and it spreads", _grass_fire_setup,
+			_spread],
+		["Splash puts a ground fire out", _ground_douse_setup,
+			func(): return world.events_log.any(func(e): return e[0] == "ground_doused")],
+		["a Spark on wet ground charges it", _wet_ground_setup,
+			func(): return world.events_log.any(func(e): return e[0] == "ground_charged")],
 	]
 
 
@@ -83,7 +92,7 @@ func _process(_dt: float) -> bool:
 		passed.append(cases[i][0])
 		print("[magic] ok: " + cases[i][0])
 		return _next()
-	if t > (LIGHT_WAIT + 20 if state.has("hollow_light") else WAIT):
+	if t > (LIGHT_WAIT + 20 if state.has("hollow_light") or state.has("long") else WAIT):
 		failures.append(cases[i][0] + " (nothing happened)")
 		return _next()
 	return false
@@ -108,7 +117,7 @@ func _next() -> bool:
 func _strong() -> void:
 	run.set_flag("ring1")
 	run.life["wells"] = 60
-	for id in BOOK + STORM_BOOK:
+	for id in BOOK + STORM_BOOK + GROUND_BOOK:
 		run.soul["known"]["model_" + id] = 1
 	_book(BOOK)
 
@@ -357,3 +366,44 @@ func _spark_hay_setup() -> void:
 	_book(STORM_BOOK)
 	state["prop"] = _prop_of("hay", state["prop"])
 	_cast_at(state["prop"]["pos"], "spark", 40.0)
+
+
+## A clear patch of grass (every cell round it grass), away from the lamps.
+func _grass_spot() -> Vector2:
+	var c = world.cells
+	for i in c.mat.size():
+		var p: Vector2 = c.centre(i)
+		if c.within(p, 30.0).all(func(j): return c.mats[c.mat[j]] == "grass") and not world.map.solid_at(p, 30.0):
+			return p
+	return world.map.spots["market"]
+
+
+func _grass_fire_setup() -> void:
+	_book(GROUND_BOOK)
+	state["at"] = _grass_spot()
+	state["n"] = -1
+	state["long"] = true  # Pillar winds up and waits before it erupts
+	world.set_sky({"kind": "clear", "wind": 0, "dir": "N"}, {})  # a dry, still day, whatever the roll
+	_cast_at(state["at"], "pillar", 60.0)
+
+
+## Once the Pillar's own cells have caught, the fire must reach more than those.
+func _spread() -> bool:
+	var n: int = world.cells.burning.size() + world.cells.ash.size()
+	if state["n"] < 0:
+		if _logged("ground_fire", "grass"):
+			state["n"] = n
+		return false
+	return n > state["n"]
+
+
+func _ground_douse_setup() -> void:
+	state.erase("long")
+	world.burn_ground(state["at"], 12.0, 1)
+	_cast_at(state["at"], "splash", 34.0)
+
+
+func _wet_ground_setup() -> void:
+	var at := _dark_spot()
+	world.wet_ground(at, 40.0)
+	_cast_at(at, "spark", 40.0)
