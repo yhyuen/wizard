@@ -1,0 +1,65 @@
+{
+  "_doc": "Which spec owns which paths (tools/ci/spec_check.py; docs/systems/README.md). Every file under the checked roots must match a spec's `paths` or an `exempt` pattern. A changed file that matches specs needs at least one of those specs' `docs` changed in the same branch. Globs: * is within one path segment, ** any depth. A file may match several specs; any one of their docs satisfies it.",
+  "roots": ["scripts/", "data/", "scenes/"],
+  "specs": {
+    "combat": {
+      "docs": ["docs/systems/combat.md"],
+      "paths": [
+        "scripts/arena.gd", "scripts/kit.gd", "scripts/unit.gd", "scripts/ai.gd", "scripts/bot.gd",
+        "scripts/spells/**",
+        "data/spells.json", "data/world/encounters.json"
+      ]
+    },
+    "growth": {
+      "docs": ["docs/systems/growth.md"],
+      "paths": [
+        "scripts/game/growth.gd", "scripts/autoload/progression.gd",
+        "data/slice/progression.json", "data/spells.json"
+      ]
+    },
+    "loop": {
+      "docs": ["docs/systems/loop.md"],
+      "paths": [
+        "scripts/game/run.gd", "scripts/game/slice.gd"
+      ]
+    },
+    "world": {
+      "docs": ["docs/systems/world.md"],
+      "paths": [
+        "scripts/world/map.gd", "scripts/world/world.gd", "scripts/world/people.gd",
+        "data/world/maps.json", "data/world/world.json", "data/world/props.json"
+      ]
+    },
+    "story": {
+      "docs": ["docs/systems/story.md"],
+      "paths": [
+        "scripts/game/story.gd", "scripts/game/cutscene.gd", "scripts/game/slice.gd"
+      ]
+    },
+    "frame": {
+      "docs": ["docs/systems/frame.md"],
+      "paths": [
+        "scripts/main.gd", "scripts/game/slice.gd", "scripts/hud.gd", "scripts/ui/**",
+        "scripts/controls.gd", "scripts/autoload/input_setup.gd", "scripts/autoload/sfx.gd",
+        "scripts/game/build_id.gd",
+        "scenes/main.tscn"
+      ]
+    }
+  },
+  "content": {
+    "_doc": "Content specs (index pages, not enforced): which doc describes the exempt content below. spec_check.py ignores this key.",
+    "docs/systems/content.md": ["data/world/map.json", "data/ruins/**", "data/world/people.json", "data/world/story/**", "data/world/ledger.json"],
+    "docs/systems/art.md": ["data/visual.json", "scripts/view/**", "scripts/world/town_mesh.gd", "scripts/world/ruin_mesh.gd", "scripts/world/world_view.gd", "scripts/pixel_art.gd", "assets/**"]
+  },
+  "exempt": {
+    "_doc": "Content and presentation: no spec change needed. Content that needs a new key or rule changes that key's system, which is mapped above.",
+    "patterns": [
+      "**/*.uid",
+      "data/world/map.json", "data/ruins/**", "data/world/people.json", "data/world/story/**",
+      "data/world/ledger.json",
+      "data/visual.json",
+      "scripts/view/**", "scripts/world/town_mesh.gd", "scripts/world/ruin_mesh.gd",
+      "scripts/world/world_view.gd", "scripts/pixel_art.gd"
+    ]
+  }
+}

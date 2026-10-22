@@ -2,6 +2,8 @@
 
 **The first playable (R1): the survivors' camp and the way down.** The Orrery at the heart of the College has exploded. You wake on a cot in the survivors' camp the morning after, with no memory of how you got out, and 28 days to the Eclipse, when a second blast will come. You walk the camp with the clock running: people keep their own schedules, you talk to them where they stand, use things, and your spells touch the world (fire lights lamps and burns hay, water douses them, force shoves crates). The north stair takes you down into the College halls, a ruin with its own lamps, pits and sealed doors, behind a loading card. Letting the loop go at the halls' shrine (or dying, or the Eclipse) wakes you on day 1 remembering everything. Knowledge stays; power resets. Godot 4.7, GDScript, web export.
 
+**How the game works now is in the system specs, [docs/systems/](docs/systems/README.md)** (read them before the code; a PR that changes behaviour updates them, and CI checks it). Status is in the [Wizard Game Tracker](https://claude.ai/artifact/Joz7oeRcgYLuq71qqAZEY8). This page is the player's tour; where it and a spec disagree, the spec is right.
+
 The design is the ruins spec in the project's `design/ruins/` (README: goals and the build's milestones R1 to R6; `content.md`: the story beats, people and places; `tech-plan.md`: maps, exits, the ruin kit and the checks), built on the formal GDD in `design/gdd/`. R1 is the skeleton: many maps, the ruin kit, the camp re-dressed after the blast, and the halls' landing and entrance hall. R2 brings the halls' fights, the Warden's trial and the first full routes.
 
 ## Playing

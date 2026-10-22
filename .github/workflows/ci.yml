@@ -1,5 +1,5 @@
-# Every PR and push to main: unit checks, the town's story checks, a bot walking the route through
-# the town, the fights in place, magic meeting the world, and a web build
+# Every PR and push to main: the spec check, unit checks, the town's story checks, a bot walking
+# the route through the town, the fights in place, magic meeting the world, and a web build
 # (uploaded as an artifact). Pushes to main also publish the web build to GitHub Pages.
 name: CI
 
@@ -23,6 +23,11 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # the spec check compares the branch with origin/main
+
+      - name: Spec check (a behaviour change updates its spec, docs/systems/)
+        run: python3 tools/ci/spec_check.py
 
       - name: Cache Godot and the web template
         id: godot-cache

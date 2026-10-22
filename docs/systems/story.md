@@ -1,0 +1,41 @@
+# Story: the scene engine, effects, cutscenes (as built)
+
+*Detail: the format is in the header of `scripts/game/story.gd` and
+[design/slice/tech-plan.md](/mnt/project-files/design/slice/tech-plan.md) §2. Story content
+(the `.story` files) is indexed in [content.md](content.md). Design: GDD 01, the story doc.
+Tracker: S-1, W-1, R-2.*
+
+## Scenes (`scripts/game/story.gd`)
+
+- Each map's story folder (`maps.json` `story`) holds plain-text `.story` files of scenes:
+  `=== scene_id`, header keys, then lines (`Name: text`, or narration), effects (`+ op arg`),
+  choices (`* text [cond] -> next`) and outcomes (`? won -> scene`).
+- **Header keys:** `place`, `days` (`4`, `1-7`, `2,3`), `times`, `when`, `force`, `priority`,
+  `repeat`, `known`, `title`, `slot` (`free`: doesn't use up the time of day), `backdrop`, and what
+  starts it: `talk: <person>`, `use: <item or exit>`, `arrive: <place>`, `cast: <element>` (with
+  `use:`; `cast: hours` is Rewind's shard on the item).
+- **Conditions** are Godot expressions over `k(id)` (remembered), `f(id)` (flag this loop),
+  `seen(id)`, `died(cause)`, `count(prefix)`, `done(op)`, and `loop`, `day`, `time`, `ring`. A
+  line, effect or outcome can start with `[condition]`.
+- **Effects:** `learn`, `set`, `clear`, `fight`, `wells`, `train`, `meditate`, `goto`, `end_loop`,
+  `model`, `trial`, `sound`, `cutscene`, `move`, `take`, `sleep`, `book`, `today` (a once-a-day
+  action, for `done(op)`), `go <map> <spot>` or `go <exit>`, `open <door>`, `play_path <id>`.
+  A new effect or header key is a change to this spec.
+
+## Playing them (`scripts/game/slice.gd`)
+
+- The game flow answers the world's requests by picking the best eligible scene, shows it in the
+  dialogue panel (number keys pick, Space carries on), runs its effects, and handles what comes
+  after it closes (sleep, the spellbook, a map change). Everything a player can do is also a
+  method (`talk`, `use`, `choose`, `advance`), so the route bot plays the same code.
+
+## Cutscenes (`scripts/game/cutscene.gd`)
+
+- Short scenes in the fight view where time runs the wrong way: the Fire and the Mourner, and
+  recorded paths (`path:<id>` from the map's `paths` file) played forward or in reverse. Poses go
+  through unit flags (`pose`, `face`); nothing here changes the rules.
+
+## Tests
+
+`tools/tests/story_lint.gd` (every scene against its own map's people, items, spots and exits;
+parse errors), `tools/tests/route.gd`.
