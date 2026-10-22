@@ -38,4 +38,6 @@ rules it draws come from the [spell and combat spec](/mnt/project-files/design/c
   lights; at most four real lights (spells); one shadow pass; distance-field fonts.
 - Only buildings on the line of sight get the cutaway shader (`lowpoly_cut.gdshader`, which
   `discard`s); everything else uses `lowpoly_solid.gdshader`.
+- Anything drawn once per ground cell (fires, blots) goes out as one batch (a MultiMesh, or one
+  triangle array on the decal), never a node or draw call per cell: a grass fire is dozens of cells.
 - `tools/world_shot.gd` (needs a display) takes review screenshots and prints draw calls and lights.

@@ -559,6 +559,11 @@ func _end(won: bool) -> void:
 # --- the main loop ----------------------------------------------------------
 
 func _physics_process(dt: float) -> void:
+	for u in units:
+		u.prev_pos = u.pos
+	if town != null:
+		for p in town.people.list:
+			p.prev_pos = p.pos
 	if paused:
 		return
 	_update_fx(dt)

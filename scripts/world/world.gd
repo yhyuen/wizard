@@ -17,6 +17,7 @@ const Map := preload("res://scripts/world/map.gd")
 const People := preload("res://scripts/world/people.gd")
 const Matter := preload("res://scripts/world/matter.gd")
 const Cells := preload("res://scripts/world/cells.gd")
+const Tris := preload("res://scripts/ui/tris.gd")
 const MAPS := "res://data/world/maps.json"
 const CAMP := "camp"
 
@@ -606,19 +607,22 @@ func _drop_fire_zones() -> void:
 
 
 ## The ground's marks for the arena's decal layer, near `at`: soft blots of ash, water and fire,
-## and a crackle on charged cells (overlapping blots read as one patch, not a grid).
+## and a crackle on charged cells (overlapping blots read as one patch, not a grid). The blots go
+## out as one batch of triangles (a burnt field is hundreds), the ash and rubble from a cache
+## that is rebuilt only when they change.
+var _ground_g := Tris.new()
+
+
 func draw_ground(g: CanvasItem, at: Vector2, r: float) -> void:
 	if cells == null:
 		return
 	var s: float = cells.size
-	for i in cells.ash:
-		var c: Vector2 = cells.centre(i)
-		if c.distance_to(at) < r:
-			g.draw_circle(c, s * 0.7, Color(0.04, 0.03, 0.03, 0.45), true, -1.0, true)
-	for i in cells.rubble:
-		var c: Vector2 = cells.centre(i)
-		if c.distance_to(at) < r:
-			g.draw_circle(c, s * 0.6, Color(0.42, 0.38, 0.34, 0.55), true, -1.0, true)
+	var ci := g.get_canvas_item()
+	_ground_g.cached(ci, "ash", [cells.get_instance_id(), cells.ash.size(), cells.rubble.size()], func():
+		for i in cells.ash:
+			_ground_g.circle(cells.centre(i), s * 0.7, Color(0.04, 0.03, 0.03, 0.45), 16)
+		for i in cells.rubble:
+			_ground_g.circle(cells.centre(i), s * 0.6, Color(0.42, 0.38, 0.34, 0.55), 16))
 	for st in structures:
 		var rc: Rect2 = st["rect"]
 		if st["state"] == "":
@@ -634,14 +638,14 @@ func draw_ground(g: CanvasItem, at: Vector2, r: float) -> void:
 		if c.distance_to(at) >= r:
 			continue
 		if cells.burn[i] > 0.0:
-			g.draw_circle(c, s * 0.68, Color(PixelArt.FIRE, 0.28), true, -1.0, true)
+			_ground_g.circle(c, s * 0.68, Color(PixelArt.FIRE, 0.28), 16)
 		elif cells.wet[i] > 0.0:
-			g.draw_circle(c, s * 0.68, Color(PixelArt.WATER, 0.22 * clampf(cells.wet[i] / 4.0, 0.3, 1.0)), true, -1.0, true)
+			_ground_g.circle(c, s * 0.68, Color(PixelArt.WATER, 0.22 * clampf(cells.wet[i] / 4.0, 0.3, 1.0)), 16)
 		if cells.charge[i] > 0.0:
 			var k := int(now * 12.0 + i) % 3
 			var a := c + Vector2(-s * 0.35, (k - 1) * s * 0.2)
-			var pts := PackedVector2Array([a, a + Vector2(s * 0.2, -s * 0.15), a + Vector2(s * 0.4, s * 0.12), a + Vector2(s * 0.7, -s * 0.05)])
-			g.draw_polyline(pts, Color(PixelArt.STORM, 0.9), 1.0, true)
+			_ground_g.polyline(PackedVector2Array([a, a + Vector2(s * 0.2, -s * 0.15), a + Vector2(s * 0.4, s * 0.12), a + Vector2(s * 0.7, -s * 0.05)]), Color(PixelArt.STORM, 0.9), 1.0)
+	_ground_g.flush(ci)
 
 
 # --- props ----------------------------------------------------------------------------

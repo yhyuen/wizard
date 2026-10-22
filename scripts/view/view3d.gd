@@ -478,7 +478,7 @@ func _sync_figures(delta: float) -> void:
 		var rec := _fig_for(u)
 		rec["seen"] = true
 		var f = rec["node"]
-		f.position = to_world(u.pos, u.lift() * S)
+		f.position = to_world(u.shown_pos(), u.lift() * S)
 		# Facing: the wizard faces the aim; enemies face the wizard, or where they walk.
 		var d: Vector2 = (arena.mouse - u.pos) if u == P else (P.pos - u.pos)
 		if u.flags.has("face"):

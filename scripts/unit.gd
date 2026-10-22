@@ -6,6 +6,7 @@ var id := 0
 var kind := ""
 var team := 1  # 0 = the player, 1 = enemies
 var pos := Vector2.ZERO
+var prev_pos := Vector2.ZERO  # pos at the start of this physics step, for drawing between steps
 var vel := Vector2.ZERO  # knockback, decays
 var radius := 5.0
 var hp := 1.0
@@ -37,6 +38,19 @@ var aim := Vector2.ZERO
 var cd := {}
 var cd_total := {}  # spell id -> the full lock last set (longer than the cooldown after an Overdraw)
 var flags := {}
+
+
+## Where to draw this unit this frame: between the last two physics steps, so movement stays
+## smooth when the screen refreshes faster than 60 Hz or a frame runs late. A jump (a blink, a
+## new map) is drawn where it lands.
+func shown_pos() -> Vector2:
+	return smooth(prev_pos, pos)
+
+
+static func smooth(a: Vector2, b: Vector2) -> Vector2:
+	if a.distance_squared_to(b) > 400.0:
+		return b
+	return a.lerp(b, Engine.get_physics_interpolation_fraction())
 
 
 func alive() -> bool:

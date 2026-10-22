@@ -15,6 +15,7 @@ class Person:
 	var figure := ""
 	var name := ""
 	var pos := Vector2.ZERO
+	var prev_pos := Vector2.ZERO  # as Unit.prev_pos
 	var path := PackedVector2Array()
 	var spot := "-"  # the spot being walked to; "" when off the map
 	var on := false  # in town now
@@ -33,6 +34,9 @@ class Person:
 	var crowd := false
 	var home := Vector2.ZERO  # where a wanderer wanders round
 	var area := Rect2()
+
+	func shown_pos() -> Vector2:
+		return Unit.smooth(prev_pos, pos)
 
 var W  # scripts/world/world.gd
 var d: Dictionary
