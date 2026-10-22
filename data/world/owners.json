@@ -6,7 +6,9 @@
   "guild": {"name": "the Guild", "repairs": true},
   "college": {"name": "the College", "repairs": true},
   "traders": {"name": "the traders", "repairs": true},
-  "miller": {"name": "the Mill", "repairs": true}
+  "miller": {"name": "the Mill", "repairs": true},
+  "knights": {"name": "the Knights", "repairs": true},
+  "dwarves": {"name": "the dwarves", "repairs": false}
  },
  "maps": {
   "camp": {"default": "watch", "places": {"market": "traders", "great_lamp": "guild", "guild_bench": "guild", "mill": "miller", "mill_lane": "miller",
@@ -14,6 +16,7 @@
   "halls": {"default": ""},
   "undercroft": {"default": ""},
   "fields": {"default": "miller", "places": {"mill_bridge": "", "wayside_shrine": "", "farm_track": "", "east_fence": "miller"}},
+  "east_road": {"default": "", "places": {"knights_picket": "knights", "quarry": "dwarves"}},
   "city": {"default": "", "places": {"wick_lane": "watch", "bell_street": "watch", "wall_gap": "watch", "sunken_square": "watch", "lamp_depot": "guild", "college_steps": "college", "archive_gate": "college"}}
  },
  "repair_days": {"hay": 1, "crate": 1, "barrel": 2, "cart": 3, "post": 2},

@@ -143,6 +143,16 @@
    "title": "The drain under the square",
    "text": "The undercroft's grate opens into the camp's market cellar. Once the counterweight drags it up, it stays up: a walk from the camp to the city, with no day lost on the road."
   },
+  "holds_shut": {
+   "kind": "clue",
+   "title": "The Holds gate",
+   "text": "The dwarves keep the road to the Deep Holds open through Ashmoon. On the first day of Thaw they bar the gate in the rim, and it stays barred."
+  },
+  "smoke_vent": {
+   "kind": "clue",
+   "title": "The waystation vent",
+   "text": "A vent behind the waystation breathes from the smugglers' cellar. Burn the hay heaped against it and the smoke goes down, and the smugglers come up."
+  },
   "islet_stone": {
    "kind": "clue",
    "title": "The islet stone",

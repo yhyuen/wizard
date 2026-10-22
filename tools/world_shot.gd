@@ -8,7 +8,8 @@ extends SceneTree
 ## refectory, the dark gallery, the bell passage, the burnt door, the cistern's sluice, the Kiln
 ## Warden's rings and vents, the end card, and the fallen city: the wall gap, the Sunken Square,
 ## the glassworks, Bell Street's barricade and the Old Watch at dusk; the undercroft's stair,
-## channel and grate hall; the Mill fields' bridge, pond, orchard and east fence at dusk.
+## channel and grate hall; the Mill fields' bridge, pond, orchard and east fence at dusk; the east road's picket, toll
+## bridge, waystation, quarry and the Holds gate at dusk.
 ##
 ##   xvfb-run -a -s "-screen 0 1440x810x24" godot --rendering-driver opengl3 --resolution 1440x810 \
 ##       --fixed-fps 60 --script res://tools/world_shot.gd -- --out DIR
@@ -346,6 +347,25 @@ func _process(_dt: float) -> bool:
 			_go(W.map.spots["east_fence"], 2, 3)
 		3020:
 			_shot("39_east_fence_dusk")
+			slice.go_map("east_road", "road_end")
+		3110:
+			_close()
+		3120:
+			_go(W.map.spots["knights_picket"] + Vector2(-40, 40), 2, 1)
+		3160:
+			_shot("40_knights_picket")
+			_go(W.map.spots["toll_bridge"] + Vector2(-140, 60), 2, 1)
+		3200:
+			_shot("41_toll_bridge")
+			_go(W.map.spots["waystation"] + Vector2(0, 60), 2, 2)
+		3240:
+			_shot("42_waystation")
+			_go(W.map.spots["quarry"] + Vector2(100, -60), 2, 2)
+		3280:
+			_shot("43_quarry")
+			_go(W.map.spots["holds_road"], 2, 3)
+		3320:
+			_shot("44_holds_gate_dusk")
 			var f := FileAccess.open(out.path_join("stats.txt"), FileAccess.WRITE)
 			f.store_string("\n".join(stats) + "\n")
 			return true

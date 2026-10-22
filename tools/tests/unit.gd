@@ -396,6 +396,12 @@ func _world() -> void:
 	var open9: bool = not h.solid_at(bd.get_center())
 	h.set_day_doors(10)
 	ok(open9 and h.solid_at(bd.get_center()), "the burnt door stands open on day 9 and is whole on day 10")
+	var er = loaded["east_road"]
+	var hg: Rect2 = er.doors["holds_gate"]["rect"]
+	er.set_day_doors(28)
+	var ash28: bool = not er.solid_at(hg.get_center())
+	er.set_day_doors(29)
+	ok(ash28 and er.solid_at(hg.get_center()), "the Holds gate stands open through Ashmoon and is shut from Thaw 1")
 	var cs: Rect2 = h.doors["collapsed_stair"]["rect"]
 	var choked: bool = h.solid_at(cs.get_center())
 	h.doors["collapsed_stair"]["open"] = true
@@ -411,7 +417,7 @@ func _world() -> void:
 	ok(not m.solid_at(Vector2(m.d["tents"][0][0], m.d["tents"][0][1])), "your open shelter isn't")
 	var pd: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/props.json"))
 	var far: Array = []
-	for start in [["camp", "cot"], ["halls", "landing"], ["city", "wall_gap"], ["undercroft", "drain_stair"], ["fields", "mill_bridge"]]:
+	for start in [["camp", "cot"], ["halls", "landing"], ["city", "wall_gap"], ["undercroft", "drain_stair"], ["fields", "mill_bridge"], ["east_road", "road_end"]]:
 		var mm = loaded[start[0]]
 		mm.set_day_doors(1)  # early in the month, when the burnt door stands open
 		mm.set_drained(func(_f): return true)  # every sluice open: the mill pond's islet is a walk

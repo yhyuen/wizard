@@ -6,7 +6,7 @@
    "blurb": "Tents and lanterns at the plateau's edge, a mile from the fallen city."},
   "city": {"name": "The fallen city of Vellmar", "ring": 1, "pos": [0.5, 0.36], "maps": ["city", "halls", "undercroft"], "arrive": "wall_gap",
    "blurb": "Burned streets inside a broken wall, and the College of Hours fallen at its heart. Its halls lie under the College steps."},
-  "mill": {"name": "The Mill fields and east road", "ring": 1, "pos": [0.7, 0.58], "maps": ["fields"], "arrive": "mill_bridge",
+  "mill": {"name": "The Mill fields and east road", "ring": 1, "pos": [0.7, 0.58], "maps": ["fields", "east_road"], "arrive": "mill_bridge",
    "blurb": "Wheat gone to seed, Aldous's farm, a mill that still turns on its pond, and the fence that faces the moor."},
   "archive": {"name": "The Archive district", "ring": 2, "pos": [0.22, 0.2], "maps": [],
    "blurb": "The College's library quarter, half under water. Comes with Ring 2."},

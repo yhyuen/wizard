@@ -11,6 +11,8 @@
   "undercroft": {"default": "stone", "indoors": true, "places": [], "paint": []},
   "fields": {"default": "grass", "places": [["barns", "earth"], ["granary", "earth"], ["farm_track", "earth"], ["mill_bridge", "earth"], ["mill_cellar", "wood"]],
    "paint": [[300, 1270, 3300, 60, "earth"], [2190, 1330, 60, 230, "earth"], [1770, 1330, 60, 150, "earth"]]},
+  "east_road": {"default": "grass", "places": [["road_end", "earth"], ["toll_bridge", "earth"], ["quarry", "stone"], ["holds_road", "stone"]],
+   "paint": [[0, 650, 4000, 100, "earth"], [1800, 420, 380, 220, "wood"], [1830, 170, 300, 190, "stone"], [1960, 360, 60, 60, "earth"], [1180, 0, 60, 1400, "earth"]]},
   "halls": {"default": "stone", "indoors": true, "places": [], "paint": []}
  },
  "spread": {

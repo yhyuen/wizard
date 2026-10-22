@@ -9,6 +9,7 @@
   "city": {"path": "res://data/city/map.json", "kit": "ruin", "name": "The fallen city of Vellmar", "card": "Into the burned streets.", "story": "res://data/city/story/", "clock": true},
   "undercroft": {"path": "res://data/city/undercroft/map.json", "kit": "ruin", "name": "The undercroft", "card": "Down into the dark.", "story": "res://data/city/undercroft/story/",
    "mood": "ruin", "clock": true, "palette": {"wall_stone": "5e6064", "stone": "6a6e72", "rock": "44484c", "rock2": "34383c"}},
-  "fields": {"path": "res://data/fields/map.json", "kit": "country", "name": "The Mill fields", "card": "Out across the wheat.", "story": "res://data/fields/story/", "clock": true}
+  "fields": {"path": "res://data/fields/map.json", "kit": "country", "name": "The Mill fields", "card": "Out across the wheat.", "story": "res://data/fields/story/", "clock": true},
+  "east_road": {"path": "res://data/fields/east_road/map.json", "kit": "country", "name": "The east road", "card": "Down the road to the rim.", "story": "res://data/fields/east_road/story/", "clock": true}
  }
 }
