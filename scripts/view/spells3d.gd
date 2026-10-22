@@ -372,6 +372,15 @@ func _projs(glow_k: float) -> void:
 				r.position = at
 				r.scale = Vector3.ONE * size
 				r.rotation = Vector3(p["t"] * 9.0, p["t"] * 6.0, 0)
+			"bolt":
+				# a crossbow bolt: a dark shaft, no glow
+				_stick(at - dir * 0.35, at + dir * 0.35, 0.035, Color("5a4630"), 0.0)
+			"net":
+				var n := take("ring")
+				n.position = at
+				n.rotation = Vector3(0, p["t"] * 6.0, 0)
+				n.scale = Vector3.ONE * hit_m * 2.2
+				paint(n, PixelArt.PAPER, 0.3)
 			"ember", "pyro":
 				var size: float = hit_m / SHOT_BASE["fireball"] * SHOT_SCALE
 				var fb := take("fireball")
@@ -429,6 +438,22 @@ func _zones(glow_k: float) -> void:
 			f.position = _w(u.shown_pos(), 0.5)
 			f.scale = Vector3(0.6, 0.7 + 0.2 * sin(u.anim * 14.0), 0.6)
 			halo(_w(u.shown_pos(), 0.8), PixelArt.FIRE, 1.0, 0.8)
+		if u.dead:
+			continue
+		# brigands' gear (N-6.3): a Shieldman's wooden shield toward you, a Powder Monkey's keg on his back
+		if u.kind == "shieldman" and not u.flags.get("shield_gone", false):
+			var front: Vector2 = (arena.player.pos - u.pos).normalized()
+			var sh := take("cube")
+			sh.position = _w(u.shown_pos() + front * 5.0, 0.75)
+			sh.look_at(_w(u.shown_pos() + front * 20.0, 0.75), Vector3.UP)
+			sh.scale = Vector3(4.6, 6.0, 0.7)
+			paint(sh, Color("6a4a2c"), 0.0)
+		elif u.kind == "powder_monkey" and not u.flags.get("keg_gone", false):
+			var back: Vector2 = (u.pos - arena.player.pos).normalized()
+			var kg := take("cube")
+			kg.position = _w(u.shown_pos() + back * 3.5, 0.85)
+			kg.scale = Vector3(2.6, 3.2, 2.6)
+			paint(kg, Color("4a3424"), 0.0)
 	for z in arena.zones:
 		var t: float = z["t"]
 		match z["kind"]:
@@ -486,6 +511,14 @@ func _zones(glow_k: float) -> void:
 					r.position = _w(z["pos"] + o, 0.05)
 					r.scale = Vector3.ONE * 0.45
 					r.rotation = Vector3(a, a * 2.0, 0)
+			"pot":
+				# a Powder Monkey's pot arcing to its circle, once he has thrown it
+				if t >= float(z["fly_at"]):
+					var k := clampf((t - float(z["fly_at"])) / maxf(0.01, float(z["delay"]) - float(z["fly_at"])), 0.0, 1.0)
+					var o := take("orb")
+					o.position = _w(z["from"].lerp(z["pos"], k), SHOT_HEIGHT + 1.6 * sin(PI * k))
+					o.scale = Vector3.ONE * 0.5
+					paint(o, Color("3a2a1e"), 0.0)
 			"throw":
 				# a Spark Artifice device in flight: a glass flask arcing to where it lands (N-5.2)
 				var k := clampf(t / maxf(0.01, float(z["delay"])), 0.0, 1.0)

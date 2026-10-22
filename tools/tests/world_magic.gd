@@ -97,6 +97,10 @@ func _initialize() -> void:
 		["an Ember Bolt sets a Hollow alight, and it spreads to the one beside it", _husk_setup,
 			func(): return int(main.arena.stats.get("set_alight", 0)) >= state["alight"] + 2],
 		["a soaked Hollow only dries when fire hits it", _wet_husk_setup, _dried],
+		["a Shieldman's shield stops a hit from the front, not from behind, and an Ember Bolt burns it away", _shield_setup,
+			func(): return state["blocked"] and state["behind"] and state["s"].flags.get("shield_gone", false)],
+		["an Ember Bolt on a Powder Monkey blows his keg, and it hurts the Cutthroat beside him", _keg_setup, _keg_blown],
+		["the Brigand Captain's net roots you, and Blink gets you out", _net_setup, _netted],
 	]
 
 
@@ -709,5 +713,81 @@ func _dried() -> bool:
 	if state["h1"].wet_t > 0.0:
 		return false
 	var ok: bool = int(main.arena.stats.get("set_alight", 0)) == state["alight"] and state["h1"].burn_t <= 0.0
+	_clear_enemies()
+	return ok
+
+
+# --- N-6.3: brigands ---------------------------------------------------------------------------
+
+func _shield_setup() -> void:
+	_clear_enemies()
+	main.arena.zones.clear()
+	_book(BOOK)
+	var A = main.arena
+	var at := _dark_spot() + Vector2(0, 20)
+	var s = A.spawn("shieldman", at)
+	s.stun = 9.0
+	s.max_hp = 200.0
+	s.hp = 200.0
+	state["s"] = s
+	_cast_at(at, "ember_bolt", 50.0)
+	# a knock straight at him from where you stand, then one from behind him
+	var from_you: Vector2 = (s.pos - A.player.pos).normalized()
+	state["blocked"] = not A.hit(s, 5.0, 1, from_you, 0.0) and s.hp == 200.0
+	state["behind"] = A.hit(s, 5.0, 1, -from_you, 0.0) and s.hp < 200.0
+
+
+func _keg_setup() -> void:
+	_clear_enemies()
+	main.arena.zones.clear()
+	_book(BOOK)
+	var A = main.arena
+	var at := _dark_spot() + Vector2(0, 20)
+	state["kegs"] = int(A.stats.get("kegs_blown", 0))
+	state["m"] = A.spawn("powder_monkey", at)
+	state["c"] = A.spawn("cutthroat", at + Vector2(14, 0))
+	for u in [state["m"], state["c"]]:
+		u.stun = 9.0
+	state["c"].max_hp = 200.0
+	state["c"].hp = 200.0
+	_cast_at(at, "ember_bolt", 50.0)
+	A.player.iframes = 99.0  # stood a little close to the keg
+
+
+func _keg_blown() -> bool:
+	if int(main.arena.stats.get("kegs_blown", 0)) <= state["kegs"]:
+		return false
+	var ok: bool = state["m"].dead and state["c"].hp < 200.0
+	main.arena.player.iframes = 0.0
+	_clear_enemies()
+	return ok
+
+
+func _net_setup() -> void:
+	_clear_enemies()
+	main.arena.zones.clear()
+	var A = main.arena
+	var at := _dark_spot()
+	main.place_player(at)
+	A.player.iframes = 0.0
+	A.kit.warding = false
+	A.kit.blink_charges = 1
+	var c = A.spawn("brigand_captain", at + Vector2(100, 0))
+	c.state = "move"
+	c.cd["attack"] = 99.0
+	c.flags["volley_t"] = -99.0
+	state["c"] = c
+	state["netted"] = false
+
+
+func _netted() -> bool:
+	var A = main.arena
+	if not state["netted"]:
+		if not A.player.flags.has("net_t"):
+			return false
+		state["netted"] = A.move_speed(A.player) == 0.0
+		A.kit.blink()
+		return false
+	var ok: bool = not A.player.flags.has("net_t") and A.move_speed(A.player) > 0.0
 	_clear_enemies()
 	return ok

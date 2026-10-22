@@ -551,7 +551,7 @@ func _pose(u: Unit, rec: Dictionary, delta: float) -> Array:
 		if _cast_t < 0.45:
 			return ["staff_thrust", 0.12 + _cast_t * 1.2]
 	elif u.state in ["windup", "lance", "spark", "storm"] and u.state_t > 0.0:
-		var clip := "overhead" if u.kind == "hollow" else ("channel" if u.state == "storm" else "cast")
+		var clip := "overhead" if u.kind in ["hollow", "cutthroat", "shieldman", "brigand_captain"] else ("channel" if u.state == "storm" else "cast")
 		var e: Dictionary = arena.D["enemies"][u.kind]
 		var total := float(e.get("windup", 0.6))
 		var k := 1.0 - clampf(u.state_t / maxf(0.05, total), 0.0, 1.0)
