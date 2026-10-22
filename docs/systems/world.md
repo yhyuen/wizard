@@ -51,6 +51,9 @@ grid, breaking and collapse, damage that lasts the life, owners and witnesses. T
 - **Lightning** (`storm_zaps`) flares iron lamps for 1.5 s and charges puddles for 4 s; a charged
   puddle shocks enemies in it (5 every 0.5 s).
 - **Rewind** mends burnt and shoved props within 34 px back to how they were.
+- **Cantrips** ([combat.md](combat.md)): Kindle acts on the world like Pillar's fire (lights lamps
+  and braziers, sets props burning) and Douse like a splash all round its point (puts out props,
+  lamps, braziers and burning patches). The **staff strike** shoves the prop in front of it.
 - A lit or flaring lamp's pool (`light_r` 38) keeps `light_shy` kinds out.
 
 ## Tests

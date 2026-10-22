@@ -30,9 +30,9 @@ func _run() -> void:
 	ok(is_equal_approx(P.fair_delay(15.0), 0.25 + 20.0 / 72.0), "the dodge rule: 0.25 s + (radius + body) / speed")
 	# Cadence scales the spell being cast, and only that spell.
 	P.boost = {"id": "pillar", "damage": 0.7, "size": 1.3, "count": 1}
-	ok(is_equal_approx(P.stat("pillar", "radius"), 15.0 * 1.3) and is_equal_approx(P.stat("pillar", "damage"), 14.0 * 0.7), "a boost scales the cast spell's size and damage")
+	ok(is_equal_approx(P.stat("pillar", "radius"), 15.0 * 1.3) and is_equal_approx(P.stat("pillar", "damage"), 24.0 * 0.7), "a boost scales the cast spell's size and damage")
 	ok(is_equal_approx(P.stat("pillar", "radius", 1), 15.0), "a boost never touches an explicit level (ghost previews)")
-	ok(is_equal_approx(P.stat("ember_bolt", "damage"), 6.0), "a boost leaves other spells alone")
+	ok(is_equal_approx(P.stat("ember_bolt", "damage"), 16.0), "a boost leaves other spells alone")
 	P.boost = {"id": "pyroclasm", "damage": 1.0, "size": 1.0, "count": 1}
 	ok(P.stat("pyroclasm", "bounces") == 5.0, "a Resonant cast adds one to a count")
 	P.boost = {}
@@ -64,16 +64,17 @@ func _run() -> void:
 	ok(P.wizard_level() == 3, "wizard level 7 drops to 3")
 	ok(P.level("ember_bolt") == 15, "spell levels survive the loop")
 	ok(P.blink_charges(1) == 1 and P.blink_charges(3) == 2 and P.blink_charges(6) == 3, "blink charges at 1, 3, 6")
-	# The spellbook: six spells from any sphere, set at the Orrery.
+	# The spellbook: four spells from any sphere (spell and combat spec §5.1).
 	P.reset_all()
-	ok(P.spellbook() == ["ember_bolt", "pebble", "pillar", "fling", "pyroclasm", "avalanche"], "the first loop starts with the Mars and Jupiter kits")
+	ok(P.spellbook() == ["ember_bolt", "pillar", "pebble", "pyroclasm"], "the first loop starts with Mars and Jupiter spells")
 	ok(P.loadout() == ["fire", "earth"], "the book's spheres are Mars and Jupiter")
-	P.set_spell(2, "arc_lance")
-	ok(P.spellbook()[2] == "arc_lance" and P.loadout() == ["fire", "earth", "storm"], "any spell goes in any slot, and its sphere joins the book")
+	P.set_spell(1, "arc_lance")
+	ok(P.spellbook()[1] == "arc_lance" and P.loadout() == ["fire", "storm", "earth"], "any spell goes in any slot, and its sphere joins the book")
 	P.set_spell(0, "pebble")
-	ok(P.spellbook()[0] == "pebble" and P.spellbook()[1] == "ember_bolt", "a spell already in the book swaps slots")
-	ok(P.valid_book(P.spellbook(), P.data["spells"]), "the book stays six different spells")
-	ok(not P.valid_book(["spark", "spark", "pillar", "fling", "pyroclasm", "avalanche"], P.data["spells"]), "a book with a spell twice is invalid")
+	ok(P.spellbook()[0] == "pebble" and P.spellbook()[2] == "ember_bolt", "a spell already in the book swaps slots")
+	ok(P.valid_book(P.spellbook(), P.data["spells"]), "the book stays four different spells")
+	ok(not P.valid_book(["spark", "spark", "pillar", "fling"], P.data["spells"]), "a book with a spell twice is invalid")
+	ok(not P.valid_book(["ember_bolt", "pebble", "pillar", "fling", "pyroclasm", "avalanche"], P.data["spells"]), "a six-spell book (an old save) is invalid")
 	P.set_loadout("fire", "earth")
 	ok(P.spell_for("storm", "bolt") == "spark" and P.spell_for("water", "signature") == "maelstrom", "each element has a bolt, control and signature")
 	ok(P.magick_for(["water", "storm"]) == "conductor" and P.magick_for(["earth", "fire"]) == "meteor", "a pair finds its Magick in either order")
@@ -81,17 +82,17 @@ func _run() -> void:
 	P.set_loadout("storm", "storm")
 	ok(P.loadout() == ["fire", "earth"], "the same sphere twice is refused as a preset")
 	P.set_loadout("storm", "water")
-	ok(P.spellbook() == ["spark", "splash", "arc_lance", "undertow", "storm_call", "maelstrom"], "a two-sphere preset fills the book")
+	ok(P.spellbook() == ["spark", "splash", "arc_lance", "undertow"], "a two-sphere preset fills the book")
 	ok(not P.unlocked("rewind") and not P.open_elements().has("hours"), "Hours is not in loop 1")
 	P.set_spell(0, "rewind")
 	ok(not P.spellbook().has("rewind"), "a spell that has not come back yet cannot go in the book")
 	P.set_echo([10, 20, 1, 0, 0, 30, 40, 1, 0, 1], false)
 	ok(P.echo_track().is_empty(), "this loop's own fight is not its echo")
 	P.next_loop()
-	ok(P.spellbook().slice(0, 5) == ["spark", "splash", "arc_lance", "undertow", "storm_call"], "the spellbook carries into the next loop")
-	ok(P.spellbook()[5] == "rewind" and P.unlocked("rewind") and P.open_elements().has("hours"), "Rewind comes back with you in loop 2, in the last slot")
+	ok(P.spellbook().slice(0, 3) == ["spark", "splash", "arc_lance"], "the spellbook carries into the next loop")
+	ok(P.spellbook()[3] == "rewind" and P.unlocked("rewind") and P.open_elements().has("hours"), "Rewind comes back with you in loop 2, in the last slot")
 	ok(P.echo_track().size() == 10, "the last loop's fight becomes the echo")
-	P.set_spell(5, "maelstrom")
+	P.set_spell(3, "maelstrom")
 	P.next_loop()
 	ok(not P.spellbook().has("rewind"), "Rewind is only pushed into the book once")
 	# Re-picking a mutation (only the shrine calls this).
@@ -114,10 +115,120 @@ func _run() -> void:
 	P.next_loop()
 	ok(P.has_hint("conductor"), "hints carry over loops")
 	_controls(P)
+	_kit(P)
 	_growth(P)
 	_world()
 	print("[unit] %d check(s), %d failed" % [checks, fails])
 	quit(1 if fails > 0 else 0)
+
+
+func _it(aim: Vector2, held := {}, pressed := {}, released := {}) -> Dictionary:
+	return {"held": held, "pressed": pressed, "released": released, "aim": aim}
+
+
+## The combat weight pass (spell and combat spec §3–5): wind-ups and recovery, cancel and commit,
+## Focus, scarce Aether, Overdraw and Strain, rest, the Ward and the staff strike.
+func _kit(P) -> void:
+	P.reset_all()
+	var A = load("res://scripts/arena.gd").new()
+	root.add_child(A)
+	var K = A.kit
+	var dt := 1.0 / 60.0
+	A.phase = "enc"
+	K.rest()
+	var foe: Unit = A.spawn("hollow", A.player.pos + Vector2(60, 0))
+	var at: Vector2 = foe.pos
+	# A Swift spell: a tap commits it, and it flies when its wind-up ends.
+	var bolt: String = K.slot_of("ember_bolt")
+	K.update(dt, _it(at, {bolt: true}, {bolt: true}))
+	ok(not K.wind.is_empty() and A.projs.is_empty(), "pressing a spell starts its wind-up; nothing flies yet")
+	K.update(dt, _it(at, {}, {}, {bolt: true}))
+	ok(K.wind.get("commit", false), "a Swift spell let go early is committed")
+	var a0: float = K.aether
+	for i in 30:
+		K.update(dt, _it(at))
+	ok(A.projs.size() == 1 and A.player.cooldown("ember_bolt") > 2.0, "it casts when its wind-up ends, then cools down")
+	ok(a0 - K.aether > 12.0, "Ember Bolt costs Aether (spent %.1f)" % (a0 - K.aether))
+	ok(K.recover_t > 0.0 and is_equal_approx(K.move_mult(), 0.8), "a short recovery follows, at 80% speed")
+	for i in 30:
+		K.update(dt, _it(at))
+	# A Weave let go early is cancelled with nothing spent; held through, it casts on release.
+	var ps: String = K.slot_of("pillar")
+	a0 = K.aether
+	K.update(dt, _it(at, {ps: true}, {ps: true}))
+	K.update(dt, _it(at, {}, {}, {ps: true}))
+	ok(K.wind.is_empty() and A.player.cooldown("pillar") == 0.0 and K.aether >= a0, "a Weave let go early is cancelled, nothing spent")
+	K.update(dt, _it(at, {ps: true}, {ps: true}))
+	ok(is_equal_approx(K.move_mult(), 0.4), "winding up a Weave slows you to 40%")
+	for i in 60:
+		K.update(dt, _it(at, {ps: true}))
+	K.update(dt, _it(at, {}, {}, {ps: true}))
+	ok(A.player.cooldown("pillar") > 0.0, "held through its wind-up, Pillar casts on release")
+	for i in 40:
+		K.update(dt, _it(at))
+	# Focus: a hit at your Focus doesn't break a wind-up; one above it does, for half the Aether.
+	var rs: String = K.slot_of("pyroclasm")
+	K.update(dt, _it(at, {rs: true}, {rs: true}))
+	ok(is_equal_approx(K.move_mult(), 0.0), "an Incant roots you")
+	A.hit(A.player, 1.0, 1, Vector2.RIGHT)
+	ok(not K.wind.is_empty() and A.player.reaction == "", "a hit at your Focus neither breaks nor flinches a wind-up")
+	A.player.iframes = 0.0
+	a0 = K.aether
+	A.hit(A.player, 1.0, 2, Vector2.RIGHT)
+	ok(K.wind.is_empty() and is_equal_approx(a0 - K.aether, 22.5), "a hit above your Focus breaks it, for half its Aether")
+	A.player.iframes = 0.0
+	A.player.reaction = ""
+	A.player.reaction_t = 0.0
+	# Overdraw: HP and Strain; Strain lowers max Aether; a backlash at 50 Strain; rest clears it.
+	K.aether = 0.0
+	var hp0: float = A.player.hp
+	K._pay(30.0)
+	ok(is_equal_approx(hp0 - A.player.hp, 30.0) and is_equal_approx(K.strain, 30.0) and is_equal_approx(K.max_aether(), 70.0), "Overdraw costs 1 HP and 1 Strain a point; Strain lowers max Aether")
+	A.player.hp = A.player.max_hp
+	K._pay(25.0)
+	ok(A.player.stun > 1.9, "an Overdraw at 50 Strain backlashes: a 2 s stun")
+	K.rest()
+	ok(K.strain == 0.0 and is_equal_approx(K.aether, 100.0), "rest clears Strain and fills Aether")
+	A.player.stun = 0.0
+	# Aether comes back at 3/s in a fight; out of one at 15/s, but only to 60%.
+	K.aether = 0.0
+	K._regen(1.0)
+	ok(is_equal_approx(K.aether, 3.0), "Aether comes back at 3/s in a fight")
+	A.phase = "explore"
+	for i in 10:
+		K._regen(1.0)
+	ok(is_equal_approx(K.aether, 60.0), "out of a fight it refills at 15/s, only to 60%")
+	# The Ward stops a hit from the front, not from behind; Impact 3 breaks it and staggers you.
+	A.phase = "enc"
+	K.rest()
+	var front: Vector2 = A.player.pos + Vector2(30, 0)
+	K.update(dt, _it(front, {"ward": true}, {"ward": true}))
+	ok(K.warding, "holding the Ward raises it")
+	hp0 = A.player.hp
+	ok(not A.hit(A.player, 5.0, 1, Vector2.LEFT) and A.player.hp == hp0 and K.aether < 100.0, "the Ward stops a hit from the front, for Aether")
+	ok(A.hit(A.player, 5.0, 1, Vector2.RIGHT) and A.player.hp < hp0, "but not one from behind")
+	A.player.iframes = 0.0
+	A.hit(A.player, 5.0, 3, Vector2.LEFT)
+	ok(not K.warding and A.player.reaction == "stagger", "Impact 3 breaks the Ward and staggers you")
+	A.player.reaction = ""
+	A.player.reaction_t = 0.0
+	# The staff strike: free, short, every 0.6 s.
+	K.update(dt, _it(front))
+	foe.pos = A.player.pos + Vector2(15, 0)
+	foe.hp = foe.max_hp
+	a0 = K.aether
+	K.update(dt, _it(foe.pos, {"staff": true}, {"staff": true}))
+	ok(foe.hp < foe.max_hp and K.staff_t > 0.5 and K.aether >= a0, "the staff strikes what's in front, for free")
+	# A cantrip: instant, on charges.
+	var c1: String = K.slot_spell("cant2")
+	K.update(dt, _it(foe.pos, {}, {"cant2": true}))
+	ok(c1 == "douse" and foe.wet_t > 0.0 and K.cant_charges["douse"] == 1, "Douse soaks what's under the cursor and uses a charge")
+	P.spell_leveled.disconnect(K._on_leveled)
+	K.modules.clear()
+	K.fe = null
+	K.sw = null
+	A.free()
+	P.reset_all()
 
 
 ## The slice's growth (design/slice/systems.md §2): wells and Rings, Ring-gated slots and tiers,
@@ -136,16 +247,16 @@ func _growth(P) -> void:
 	G.add_wells(30)
 	ok(G.ring() == 0, "wells alone don't pass the yard trial")
 	R.set_flag("ring1")
-	ok(G.ring() == 2 and G.slots() == 4 and G.slot_spell(2) == "pillar", "after the trial, 30 wells is the 2nd Ring with Pillar open")
+	ok(G.ring() == 2 and G.slots() == 3 and G.slot_spell(2) == "pillar", "after the trial, 30 wells is the 2nd Ring: 3 slots, Pillar open")
 	ok(G.max_hp() == 160.0 and G.max_aether() == 130.0 and G.blinks() == 2, "wells raise Vitality and Aether; the 2nd Ring adds a Blink")
 	ok(G.set_slot(0, "fling") and G.book()[0] == "fling" and G.book()[3] == "ember_bolt", "putting a Model in a slot swaps it with where it was")
-	ok(not G.set_slot(4, "ember_bolt"), "slot 5 waits for the 4th Ring")
+	ok(not G.set_slot(3, "ember_bolt"), "slot 4 waits for the 3rd Ring")
 	R.learn("model_pyroclasm")
 	ok(G.known_models().has("pyroclasm") and not G.can_cast("pyroclasm"), "a Signature can be known before the 4th Ring lets you cast it")
 	# A fight borrows the loop's Practice and gives it back.
 	G.begin_fight()
 	ok(P.max_hp() == 160.0 and P.max_aether() == 130.0 and P.magick_for(["fire", "earth"]) == "", "in a slice fight Progression uses wells and has no Magicks")
-	ok(P.slot_open(0) and not P.slot_open(4), "in a slice fight locked slots are closed")
+	ok(P.slot_open(0) and not P.slot_open(3), "in a slice fight locked slots are closed")
 	var w0: float = P.p["wizard_xp"]
 	P.add_xp("fling", P.xp_needed(1))
 	ok(P.level("fling") == 2 and P.p["wizard_xp"] == w0, "slice Practice levels a spell and no wizard level")
@@ -172,7 +283,7 @@ func _growth(P) -> void:
 	P.reset_all()
 
 
-## The League-style controls turn right-clicks and Q W E R D F into the same intent the kit reads.
+## The League-style controls turn right-clicks and Q W E R, D F into the same intent the kit reads.
 func _controls(P) -> void:
 	P.reset_all()
 	var A = load("res://scripts/arena.gd").new()
@@ -184,7 +295,7 @@ func _controls(P) -> void:
 	var it: Dictionary = C.build(A, Vector2(10, 10), {"move": Vector2(1, 0), "held": {}, "pressed": {}, "released": {}})
 	ok(it["move"] == Vector2(1, 0) and it["aim"] == Vector2(10, 10), "classic passes WASD and the mouse through")
 	C.set_scheme("league")
-	ok(C.key("slot1") == "Q" and C.key("slot6") == "F", "League keys are Q W E R D F")
+	ok(C.key("slot1") == "Q" and C.key("slot4") == "R" and C.key("cant2") == "F" and C.key("ward") == "C", "League keys: Q W E R spells, D F cantrips, C Ward")
 	var P0: Vector2 = A.player.pos
 	var goal: Vector2 = P0 + Vector2(40, 0)
 	var click := {"move_click": true, "held": {}, "pressed": {}, "released": {}}
@@ -195,17 +306,17 @@ func _controls(P) -> void:
 		A.kit.update(1.0 / 60.0, it)
 	ok(A.player.pos.distance_to(goal) <= C.ARRIVE + 1.5 and C.dest == null, "the wizard stops on the clicked point (%s)" % A.player.pos)
 	ok(it["move"] == Vector2.ZERO and C.order.is_empty(), "then stands still, and the marker fades")
-	# Right-click on an enemy: walk into Bolt range, then hold the Bolt at it.
+	# Right-click on an enemy: walk up to it, then strike it with the staff.
 	var foe: Unit = A.spawn("hollow", A.player.pos + Vector2(200, 0))
 	A.hover = foe
 	it = C.build(A, foe.pos, click, 1.0 / 60.0)
 	A.hover = null
-	ok(C.target == foe and it["move"].x > 0.9 and not it["held"].get("slot1", false), "attacking a far enemy walks toward it")
-	A.player.pos = foe.pos - Vector2(60, 0)
+	ok(C.target == foe and it["move"].x > 0.9 and not it["held"].get("staff", false), "attacking a far enemy walks toward it")
+	A.player.pos = foe.pos - Vector2(18, 0)
 	it = C.build(A, Vector2(0, 0), none, 1.0 / 60.0)
-	ok(it["move"] == Vector2.ZERO and it["held"].get("slot1", false) and it["aim"] == foe.pos, "in range, the Bolt fires at the enemy, not the cursor")
+	ok(it["move"] == Vector2.ZERO and it["held"].get("staff", false) and it["aim"] == foe.pos, "in reach, the staff strikes the enemy, not the cursor")
 	it = C.build(A, Vector2(5, 5), {"held": {"slot3": true}, "pressed": {"slot3": true}, "released": {}}, 1.0 / 60.0)
-	ok(it["aim"] == Vector2(5, 5) and not it["held"].get("slot1", false), "a spell key aims at the cursor even mid-attack")
+	ok(it["aim"] == Vector2(5, 5) and not it["held"].get("staff", false), "a spell key aims at the cursor even mid-attack")
 	foe.dead = true
 	C.build(A, Vector2(0, 0), none, 1.0 / 60.0)
 	ok(C.target == null, "the attack ends when the enemy falls")
@@ -217,9 +328,9 @@ func _controls(P) -> void:
 	ok(it["held"]["slot3"] and not it["released"].get("slot3", false), "quick cast holds the telegraph")
 	C.set_scheme("league_smart")
 	it = C.build(A, goal, {"held": {"slot3": true}, "pressed": {"slot3": true}, "released": {}}, 0.0)
-	ok(it["released"]["slot3"] and not it["held"]["slot3"], "smart cast releases on the same frame")
-	it = C.build(A, goal, {"held": {"slot1": true}, "pressed": {"slot1": true}, "released": {}}, 0.0)
-	ok(it["held"]["slot1"] and not it["released"].get("slot1", false), "a Bolt still fires while held")
+	ok(it["released"]["slot3"] and not it["held"]["slot3"] and it["smart"], "smart cast releases on the same frame and commits the spell")
+	it = C.build(A, goal, {"held": {"ward": true}, "pressed": {"ward": true}, "released": {}}, 0.0)
+	ok(it["held"]["ward"] and not it["released"].get("ward", false), "the Ward stays up while held, even under smart cast")
 	# Blink goes toward the cursor and ends the order.
 	C.build(A, goal + Vector2(0, 30), click, 0.0)
 	it = C.build(A, goal, {"held": {"blink": true}, "pressed": {"blink": true}, "released": {}}, 0.0)

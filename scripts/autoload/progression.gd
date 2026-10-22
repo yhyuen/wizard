@@ -26,6 +26,7 @@ var boost: Dictionary = {}
 var rules: Dictionary = {}
 
 const SIZE_KEYS := ["radius", "size", "cone", "width"]
+const BOOK_SIZE := 4
 const COUNT_KEYS := ["bounces", "strikes", "chains"]
 
 
@@ -269,7 +270,7 @@ func mastery(element: String) -> int:
 
 # --- the spellbook --------------------------------------------------------
 
-## Six spells, one per slot (LMB, RMB, Q, E, R, F), from any sphere. Changed at an Orrery shrine.
+## Four spells, one per slot (Q, E, R, F), from any sphere (spell and combat spec §5.1).
 func spellbook() -> Array:
 	return p["spellbook"]
 
@@ -339,7 +340,7 @@ func open_elements() -> Array:
 
 
 static func valid_book(book, spells: Dictionary) -> bool:
-	if typeof(book) != TYPE_ARRAY or book.size() != 6:
+	if typeof(book) != TYPE_ARRAY or book.size() != BOOK_SIZE:
 		return false
 	var seen := {}
 	for id in book:
@@ -349,13 +350,13 @@ static func valid_book(book, spells: Dictionary) -> bool:
 	return true
 
 
-## Fills the book with two spheres' kits: their Bolts on LMB / RMB, Controls on Q / E, Signatures
-## on R / F (a quick preset; the shrine sets slots one by one).
+## Fills the book from two spheres: their Bolts, then their Controls (a quick preset; the desk sets
+## slots one by one).
 func set_loadout(a: String, b: String) -> void:
 	if a == b or not data["elements"].has(a) or not data["elements"].has(b):
 		return
 	var book: Array = []
-	for slot in ["bolt", "control", "signature"]:
+	for slot in ["bolt", "control"]:
 		book.append(spell_for(a, slot))
 		book.append(spell_for(b, slot))
 	if book == spellbook():
@@ -492,7 +493,7 @@ func next_loop() -> void:
 	p["wizard_level"] = maxi(1, int(floor(wizard_level() * keep)))
 	p["wizard_xp"] = 0.0
 	pending.clear()
-	# A spell that first comes back with you this loop goes straight into the last slot (F).
+	# A spell that first comes back with you this loop goes straight into the last slot.
 	for id in data["spells"]:
 		if int(spell(id).get("from_loop", 1)) == loop() and not spellbook().has(id):
 			var book: Array = spellbook().duplicate()

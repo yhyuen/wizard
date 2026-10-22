@@ -2,21 +2,25 @@ extends RefCounted
 ## Turns the keyboard and mouse into the fight's intent dictionary, in one of three schemes,
 ## switched with Tab on the title card and kept in user://settings.cfg:
 ##
-##   classic       WASD moves, the mouse aims, LMB RMB Q E R F are the six spellbook slots.
+##   classic       WASD moves, the mouse aims, LMB strikes with the staff, hold RMB to Ward,
+##                 Q E R F are the four spellbook slots, 1 2 the cantrips.
 ##   league        League of Legends style: right-click the ground to walk there (hold it to
-##                 keep walking toward the cursor), right-click an enemy to attack it with your
-##                 Bolt, S stops, Q W E R D F are the six slots and cast at the cursor. Spells
-##                 show their telegraph while held and cast on release (quick cast with indicator).
-##   league_smart  The same, but spells cast the moment their key goes down (smart cast).
+##                 keep walking toward the cursor), right-click an enemy to walk up and strike it
+##                 with the staff (A strikes too), S stops, Q W E R are the four slots and cast at
+##                 the cursor, D F the cantrips, hold C to Ward. Spells show their telegraph while
+##                 held and cast on release (quick cast with indicator).
+##   league_smart  The same, but a spell is committed the moment its key goes down (smart cast):
+##                 it winds up and casts without waiting for the key to come up.
 ##
 ## The arena and the kit only ever see the intent, so the bot and the tests are unaffected.
 
 const SCHEMES := ["classic", "league", "league_smart"]
 const NAMES := {"classic": "Classic (WASD)", "league": "League (right-click to move)", "league_smart": "League, smart cast"}
 const SETTINGS_PATH := "user://settings.cfg"
-const SLOTS := ["slot1", "slot2", "slot3", "slot4", "slot5", "slot6", "magick"]
-const CLASSIC_KEYS := {"slot1": "LMB", "slot2": "RMB", "slot3": "Q", "slot4": "E", "slot5": "R", "slot6": "F", "magick": "C"}
-const LEAGUE_KEYS := {"slot1": "Q", "slot2": "W", "slot3": "E", "slot4": "R", "slot5": "D", "slot6": "F", "magick": "C"}
+const SLOTS := ["slot1", "slot2", "slot3", "slot4", "cant1", "cant2", "staff", "ward"]
+const SPELL_SLOTS := ["slot1", "slot2", "slot3", "slot4"]
+const CLASSIC_KEYS := {"slot1": "Q", "slot2": "E", "slot3": "R", "slot4": "F", "cant1": "1", "cant2": "2", "staff": "LMB", "ward": "RMB"}
+const LEAGUE_KEYS := {"slot1": "Q", "slot2": "W", "slot3": "E", "slot4": "R", "cant1": "D", "cant2": "F", "staff": "A", "ward": "C"}
 const ARRIVE := 1.5  # sim px: a move order is done this close to its point
 const ORDER_LIFE := 0.45  # seconds the click marker shows
 
@@ -157,10 +161,10 @@ func build(A, mouse: Vector2, raw: Dictionary, dt := 0.0) -> Dictionary:
 			route = PackedVector2Array([to])
 	if target != null and (target.dead or not A.units.has(target)):
 		target = null
-	# Smart cast: a non-Bolt spell casts the frame its key goes down, with no telegraph.
+	# Smart cast: a spell is committed the frame its key goes down; it winds up and casts.
 	if smart():
-		for s in SLOTS:
-			if pressed.get(s, false) and not A.kit.is_bolt(A.kit.slot_spell(s)):
+		for s in SPELL_SLOTS:
+			if pressed.get(s, false):
 				released[s] = true
 				held[s] = false
 	var casting := false
@@ -170,12 +174,11 @@ func build(A, mouse: Vector2, raw: Dictionary, dt := 0.0) -> Dictionary:
 	var aim := mouse
 	var move := Vector2.ZERO
 	if target != null:
-		var bolt := _bolt_slot(A)
 		var to: Vector2 = target.pos - P.pos
-		if bolt == "" or to.length() > attack_range(A.kit.slot_spell(bolt)):
+		if to.length() > attack_range():
 			move = to.normalized()
 		elif not casting:
-			held[bolt] = true
+			held["staff"] = true
 			aim = target.pos
 	elif not route.is_empty():
 		move = _follow(A)
@@ -191,23 +194,9 @@ func build(A, mouse: Vector2, raw: Dictionary, dt := 0.0) -> Dictionary:
 		dest = null
 		target = null
 		route = PackedVector2Array()
-	return {"move": move, "aim": aim, "held": held, "pressed": pressed, "released": released}
+	return {"move": move, "aim": aim, "held": held, "pressed": pressed, "released": released, "smart": smart()}
 
 
-## The first spellbook slot holding a Bolt: right-click attacks use it.
-func _bolt_slot(A) -> String:
-	for s in A.kit.SLOTS:
-		if A.kit.is_bolt(A.kit.slot_spell(s)):
-			return s
-	return ""
-
-
-## How close the wizard walks before an attack fires its Bolt (sim px).
-func attack_range(id: String) -> float:
-	var s: Dictionary = Progression.spell(id)
-	var r := 120.0
-	if s["stats"].has("range"):
-		r = Progression.stat(id, "range")
-	elif s.has("range"):
-		r = float(s["range"])
-	return r * 0.9
+## How close the wizard walks before a right-click attack swings the staff (sim px).
+func attack_range() -> float:
+	return float(Progression.data["staff"]["reach"]) * 0.9

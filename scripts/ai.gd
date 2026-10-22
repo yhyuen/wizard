@@ -38,12 +38,23 @@ func update(u: Unit, dt: float) -> void:
 			_warden(u, dt)
 
 
-## A hard hit (stagger or more) breaks a wind-up: the telegraph goes away.
+## An enemy's Focus: Impact above it breaks a wind-up (spell and combat spec §9). Its "focus" in
+## data/spells.json, else one above its Poise (a stagger or more, as before Focus existed).
+func focus(u: Unit) -> int:
+	return int(A.D["enemies"][u.kind].get("focus", u.poise + 1))
+
+
+## A hit above its Focus breaks a wind-up: the telegraph goes away, a cracked sigil puffs over it,
+## and the attack comes back at half its cooldown.
 func interrupt(u: Unit) -> void:
 	if u.state in ["windup", "spark", "lance"]:
 		A.cancel_zones(u.id)
 		u.state = "move"
 		u.state_t = 0.4
+		var cd := float(A.D["enemies"][u.kind].get("cooldown", 0.0)) * 0.5
+		u.cd["attack"] = maxf(u.cooldown("attack"), cd)
+		A.fx("clink", u.pos + Vector2(0, -12), {"life": 0.35})
+		A.stats["interrupts"] = int(A.stats.get("interrupts", 0)) + 1
 
 
 func _step(u: Unit, dir: Vector2, dt: float, mult := 1.0) -> void:

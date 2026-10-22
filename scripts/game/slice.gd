@@ -137,6 +137,7 @@ func begin_day() -> void:
 	growth.begin_fight()  # you can cast anywhere, so the day's Practice is lent all day
 	cur = {}
 	main.enter_world(world.map.spots["cot"])
+	main.arena.kit.rest()  # a night's sleep: full Aether, no Strain
 	world.reset_day()
 	set_screen("world")
 	dawn_t = 0.0
@@ -391,6 +392,8 @@ func _effect(op: String, arg: String) -> bool:
 		"wells", "meditate":
 			if growth.use_today(op):
 				gain_wells(int(arg))
+				if op == "meditate" and main != null:
+					main.arena.kit.rest()  # meditating is a rest: full Aether, no Strain
 			else:
 				toast("You've already meditated today. It doesn't come twice.")
 		"train":
@@ -1079,7 +1082,7 @@ func _draw_book() -> void:
 	title(at, "Spellbook", 15, PAPER)
 	text(at + Vector2(96, 0), "pick a slot, then a spell", 12, DIM)
 	var book: Array = growth.book()
-	for i in 6:
+	for i in growth.prog.BOOK_SIZE:
 		var rr := Rect2(at + Vector2(i * 104, 14), Vector2(98, 46))
 		var open: bool = i < growth.slots()
 		var id: String = growth.slot_spell(i)

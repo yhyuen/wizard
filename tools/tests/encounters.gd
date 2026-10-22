@@ -24,6 +24,8 @@ const AT := {"patrol": ["camp", "yard_c"], "hall_fight": ["halls", "hall_c"], "r
 ## The Kiln Warden is a trial (design/ruins/content.md §4): a fresh Apprentice who walks in
 ## without turning the sluice loses; with the sluice turned, a wizard who has worked at it wins.
 const REQUIRE := {"warden fresh": false, "warden strong+flooded": true}
+## A strong wizard's book: Jupiter first, since the Kiln Warden shrugs off Mars (resist_fire).
+const STRONG_BOOK := ["pebble", "fling", "pillar", "ember_bolt"]
 
 var main
 var bot
@@ -113,7 +115,7 @@ func _profile(p: String) -> void:
 		for id in g.prog.data["spells"]:
 			run.mem["known"]["model_" + id] = 1
 			g.practice()[id]["level"] = 10
-		run.lp["book"] = (g.prog.data["start_spellbook"] as Array).duplicate()
+		run.lp["book"] = STRONG_BOOK.duplicate()
 
 
 func _next() -> void:
@@ -145,6 +147,7 @@ func _next() -> void:
 	slice.world.reset_day()
 	slice.set_screen("world")
 	main.enter_world(slice.world.map.spots[AT[c["id"]][1]])
+	main.arena.kit.rest()  # each fight starts rested, as after a night's sleep
 	if c.get("flooded", false):
 		run.lp["done_sluice"] = run.day()
 	slice.fight_id = c["id"]

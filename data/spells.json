@@ -19,23 +19,35 @@
     "water": {"name": "Luna", "was": "Water", "glyph": "☽", "color": "4f86e8"},
     "hours": {"name": "Hours", "was": "Time", "glyph": "♄", "color": "ffb347"}
   },
-  "_spellbook_doc": "Six spellbook slots (LMB, RMB, Q, E, R, F) hold any six known spells, from any sphere; changed at the Orrery shrine. Bolts fire while held; every other spell aims while held and casts on release. The Magick (C) is the first Magick whose two spheres are both in the book.",
-  "start_spellbook": ["ember_bolt", "pebble", "pillar", "fling", "pyroclasm", "avalanche"],
-  "_aether_doc": "Aether is the mana (design/magic-world-revisit.md section 8). Cost by spell kind unless a spell sets its own 'aether'. Cadence: the same spell cast again in a row loses 'repeat_loss' per repeat down to 'floor'; a cast that differs from the last one, where at least one of the two is not a Bolt, adds a note and refunds 'refund' Aether. At 'notes' notes the next non-Bolt spell is Resonant (size x 'resonant_size', counts + 'resonant_count'). Notes fade after 'note_life' seconds without a cast.",
-  "aether": {"max": 100, "regen": 12, "costs": {"bolt": 0, "control": 20, "signature": 45, "magick": 50}},
-  "_overdraw_doc": "Short on Aether, a spell still casts: the missing Aether is paid in HP ('hp_per_aether' each) and the spell is locked for 'lock' seconds. A desperate option, never the efficient one.",
-  "overdraw": {"hp_per_aether": 0.5, "lock": 10.0},
-  "cadence": {"repeat_loss": 0.15, "floor": 0.55, "notes": 4, "refund": 10, "note_life": 3.0, "resonant_size": 1.3, "resonant_count": 1},
+  "_spellbook_doc": "Four spellbook slots (Q, E, R, F; League Q W E R) hold any four known spells, from any sphere; two cantrips (1, 2; League D F); the staff strike (LMB), the Ward (hold RMB; League C) and Blink are always there (spell and combat spec section 5). Magicks are retired: their code stays until combined spells replace it, but nothing casts them.",
+  "start_spellbook": ["ember_bolt", "pillar", "pebble", "pyroclasm"],
+  "start_cantrips": ["kindle", "douse"],
+  "_casting_doc": "Every spell has a wind-up ('cast' speed band and 'windup' seconds), a release and a recovery (spell and combat spec section 3). While winding up you move at the band's 'move'; in recovery at 'recovery_move'. Hold to wind up, release to cast: letting go early cancels with nothing spent, except a Swift spell (or any spell under smart cast), which a tap commits and which fires when its wind-up ends. Blink cancels a wind-up or recovery. A hit whose Impact is above 'focus' breaks the wind-up and costs 'interrupt_cost' of the spell's Aether; a hit at or below Focus doesn't even flinch you while you wind up.",
+  "casting": {"swift": {"move": 0.7, "recovery": 0.25}, "weave": {"move": 0.4, "recovery": 0.4}, "incant": {"move": 0.0, "recovery": 0.6}, "recovery_move": 0.8, "focus": 1, "interrupt_cost": 0.5},
+  "_staff_doc": "The staff strike: free, instant, every 'every' seconds; an arc ('arc' radians) 'reach' sim px in front of you; it shoves props. It exists so the gaps between spells have a verb, never to win a fight with.",
+  "staff": {"reach": 24, "arc": 1.8, "damage": 3, "impact": 1, "every": 0.6, "knock": 30},
+  "_ward_doc": "The Ward: hold to raise a shield arc ('arc' radians) toward the cursor. It drains 'drain' Aether a second and 'per_hit' per hit stopped; Impact 'breaks_at' or more breaks it and staggers you; out of Aether it drops. You move at 'move' while it is up.",
+  "ward": {"arc": 2.4, "drain": 6, "per_hit": 8, "breaks_at": 3, "move": 0.7, "cool": 1.0},
+  "_cantrips_doc": "Cantrips: instant, cheap, on 'charges' that come back every 'recharge' seconds; each has a fight use and a world use. Kindle lights lamps and sets props burning where you point and singes (and marks) enemies there; Douse puts out fire there and soaks enemies.",
+  "cantrips": {
+    "kindle": {"name": "Kindle", "element": "fire", "blurb": "A spark where you point: lights a lamp or hay, singes and marks an enemy.", "aether": 4, "charges": 2, "recharge": 6.0, "range": 70, "r": 8, "damage": 2, "impact": 1, "pips": 1},
+    "douse": {"name": "Douse", "element": "water", "blurb": "A splash where you point: puts out a fire and soaks whoever stands in it.", "aether": 4, "charges": 2, "recharge": 6.0, "range": 70, "r": 14, "wet": 4.0}
+  },
+  "_aether_doc": "Aether is scarce (spell and combat spec section 4.1): a pool of 'max' pays for 3-4 real spells. In a fight it comes back at 'regen_fight' a second; out of a fight at 'regen_out' a second, but only up to 'out_cap' of the pool. Rest (waking at dawn, meditating) fills it and clears Strain. Each spell sets its own 'aether'; 'costs' is the fallback by cast band. Cadence: a spell that differs from the last one adds a note and refunds 'refund' Aether; at 'notes' notes the next spell is Resonant (size x 'resonant_size', counts + 'resonant_count'). Notes fade after 'note_life' seconds without a cast. Casting the same spell again no longer dulls it: cooldowns stop repeats.",
+  "aether": {"max": 100, "regen_fight": 3, "regen_out": 15, "out_cap": 0.6, "costs": {"swift": 14, "weave": 25, "incant": 45, "magick": 50}},
+  "_overdraw_doc": "Short on Aether, a spell still casts: each missing point costs 'hp_per_aether' HP and adds 'strain_per_aether' Strain. Strain lowers your max Aether one for one until you rest; an Overdraw at 'backlash_at' Strain or more stuns you for 'backlash_stun' seconds. Desperate, never efficient.",
+  "overdraw": {"hp_per_aether": 1.0, "strain_per_aether": 1.0, "backlash_at": 50, "backlash_stun": 2.0},
+  "cadence": {"notes": 4, "refund": 4, "note_life": 4.0, "resonant_size": 1.3, "resonant_count": 1},
   "_dodge_doc": "A circle telegraph the wizard places never lands faster than a wizard-speed target can leave it: delay >= reaction + (radius + wizard radius) / wizard speed (design/magic-world-revisit.md section 3).",
   "dodge": {"reaction": 0.25},
   "spells": {
     "ember_bolt": {
-      "name": "Ember Bolt", "element": "fire", "slot": "bolt",
+      "name": "Ember Bolt", "element": "fire", "slot": "bolt", "cast": "swift", "windup": 0.4, "aether": 14,
       "blurb": "Fast bolt. Adds a flame pip; 3 pips Ignite.",
-      "cast_time": 0.26, "impact": 1, "xp_hit": 1, "xp_ignite": 2, "radius": 3.5,
+      "cooldown": 3.0, "impact": 1, "xp_hit": 1, "xp_ignite": 2, "radius": 3.5,
       "stats": {
         "speed": {"label": "Speed", "base": 200, "per": 9},
-        "damage": {"label": "Damage", "base": 6, "per": 0.55, "fmt": "%.1f"}
+        "damage": {"label": "Damage", "base": 16, "per": 1.4, "fmt": "%.1f"}
       },
       "milestones": {
         "5": [
@@ -53,13 +65,13 @@
       }
     },
     "pillar": {
-      "name": "Pillar", "element": "fire", "slot": "control",
+      "name": "Pillar", "element": "fire", "slot": "control", "cast": "weave", "windup": 0.9, "aether": 26,
       "blurb": "Delayed fire column on a circle. Adds 2 pips.",
-      "cooldown": 5.0, "impact": 3, "range": 150, "xp_hit": 4,
+      "cooldown": 7.0, "impact": 3, "range": 150, "xp_hit": 4,
       "stats": {
         "radius": {"label": "Radius", "base": 15, "per": 1.0},
         "delay": {"label": "Delay", "base": 0.9, "per": -0.028, "min": 0.5, "fmt": "%.2fs"},
-        "damage": {"label": "Damage", "base": 14, "per": 1.2, "fmt": "%.0f", "hidden": true}
+        "damage": {"label": "Damage", "base": 24, "per": 2.0, "fmt": "%.0f", "hidden": true}
       },
       "milestones": {
         "5": [
@@ -73,13 +85,13 @@
       }
     },
     "pyroclasm": {
-      "name": "Pyroclasm", "element": "fire", "slot": "signature",
+      "name": "Pyroclasm", "element": "fire", "slot": "signature", "cast": "incant", "windup": 1.6, "aether": 45,
       "blurb": "Fireball that bounces between pip-marked enemies.",
-      "cooldown": 10.0, "impact": 2, "speed": 210, "xp_hit": 4, "radius": 4.0,
+      "cooldown": 12.0, "impact": 2, "speed": 210, "xp_hit": 4, "radius": 4.0,
       "stats": {
         "bounces": {"label": "Bounces", "base": 4, "per": 0.2858, "floor": true},
         "range": {"label": "Range", "base": 80, "per": 4},
-        "damage": {"label": "Damage", "base": 11, "per": 0.8, "fmt": "%.0f", "hidden": true}
+        "damage": {"label": "Damage", "base": 20, "per": 1.4, "fmt": "%.0f", "hidden": true}
       },
       "milestones": {
         "10": [
@@ -92,13 +104,13 @@
       }
     },
     "pebble": {
-      "name": "Pebble", "element": "earth", "slot": "bolt",
+      "name": "Pebble", "element": "earth", "slot": "bolt", "cast": "swift", "windup": 0.5, "aether": 16,
       "blurb": "Slow heavy shot. Hits drop a lodestone.",
-      "cast_time": 0.5, "impact": 2, "speed": 150, "xp_hit": 3,
+      "cooldown": 3.5, "impact": 2, "speed": 150, "xp_hit": 3,
       "stats": {
         "knockback": {"label": "Knockback", "base": 40, "per": 4},
         "size": {"label": "Size", "base": 3, "per": 0.2, "fmt": "%.1f"},
-        "damage": {"label": "Damage", "base": 9, "per": 0.7, "fmt": "%.0f", "hidden": true}
+        "damage": {"label": "Damage", "base": 18, "per": 1.4, "fmt": "%.0f", "hidden": true}
       },
       "milestones": {
         "5": [
@@ -108,13 +120,13 @@
       }
     },
     "fling": {
-      "name": "Fling", "element": "earth", "slot": "control",
+      "name": "Fling", "element": "earth", "slot": "control", "cast": "weave", "windup": 0.8, "aether": 22,
       "blurb": "Pushes every orbiting lodestone out in a cone.",
-      "cooldown": 4.0, "impact": 2, "range": 120, "xp_hit": 4,
+      "cooldown": 6.0, "impact": 2, "range": 120, "xp_hit": 4,
       "stats": {
         "cone": {"label": "Cone", "base": 50, "per": 4, "fmt": "%.0f°"},
         "force": {"label": "Force", "base": 200, "per": 10},
-        "damage": {"label": "Damage", "base": 9, "per": 0.8, "fmt": "%.0f", "hidden": true}
+        "damage": {"label": "Damage", "base": 14, "per": 1.2, "fmt": "%.0f", "hidden": true}
       },
       "milestones": {
         "5": [
@@ -127,12 +139,12 @@
       }
     },
     "avalanche": {
-      "name": "Avalanche", "element": "earth", "slot": "signature",
+      "name": "Avalanche", "element": "earth", "slot": "signature", "cast": "incant", "windup": 1.5, "aether": 45,
       "blurb": "Every lodestone you own slams the target, one hit per stone.",
-      "cooldown": 9.0, "impact": 1, "final_impact": 3, "range": 170, "xp_hit": 3,
+      "cooldown": 12.0, "impact": 1, "final_impact": 3, "range": 170, "xp_hit": 3,
       "stats": {
         "cap": {"label": "Stone cap", "base": 3, "per": 0.2, "floor": true},
-        "damage": {"label": "Per stone", "base": 9, "per": 1.0, "fmt": "%.0f"}
+        "damage": {"label": "Per stone", "base": 14, "per": 1.4, "fmt": "%.0f"}
       },
       "milestones": {
         "10": [
@@ -145,13 +157,13 @@
       }
     },
     "spark": {
-      "name": "Spark", "element": "storm", "slot": "bolt",
+      "name": "Spark", "element": "storm", "slot": "bolt", "cast": "swift", "windup": 0.4, "aether": 14,
       "blurb": "Zig-zag that hits the nearest enemy in a cone and chains.",
-      "cast_time": 0.3, "impact": 1, "xp_hit": 1, "cone": 70, "hop": 46,
+      "cooldown": 3.0, "impact": 1, "xp_hit": 1, "cone": 70, "hop": 46,
       "stats": {
         "range": {"label": "Range", "base": 80, "per": 3},
         "chains": {"label": "Chain", "base": 1, "per": 0.1429, "floor": true, "max": 3},
-        "damage": {"label": "Damage", "base": 6, "per": 0.55, "fmt": "%.1f", "hidden": true}
+        "damage": {"label": "Damage", "base": 14, "per": 1.2, "fmt": "%.1f", "hidden": true}
       },
       "milestones": {
         "5": [
@@ -161,13 +173,13 @@
       }
     },
     "arc_lance": {
-      "name": "Arc Lance", "element": "storm", "slot": "control",
+      "name": "Arc Lance", "element": "storm", "slot": "control", "cast": "weave", "windup": 0.9, "aether": 28,
       "blurb": "Hold to extend a line, release to strike along it.",
-      "cooldown": 5.0, "impact": 2, "full_impact": 3, "xp_hit": 4, "width": 7, "hold_speed": 0.4,
+      "cooldown": 7.0, "impact": 2, "full_impact": 3, "xp_hit": 4, "width": 7, "hold_speed": 0.4,
       "stats": {
         "range": {"label": "Max range", "base": 90, "per": 5},
         "charge": {"label": "Charge", "base": 0.9, "per": -0.03, "min": 0.45, "fmt": "%.2fs"},
-        "damage": {"label": "Damage", "base": 15, "per": 1.1, "fmt": "%.0f", "hidden": true}
+        "damage": {"label": "Damage", "base": 24, "per": 1.8, "fmt": "%.0f", "hidden": true}
       },
       "milestones": {
         "5": [
@@ -180,13 +192,13 @@
       }
     },
     "storm_call": {
-      "name": "Storm Call", "element": "storm", "slot": "signature",
+      "name": "Storm Call", "element": "storm", "slot": "signature", "cast": "incant", "windup": 1.8, "aether": 50,
       "blurb": "Artillery strikes on circles you place. The last leaves a rod.",
-      "cooldown": 9.0, "impact": 2, "range": 170, "xp_hit": 3, "delay": 0.7, "gap": 0.22,
+      "cooldown": 14.0, "impact": 2, "range": 170, "xp_hit": 3, "delay": 0.7, "gap": 0.22,
       "stats": {
         "strikes": {"label": "Strikes", "base": 3, "per": 0.1429, "floor": true},
         "radius": {"label": "Radius", "base": 12, "per": 0.6},
-        "damage": {"label": "Damage", "base": 15, "per": 1.1, "fmt": "%.0f", "hidden": true}
+        "damage": {"label": "Damage", "base": 24, "per": 1.8, "fmt": "%.0f", "hidden": true}
       },
       "milestones": {
         "10": [
@@ -199,13 +211,13 @@
       }
     },
     "splash": {
-      "name": "Splash", "element": "water", "slot": "bolt",
+      "name": "Splash", "element": "water", "slot": "bolt", "cast": "swift", "windup": 0.4, "aether": 12,
       "blurb": "Short spray that pushes and makes enemies Wet.",
-      "cast_time": 0.3, "impact": 1, "xp_hit": 1, "range": 48,
+      "cooldown": 3.0, "impact": 1, "xp_hit": 1, "range": 48,
       "stats": {
         "push": {"label": "Push", "base": 45, "per": 4},
         "width": {"label": "Width", "base": 40, "per": 2, "fmt": "%.0f°"},
-        "damage": {"label": "Damage", "base": 3, "per": 0.3, "fmt": "%.1f", "hidden": true}
+        "damage": {"label": "Damage", "base": 6, "per": 0.6, "fmt": "%.1f", "hidden": true}
       },
       "milestones": {
         "5": [
@@ -215,13 +227,13 @@
       }
     },
     "undertow": {
-      "name": "Undertow", "element": "water", "slot": "control",
+      "name": "Undertow", "element": "water", "slot": "control", "cast": "weave", "windup": 0.8, "aether": 24,
       "blurb": "A wave that pushes enemies and leaves a puddle.",
-      "cooldown": 5.0, "impact": 2, "xp_hit": 3, "speed": 170,
+      "cooldown": 7.0, "impact": 2, "xp_hit": 3, "speed": 170,
       "stats": {
         "width": {"label": "Width", "base": 26, "per": 1.5},
         "distance": {"label": "Distance", "base": 90, "per": 5},
-        "damage": {"label": "Damage", "base": 6, "per": 0.6, "fmt": "%.0f", "hidden": true}
+        "damage": {"label": "Damage", "base": 10, "per": 1.0, "fmt": "%.0f", "hidden": true}
       },
       "milestones": {
         "5": [
@@ -234,13 +246,13 @@
       }
     },
     "maelstrom": {
-      "name": "Maelstrom", "element": "water", "slot": "signature",
+      "name": "Maelstrom", "element": "water", "slot": "signature", "cast": "incant", "windup": 1.6, "aether": 45,
       "blurb": "A whirlpool that pulls enemies together.",
-      "cooldown": 11.0, "impact": 1, "range": 150, "xp_hit": 1, "pull": 55, "tick": 0.5,
+      "cooldown": 14.0, "impact": 1, "range": 150, "xp_hit": 1, "pull": 55, "tick": 0.5,
       "stats": {
         "radius": {"label": "Pull radius", "base": 34, "per": 1.5},
         "duration": {"label": "Duration", "base": 2.5, "per": 0.1, "fmt": "%.1fs"},
-        "damage": {"label": "Damage", "base": 2, "per": 0.2, "fmt": "%.1f", "hidden": true}
+        "damage": {"label": "Damage", "base": 4, "per": 0.4, "fmt": "%.1f", "hidden": true}
       },
       "milestones": {
         "10": [
@@ -252,11 +264,11 @@
         ]
       }
     },
-    "rewind": {"name": "Rewind", "element": "hours", "slot": "control", "from_loop": 2, "ring": 0,
+    "rewind": {"name": "Rewind", "element": "hours", "slot": "control", "cast": "weave", "windup": 0.8, "aether": 25, "from_loop": 2, "ring": 0,
       "blurb": "A shard forms where you aim, then flies back into your hand through everything between, dragging what it hits toward you.",
-      "cooldown": 4.0, "range": 140, "min_range": 40, "form": 0.4, "speed": 240, "impact": 2, "pull": 45, "xp_hit": 3,
+      "cooldown": 6.0, "range": 140, "min_range": 40, "form": 0.4, "speed": 240, "impact": 2, "pull": 45, "xp_hit": 3,
       "stats": {
-        "damage": {"label": "Damage", "base": 13, "per": 1.0, "fmt": "%.0f"},
+        "damage": {"label": "Damage", "base": 20, "per": 1.5, "fmt": "%.0f"},
         "radius": {"label": "Width", "base": 4.5, "per": 0.1, "fmt": "%.1f"}
       }
     }
@@ -296,7 +308,7 @@
     "wet_time": 4.0
   },
   "shrine": {"pos": [240, 122], "reach": 22, "tome_spots": [[72, 70], [410, 220], [70, 222], [408, 72]]},
-  "wizard": {"speed": 72, "radius": 5, "blink_dist": 52, "blink_recharge": 2.6, "iframes": 0.5},
+  "wizard": {"speed": 72, "radius": 5, "blink_dist": 52, "blink_recharge": 2.6, "iframes": 0.5, "regen_out": 0.02},
   "enemies": {
     "hollow": {"name": "Dust Hollow", "hp": 22, "poise": 0, "speed": 34, "radius": 5, "damage": 6, "windup": 0.6, "reach": 13, "cooldown": 1.1, "xp": 6},
     "slinger": {"name": "Hollow Slinger", "hp": 18, "poise": 0, "speed": 30, "radius": 5, "damage": 7, "windup": 0.75, "range": 150, "keep": 105, "shot_speed": 150, "shot_radius": 3.0, "cooldown": 2.4, "xp": 8},

@@ -19,7 +19,8 @@ There are two layers, and the ruins game uses the first on top of the second.
 - **Wells** come from kills (`wells.kill` 1), patrols and meditating, capped at `well_cap` 80.
   Below the most you held in an earlier loop they grow `echo_mult` ×3 faster.
 - **Rings:** Apprentice, 1st (the yard trial sets the flag `ring1`), 2nd, 3rd, 4th at
-  `ring_wells` 0/0/20/40/70. Open slots by Ring `slots` 2/4/4/4/6; a spell's tier needs a Ring
+  `ring_wells` 0/0/20/40/70. Open slots of the four-spell book by Ring `slots` 2/3/3/4/4 (spell and
+  combat spec §5.1; six slots before the combat weight pass, N-2.3); a spell's tier needs a Ring
   (`tier_ring`: bolt 0, control 1, signature 4). HP 100 + 2 per well, Aether 100 + 1 per well;
   blink charges at Rings `blink_ring` 2 and 4.
 - **Practice** (spell XP): grows ×3 below the best that Model reached before, plus Fluency
@@ -28,7 +29,8 @@ There are two layers, and the ruins game uses the first on top of the second.
 - **Start:** `start_models` Ember Bolt, Pebble, Pillar, Fling.
 - **Fights borrow it:** `begin_fight()` lends this loop's Practice and spellbook to the
   Progression autoload with the rules dictionary (`Progression.rules`: hp, aether, blinks, open
-  slots, echo, fluency, ward, no Magicks); `end_fight()` takes them back.
+  slots, echo, fluency, no Magicks); `end_fight()` takes them back. A book saved with six slots
+  keeps its first four.
 
 ## Spell levels (`scripts/autoload/progression.gd`, `data/spells.json` `progression`)
 

@@ -451,6 +451,7 @@ func prop_at(at: Vector2, r := 0.0) -> Dictionary:
 # --- magic on the world ------------------------------------------------------------------
 
 ## Reads the arena's spells and answers: fire lights and burns, water puts out, force shoves.
+## Cantrips leave a short mark: Kindle acts like Pillar's fire, Douse like a splash all round.
 func _magic() -> void:
 	var reach := float(pd["lamp_reach"])
 	var exploring: bool = arena.phase == "explore"
@@ -521,7 +522,7 @@ func _magic() -> void:
 			continue
 		z["_w"] = true
 		match z["kind"]:
-			"column":
+			"column", "kindle":
 				for pr in props:
 					if pr["pos"].distance_to(z["pos"]) < float(z["r"]) + float(prop_def(pr["kind"])["r"]):
 						ignite(pr)
@@ -540,6 +541,8 @@ func _magic() -> void:
 					if map.items[iid]["at"].distance_to(z["pos"]) < float(pd["rewind_r"]) + 10.0 and item_visible(iid):
 						request({"t": "cast", "item": iid, "element": "hours"})
 						break
+			"douse":
+				_water_cone(z["pos"], Vector2.RIGHT, TAU, float(z["r"]))
 			"puddle", "whirl":
 				if z.get("millrace", false):
 					continue
