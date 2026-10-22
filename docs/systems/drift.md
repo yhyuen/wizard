@@ -44,6 +44,19 @@ tracker M0-5) is how spells should look under the combat spec. The big gaps:
 | One SDF telegraph shader; one MultiMesh per particle kind; a light manager giving 4 real lights to the strongest spells, pools for the rest | Marks drawn by the view; pooled shapes in `spells3d.gd`; spell lights capped at 4 | [art.md](art.md) |
 | A look per Sphere (shape, motion, light) and per school's casting act; material state looks | Colours per Sphere; fire, water, lightning prop effects only | [art.md](art.md), [world.md](world.md) |
 
+## Enemies: the target vs the build
+
+The [enemy combat spec](/mnt/project-files/design/combat/enemy-combat-spec.md) (2026-10-22, tracker
+M0-6) is how enemies should fight under the combat spec. Its §15 is the full table; the big gaps:
+
+| Target says | As built | Where |
+| --- | --- | --- |
+| Tiers Minion to Boss; a Break meter and Guard arcs beside Poise; Focus on enemy casters, and enemies that interrupt you | Per-kind numbers; Impact vs Poise reactions only | [combat.md](combat.md) |
+| Body and armour materials with grades; states on units last half as long as on props | Hollows light-shy; units have no material | [combat.md](combat.md), [world.md](world.md) |
+| A fight director (attack tokens, telegraph and interrupt budgets) and four AI tiers that use and fear terrain | `ai.gd` minds per kind; waves | [combat.md](combat.md) |
+| `data/enemies.json` with factions; encounters name 2–3 terrain hooks and a knowledge route | `spells.json` `enemies`; encounters are waves, timers, leash and cracks | [combat.md](combat.md) |
+| Regions keep a fixed tier; Unmoored counter-pick your last life; a Field Guide that carries over | Fixed per encounter; no bestiary | [combat.md](combat.md), [loop.md](loop.md) |
+
 ## Known differences inside the build
 
 | Doc says | As built | Where |
