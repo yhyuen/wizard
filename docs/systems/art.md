@@ -6,6 +6,11 @@ rule (a telegraph's size, a light that changes what enemies do), that rule belon
 system's spec. Detail: the root [README.md](../../README.md) 'The look'. Design: GDD 06 §6.3
 (moody night), §6.6 (Star Atlas UI). Tracker: V-1, V-2.*
 
+*Target sound (not built yet): the [audio spec](/mnt/project-files/design/audio/audio-spec.md)
+(tracker M0-18), playable as the [Sound Atlas](https://claude.ai/artifact/EEGxEw6Mertv8gHG5kn2NY).
+Sound files stay content under `assets/`; synthesised first (`tools/sfx/make_sfx.py`), recorded CC0
+only for organic beds and foley, listed in `assets/sfx/LICENSES.md`.*
+
 *Target look for spells (not built yet): [spell visuals and VFX](/mnt/project-files/design/vfx/spell-visuals-spec.md)
 (tracker M0-5), drawn as the [Spell Light Atlas](https://claude.ai/artifact/DUFcUrXiWNc6dTnDdBCUwS): the six beats of a
 cast, sigil rings per mastery stage, Force-grade hits, a look per Sphere and per school's casting

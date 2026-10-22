@@ -169,3 +169,17 @@ full table; the big gaps:
 | Eight commissions, a six-rung dueling ladder, Star-charts and Sparks minigames | None | [story.md](story.md) |
 | Rumours (date, person, lead), overheard talk, every missable event with a rumour 7 days ahead | Ledger clues only | [story.md](story.md) |
 | Confrontations with three lamps; one inheritance per region | None | [story.md](story.md) |
+
+## Audio: the target spec vs the build
+
+The [audio spec](/mnt/project-files/design/audio/audio-spec.md) (2026-10-22, tracker M0-18; playable
+[Sound Atlas](https://claude.ai/artifact/EEGxEw6Mertv8gHG5kn2NY)) is the design for sound and music.
+Its §12 is the full table; the big gaps:
+
+| Target spec says | As built | Where |
+| --- | --- | --- |
+| Wind-up that rises with the telegraph and ends in a catch, release, travel, impact by Force grade, broken-cast sound, stage layers | One cast sound per Sphere, one hit, one hurt | [frame.md](frame.md) |
+| Buses (Music, Ambience, SFX: Spells/World/Foley, UI), settings sliders, a 24-voice pool with priority, `data/audio.json`, 2D placement | Everything on Master, 8 voices, gap and dB tables in `sfx.gd`, no placement | [frame.md](frame.md) |
+| One sound per material result, footsteps by surface | None (one stone step) | [frame.md](frame.md), [world.md](world.md) |
+| Ambience beds per weather, season, time and room; spot sounds | The night wind loop | [frame.md](frame.md) |
+| Music states and 3-stem tracks; themes per power, region and season; calamity cues | No music | [frame.md](frame.md) |

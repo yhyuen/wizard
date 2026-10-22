@@ -53,6 +53,13 @@ Reach and Calendar tabs (§5.5).*
   (`/mnt/project-files/design/ui/ui-hud-spec.md` §10) until its §3.1 bar is built. Shapes are drawn as one triangle batch
   (`scripts/ui/tris.gd`); panels and buttons come from `scripts/ui/atlas.gd`.
 - `scripts/autoload/sfx.gd` plays the synthesised sounds (`tools/sfx/make_sfx.py` → `assets/sfx/`).
+- Sound as built: 16 synthesised WAVs, an 8-voice pool with a per-name gap and dB table in
+  `sfx.gd`, the night wind loop, everything on the Master bus, no music. *Target: the
+  [audio spec](/mnt/project-files/design/audio/audio-spec.md) (tracker M0-18; visual and playable:
+  [Sound Atlas](https://claude.ai/artifact/EEGxEw6Mertv8gHG5kn2NY)): wind-up, catch, release and
+  impact per Sphere, stage layers and Force grades, material sounds, weather beds, buses, a
+  24-voice pool with priority, `data/audio.json`, and music by power, region and season with
+  calamity cues. The gaps are in [drift.md](drift.md).*
 - `scripts/game/build_id.gd` says which build this is; CI writes it before the web export.
 
 ## Checks before merging
