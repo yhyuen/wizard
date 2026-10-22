@@ -20,6 +20,11 @@ func update(u: Unit, dt: float) -> void:
 		return
 	if u.locked() or A.player.dead or A.phase in ["won", "lost"]:
 		return
+	# A burning husk panics: it runs from you, lighting what it passes (enemy spec §5.2).
+	if u.burn_t > 0.0 and str(A.D["enemies"][u.kind].get("faction", "")) in A.D["foes"]["states"]["panic"]:
+		u.state = "move"
+		_step(u, u.pos - A.player.pos, dt, 1.3)
+		return
 	if u.flags.get("dummy", false):
 		_step(u, A.player.pos - u.pos, dt, 0.3 if u.pos.distance_to(A.player.pos) > 30.0 else 0.0)
 		return

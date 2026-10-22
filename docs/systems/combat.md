@@ -141,6 +141,13 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   enemies may be winding up an attack on you at once, and none further than 320 px from you; the
   rest keep moving until a turn frees up (`ai.gd` `may_attack`). The duellist and bosses aren't
   counted.
+- **Bodies and burning** (N-6.2, enemy spec §5, `foes.states`): each kind has a body material
+  (`materials.json`): the Hollows and Slingers are husks (cloth), Silas flesh, the Warden iron,
+  embers fire (no states). Fire that hits a body that catches (the table's fire × body; flesh only
+  while oiled) sets it **burning** for 4 s (half for Elites and up): 2 damage every 0.5 s (×2 if
+  oiled), it lights the ground cell it stands on, and husks within 16 px catch. A burning Hollow
+  **panics** and runs from you. Water puts it out; fire on a wet body only dries it. Standing in a
+  Tar Pot's pool oils a unit for 6 s (`arena.gd` `catch_fire`, `_burn_tick`; a flame shows on it).
 - **Enemies** (minds in `scripts/ai.gd`): Dust Hollow, Hollow Slinger,
   Backward Slinger (`inverted`: rises from the dead, its stones fly home), embers from cracks,
   the Kiln Warden (anchored guardian, two phases), Silas Vane (Storm rival). Hollows won't step

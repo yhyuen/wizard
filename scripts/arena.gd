@@ -20,6 +20,7 @@ const REACTIONS := ["none", "flinch", "stagger", "knockdown", "launch"]
 const Kit := preload("res://scripts/kit.gd")
 const Ai := preload("res://scripts/ai.gd")
 const Cutscene := preload("res://scripts/game/cutscene.gd")
+const Matter := preload("res://scripts/world/matter.gd")
 
 var D: Dictionary  # data/spells.json
 var kit
@@ -58,6 +59,7 @@ var scene := ""  # the test scene this fight was started as ("" for the normal f
 ## A slice fight (data/slice/encounters.json): its waves run one after another, or on a timer
 ## when it has "survive" seconds. Empty for the old Mill fight and the test scenes.
 var encounter := {}
+var matter = Matter.new()  # the force × material table, for bodies (enemy spec §5)
 ## In a fight in the town the mist closes round where it started: {"at", "r"} (sim px), or {}.
 ## The arena's walls used to do this; without it you could kite a horde round the yard forever.
 var leash := {}
@@ -692,6 +694,7 @@ func _update_unit(u: Unit, dt: float) -> void:
 	u.tick_cooldowns(dt)
 	if u.team == 1:
 		_break_tick(u, dt)
+		_burn_tick(u, dt)
 	if u.dead:
 		u.death_t -= dt
 		return
@@ -815,6 +818,8 @@ func hit(u: Unit, dmg: float, impact: int, dir: Vector2, knock := 0.0, quiet := 
 			dmg *= float(D["foes"]["break"]["broken_damage"])
 		if not quiet and impact > 0:
 			_add_break(u, impact, dir)
+		if _src_kind == "fire" or town != null and town.fire_proj.has(_src_kind):
+			catch_fire(u)
 	u.hp -= dmg
 	u.flash = 0.08
 	if u == player:
@@ -900,6 +905,54 @@ func _break_tick(u: Unit, dt: float) -> void:
 	var B: Dictionary = D["foes"]["break"]
 	if u.brk > 0.0 and u.brk_t > float(B["drain_after"]):
 		u.brk = maxf(0.0, u.brk - float(B["drain"]) * dt)
+
+
+# --- bodies and burning (enemy spec §5; N-6.2) ------------------------------------------
+
+## Fire reached unit `u`: its body catches if the table says so (husks always; flesh only when
+## oiled), unless it is wet, in which case the fire dries it instead.
+func catch_fire(u: Unit) -> bool:
+	if u.dead or u.team != 1 or u.burn_t > 0.0:
+		return false
+	var body: String = str(D["enemies"][u.kind].get("body", ""))
+	if matter.material(body).is_empty() or matter.result("fire", 1, body) != "burn":
+		return false
+	if body == "flesh" and u.oil_t <= 0.0:
+		return false
+	if u.wet_t > 0.0:
+		u.wet_t = 0.0  # a puff of steam: dried, not alight
+		fx("dust", u.pos + Vector2(0, -4), {"r": 6.0, "life": 0.4})
+		return false
+	var S: Dictionary = D["foes"]["states"]
+	u.burn_t = float(S["burn_s"]) * float(S["tier_k"].get(str(D["enemies"][u.kind].get("tier", "")), 1.0))
+	u.burn_tick = 0.0
+	stats["set_alight"] = int(stats.get("set_alight", 0)) + 1
+	return true
+
+
+## A burning unit: hurt every tick (more if oiled), lights the ground it stands on and husks
+## beside it; water puts it out.
+func _burn_tick(u: Unit, dt: float) -> void:
+	u.oil_t = maxf(0.0, u.oil_t - dt)
+	if u.burn_t <= 0.0 or u.dead:
+		return
+	if u.wet_t > 0.0:
+		u.burn_t = 0.0
+		fx("dust", u.pos + Vector2(0, -4), {"r": 6.0, "life": 0.4})
+		return
+	u.burn_t -= dt
+	u.burn_tick -= dt
+	if u.burn_tick > 0.0:
+		return
+	var S: Dictionary = D["foes"]["states"]
+	u.burn_tick = float(S["tick"])
+	var dmg := float(S["burn_dps"]) * float(S["tick"]) * (float(S["oil_k"]) if u.oil_t > 0.0 else 1.0)
+	hit(u, dmg, 0, Vector2.ZERO, 0.0, true)
+	if town != null:
+		town.burn_ground(u.pos, 0.0, 1)
+	for o in enemies():
+		if o != u and o.burn_t <= 0.0 and o.pos.distance_to(u.pos) < float(S["spread_r"]) + o.radius:
+			catch_fire(o)
 
 
 ## First to `hits` clean hits wins a duel (Silas: College rules, no deaths).
