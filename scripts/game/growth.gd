@@ -25,11 +25,11 @@ func _init(run_node, prog_node) -> void:
 # --- wells and Rings ---------------------------------------------------------------
 
 func wells() -> int:
-	return int(run.lp.get("wells", 0))
+	return int(run.life.get("wells", 0))
 
 
 func best_wells() -> int:
-	return int(run.mem.get("best_wells", 0))
+	return int(run.soul.get("best_wells", 0))
 
 
 ## Adds wells, `echo_mult` times faster below the most you held in an earlier loop, up to
@@ -40,8 +40,8 @@ func add_wells(n: int) -> int:
 	for i in n:
 		gain += int(d["echo_mult"]) if w + gain < best_wells() else 1
 	gain = mini(gain, maxi(0, int(d["well_cap"]) - w))
-	run.lp["wells"] = w + gain
-	run.lp["best_wells_loop"] = maxi(int(run.lp.get("best_wells_loop", 0)), w + gain)
+	run.life["wells"] = w + gain
+	run.life["best_wells_loop"] = maxi(int(run.life.get("best_wells_loop", 0)), w + gain)
 	return gain
 
 
@@ -105,9 +105,9 @@ func use_today(op: String) -> bool:
 	if not op in d["once_a_day"]:
 		return true
 	var key := "done_" + op
-	if int(run.lp.get(key, 0)) == run.day():
+	if int(run.life.get(key, 0)) == run.day():
 		return false
-	run.lp[key] = run.day()
+	run.life[key] = run.day()
 	return true
 
 
@@ -124,11 +124,11 @@ func known_models() -> Array:
 
 ## Four spell ids. Only the first slots() of them are open; the rest wait for a higher Ring.
 func book() -> Array:
-	if not run.lp.has("book"):
-		run.lp["book"] = _default_book()
-	elif (run.lp["book"] as Array).size() != prog.BOOK_SIZE:
-		run.lp["book"] = (run.lp["book"] as Array).slice(0, prog.BOOK_SIZE)  # a save from the six-slot book
-	return run.lp["book"]
+	if not run.life.has("book"):
+		run.life["book"] = _default_book()
+	elif (run.life["book"] as Array).size() != prog.BOOK_SIZE:
+		run.life["book"] = (run.life["book"] as Array).slice(0, prog.BOOK_SIZE)  # a save from the six-slot book
+	return run.life["book"]
 
 
 func _default_book() -> Array:
@@ -150,7 +150,7 @@ func set_slot(i: int, id: String) -> bool:
 	if at >= 0:
 		b[at] = b[i]
 	b[i] = id
-	run.lp["book"] = b
+	run.life["book"] = b
 	return true
 
 
@@ -167,12 +167,12 @@ func slot_spell(i: int) -> String:
 func practice() -> Dictionary:
 	if lent:
 		return prog.p["spells"]  # lent out for the day: Progression has the live levels
-	if not run.lp.has("practice"):
+	if not run.life.has("practice"):
 		var p := {}
 		for id in prog.data["spells"]:
 			p[id] = {"level": 1, "xp": 0.0, "muts": {}}
-		run.lp["practice"] = p
-	return run.lp["practice"]
+		run.life["practice"] = p
+	return run.life["practice"]
 
 
 func level(id: String) -> int:
@@ -181,13 +181,14 @@ func level(id: String) -> int:
 
 ## The best Practice each Model reached in an earlier loop.
 func echo() -> Dictionary:
-	if not run.mem.has("echo"):
-		run.mem["echo"] = {}
-	return run.mem["echo"]
+	if not run.soul.has("echo"):
+		run.soul["echo"] = {}
+	return run.soul["echo"]
 
 
+## Insight (lives spec §4.3): each point, +1 a life up to the cap, adds to all Practice gained.
 func fluency() -> float:
-	return minf(float(d["fluency_cap"]), float(d["fluency_per_loop"]) * int(run.mem.get("fluency", 0)))
+	return float(run.lives["insight"]["per"]) * mini(run.insight(), int(run.lives["insight"]["cap"]))
 
 
 ## What Progression needs to play by the slice's rules.
@@ -197,7 +198,7 @@ func rules() -> Dictionary:
 		open.append(slot_spell(i) != "")
 	return {"hp": max_hp(), "aether": max_aether(), "blinks": blinks(), "open": open,
 		"echo": echo().duplicate(), "echo_mult": float(d["echo_mult"]), "fluency": fluency(),
-		"revisions": run.mem.get("revisions", {}).duplicate(true)}
+		"revisions": run.soul.get("revisions", {}).duplicate(true)}
 
 
 ## Lends Progression this loop's Practice, spellbook and rules (for a fight, training, or in
@@ -238,7 +239,7 @@ func end_fight() -> void:
 	# A milestone still waiting for a pick takes the option offered first.
 	while not prog.pending.is_empty():
 		prog.pick(0)
-	run.lp["practice"] = prog.p["spells"].duplicate(true)
+	run.life["practice"] = prog.p["spells"].duplicate(true)
 	prog.p = _stash
 	prog.rules = {}
 	prog.save_enabled = _stash_save
@@ -247,15 +248,15 @@ func end_fight() -> void:
 
 func _remember_practice() -> void:
 	var e := echo()
-	if not run.mem.has("revisions"):
-		run.mem["revisions"] = {}
+	if not run.soul.has("revisions"):
+		run.soul["revisions"] = {}
 	for id in practice():
 		var s: Dictionary = practice()[id]
 		e[id] = maxi(int(e.get(id, 1)), int(s["level"]))
 		if not s["muts"].is_empty():
-			var r: Dictionary = run.mem["revisions"].get(id, {})
+			var r: Dictionary = run.soul["revisions"].get(id, {})
 			r.merge(s["muts"], true)
-			run.mem["revisions"][id] = r
+			run.soul["revisions"][id] = r
 
 
 ## Training in the yard: every spell in an open slot gains `train_share` of a level (with Echo
@@ -278,11 +279,6 @@ func train() -> Dictionary:
 	return out
 
 
-## The loop is over: the most wells you held is remembered, and a loop that reached day
-## `fluency_day` adds to Fluency.
+## The life is over: Practice comes back from Progression so the Turning (Lives.carry) sees it.
 func loop_over() -> void:
-	run.mem["best_wells"] = maxi(best_wells(), int(run.lp.get("best_wells_loop", wells())))
-	if run.day() >= int(d["fluency_day"]) and not run.lp.get("fluency_counted", false):
-		run.lp["fluency_counted"] = true
-		run.mem["fluency"] = int(run.mem.get("fluency", 0)) + 1
-	_remember_practice()
+	end_fight()

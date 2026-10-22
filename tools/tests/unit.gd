@@ -267,18 +267,19 @@ func _growth(P) -> void:
 	ok(G.use_today("meditate") and not G.use_today("meditate"), "meditating is once a day")
 	var got: Dictionary = G.train()
 	ok(got.has("fling") and got.has("pillar") and not got.has("splash") and G.practice()["pillar"]["xp"] > 0.0, "training adds part of a level to the spells in open slots")
-	# The loop ends on day 7 and a new one starts.
-	R.lp["day"] = 7
+	# The life ends (the Turning) and a new one starts.
+	R.life["day"] = 7
 	G.loop_over()
+	R.end_life("turned")
 	R.wake()
 	ok(G.wells() == 0 and G.ring() == 0 and G.level("fling") == 1, "waking resets wells, the Ring and Practice")
-	ok(G.echo()["fling"] == 2 and is_equal_approx(G.fluency(), 0.1), "the Echo keeps Fling's best Practice; reaching day 7 adds Fluency")
+	ok(G.echo()["fling"] == 2 and is_equal_approx(G.fluency(), 0.1), "the Echo keeps Fling's best Practice; a Turning adds a point of insight")
 	ok(G.add_wells(5) == 15, "wells regrow three times as fast below last loop's best")
 	G.add_wells(500)
 	ok(G.wells() == int(G.d["well_cap"]), "wells stop at the slice's cap")
 	G.begin_fight()
 	P.add_xp("fling", P.xp_needed(1) / 3.3)
-	ok(P.level("fling") == 2, "below its Echo, Practice grows three times as fast (plus Fluency)")
+	ok(P.level("fling") == 2, "below its Echo, Practice grows three times as fast (plus insight)")
 	G.end_fight()
 	R.new_run()
 	P.reset_all()
@@ -468,20 +469,20 @@ func _year() -> void:
 	var R = root.get_node("Run")
 	R.new_run()
 	ok(R.LAST_DAY == 364 and R.moon() == 1 and R.moon_day() == 1, "a life is 13 moons of 28 days and starts on Moon 1, day 1")
-	R.lp["day"] = R.day_of(3, 17)
+	R.life["day"] = R.day_of(3, 17)
 	ok(R.moon() == 3 and R.moon_day() == 17 and R.date_name() == "Moon 3 · Day 17", "day 73 is Moon 3, day 17")
 	ok(R.moon_name() == "Seedmoon" and R.weekday(1)["sphere"] == "sol" and R.weekday(9)["sphere"] == "luna", "moon names, and weekdays by Sphere from Sol's day")
-	R.lp["day"] = R.LAST_DAY
+	R.life["day"] = R.LAST_DAY
 	R.next_day()
 	ok(R.day() == R.LAST_DAY, "the year stops at the Great Eclipse")
 	# Losses (lives spec §3.2)
 	R.new_run()
-	ok(R.ends_life("eclipse") and R.ends_life("shrine") and R.ends_life("calamity:lantern_night"), "the Eclipse, the shrine and calamities end a life")
+	ok(R.ends_life("eclipse") and R.ends_life("turned") and R.ends_life("calamity:lantern_night"), "the Eclipse, the shrine and calamities end a life")
 	ok(not R.ends_life("fight:warden") and not R.ends_life("patrol"), "other lost fights don't")
 	ok(R.lose("fight:warden") == 2 and R.injured(), "a loss costs two days and leaves you Injured")
 	ok(R.lose("patrol") == 0, "a second loss the same day costs no more days")
 	ok(R.lose("patrol", true) == 0 and R.died_of("patrol") == 2, "losses are counted like deaths")
-	R.lp["day"] = 5
+	R.life["day"] = 5
 	ok(R.lose("patrol", true) == 3, "alone in the wild it costs three")
 	# The Reach
 	var Reach = load("res://scripts/game/reach.gd")
@@ -489,8 +490,87 @@ func _year() -> void:
 	ok(reach.region_of("camp") == "camp" and reach.region_of("halls") == "city", "each map belongs to a region")
 	ok(reach.days_between("camp", "city") == 1 and reach.days_between("mill", "archive") == 3, "travel costs the cheapest road's days")
 	ok(reach.built("city") and not reach.built("mill"), "a region with no maps is a card")
+	_carry(R)
 	R.new_run()
 	var t: Array = reach.rest_targets()
 	ok(not t.is_empty() and t[0]["id"] == "moon" and int(t[0]["day"]) == 29 and t[-1]["id"] == "eclipse", "rest targets: the next moon first, the Great Eclipse last")
 	ok(t.filter(func(e): return e["id"] == "calamity_1").is_empty(), "a calamity you don't know of isn't on the calendar")
 	R.new_run()
+
+
+## The carry table (lives spec §4, §9): heads keep, hands reset; insight caps at +3; the Turning
+## needs a calamity passed in this life.
+func _carry(R) -> void:
+	var L = load("res://scripts/game/lives.gd")
+	var rules: Dictionary = R.lives
+	var soul: Dictionary = R.fresh_soul()
+	soul["known"] = {"crack_order": 1}
+	var life := {"n": 1, "day": 40, "time": 3, "wells": 12, "best_wells_loop": 18, "learned": ["crack_order"],
+		"practice": {"fling": {"level": 4, "xp": 0.0, "muts": {"5": "split"}}, "pebble": {"level": 2, "xp": 0.0, "muts": {}}},
+		"flags": {"ring1": true}, "calamities": []}
+	var s: Dictionary = L.carry(soul, life, "eclipse", rules)
+	ok(s["known"].has("crack_order") and s["deaths"]["eclipse"] == 1, "the soul keeps what you know and counts the ending")
+	ok(s["echo"]["fling"] == 4 and s["revisions"]["fling"]["5"] == "split" and s["best_wells"] == 18, "the Echo, revisions and the most wells held carry")
+	ok(not s["flags"].has("ring1") and not s.has("practice") and not s.has("wells"), "life flags, Practice and wells stay with the life")
+	ok(s["insight"] == 1 and s["lives"].size() == 1 and s["lives"][0]["moon"] == 2 and s["lives"][0]["time"] == "Dusk", "insight +1 and a page for the life")
+	ok(soul["lives"].is_empty() and not soul["echo"].has("fling"), "carry doesn't touch the soul it was given")
+	for i in 4:
+		life["n"] = s["lives"].size() + 1
+		s = L.carry(s, life, "turned", rules)
+	ok(s["insight"] == 3 and s["lives"].size() == 5, "insight stops at +3")
+	ok(not L.can_turn(life, rules), "no Turning back the Hours before a calamity has passed")
+	life["calamities"] = ["lantern_night"]
+	ok(L.can_turn(life, rules), "a calamity passed lets you turn back the Hours")
+	# Roads (lives spec §5): life 1 is the Apprentice road; a deed opens another; last life's road
+	# isn't offered again unless nothing else is.
+	var s1: Dictionary = R.fresh_soul()
+	ok(L.offers(s1, rules).is_empty() and L.roads_open(s1, rules) == ["apprentice"], "a first life is offered no road but the Apprentice's")
+	var l1 := {"n": 1, "road": "apprentice", "deeds": ["road_lamplighter"]}
+	var s2: Dictionary = L.carry(s1, l1, "eclipse", rules)
+	ok(s2["lives"][0]["opened"] == ["lamplighter"] and L.offers(s2, rules) == ["lamplighter"], "a deed opens a road, and last life's road isn't offered")
+	var s3: Dictionary = L.carry(s2, {"n": 2, "road": "lamplighter"}, "eclipse", rules)
+	ok(L.offers(s3, rules) == ["apprentice"], "the next life is nudged back the other way")
+	var s4: Dictionary = L.carry(s3, {"n": 3, "road": "apprentice"}, "eclipse", rules)
+	ok(L.offers(s4, rules).size() == 2, "from life 4 every open road offers itself")
+	R.new_run()
+	ok(R.road() == "apprentice" and not R.take_road("lamplighter"), "life 1 walks the Apprentice road")
+	R.soul = s2
+	R.life = R.fresh_life()
+	ok(R.road() == "" and R.take_road("lamplighter") and R.road() == "lamplighter" and R.road_offers().is_empty(), "a later life takes an offered road for the whole year")
+	R.new_run()
+	R.soul = s
+	R.life = R.fresh_life()
+	ok(R.loop() == 6 and R.life["day"] == 1, "the next life is numbered after the soul's pages and starts on the first morning")
+	_save_files(R)
+
+
+## The save files (save spec §5, §12): a Turning cut short is finished on load, once.
+func _save_files(R) -> void:
+	R.save_dir = "user://unit_test_slot/"
+	R.save_enabled = true
+	R.wipe()
+	R.new_run()
+	R.life["day"] = 30
+	R.learn("crack_order")
+	R.save()
+	R.new_run()
+	ok(R.load_save() and R.day() == 30 and R.knows("crack_order"), "soul and life save and load")
+	# Cut a Turning short after its mark: the soul isn't written yet.
+	var ended: Dictionary = R.life.duplicate(true)
+	R._write("meta.json", {"version": 1, "turning": {"from_life": 1, "life": ended, "cause": "eclipse"}})
+	R.new_run()
+	R.load_save()
+	ok(R.soul["lives"].size() == 1 and R.insight() == 1 and R.loop() == 2 and R.day() == 1, "a Turning cut short is redone on load")
+	R.new_run()
+	R.load_save()
+	ok(R.soul["lives"].size() == 1 and R.insight() == 1, "...and only once")
+	# A life that doesn't follow the soul's pages is dropped.
+	R.life["n"] = 7
+	R.life["day"] = 99
+	R._write("life.json", R.life)
+	R.new_run()
+	R.load_save()
+	ok(R.loop() == 2 and R.day() == 1, "a life that doesn't match the soul wakes on the first morning")
+	R.wipe()
+	R.save_enabled = false
+	R.save_dir = "user://slot1/"

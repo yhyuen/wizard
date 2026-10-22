@@ -111,11 +111,11 @@ func _profile(p: String) -> void:
 	if p == "strong":
 		var g = main.slice.growth
 		run.set_flag("ring1")
-		run.lp["wells"] = 60
+		run.life["wells"] = 60
 		for id in g.prog.data["spells"]:
-			run.mem["known"]["model_" + id] = 1
+			run.soul["known"]["model_" + id] = 1
 			g.practice()[id]["level"] = 10
-		run.lp["book"] = STRONG_BOOK.duplicate()
+		run.life["book"] = STRONG_BOOK.duplicate()
 
 
 func _next() -> void:
@@ -149,7 +149,7 @@ func _next() -> void:
 	main.enter_world(slice.world.map.spots[AT[c["id"]][1]])
 	main.arena.kit.rest()  # each fight starts rested, as after a night's sleep
 	if c.get("flooded", false):
-		run.lp["done_sluice"] = run.day()
+		run.life["done_sluice"] = run.day()
 	slice.fight_id = c["id"]
 	slice.cur = {"outcomes": {"won": "pell", "lost": "pell"}}  # a harmless scene after each fight
 	main.bot = func(a): return bot.intent(a)

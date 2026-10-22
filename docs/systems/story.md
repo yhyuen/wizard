@@ -23,11 +23,14 @@ conditions (`standing`, `rank`, `fame`, `nickname`, `wanted`) and effects (`+ st
   starts it: `talk: <person>`, `use: <item or exit>`, `arrive: <place>`, `cast: <element>` (with
   `use:`; `cast: hours` is Rewind's shard on the item).
 - **Conditions** are Godot expressions over `k(id)` (remembered), `f(id)` (flag this loop),
-  `seen(id)`, `died(cause)`, `count(prefix)`, `done(op)`, and `loop`, `day`, `time`, `ring`. A
+  `seen(id)`, `died(cause)`, `can_turn()` (a calamity has passed, so the Hours can be turned back),
+  `count(prefix)`, `done(op)`, and `loop`, `day`, `time`, `ring`. A
   line, effect or outcome can start with `[condition]`.
 - **Effects:** `learn`, `set`, `clear`, `fight`, `wells`, `train`, `meditate`, `goto`, `end_loop`,
   `model`, `trial`, `sound`, `cutscene`, `move`, `take`, `sleep`, `book`, `today` (a once-a-day
-  action, for `done(op)`), `go <map> <spot>` or `go <exit>`, `open <door>`, `play_path <id>`.
+  action, for `done(op)`), `go <map> <spot>` or `go <exit>`, `open <door>`, `play_path <id>`, `road <id>` (take a road
+  for this life, [loop.md](loop.md)), `deed <id>` (a soul flag the Turning keeps; SEALED deeds
+  open roads). Conditions also have `on_road(id)` and `offered(id)`.
   A new effect or header key is a change to this spec.
 
 ## Playing them (`scripts/game/slice.gd`)

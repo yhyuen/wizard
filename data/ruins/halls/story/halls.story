@@ -39,17 +39,19 @@ The last ember gutters out on the flagstones. The west seam was first to glow; t
 use: shrine
 repeat: true
 A small Orrery shrine. Its brass rings turn round a gold core, slow and patient.
+[not can_turn()] You lay a hand on the rings. They won't stop for you, not yet. Not until the year has struck once.
 * Change the spellbook -> shrine_book
-* Let this loop go -> shrine_release
+* Turn back the Hours [can_turn()] -> shrine_release
 * Leave
 
 === shrine_book
 + book
 
 === shrine_release
-You lay your hand on the rings and stop them, and let the loop slip out of you like a held breath.
+You lay your hand on the rings and stop them. The year will begin again; everything you hold stays here.
+You let it slip out of you like a held breath.
 + learn shrine_release
-+ end_loop shrine
++ end_loop turned
 
 === rune_door
 use: rune_door

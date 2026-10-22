@@ -98,14 +98,14 @@ func _next() -> bool:
 ## A wizard who has every Model this test casts, with Aether to spare.
 func _strong() -> void:
 	run.set_flag("ring1")
-	run.lp["wells"] = 60
+	run.life["wells"] = 60
 	for id in BOOK + STORM_BOOK:
-		run.mem["known"]["model_" + id] = 1
+		run.soul["known"]["model_" + id] = 1
 	_book(BOOK)
 
 
 func _book(ids: Array) -> void:
-	run.lp["book"] = ids.duplicate()
+	run.life["book"] = ids.duplicate()
 	slice.growth.refresh()
 	main.refresh_book()
 	main.refresh_player()

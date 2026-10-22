@@ -13,7 +13,7 @@ extends SceneTree
 const ROUTES := {
 	"patrol": "patrol_fight",
 	"eclipse": "eclipse",
-	"shrine": "shrine_release",
+	"turned": "shrine_release",
 	"fight:hall_fight": "entrance_hall",
 	"fight:refectory_fight": "refectory",
 	"fight:gallery_fight": "gallery",
@@ -49,6 +49,7 @@ func _go() -> void:
 			continue
 		_die(cause, ROUTES[cause])
 	_rest_and_travel()
+	_shrine_waits()
 	for f in failures:
 		print("[deaths] FAIL: " + f)
 	if failures.is_empty():
@@ -72,11 +73,11 @@ func _die(cause: String, scene: String) -> void:
 	if slice.screen != want:
 		failures.append("%s: playing %s ended on screen %s, not the %s screen" % [cause, scene, slice.screen, want])
 		return
-	var log: Dictionary = run.mem["log"][-1] if ends else run.lp["losses"][-1]
+	var log: Dictionary = run.soul["lives"][-1] if ends else run.life["losses"][-1]
 	if log["cause"] != cause:
 		failures.append("%s: %s led to \"%s\"" % [cause, scene, log["cause"]])
 		return
-	var learned: Array = log["learned"] if ends else run.lp["learned"]
+	var learned: Array = log["learned"] if ends else run.life["learned"]
 	if not ends:
 		_wake_injured(cause)
 	var shown: Array = []
@@ -113,3 +114,19 @@ func _rest_and_travel() -> void:
 		failures.append("the road to the fallen city should take a day and arrive at the halls (day %d, %s)" % [run.day(), slice.world.map_id])
 	else:
 		print("[deaths] rested to %s, then travelled to the fallen city, arriving %s" % [run.date_name(29), run.date_name()])
+
+
+## The shrine turns back the Hours only once a calamity has passed in this life (lives spec §3.1).
+func _shrine_waits() -> void:
+	slice.new_month()
+	slice.play("shrine")
+	var texts: Array = slice.opts.map(func(o): return str(o["text"]))
+	if "Turn back the Hours" in texts:
+		failures.append("the shrine offers to turn back the Hours before any calamity: %s" % str(texts))
+	slice.finish_scene()
+	run.pass_calamity("stand_in")
+	slice.play("shrine")
+	texts = slice.opts.map(func(o): return str(o["text"]))
+	if not "Turn back the Hours" in texts:
+		failures.append("the shrine should offer to turn back the Hours once a calamity has passed: %s" % str(texts))
+	slice.finish_scene()

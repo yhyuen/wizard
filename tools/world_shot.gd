@@ -47,8 +47,8 @@ func _shot(name: String) -> void:
 
 ## Jumps to `place` (a spot or a place) at time `t` of day `d`.
 func _go(at: Vector2, d: int, t: int) -> void:
-	run.lp["day"] = d
-	run.lp["time"] = t
+	run.life["day"] = d
+	run.life["time"] = t
 	slice.world.clock = 2.0
 	slice.world.reset_day()
 	main.place_player(at)
