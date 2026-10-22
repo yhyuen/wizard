@@ -301,12 +301,22 @@ tiers, gifts and tastes, companions, sworn friends; what of them carries across 
   `bond_cross <who>`, only with the lamp full), and the lamp stops at the door till then. Gains by
   source (`bond <who> <source> [key] [amount]`): `first_talk` fills to Warm (any talk, once a
   life), `kindness` +15 and `calamity` +20 once per key, `commission` +6, `spar` +3 and minigames
-  +4/+2 once a week, `values` ±3, `story` its own size. A loss stops at the bottom of the tier;
+  +4/+2 once a week, `walk` +2 once a day (a fight won with your companion), `values` ±3, `story` its own size. A loss stops at the bottom of the tier;
   `betray <who>` drops one. **Gifts** (`gift <who> <item>`): by the person's `tastes` (love +12,
   like +6, plain +2, dislike −4, can't bear −10; an item or its gift kind), once a week per
   person; the reaction is learned for every life. **Floors:** Close or Kindred in any life starts
-  the next at Warm, Sworn at Friendly. Hooks so far: freeing Brogan and keeping Tam safe
+  the next at Warm, Sworn at Friendly. At most three are **Sworn** in a life (`sworn_max`): a
+  fourth crossing into Sworn is refused. Hooks so far: freeing Brogan and keeping Tam safe
   (kindness), Mira and Wren at Lantern Night's Dawn (calamity).
+- **Companions** (N-7.6.6, people spec §4.4; `data/world/companions.json`,
+  `scripts/game/companions.gd`): Wren (a Guide), Mira (a Cutter) and Brogan (a Guard, once he's
+  home) will walk with you from Close: "Walk with me" in their talk (`companion <who> join`),
+  "Part ways for now" to send them home (`companion <who> part`). One at a time; a new life walks
+  alone. Your companion leaves their schedule and follows a step behind you on every map
+  (`follow` mode; they catch up at once if left far behind), so Mira's lamps wait while she's with
+  you. **Night talks**: as you wake, the next one not yet heard plays (one a night; two each for
+  Wren and Mira, one for Brogan; texture). **Road sense**: Wren passes on one rumour from a
+  region's pool the first time you reach it each season. In a fight see [combat.md](combat.md).
 - **Away needs a rumour**: the unit test walks the year and fails anyone away more than 7 days
   running without a rumour on the rows that send them.
 - They flinch and complain when you cast near them; the captain scolds fire in the College ruins;

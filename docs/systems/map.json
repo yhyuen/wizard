@@ -5,7 +5,7 @@
     "combat": {
       "docs": ["docs/systems/combat.md"],
       "paths": [
-        "scripts/arena.gd", "scripts/kit.gd", "scripts/unit.gd", "scripts/ai.gd", "scripts/brigands.gd", "scripts/hollows.gd", "scripts/morale.gd", "scripts/field_guide.gd", "scripts/armour.gd", "scripts/knights.gd", "scripts/cult.gd", "scripts/bot.gd",
+        "scripts/arena.gd", "scripts/ally.gd", "scripts/kit.gd", "scripts/unit.gd", "scripts/ai.gd", "scripts/brigands.gd", "scripts/hollows.gd", "scripts/morale.gd", "scripts/field_guide.gd", "scripts/armour.gd", "scripts/knights.gd", "scripts/cult.gd", "scripts/bot.gd",
         "scripts/spells/**",
         "data/spells.json", "data/world/encounters.json", "data/enemies.json"
       ]
@@ -41,7 +41,7 @@
       "docs": ["docs/systems/story.md"],
       "paths": [
         "scripts/game/story.gd", "scripts/game/cutscene.gd", "scripts/game/slice.gd",
-        "scripts/game/rumours.gd", "data/world/rumours.json", "scripts/game/commissions.gd", "data/world/commissions.json", "scripts/game/ladder.gd", "data/world/ladders/*.json", "scripts/game/minigames/*.gd", "data/world/minigames/*.json"
+        "scripts/game/rumours.gd", "data/world/rumours.json", "scripts/game/commissions.gd", "data/world/commissions.json", "scripts/game/ladder.gd", "data/world/ladders/*.json", "scripts/game/minigames/*.gd", "data/world/minigames/*.json", "scripts/game/companions.gd", "data/world/companions.json"
       ]
     },
     "frame": {

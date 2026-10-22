@@ -23,6 +23,14 @@ page [Enemy Field Guide](https://claude.ai/artifact/NfkV4YFAufXzUP1pBuGcAK)). Un
   person in town) keeps `prev_pos`, and the view draws it at `shown_pos()`, between the last two
   steps, so movement stays smooth on faster screens or a late frame (a jump of over 20 px, such
   as a blink, is drawn where it lands).
+- **A companion beside you** (N-7.6.6, `scripts/ally.gd`, people spec §4.4): in a 1 vs many
+  fight (never one with `hits`: duels, the ladder) the companion walking with you fights too,
+  drawn as their person. They keep near you, strike the nearest enemy within 110 px of you (Mira
+  6 dmg, impact 1, every 1.6 s; Brogan 9, impact 2, every 2.2 s; reach 18), and do their role:
+  a **Cutter** interrupts one enemy wind-up (windup, spark, lance, smother, the Warden's) within
+  140 px of you every 6 s; a **Guard** shoves the nearest enemy within 90 px off you (impact 3,
+  knock 160) every 8 s while you're Staggered or under 35% Vitality. A **Guide** stays out. Their
+  kills train nothing of yours (no wells). Nothing targets them yet.
 - **Fights in place.** A story `fight <id>` effect starts an encounter from
   `data/world/encounters.json` where you stand. `waves` run one after another (the next starts
   when the field is clear); `survive > 0` runs them on a timer instead. `leash` (sim px, default

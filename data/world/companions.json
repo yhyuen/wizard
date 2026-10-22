@@ -1,0 +1,15 @@
+{
+ "_doc": "Companions (design/people/people-and-side-activities-spec.md §4.4; build item N-7.6.6). One walks with you at a time: ask with Walk with me (the story's `companion <who> join`, once `gate` holds; a story condition, Close at least) and send them home with Part (`companion <who> part`). They follow you on every map. role: guard (in a fight, when you're Staggered or under `guard_hp` of your Vitality, every `guard_every` s they shove the nearest enemy off you), cutter (every `cut_every` s they cut short one enemy's wind-up near you), guide (no fight kit: they stay out of it). strike: their own blow at the nearest enemy near you ({every s, dmg, impact, reach px}); what they finish trains nothing of yours. They fight only in 1 vs many (never in a duel: an encounter with `hits`). A fight won together is the `walk` bond (bonds.json). perk: road sense while they walk with you (rumour: one rumour on first reaching a region each season; text says it). talks: night talks, in order: after a night's sleep, the next one not yet heard plays as you wake (one a night).",
+ "speed": 72,
+ "companions": {
+  "wren": {"role": "guide", "gate": "bond(\"wren\") >= 3", "perk": "rumour",
+   "perk_text": "Wren hears things. Reach a region for the first time this season and she passes one on.",
+   "talks": ["night_wren_1", "night_wren_2"]},
+  "mira": {"role": "cutter", "gate": "bond(\"mira\") >= 3", "cut_every": 6.0,
+   "strike": {"every": 1.6, "dmg": 6, "impact": 1, "reach": 18},
+   "talks": ["night_mira_1", "night_mira_2"]},
+  "brogan": {"role": "guard", "gate": "bond(\"brogan\") >= 3 and f(\"brogan_home\")", "guard_every": 8.0, "guard_hp": 0.35,
+   "strike": {"every": 2.2, "dmg": 9, "impact": 2, "reach": 18},
+   "talks": ["night_brogan_1"]}
+ }
+}

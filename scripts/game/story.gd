@@ -48,6 +48,8 @@ extends RefCounted
 ## N-7.6.5 adds `game <who> free|work|coin` (a minigame against who: scripts/game/minigames/; it
 ## stops the scene like a fight, with `? won` and `? lost`) and the conditions game_open(who),
 ## game_work(who), game_coin(who) and minigame_beaten(who).
+## N-7.6.6 adds `companion <who> join|part` (scripts/game/companions.gd) and the conditions
+## companion() (who walks with you, "" for nobody) and companion_can(who).
 
 const FieldGuide := preload("res://scripts/field_guide.gd")
 const MAPS := "res://data/world/maps.json"
@@ -55,7 +57,7 @@ const HEADER_KEYS := ["place", "days", "times", "when", "force", "priority", "re
 	"talk", "use", "arrive", "cast"]
 const EFFECTS := ["learn", "set", "clear", "fight", "wells", "train", "meditate", "goto", "end_loop",
 	"model", "trial", "sound", "cutscene", "move", "take", "sleep", "book", "today", "go", "open", "play_path", "road", "deed", "omen", "forecast", "bench", "remember", "ignite", "downed", "standing", "merit", "exam", "sign", "prep", "calamity_onset", "calamity_dawn",
-	"bond", "bond_cross", "betray", "gift", "rumour", "commission", "ladder", "game"]
+	"bond", "bond_cross", "betray", "gift", "rumour", "commission", "ladder", "game", "companion"]
 
 var scenes := {}  # id -> scene dictionary
 var errors: Array = []  # parse errors, for the linter
@@ -74,6 +76,7 @@ class Ctx:
 	var commissions  # scripts/game/commissions.gd, when the slice has one
 	var ladder  # scripts/game/ladder.gd, when the slice has one
 	var games  # scripts/game/minigames/games.gd, when the slice has one
+	var companions  # scripts/game/companions.gd, when the slice has one
 
 	## A once-a-day action (meditate, train) already done today.
 	func done(op: String) -> bool:
@@ -212,6 +215,14 @@ class Ctx:
 
 	func game_coin(who: String) -> bool:
 		return games.coin_open(who) if games != null else false
+
+	## Companions (people spec §4.4; N-7.6.6): who walks with you ("" for nobody), and whether
+	## `who` would walk with you now (their gate holds).
+	func companion() -> String:
+		return companions.who() if companions != null else ""
+
+	func companion_can(who: String) -> bool:
+		return companions.can_join(who) if companions != null else false
 
 	func minigame_beaten(who: String) -> bool:
 		return games != null and run.soul.get("games_beaten", {}).has(who)

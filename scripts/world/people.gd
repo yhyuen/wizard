@@ -12,9 +12,14 @@ extends RefCounted
 ## without `weather` (or a plain schedule) sends its person to their `cover` spot, if they have one. At most one
 ## person seeks you out a day.
 ##
+## Companions (N-7.6.6, people spec §4.4): whoever walks with you (Run.life "companion") leaves
+## their schedule and follows you on every map; in a fight they stand where scripts/ally.gd puts
+## them (a Guide hangs back).
+##
 ## Purely the camp's state: the world view draws it, the game starts the conversations.
 
 const Story := preload("res://scripts/game/story.gd")
+const FOLLOW := Vector2(-20, 12)  # where a companion keeps, from you
 
 class Person:
 	var id := ""
@@ -34,7 +39,7 @@ class Person:
 	var bark_t := 0.0  # seconds the bark has been up
 	var bark_cool := 0.0
 	var flinch_t := 0.0  # seconds before this person flinches from a spell again
-	var mode := ""  # "", "seek", "lamps", "wander"
+	var mode := ""  # "", "seek", "lamps", "wander", "follow"
 	var doing := ""  # the schedule row's activity (work, eat, pray, drill, drink, sleep, trade, mourn)
 	var seek_scene := ""
 	var state := ""  # the mode's own step
@@ -174,6 +179,8 @@ func row_now(p: Person) -> Dictionary:
 
 ## Where `p` should be now: {"spot", "seek", "doing"}.
 func want(p: Person) -> Dictionary:
+	if str(W.run.life.get("companion", "")) == p.id:
+		return {"spot": "follow"}
 	if p.def.has("from_day") and W.run.day() < int(p.def["from_day"]):
 		return {"spot": ""}
 	if W.in_camp():
@@ -223,6 +230,18 @@ func think(snap := false) -> void:
 		if p.talking:
 			continue
 		p.doing = str(w.get("doing", ""))
+		if w["spot"] == "follow":
+			if p.mode != "follow" or not p.on:
+				p.spot = "follow"
+				p.mode = "follow"
+				p.path = PackedVector2Array()
+				if not p.on or p.pos.distance_to(W.player_pos()) > 300.0:
+					p.pos = W.map.collide(W.player_pos() + FOLLOW, 4.0)
+					p.fade = 1.0 if not snap else 0.0
+				p.on = true
+			continue
+		if p.mode == "follow":
+			p.mode = ""  # parted: back to the schedule
 		if w["spot"] == "lamp_round":
 			if p.mode != "lamps":
 				_go(p, "lamp_round", snap)
@@ -300,13 +319,17 @@ func update(dt: float) -> void:
 				_lamps(p, dt, speed)
 			"seek":
 				_seek(p, dt, speed)
+			"follow":
+				if _follow(p, dt):
+					_barks(p, dt, player)
+					continue
 			"wander":
 				if p.path.is_empty():
 					p.state_t -= dt
 					if p.state_t <= 0.0:
 						p.path = PackedVector2Array([_wander_point(p)])
 						p.state_t = rng.randf_range(1.5, 5.0)
-		_walk(p, dt, speed * (0.7 if p.crowd else 1.0))
+		_walk(p, dt, speed * (0.7 if p.crowd else (1.5 if p.mode == "follow" else 1.0)))
 		if not p.moving and player.distance_to(p.pos) < 70.0:
 			p.face = player - p.pos
 		_barks(p, dt, player)
@@ -344,6 +367,33 @@ func _lamps(p: Person, dt: float, speed: float) -> void:
 			W.light_lamp(lane[i], "mira")
 			p.state = str(i + 1)
 			p.state_t = 0.0
+
+
+## A companion: keeps a step behind you. In a fight they're where their ally puts them (true:
+## placed, no walking this step); a Guide stays where they are.
+func _follow(p: Person, dt: float) -> bool:
+	var A = W.arena
+	if A != null and A.ally != null and A.ally.who == p.id:
+		p.pos = A.ally.pos
+		p.face = A.ally.face
+		p.moving = A.ally.moving
+		return true
+	if A != null and A.fighting():
+		p.path = PackedVector2Array()
+		return true
+	var player: Vector2 = W.player_pos()
+	var d := p.pos.distance_to(player)
+	if d > 300.0:
+		p.pos = W.map.collide(player + FOLLOW, 4.0)
+		p.path = PackedVector2Array()
+	elif d < 30.0:
+		p.path = PackedVector2Array()
+	else:
+		p.state_t -= dt
+		if p.path.is_empty() or p.state_t <= 0.0:
+			p.state_t = 0.5
+			p.path = W.map.path(p.pos, player + FOLLOW, 4.0)
+	return false
 
 
 ## Someone with a `seek` override: comes up to the wizard and starts talking.
