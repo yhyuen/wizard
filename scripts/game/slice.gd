@@ -145,6 +145,7 @@ func setup(the_main) -> void:
 	death_texts = ld["deaths"]
 	main_steps = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/main_line.json"))["steps"]
 	world = World.new(run, story)
+	story.ctx.world = world  # the dark (N-4.5.3)
 	reach = Reach.new(run, story)
 	weather = Weather.new(run)
 	deeds = Achievements.new(run, story)
@@ -1844,7 +1845,7 @@ func _draw_reach() -> void:
 		var b: Vector2 = at.call(road[1])
 		var lit: bool = reach.built(road[0]) and reach.built(road[1])
 		draw_line(a, b, Color(HAIR, 0.5 if lit else 0.2), 1.0)
-		text((a + b) * 0.5 + Vector2(-30, -4), "%d day%s" % [road[2], "" if int(road[2]) == 1 else "s"], 10, Color(HAIR, 0.7 if lit else 0.35), HORIZONTAL_ALIGNMENT_CENTER, 60)
+		text((a + b) * 0.5 + Vector2(-30, -4), "%d day%s" % [reach.road_days(road), "" if reach.road_days(road) == 1 else "s"], 10, Color(HAIR, 0.7 if lit else 0.35), HORIZONTAL_ALIGNMENT_CENTER, 60)
 	var mouse := get_local_mouse_position()
 	for id in reach.regions():
 		var g: Dictionary = reach.region(id)

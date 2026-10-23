@@ -259,10 +259,9 @@ Cold air comes up it, and a smell like a forge gone out.
 
 === patrol
 arrive: college, yard, archive, observatory, stairs, north_door, duel_ring, broken_wall, college_tents
-times: night
 repeat: true
 priority: -5
-when: not done("patrol")
+when: dark() and not done("patrol")
 + today patrol
 The ruins are quiet after dark. Then they aren't.
 Shapes in the mist among the fallen stone, shuffling, wearing the clothes of people you might have known.

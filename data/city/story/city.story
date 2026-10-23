@@ -119,10 +119,9 @@ You come to in the ash with your pockets turned out. They didn't take your life.
 
 === square_nest_here
 arrive: sunken_square
-times: night
 repeat: true
 priority: 5
-when: not done("square_nest") and since("square_nest_won") >= 3 and day <= 28
+when: dark() and not done("square_nest") and since("square_nest_won") >= 3 and day <= 28
 + today square_nest
 Something moves among the leaning lamps. Then everything does: Hollows, climbing out of the square's broken edge, more of them than you can count at once.
 * Fight them -> square_nest_go
@@ -139,10 +138,9 @@ The square goes still. The shrine's rings tick round in the dark, and nothing el
 
 === square_choir_here
 arrive: sunken_square
-times: night
 repeat: true
 priority: 5
-when: not done("square_nest") and since("square_nest_won") >= 3 and day > 28
+when: dark() and not done("square_nest") and since("square_nest_won") >= 3 and day > 28
 + today square_nest
 Something moves among the leaning lamps. Then everything does, and under the shuffling there's a sound like singing, if a crowd could sing with one throat.
 * Fight them -> square_choir_go
@@ -179,10 +177,9 @@ The thing in the middle of the floor comes apart like a dropped lamp. The hum st
 
 === depot_here
 arrive: lamp_depot
-times: night
 repeat: true
 priority: 5
-when: not done("depot") and since("depot_won") >= 3 and day > 28
+when: dark() and not done("depot") and since("depot_won") >= 3 and day > 28
 + today depot
 Inside the depot the lamps on their racks are going out one by one, and not by any wind. Long shapes hang off them, drinking.
 * Fight them -> depot_go

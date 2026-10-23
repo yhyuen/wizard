@@ -24,6 +24,8 @@ var circles: Array = []  # [Vector2, r, kind]
 var water: Array = []  # Rect2
 var water_all: Array = []  # [Rect2, flag, deep]: every water rect; while its flag is set it's drained (a sluice)
 var deep: Array = []  # Rect2: water too deep to wade (the mill pond), a wall to walkers until drained
+var river := ""  # the season's water (N-4.5.3): "high" (rivers too deep to wade but on bridges), "frozen" (no water is deep: ice)
+var rivers: Array = []  # indices into water_all of this map's rivers (data/world/seasons.json)
 var bridges: Array = []  # Rect2
 var doors := {}  # id -> {"rect": Rect2, "open": bool, "state": String}
 var pits: Array = []  # Rect2: collapsed floor, not walkable, open to shots
@@ -515,9 +517,59 @@ func bridge_pits(r: Rect2) -> int:
 ## The water that stands now, given the life flags set (`flag(id) -> bool`): a rect whose drain
 ## flag is set is gone. Returns whether anything changed.
 func set_drained(flag: Callable) -> bool:
-	var now: Array = water_all.filter(func(w): return w[1] == "" or not flag.call(w[1]))
+	var now: Array = []
+	for i in water_all.size():
+		if water_all[i][1] == "" or not flag.call(water_all[i][1]):
+			now.append(i)
 	if now.size() == water.size():
 		return false
-	water = now.map(func(w): return w[0])
-	deep = now.filter(func(w): return w[2]).map(func(w): return w[0])
+	water = now.map(func(i): return water_all[i][0])
+	_deep_of(now)
 	return true
+
+
+func _deep_of(now: Array) -> void:
+	deep = []
+	if river == "frozen":
+		return
+	for i in now:
+		if water_all[i][2]:
+			deep.append(water_all[i][0])
+		elif river == "high" and i in rivers:
+			deep.append_array(_minus_bridges(water_all[i][0]))
+
+
+## The season's rivers (N-4.5.3): `state` is "high", "low", "frozen" or "", `ids` the rivers'
+## water indices (data/world/seasons.json); the deep water follows.
+func set_river(state: String, ids: Array) -> void:
+	if state == river and ids == rivers:
+		return
+	river = state
+	rivers = ids
+	var now: Array = []
+	for i in water_all.size():
+		if water.has(water_all[i][0]):
+			now.append(i)
+	_deep_of(now)
+
+
+## Rect `r` with this map's bridges cut out of it (high water is crossed on the bridges).
+func _minus_bridges(r: Rect2) -> Array:
+	var parts: Array = [r]
+	for b: Rect2 in bridges:
+		var next: Array = []
+		for q: Rect2 in parts:
+			if not q.intersects(b):
+				next.append(q)
+				continue
+			var cut := q.intersection(b)
+			if cut.position.y > q.position.y:
+				next.append(Rect2(q.position, Vector2(q.size.x, cut.position.y - q.position.y)))
+			if cut.end.y < q.end.y:
+				next.append(Rect2(Vector2(q.position.x, cut.end.y), Vector2(q.size.x, q.end.y - cut.end.y)))
+			if cut.position.x > q.position.x:
+				next.append(Rect2(Vector2(q.position.x, cut.position.y), Vector2(cut.position.x - q.position.x, cut.size.y)))
+			if cut.end.x < q.end.x:
+				next.append(Rect2(Vector2(cut.end.x, cut.position.y), Vector2(q.end.x - cut.end.x, cut.size.y)))
+		parts = next
+	return parts

@@ -13,12 +13,13 @@ extends "res://scripts/view/view3d.gd"
 ## stay exactly their hitboxes without a texture the size of the town.
 
 const TownMesh := preload("res://scripts/world/ruin_mesh.gd")
+const Seasons := preload("res://scripts/world/seasons.gd")
 const TIMES := ["morning", "noon", "afternoon", "dusk", "night"]
 
 var W  # scripts/world/world.gd
 var wc: Dictionary  # data/visual.json "world"
 var town  # ruin_mesh.gd (the town kit and the ruin kit)
-var built_for := ""  # the map id the 3D was built from
+var built_for := ""  # what the 3D was built from (build_key: the map, and its fields' crop)
 var _map_root: Node3D  # everything that belongs to the map, freed on rebuild
 var holder: Node2D  # the arena's parent in the marks viewport, moved so the window follows
 var mark_origin := Vector2.ZERO
@@ -90,7 +91,7 @@ func _ready() -> void:
 ## Everything that belongs to the map the world is on: the ground, the chunks, the props, the
 ## scorches and the people's figures.
 func _build_map() -> void:
-	built_for = W.map_id
+	built_for = build_key()
 	_map_root = Node3D.new()
 	_map_root.name = "map_" + W.map_id
 	add_child(_map_root)
@@ -101,6 +102,7 @@ func _build_map() -> void:
 	var tc: Dictionary = wc["town"].duplicate(true)
 	tc["palette"].merge(W.map_def().get("palette", {}), true)
 	town = TownMesh.new()
+	town.wheat_look = Seasons.field(W.run).get("wheat", {})  # the fields' crop this moon (N-4.5.3)
 	_map_root.add_child(town)
 	town.build(self, W.map, tc)
 	_prop_nodes = []
@@ -115,10 +117,16 @@ func _build_map() -> void:
 	_cam_ready = false
 
 
-## The world went to another map: frees this one's 3D and builds the new one's. The game shows
+## What the 3D is built from: the map, and on a map with fields their crop (a new moon can
+## rebuild the Mill fields).
+func build_key() -> String:
+	return W.map_id + ("/" + Seasons.field_state(W.run) if not Seasons.field_rects(W.map_id).is_empty() else "")
+
+
+## The world went to another map (or its fields changed): frees this one's 3D and builds the new one's. The game shows
 ## its loading card and prewarms behind it (slice.gd go_map).
 func rebuild() -> void:
-	if built_for == W.map_id:
+	if built_for == build_key():
 		return
 	remove_child(_map_root)
 	_map_root.queue_free()

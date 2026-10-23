@@ -33,7 +33,7 @@
         "data/world/maps.json", "data/world/world.json", "data/world/props.json", "data/world/owners.json", "scripts/world/deeds.gd", "scripts/world/gates.gd", "scripts/world/trials.gd",
         "data/world/regions.json", "scripts/game/reach.gd",
         "scripts/world/weather.gd", "data/world/weather.json", "scripts/world/matter.gd", "data/materials.json",
-        "scripts/world/cells.gd", "data/world/ground.json", "data/world/structures.json",
+        "scripts/world/cells.gd", "data/world/ground.json", "data/world/structures.json", "scripts/world/seasons.gd", "data/world/seasons.json",
         "scripts/game/bonds.gd", "data/world/bonds.json"
       ]
     },

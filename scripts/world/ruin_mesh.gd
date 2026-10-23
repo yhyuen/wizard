@@ -19,6 +19,7 @@ extends "res://scripts/world/town_mesh.gd"
 
 const SPHERE_COLS := {"mars": "ember", "luna": "window", "mercury": "brass", "jupiter": "brass", "saturn": "paper"}
 
+var wheat_look := {}  # the fields' crop this moon (data/world/seasons.json wheat: color, h, n), set before build
 var crack_mis: Array = []  # MeshInstance3D per map crack, in map order
 var crack_mat: ShaderMaterial  # a crack at rest: a dim seam of its Sphere's colour
 var crack_hot: ShaderMaterial  # a crack about to burst (arena.crack_glow)
@@ -495,10 +496,14 @@ func _dressing(kind: String, at2: Vector2, rot: float) -> void:
 			_add(rim, Transform3D(Basis(Vector3.RIGHT, PI / 2.0 - 0.35), at + Vector3(0, 1.4, 0)), c("brass").darkened(0.3))
 			put.call(Vector3(0.08, 1.2, 0.05), Vector3(0.2, 1.7, 0.22), c("iron"))
 		"wheat":
-			# a stand of wheat gone to seed: pale stalks in loose rows
-			for k in 40:
+			# a stand of wheat in loose rows, as the season has it (N-4.5.3): last year's gone to seed
+			# and flattened in the mud, young shoots, green, ripe gold, cut stubble, frozen stalks
+			var col := Color(str(wheat_look.get("color", "b8a060")))
+			var hk := float(wheat_look.get("h", 1.0))
+			for k in int(40 * float(wheat_look.get("n", 1.0))):
 				var q := Vector3(rng.randf_range(-3.0, 3.0), 0, rng.randf_range(-2.0, 2.0))
-				put.call(Vector3(0.06, rng.randf_range(0.7, 1.1), 0.06), q + Vector3(0, 0.45, 0), Color("b8a060").darkened(rng.randf() * 0.25))
+				var hh := rng.randf_range(0.7, 1.1) * hk
+				put.call(Vector3(0.06, hh, 0.06), q + Vector3(0, hh * 0.5, 0), col.darkened(rng.randf() * 0.25))
 		"scarecrow":
 			put.call(Vector3(0.12, 2.2, 0.12), Vector3(0, 1.1, 0), c("timber"))
 			put.call(Vector3(1.4, 0.1, 0.1), Vector3(0, 1.7, 0), c("timber"))

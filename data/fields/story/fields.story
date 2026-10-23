@@ -89,10 +89,9 @@ You wake in the wheat at dawn. The granary door hangs open and half the sacks ar
 
 === fence_here
 arrive: east_fence
-times: dusk, night
 repeat: true
 priority: 5
-when: not done("fence") and since("fence_won") >= 3
+when: dark() and not done("fence") and since("fence_won") >= 3
 + today fence
 Out on the moor, shapes are coming down to the fence. Not wolves. They walk like people who've forgotten how.
 * Hold the fence -> fence_go
@@ -109,10 +108,9 @@ The last of them falls against the posts. The moor is empty again, as far as you
 
 === mill_cellar_here
 arrive: mill_cellar
-times: night
 repeat: true
 priority: 5
-when: not done("mill_cellar") and since("mill_cellar_won") >= 3 and day > 28 and not f("mill_burned")
+when: dark() and not done("mill_cellar") and since("mill_cellar_won") >= 3 and day > 28 and not f("mill_burned")
 + today mill_cellar
 Down in the sack aisles something is tearing at the grain. Hollows, drawn by it the way moths are drawn to a lamp, and the air is thick with flour.
 Fire would be a very bad idea in here.

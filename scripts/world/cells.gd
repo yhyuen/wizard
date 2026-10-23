@@ -22,7 +22,10 @@ var charge := PackedFloat32Array()
 var smoke := PackedFloat32Array()
 var steam := PackedFloat32Array()
 var active := {}  # cell index -> true while any timer runs
-var ash := {}  # burnt-out cells, for the scar on the ground
+var ash := {}  # burnt-out cells -> the day they burnt out, for the scar and for nature's regrowth
+var day := 0  # today (set by the world), for the ash's day
+var soaked := {}  # cells that stay wet whatever the weather (the Mill fields' spring mud, N-4.5.3)
+var dressed := ""  # the field state painted on the fields (N-4.5.3)
 var rubble := {}  # cells under a fallen structure (slow to cross; Impact II clears them)
 var burning := {}  # cell index -> the order it caught (oldest first burns faster when capped)
 var _order := 0
@@ -153,7 +156,7 @@ func tar(i: int) -> bool:
 
 
 func is_wet(i: int) -> bool:
-	return wet[i] > 0.0 or (raining and not indoors) or mats[mat[i]] == "water"
+	return wet[i] > 0.0 or soaked.has(i) or (raining and not indoors) or mats[mat[i]] == "water"
 
 
 func conducts(i: int) -> bool:
@@ -163,7 +166,7 @@ func conducts(i: int) -> bool:
 ## Frozen (N-4.5.2): on a freezing day outdoors, standing water and wet ground are ice. Ice doesn't
 ## conduct or burn; fire on it thaws it to water for `melt_s`.
 func is_ice(i: int) -> bool:
-	return freezing and not indoors and not melt.has(i) and (wet[i] > 0.0 or mats[mat[i]] == "water")
+	return freezing and not indoors and not melt.has(i) and (wet[i] > 0.0 or soaked.has(i) or mats[mat[i]] == "water")
 
 
 # --- forces on cells -----------------------------------------------------------------
@@ -230,11 +233,51 @@ func burn_out(i: int) -> bool:
 	burn[i] = 0.0
 	burning.erase(i)
 	fuel[i] = -1.0
-	ash[i] = true
+	ash[i] = day
 	wet[i] = 0.0
 	smoke[i] = float(sp["smoke_s"])
 	active[i] = true
 	return true
+
+
+## The fields take this moon's crop (N-4.5.3): every cell whose centre is in `rects` becomes
+## `material` (soaked or not), its fuel whole, unless it is water, solid, burning or ash.
+func dress(rects: Array, material: String, wet_ground: bool, state: String) -> void:
+	dressed = state
+	var m := mats.find(material)
+	if m < 0:
+		return
+	for r: Rect2 in rects:
+		var a := index(r.position)
+		var b := index(r.end - Vector2.ONE)
+		if a < 0 or b < 0:
+			continue
+		for y in range(a / w, b / w + 1):
+			for x in range(a % w, b % w + 1):
+				var i := y * w + x
+				var now: String = mats[mat[i]]
+				if not r.has_point(centre(i)) or now in ["water", "brick", "iron"] or burn[i] > 0.0 or ash.has(i):
+					continue
+				mat[i] = m
+				fuel[i] = float(mdef[m].get("fuel_s", 0.0)) if int(mdef[m].get("fire", 0)) > 0 else 0.0
+				if wet_ground:
+					soaked[i] = true
+				else:
+					soaked.erase(i)
+
+
+## Nature mends (N-4.5.3): ash on a cell of a material in `days` (material -> days, already for
+## the season) that burnt out that long before `today` grows back. Returns how many did.
+func regrow(today: int, days: Dictionary) -> int:
+	var n := 0
+	for i in ash.keys():
+		var need := int(days.get(mats[mat[i]], -1))
+		if need < 0 or today - int(ash[i]) < need:
+			continue
+		ash.erase(i)
+		fuel[i] = float(mdef[mat[i]].get("fuel_s", 0.0))
+		n += 1
+	return n
 
 
 ## A lightning strike on cell `i` at `grade` (spec §5.3): a conductor fills its connected
@@ -297,7 +340,7 @@ func tick(dt: float) -> Dictionary:
 				burn[i] = 0.0
 				fuel[i] = -1.0
 				burning.erase(i)
-				ash[i] = true
+				ash[i] = day
 				smoke[i] = float(sp["smoke_s"])
 				out.append(i)
 				burnt.append(i)

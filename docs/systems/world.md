@@ -183,7 +183,7 @@ when the pond is drained, the bramble commission and the granary's bread shortag
   orchard** and the **east fence** (posts facing the moor, the scarecrow brazier) to the **farm
   track**, whose exit goes on to the east road.
 - **Deep water**: a water rect's 6th field `deep` makes it a wall to walkers (`Map.deep`; shots
-  fly over it). The mill pond is deep round the **islet stone**; its **sluice** (an item) drains
+  fly over it; frozen in winter it is walked on). The mill pond is deep round the **islet stone**; its **sluice** (an item) drains
   it (life flag `pond_dry`), the islet becomes a walk, and the mill wheel stops while it's dry.
   Touching the stone teaches `islet_stone` (Ledger clue).
 - **New prop kinds**: `bramble` (grass, Fire I, spreads 40 px), `apple_tree` (living wood: Fire I
@@ -229,8 +229,8 @@ arriving only from Ashmoon 2, and the Holds themselves (Ring 2).*
 
 *Target: the [seasons, weather and calamities spec](/mnt/project-files/design/seasons/seasons-and-calamities-spec.md)
 §3–§5 (tracker N-4.5). Built: N-4.5.1, the roll, the Almanac and the forecast; N-4.5.2, weather
-on matter (below and in "Fire, water and charge on the ground"). Not yet: walking on frozen
-puddles and ponds, Frost spells freezing wet ground, snow tracks, enemy senses shortened by
+on matter (below and in "Fire, water and charge on the ground"). Not yet: walking on a pond
+frozen by one Frost or Snow day (a winter moon freezes it, below), Frost spells freezing wet ground, snow tracks, enemy senses shortened by
 weather (only witnesses are), mist on screen, signs in the sky.*
 
 - **Nine kinds:** Clear, Overcast, Mist, Rain, Storm, Wind, Heat, Frost, Snow, each with a glyph
@@ -265,6 +265,41 @@ weather (only witnesses are), mist on screen, signs in the sky.*
 - **Shown:** today's glyph, and tomorrow's once forecast, at the end of the calendar row, and the
   kind's name under it ([frame.md](frame.md)); the map's Calendar tab has a glyph on each day you
   know and today's weather in words.
+
+## Seasons dress the world (`data/world/seasons.json`, `scripts/world/seasons.gd`)
+
+*N-4.5.3, seasons spec §5. Not built: leaf litter on paths in Leaf-fall, snow on boughs and bare
+trees, the passes closing (Ring 2 is cards), Mirror Lake's freeze as an event, people's and
+creatures' seasonal habits (people spec, enemy spec), Hollow numbers at full in the dark.*
+
+- **The season** is the moon's (`calendar.json`): spring Ashmoon–Seedmoon, summer Blossom–Embermoon,
+  autumn Harvest–Leaf-fall, winter Frostmoon–Eclipse moon. The world applies it with the day's
+  weather (`world._apply_sky`, at dawn, on arriving and when the time of day turns).
+- **The dark** (`Seasons.dark`, `world.dark()`, the story's `dark()`): Night is dark all year;
+  Dusk too in winter, and in spring and autumn under a grey sky (overcast, mist, rain, storm,
+  snow); a Long Night afternoon under a grey sky is dark too. A summer Dusk stays light. In the
+  dark **Hollow sites** (the camp's patrol, the Sunken Square, the lamp depot, the east fence,
+  the Mill cellar) offer their fight, witnesses see 55 px, and the College and street lamps come
+  on at the first dark time if it is before Dusk (never later than Dusk).
+- **Rivers** (`rivers`): high water in the Thaw: the Mill fields' millrace is too deep to wade
+  but on its bridge (`Map.set_river`, the rect cut round `bridges`); low in summer (no change);
+  **frozen** all winter: no water is deep anywhere (the mill pond freezes and the islet is a walk),
+  and all standing water and wet ground is **ice** (`cells.freezing`), as on a Frost morning.
+- **The Mill fields' crop** (`fields`): two fields (south of the barns, north of the pond) wear
+  the moon's state: **mud** in Ashmoon and the Thaw (earth that stays wet: `cells.soaked`, so a
+  Spark runs through it and frost ices it), **sown** in Seedmoon, **growing** wheat through summer
+  and **ripe** in Harvest (grass: it burns fast), **stubble** in Reaping and Leaf-fall (grass),
+  **frozen** earth in winter. The ground shows the field's colour and its rows in tufts
+  (`draw_ground`), and the wheat stands (dressing `wheat`, here and on the east road) take the
+  crop's colour and height; a new crop rebuilds the fields' 3D (`world_view.build_key`).
+- **Summer** dries wet ground twice as fast (`dry`); **winter** lays a pale rime over the ground.
+- **Nature mends** (`regrow`; only on the camp, the fields and the east road: the city, the
+  undercroft and the halls are ruins and remember): grass burnt to ash grows back after 3 dawns,
+  a burnt or broken **bramble** after 7, divided by the season's pace (spring ×1.5: 2 and 5; winter
+  ×0: never). Owners don't mend what nature does. Every prop broken or burned is dated now, owned
+  or not (`broke_day`).
+- **Roads** (`Reach.road_days`): winter adds a day to every road, and the Thaw's high water a day
+  to a road that fords (camp–Mill, Mill–the Holds); the Reach's chart shows the days as they are.
 
 ## People (`scripts/world/people.gd`, `data/world/people.json`)
 
@@ -489,7 +524,7 @@ evidence.*
   rest of the College ruins, the broken wall, the hill, the road and the whole halls are nobody's (nothing is owed there and nothing repairs, so a ruin remembers you for the
   life). Each kind has a **value** in crowns: hay 2, crate 4, barrel 6, post 20, cart 40.
 - **Breaking or setting alight** an owned prop counts once until it's put back. If someone can see
-  it (in town, 110 px by day, 55 at dusk and night, less in mist, rain or snow, nothing solid between) the nearest one
+  it (in town, 110 px by day, 55 in the dark (the season's dark times, below), less in mist, rain or snow, nothing solid between) the nearest one
   reacts by its value: under 10 crowns a grumble (−1 standing with the owner), up to 100 a demand
   ("That's 40 crowns you owe the Watch", −3, counted in `owed`), over that the watch is called (−10,
   +1 infamy, a toast). Setting a thing alight costs at least −3.
@@ -498,7 +533,8 @@ evidence.*
 - **Good deeds:** putting out an owned prop's fire, or mending a damaged one with Rewind, is +1
   standing and +1 fame (someone near says thanks).
 - **Owners mend** at dawn what was broken or burned `repair_days` ago (hay and crates 1, barrels
-  and posts 2, the cart 3), on every map this life (`world.restore`).
+  and posts 2, the cart 3), on every map this life (`world.restore`); plants are nature's
+  ("Seasons dress the world").
 - It all lives in `Run.life` (`standing`, `owed`, `fame`, `infamy`, `suspicion`, `unseen`) for the
   reputation and the economy to read when they're built; a new life starts clean.
 
