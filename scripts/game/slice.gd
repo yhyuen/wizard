@@ -1542,6 +1542,8 @@ func _draw() -> void:
 		"loading":
 			draw_rect(Rect2(0, 0, 960, 540), NIGHT)
 			_draw_loading()
+	if screen == "world" and main.mode in ["world", "fight"]:
+		_draw_precip()
 	match overlay:
 		"ledger":
 			begin_buttons()
@@ -2635,6 +2637,32 @@ func _wear_row(at: Vector2, label: String, ids: Array, names: Array, worn: Strin
 		var v = ids[i]
 		buttons.append({"r": br, "act": func(): run.soul[key] = v, "key": 0})
 		tx += tw + 8.0
+
+
+## Rain, a Storm's rain or snow falling across the screen (N-4.5.2): a few hundred streaks or
+## flakes, slanted by the wind, drawn in one batch. Indoors (and in clear weather) nothing falls.
+func _draw_precip() -> void:
+	var k: Dictionary = world.sky_kind()
+	var snowing: bool = k.get("snow_cover", false)
+	if not (k.get("wet", false) or snowing):
+		return
+	var t := Time.get_ticks_msec() * 0.001
+	var wind := float(world.sky.get("wind", 0))
+	var lean := wind * (14.0 if snowing else 22.0)
+	var n := 160 if snowing else 220
+	var pts := PackedVector2Array()
+	for i in n:
+		var sx := fposmod(i * 0.618034, 1.0) * 960.0  # spread evenly (golden-ratio steps)
+		var sp := (40.0 if snowing else 520.0) * (0.8 + fposmod(i * 0.414214, 0.4))
+		var y := fposmod(fposmod(i * 0.754878, 1.0) * 560.0 + t * sp, 560.0) - 10.0
+		var x := fposmod(sx + y / 540.0 * lean * 6.0 + (sin(t * 1.3 + i) * 6.0 if snowing else 0.0), 980.0) - 10.0
+		if snowing:
+			draw_circle(Vector2(x, y), 1.4 + fposmod(i * 0.37, 1.0), Color(1, 1, 1, 0.55))
+		else:
+			pts.append(Vector2(x, y))
+			pts.append(Vector2(x + lean * 0.12, y + 12.0))
+	if not pts.is_empty():
+		draw_multiline(pts, Color(0.75, 0.82, 0.95, 0.32), 1.0)
 
 
 ## A sigil (N-7.7): a small gold mark in a ring, its glyph from achievements.json "sigils".

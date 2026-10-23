@@ -53,9 +53,12 @@ func standing(owner: String) -> int:
 	return int(_life().get("standing", {}).get(owner, 0))
 
 
-## How far someone sees a change now: less at dusk and night.
+## How far someone sees a change now: less at dusk and night, and less in mist, rain or snow (the
+## lower of the two; the day's sight is 12 m, weather's `sight_m`; N-4.5.2).
 func sight() -> float:
-	return float(d["sight"]["night" if W.run.time_id() in ["dusk", "night"] else "day"])
+	var r := float(d["sight"]["night" if W.run.time_id() in ["dusk", "night"] else "day"])
+	var m := float(W.sky_kind().get("sight_m", 12.0))
+	return minf(r, float(d["sight"]["day"]) * m / 12.0)
 
 
 ## The people who can see `at`: in town, close enough, nothing solid between.

@@ -46,6 +46,8 @@ var structures: Array = []  # this map's {id, name, rect, h, supports, state (""
 var cells  # scripts/world/cells.gd: this map's ground, where fire, water and charge spread
 var sky := {}  # today's weather here (scripts/world/weather.gd `on`), set by the game
 var sky_kinds := {}  # data/world/weather.json "kinds"
+var _sky_time := ""  # the time of day the sky was last applied for (Frost freezes by the hour)
+var _strike_t := 0.0  # seconds to a Storm's next lightning strike
 var _cell_t := 0.0
 var _shock_t := 0.0
 var _fire_zones := {}  # burning cell -> its flame zone in the arena
@@ -215,6 +217,52 @@ func _apply_sky() -> void:
 	cells.downwind = Vector2.from_angle(-PI / 2.0 + di * PI / 4.0) * -1.0 if di >= 0 else Vector2.ZERO
 	cells.fire_k = float(k.get("fire_spread", 1.0))
 	cells.raining = bool(k.get("wet", false))
+	# N-4.5.2: Heat dries, Frost and Snow freeze (Frost only in its hours), Snow lies on the ground.
+	cells.dry_k = float(k.get("dry", 1.0))
+	var ft: Array = k.get("freeze_times", [])
+	cells.freezing = bool(k.get("freezes", false)) and (ft.is_empty() or run.time_id() in ft)
+	cells.snow = bool(k.get("snow_cover", false))
+	_sky_time = run.time_id()
+
+
+## What today's weather is, as data/world/weather.json describes it ({} for none, and indoors).
+func sky_kind() -> Dictionary:
+	if cells != null and cells.indoors:
+		return {}
+	return sky_kinds.get(str(sky.get("kind", "")), {})
+
+
+## A Storm's lightning (seasons spec §3.4): every so often the iron lamp nearest you, in reach,
+## draws a strike: a telegraph, then a bolt that hurts everyone in its circle and runs through the
+## wet ground. Nothing to strike, no strike.
+func _storm(dt: float) -> void:
+	var st: Dictionary = sky_kind().get("strike", {})
+	if st.is_empty() or cells == null:
+		return
+	_strike_t -= dt
+	if _strike_t > 0.0:
+		return
+	var at := player_pos()
+	var best := {}
+	var bd := float(st["reach"])
+	for l in lamps:
+		var d: float = l["pos"].distance_to(at)
+		if l["iron"] and d < bd:
+			bd = d
+			best = l
+	if best.is_empty():
+		_strike_t = 2.0
+		return
+	_strike_t = float(st["every_s"])
+	arena.add_zone({"kind": "skybolt", "owner": -2, "pos": best["pos"], "r": float(st["r"]), "delay": float(st["telegraph_s"]),
+		"dmg": float(st["dmg"]), "grade": int(st["grade"])})
+	events_log.append(["skybolt_warn", best.get("id", best["group"])])
+
+
+## The bolt lands (arena `_detonate`): the lamp flares and the wet ground carries it.
+func sky_strike(z: Dictionary) -> void:
+	strike_ground(z["pos"], z["pos"], int(z["grade"]))
+	events_log.append(["skybolt", z["pos"]])
 
 
 ## Waking on day 1: everything the last loop burnt, shoved or took is back where it was, on
@@ -314,6 +362,9 @@ func tick(dt: float) -> void:
 	_magic()
 	_lamps_by_time()
 	_lightning(dt)
+	if run.time_id() != _sky_time:
+		_apply_sky()
+	_storm(dt)
 	_vigil(dt)
 	_ground(dt)
 	_structures(dt)
@@ -516,6 +567,9 @@ func burn_ground(at: Vector2, r: float, grade: int) -> int:
 				n += 1
 			"steam":
 				steamed = true
+			"thaw":
+				steamed = true
+				events_log.append(["thawed", i])
 	if steamed:
 		arena.fx("dust", at, {"r": r + 6.0, "life": 0.6})
 	if n > 0:
@@ -696,7 +750,11 @@ func _collapse(st: Dictionary) -> void:
 func ground_speed(p: Vector2) -> float:
 	if cells == null:
 		return 1.0
-	return 1.0 - float(sd["rubble_slow"]) if cells.rubble.has(cells.index(p)) else 1.0
+	if cells.rubble.has(cells.index(p)):
+		return 1.0 - float(sd["rubble_slow"])
+	if cells.snow and not cells.indoors:
+		return 1.0 - float(sky_kind().get("slow", 0.0))  # snow underfoot
+	return 1.0
 
 
 ## An Impact at `grade` within `r` of `at` clears the rubble there if strong enough.
@@ -748,6 +806,12 @@ func draw_ground(g: CanvasItem, at: Vector2, r: float) -> void:
 		return
 	var s: float = cells.size
 	var ci := g.get_canvas_item()
+	if not cells.indoors:
+		if cells.snow:
+			g.draw_rect(map.bounds, Color(0.93, 0.95, 1.0, 0.32))  # snow lies over everything
+		if cells.freezing:
+			for wr: Rect2 in map.water:
+				g.draw_rect(wr, Color(0.86, 0.94, 1.0, 0.55))  # standing water iced over
 	_ground_g.cached(ci, "ash", [cells.get_instance_id(), cells.ash.size(), cells.rubble.size()], func():
 		for i in cells.ash:
 			_ground_g.circle(cells.centre(i), s * 0.7, Color(0.04, 0.03, 0.03, 0.45), 16)
@@ -769,8 +833,10 @@ func draw_ground(g: CanvasItem, at: Vector2, r: float) -> void:
 			continue
 		if cells.burn[i] > 0.0:
 			_ground_g.circle(c, s * 0.68, Color(PixelArt.FIRE, 0.28), 16)
-		elif cells.wet[i] > 0.0:
-			_ground_g.circle(c, s * 0.68, Color(PixelArt.WATER, 0.22 * clampf(cells.wet[i] / 4.0, 0.3, 1.0)), 16)
+		elif cells.wet[i] > 0.0 and cells.is_ice(i):
+			_ground_g.circle(c, s * 0.68, Color(0.86, 0.94, 1.0, 0.5), 16)  # wet ground frozen: ice
+		elif cells.wet[i] > 0.0 or cells.melt.has(i):
+			_ground_g.circle(c, s * 0.68, Color(PixelArt.WATER, 0.22 * clampf(maxf(cells.wet[i], 4.0 if cells.melt.has(i) else 0.0) / 4.0, 0.3, 1.0)), 16)
 		if cells.charge[i] > 0.0:
 			var k := int(now * 12.0 + i) % 3
 			var a := c + Vector2(-s * 0.35, (k - 1) * s * 0.2)

@@ -616,7 +616,7 @@ func _zones(glow_k: float) -> void:
 				paint(g, PixelArt.HOURS, _glow(glow_k, 1.0, 2.0))
 				halo(g.position, PixelArt.HOURS, 0.6 + 0.6 * k, 1.2 * k)
 				view.want_light(g.position, PixelArt.HOURS, 1.2 * k, 2.5)
-			"storm", "strike":
+			"storm", "strike", "skybolt":
 				var k := clampf(t / maxf(0.01, float(z.get("delay", 1.0))), 0.0, 1.0)
 				view.want_light(_w(z["pos"], 1.0), PixelArt.STORM, 0.6 * k, float(z["r"]) * view.S * 2.0)
 

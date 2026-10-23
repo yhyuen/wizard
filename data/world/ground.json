@@ -1,5 +1,5 @@
 {
- "_doc": "The ground's cell grid (design/world/spells-and-environment-spec.md §5; build item N-4.2). Each map is cut into cells of `cell` sim px; each cell has a material (data/materials.json) and fire, water, charge, smoke and steam spread over them. maps: per map, `default` (the material of any cell nothing paints), then `places` (a place's whole area, painted in this order, later wins) and `paint` ([x, y, w, h, material] rects, painted last). Water areas are water and solid ground (walls, houses, cliffs) is brick, whatever the paint. `indoors` maps have no weather. spread: fire's chance per second to light each neighbour (base), downwind/upwind factors, the factor into cloth and oil, the most burning cells on a map, a gale's ember throw (cells, every s), and the reach of a lightning strike through a connected network by Force grade (sim px; the last is the whole network) with its cell cap. smoke_s and steam_s: how long a burnt-out cell smokes and a doused fire steams. shock: damage every shock_every s to anyone in a charged cell, fire_dps: damage a second to anyone standing in a burning cell (the caster takes self_k of either).",
+ "_doc": "The ground's cell grid (design/world/spells-and-environment-spec.md §5; build item N-4.2). Each map is cut into cells of `cell` sim px; each cell has a material (data/materials.json) and fire, water, charge, smoke and steam spread over them. maps: per map, `default` (the material of any cell nothing paints), then `places` (a place's whole area, painted in this order, later wins) and `paint` ([x, y, w, h, material] rects, painted last). Water areas are water and solid ground (walls, houses, cliffs) is brick, whatever the paint. `indoors` maps have no weather. spread: fire's chance per second to light each neighbour (base), downwind/upwind factors, the factor into cloth and oil, the most burning cells on a map, a gale's ember throw (cells, every s), and the reach of a lightning strike through a connected network by Force grade (sim px; the last is the whole network) with its cell cap. melt_s: how long fire's thaw keeps a cell of ice as water (N-4.5.2). smoke_s and steam_s: how long a burnt-out cell smokes and a doused fire steams. shock: damage every shock_every s to anyone in a charged cell, fire_dps: damage a second to anyone standing in a burning cell (the caster takes self_k of either).",
  "cell": 24,
  "maps": {
   "camp": {
@@ -17,7 +17,7 @@
  },
  "spread": {
   "base": 0.3, "downwind": 2.0, "upwind": 0.5, "into_fast": 3.0, "fast": ["cloth", "oil"],
-  "max_burning": 96, "gale_cells": 3, "gale_every": 2.0,
+  "max_burning": 96, "gale_cells": 3, "gale_every": 2.0, "melt_s": 20.0,
   "reach": [24, 60, 240, 100000], "network_cap": 256,
   "smoke_s": 8.0, "steam_s": 4.0, "charge_s": 4.0, "wet_s": 20.0,
   "shock": 5, "fire_dps": 8, "shock_every": 0.5, "self_k": 0.5

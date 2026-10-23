@@ -143,6 +143,9 @@ All numbers are in `data/spells.json` (`casting`, `staff`, `ward`, `cantrips`, `
   an `ember` zone marked `cell`: the world deals its damage, not the arena's ember rule.
   Rubble from a fallen structure slows everyone on it by 30% (`move_speed` asks
   `world.ground_speed`); a collapse is Impact 3 to everyone under it.
+- **Storm strikes** (N-4.5.2): in a storm the world drops a `skybolt` zone on the nearest iron
+  lamp (2 s telegraph, r 26, 18 damage to every unit in it, friend or foe); the arena draws and
+  lands it, then the world strikes the ground at grade 3 ([world.md](world.md) "Weather").
 - **Schools** ([growth.md](growth.md) "Schools"): spells outside this life's school cost more
   Aether and wind up longer (×1.25 or ×1.5). Astral Rite's **Alignment**: stood still 1 s, your
   next spell of the school reaches ×1.3 further (`kit.gd` `still_t`, `aligned()`).

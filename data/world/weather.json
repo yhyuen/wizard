@@ -1,5 +1,5 @@
 {
- "_doc": "The weather (design/seasons/seasons-and-calamities-spec.md §3; build item N-4.5.1). Every region has weather each day, drawn once from the soul's seed, so the year's weather is the same in every life. kinds: name, glyph colour, wind (0-3, the range a day draws from), sight_m (how far you see by day), temp, and the world inputs N-4.5.2 will read (wet, dry, fire_spread, freezes, snow_cover; not read yet). say: what Aldous says when you ask about tomorrow. climates: per season, the weights of each kind (out of 100). regions: the climate each region uses (default for the rest). double: kinds whose weight doubles in a moon. max_run: the longest run of days a kind can have (the next is drawn again without it). pinned: days whose weather is fixed (every calamity, by its calendar event, in the regions it strikes). dirs: the eight wind directions, the way the wind blows from.",
+ "_doc": "The weather (design/seasons/seasons-and-calamities-spec.md §3; build item N-4.5.1). Every region has weather each day, drawn once from the soul's seed, so the year's weather is the same in every life. kinds: name, glyph colour, wind (0-3, the range a day draws from), sight_m (how far you see by day), temp, and the world inputs the ground reads (N-4.2, N-4.5.2): wet (outdoors is wet: no fire spreads), dry (wet dries that many times faster), fire_spread, freezes (standing water and wet ground are ice, in its freeze_times or all day), snow_cover with slow (walking outdoors is that much slower), sight_m (how far a witness sees, at most; owners.json sight.day is 12 m) and strike (a Storm's lightning: every every_s, the iron lamp nearest you within reach px takes a strike after telegraph_s, hurting everyone within r and charging the wet ground at grade). say: what Aldous says when you ask about tomorrow. climates: per season, the weights of each kind (out of 100). regions: the climate each region uses (default for the rest). double: kinds whose weight doubles in a moon. max_run: the longest run of days a kind can have (the next is drawn again without it). pinned: days whose weather is fixed (every calamity, by its calendar event, in the regions it strikes). dirs: the eight wind directions, the way the wind blows from.",
  "kinds": {
   "clear": {"name": "Clear", "color": "f2d27a", "wind": [0, 1], "sight_m": 12, "temp": "season",
    "say": "Clear tomorrow. Puddles'll be gone by noon."},
@@ -10,15 +10,15 @@
   "rain": {"name": "Rain", "color": "6fa4d8", "wind": [1, 1], "sight_m": 8, "temp": "season", "wet": true, "fire_spread": 0.0,
    "say": "Rain tomorrow, the whole day. Nothing'll burn outside, so don't try."},
   "storm": {"name": "Storm", "color": "b48ae0", "wind": [2, 2], "sight_m": 6, "temp": "season", "wet": true, "fire_spread": 0.0,
-   "say": "Storm tomorrow. Keep clear of anything iron and tall."},
+   "strike": {"every_s": 20.0, "reach": 480, "telegraph_s": 2.0, "grade": 3, "r": 26, "dmg": 18}, "say": "Storm tomorrow. Keep clear of anything iron and tall."},
   "wind": {"name": "Wind", "color": "9fd0c0", "wind": [2, 3], "sight_m": 12, "temp": "season",
    "say": "Wind tomorrow, a hard one. Mind your fires, it'll carry sparks a long way."},
   "heat": {"name": "Heat", "color": "e0603a", "wind": [0, 1], "sight_m": 12, "temp": "hot", "dry": 2.0, "fire_spread": 1.5,
    "say": "Heat tomorrow. The stubble will go up if you look at it wrong."},
   "frost": {"name": "Frost", "color": "bfe6f2", "wind": [0, 1], "sight_m": 12, "temp": "freezing", "freezes": true,
-   "say": "Frost tonight. The puddles will hold you till noon, near enough."},
+   "freeze_times": ["night", "morning"], "say": "Frost tonight. The puddles will hold you till noon, near enough."},
   "snow": {"name": "Snow", "color": "eef2fa", "wind": [1, 3], "sight_m": 8, "temp": "freezing", "freezes": true, "snow_cover": true, "fire_spread": 0.5,
-   "say": "Snow tomorrow. You'll see every track in the camp, and so will they."}
+   "slow": 0.15, "say": "Snow tomorrow. You'll see every track in the camp, and so will they."}
  },
  "climates": {
   "plateau": {

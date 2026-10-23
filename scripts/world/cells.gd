@@ -35,6 +35,10 @@ var wind := 0
 var downwind := Vector2.ZERO
 var fire_k := 1.0
 var raining := false
+var dry_k := 1.0  # Heat: wet dries this many times faster (N-4.5.2)
+var freezing := false  # Frost (night to noon) and Snow: standing water and wet ground are ice
+var snow := false  # Snow cover outdoors: walking is slower
+var melt := {}  # cell index -> seconds a fire's thaw lasts on ice
 
 
 func _init(map, def: Dictionary, spread: Dictionary, materials: Dictionary) -> void:
@@ -153,7 +157,13 @@ func is_wet(i: int) -> bool:
 
 
 func conducts(i: int) -> bool:
-	return is_wet(i) or int(mdef[mat[i]].get("conducts", 0)) > 0
+	return (is_wet(i) and not is_ice(i)) or int(mdef[mat[i]].get("conducts", 0)) > 0
+
+
+## Frozen (N-4.5.2): on a freezing day outdoors, standing water and wet ground are ice. Ice doesn't
+## conduct or burn; fire on it thaws it to water for `melt_s`.
+func is_ice(i: int) -> bool:
+	return freezing and not indoors and not melt.has(i) and (wet[i] > 0.0 or mats[mat[i]] == "water")
 
 
 # --- forces on cells -----------------------------------------------------------------
@@ -161,6 +171,11 @@ func conducts(i: int) -> bool:
 ## Fire at `grade` on cell `i`: it catches if it has fuel and the grade, isn't wet and the map
 ## isn't at its cap; on a wet cell the water steams off. Returns "burn", "steam" or "none".
 func fire(i: int, grade: int) -> String:
+	if i >= 0 and is_ice(i):
+		melt[i] = float(sp.get("melt_s", 20.0))  # it thaws: water now, for a while
+		steam[i] = float(sp["steam_s"])
+		active[i] = true
+		return "thaw"
 	if i < 0 or burn[i] > 0.0 or fuel[i] <= 0.0:
 		return "none"
 	if is_wet(i):
@@ -286,10 +301,16 @@ func tick(dt: float) -> Dictionary:
 				smoke[i] = float(sp["smoke_s"])
 				out.append(i)
 				burnt.append(i)
-		for arr in [wet, charge, smoke, steam]:
+		for arr in [charge, smoke, steam]:
 			if arr[i] > 0.0:
 				arr[i] = maxf(0.0, arr[i] - dt)
-		if burn[i] <= 0.0 and wet[i] <= 0.0 and charge[i] <= 0.0 and smoke[i] <= 0.0 and steam[i] <= 0.0:
+		if wet[i] > 0.0:
+			wet[i] = maxf(0.0, wet[i] - dt * dry_k)  # Heat dries it faster
+		if melt.has(i):
+			melt[i] -= dt
+			if melt[i] <= 0.0:
+				melt.erase(i)
+		if burn[i] <= 0.0 and wet[i] <= 0.0 and charge[i] <= 0.0 and smoke[i] <= 0.0 and steam[i] <= 0.0 and not melt.has(i):
 			active.erase(i)
 	# A gale throws an ember from a fire downwind now and then (spec §5.1).
 	if wind >= 3 and not burning.is_empty():
