@@ -228,13 +228,29 @@ arriving only from Ashmoon 2, and the Holds themselves (Ring 2).*
 ## Weather (`data/world/weather.json`, `scripts/world/weather.gd`)
 
 *Target: the [seasons, weather and calamities spec](/mnt/project-files/design/seasons/seasons-and-calamities-spec.md)
-§3–§5 (tracker N-4.5). Built: N-4.5.1, the roll, the Almanac and the forecast; the ground reads
-rain, wind and fire spread (N-4.2, below). Not yet (N-4.5.2): frost, sight, storm strikes, and
-rain or snow on screen.*
+§3–§5 (tracker N-4.5). Built: N-4.5.1, the roll, the Almanac and the forecast; N-4.5.2, weather
+on matter (below and in "Fire, water and charge on the ground"). Not yet: walking on frozen
+puddles and ponds, Frost spells freezing wet ground, snow tracks, enemy senses shortened by
+weather (only witnesses are), mist on screen, signs in the sky.*
 
 - **Nine kinds:** Clear, Overcast, Mist, Rain, Storm, Wind, Heat, Frost, Snow, each with a glyph
-  colour, a wind range 0–3 and the world inputs N-4.5.2 will read (`wet`, `dry`, `fire_spread`,
-  `freezes`, `snow_cover`, `sight_m`).
+  colour, a wind range 0–3 and the world inputs the ground reads (`wet`, `dry`, `fire_spread`,
+  `freezes` with `freeze_times`, `snow_cover` with `slow`, `sight_m`, a Storm's `strike`).
+- **Weather on the world** (N-4.5.2; `world.set_sky`, applied again when the time of day turns):
+  rain and storm wet everything outdoors (no fire spreads); **Heat** dries wet ground twice as
+  fast (`dry`); **Frost** (Night and Morning) and **Snow** (all day) turn standing water and wet
+  ground to **ice**, which doesn't conduct or burn, and fire on ice thaws it to water for `melt_s`
+  20 s (then lightning runs through it again); **snow** underfoot slows walking outdoors by 15%;
+  **mist, rain and snow** cut how far a witness sees to `sight_m` (the lower of that and the
+  hour's sight; 12 m is `owners.json` sight by day). Indoors none of it.
+- **Storm strikes** (seasons spec §3.4; `world.gd` `_storm`): every 20 s in a Storm the iron lamp
+  nearest you within 480 px draws a strike: a 2 s storm-blue telegraph circle on it (the hitbox),
+  then a bolt that hurts everyone inside it (18, you too) and runs through the wet ground at
+  grade III (`strike_ground`: lamps on it flare, the street's wet network charges). No iron lamp
+  near, no strike.
+- **On screen:** rain and a Storm's rain fall as slanted streaks and snow as drifting flakes across
+  the screen (`slice.gd` `_draw_precip`), leaning with the wind; snow lies pale over the ground and
+  frozen water shows white (`draw_ground`).
 - **A day's weather per region** (`on(region, day)`: kind, wind, direction of 8) is drawn from the
   region's climate (`regions`, all Ring 1 on `plateau`) for the moon's season, with a hash of the
   soul's `seed`, the region and the day, so **the year's weather is the same every life**. Heat
@@ -399,8 +415,8 @@ kind, grade gates in map data, people clearing rubble over days, Time mending a 
 
 ### Fire, water and charge on the ground (`data/world/ground.json`, `scripts/world/cells.gd`)
 
-*N-4.2, spec §5. Not built: water flowing by height, smoke that blocks sight or drifts, cold and
-ice on the cells, mud from water on earth.*
+*N-4.2, spec §5. Not built: water flowing by height, smoke that blocks sight or drifts, cold from
+spells on the cells, mud from water on earth. Ice from the weather is N-4.5.2 (Weather, above).*
 
 - **Every map is cut into 24 px cells**, each with a material: the map's `default` (camp earth,
   halls stone), then whole `places` (streets, market, square, lane, College stone; the hill grass;
@@ -428,7 +444,9 @@ ice on the cells, mud from water on earth.*
   `fire_dps` 8 a second; the wizard takes `self_k` ½ of either.
 - **Weather** (`world.set_sky`, called at dawn and on arriving): `rain`/`storm` (weather `wet`)
   puts out every fire outdoors and nothing outdoors catches; `fire_spread` scales spread (heat
-  ×1.5, snow ×0.5); wind and its direction drive it. The halls are `indoors`: no weather.
+  ×1.5, snow ×0.5); wind and its direction drive it; Heat's `dry` speeds drying; Frost and Snow
+  freeze water and wet cells to ice (`is_ice`: no charge, no fire; fire thaws it, `melt`). The
+  halls are `indoors`: no weather.
 - **Shown:** burning cells are flames (arena `ember` zones with `cell`, not counted as your
   Embers). The view draws them all as one batch (`spells3d.gd` `_ground_fires`); only the 40
   nearest glow and the 2 nearest ask for a light. The ground decal has dark ash blots, blue wet
@@ -471,7 +489,7 @@ evidence.*
   rest of the College ruins, the broken wall, the hill, the road and the whole halls are nobody's (nothing is owed there and nothing repairs, so a ruin remembers you for the
   life). Each kind has a **value** in crowns: hay 2, crate 4, barrel 6, post 20, cart 40.
 - **Breaking or setting alight** an owned prop counts once until it's put back. If someone can see
-  it (in town, 110 px by day, 55 at dusk and night, nothing solid between) the nearest one
+  it (in town, 110 px by day, 55 at dusk and night, less in mist, rain or snow, nothing solid between) the nearest one
   reacts by its value: under 10 crowns a grumble (−1 standing with the owner), up to 100 a demand
   ("That's 40 crowns you owe the Watch", −3, counted in `owed`), over that the watch is called (−10,
   +1 infamy, a toast). Setting a thing alight costs at least −3.

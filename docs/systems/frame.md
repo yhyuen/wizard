@@ -46,6 +46,8 @@ Reach and Calendar tabs (§5.5).*
   calamities as dark discs, the Great Eclipse as a black sun, a dial for the time of day, today's
   weather glyph and, once Aldous has told you, tomorrow's ([world.md](world.md)). Under it: moon
   name, date, weekday, weather and place; in a fight, the date and the fight's numbers.
+- **Rain and snow** fall over the world view and outdoor fights (`slice.gd` `_draw_precip`):
+  slanted streaks in rain and storm, drifting flakes in snow; none indoors.
 - **The map** (M, `scripts/game/slice.gd`) has three tabs (1–3, or click): **Here** (this map,
   as built), **The Reach** (the region map and travel, [world.md](world.md)) and **Calendar**
   (the year's moons, click one to see its weeks by weekday, known dates, the weather glyphs you

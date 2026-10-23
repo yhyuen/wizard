@@ -58,6 +58,10 @@ extends SceneTree
 ## loses its fire to a draught and holds it with every door slammed; water fails the rush room and
 ## a Cinder Lattice (cast for real) on the embers' line chokes its pyre; the reward teaches the
 ## spell, and once you know her, a later life opens every room and needs one.
+## N-4.5.2 (weather on matter): on a snowy day wet ground is ice and a Spark charges nothing;
+## fire thaws it and then a Spark charges it; Heat dries twice as fast, snow slows walking, mist
+## shortens a witness's sight; in a Storm the iron lamp nearest you draws a telegraphed strike that
+## hurts a Hollow beside it and charges the wet street.
 
 const BOOK := ["ember_bolt", "pebble", "splash", "undertow"]
 const STORM_BOOK := ["spark", "rewind", "splash", "ember_bolt"]
@@ -164,6 +168,11 @@ func _initialize() -> void:
 		["the room of seven doors: a draught puts the fire out; with every door slammed it holds", _wind_setup, _wind_passed],
 		["the rush room: water fails it; a Cinder Lattice on the embers' line chokes the pyre", _rush_setup, _rush_passed],
 		["the three rooms passed, the reward teaches Cinder Lattice; a later life needs one room", _reward_setup, _rewarded],
+		["on a snowy day wet ground is ice: a Spark on it charges nothing", _ice_setup, _ice_held],
+		["fire thaws the ice, and then a Spark on it charges the water", _thaw_setup,
+			func(): return state["thawed"] and _logged_kind("ground_charged")],
+		["Heat dries wet ground twice as fast; Frost freezes by the hour; snow slows you; mist shortens sight", _sky_setup, _sky_felt],
+		["in a Storm the iron lamp nearest you draws a strike: a Hollow beside it is hurt, the wet street charged", _strike_setup, _struck],
 	]
 
 
@@ -512,6 +521,113 @@ func _wet_ground_setup() -> void:
 	var at := _dark_spot()
 	world.wet_ground(at, 40.0)
 	_cast_at(at, "spark", 40.0)
+
+
+## N-4.5.2: today's weather as the data has it, whatever the roll.
+func _sky(kind: String, wind := 0) -> void:
+	var W: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/weather.json"))
+	world.set_sky({"kind": kind, "wind": wind, "dir": "N"}, W["kinds"])
+
+
+func _ice_setup() -> void:
+	world.load_map("camp")  # back from the halls
+	slice.set_screen("world")
+	main.enter_world(world.map.spots["market_c"])
+	_clear_enemies()
+	world._fresh_cells()  # the camp's ground as it was at dawn (earlier cases left fires about)
+	_book(STORM_BOOK)
+	_sky("snow", 1)  # Snow freezes all day (Frost only from Night to Noon)
+	state["at"] = _dark_spot()
+	world.wet_ground(state["at"], 40.0)
+	world.events_log.clear()
+	state["casts"] = int(main.arena.stats["casts"])
+	_cast_at(state["at"], "spark", 40.0)
+
+
+## The Spark is cast (and its bolt has had a moment to land) and nothing charges; the cell is ice.
+func _ice_held() -> bool:
+	if not world.cells.is_ice(world.cells.index(state["at"])):
+		return false
+	if int(main.arena.stats["casts"]) > state["casts"] and not state.has("cast_t"):
+		state["cast_t"] = t
+	return state.has("cast_t") and t > int(state["cast_t"]) + 20 and not _logged_kind("ground_charged")
+
+
+func _thaw_setup() -> void:
+	world.burn_ground(state["at"], 40.0, 1)
+	state["thawed"] = _logged_kind("thawed")
+	world.events_log.clear()
+	_cast_at(state["at"], "spark", 40.0)
+
+
+func _logged_kind(kind: String) -> bool:
+	return world.events_log.any(func(e): return e[0] == kind)
+
+
+func _sky_setup() -> void:
+	_sky("heat")
+	state["at"] = _dark_spot()
+	world.wet_ground(state["at"], 30.0)
+	state["wet0"] = world.cells.wet[world.cells.index(state["at"])]
+
+
+func _sky_felt() -> bool:
+	if t < 60:
+		return false
+	if state.has("sky_ok"):
+		return state["sky_ok"]
+	# a second of Heat dries two seconds of wet
+	var dried: float = state["wet0"] - world.cells.wet[world.cells.index(state["at"])]
+	_sky("frost")
+	var frost_ok: bool = world.cells.freezing == (run.time_id() in ["night", "morning"])
+	_sky("snow", 1)
+	var slow: float = world.ground_speed(state["at"])
+	_sky("mist")
+	var seen: float = world.deeds.sight()
+	_sky("clear")
+	var clear_seen: float = world.deeds.sight()
+	state["sky_ok"] = dried > 1.2 and frost_ok and is_equal_approx(slow, 0.85) and seen < clear_seen * 0.6
+	if not state["sky_ok"]:
+		print("[magic] sky: dried %.2f, frost %s, snow speed %.2f, sight %.0f vs %.0f" % [dried, frost_ok, slow, seen, clear_seen])
+	return state["sky_ok"]
+
+
+func _strike_setup() -> void:
+	_sky("storm", 2)
+	var lamp: Dictionary = {}
+	for l in world.lamps:
+		if l["iron"] and not world.map.solid_at(l["pos"], 30.0):
+			lamp = l
+			break
+	state["lamp"] = lamp
+	lamp["lit"] = false  # a dark lamp: a Hollow will stand under it
+	main.place_player(lamp["pos"] + Vector2(46, 0))  # this lamp is the nearest iron to you
+	state["hollow"] = main.arena.spawn("hollow", lamp["pos"] + Vector2(0, 8))
+	state["hollow"].stun = 6.0
+	state["hp"] = state["hollow"].hp
+	world.events_log.clear()
+	world._strike_t = 0.0
+	state["limit"] = 240
+
+
+func _struck() -> bool:
+	if state.has("struck_ok"):
+		return state["struck_ok"]
+	if not _logged_kind("skybolt"):
+		state["hollow"].pos = state["lamp"]["pos"] + Vector2(0, 10)  # it stands under the lamp
+		return false
+	state.erase("limit")
+	var hurt: bool = state["hollow"].hp < state["hp"]
+	var warned: bool = _logged_kind("skybolt_warn")
+	_clear_enemies()
+	_sky("clear")
+	main.arena.zones = main.arena.zones.filter(func(z): return z["kind"] != "skybolt")
+	state["struck_ok"] = hurt and warned and _logged_kind("ground_charged")
+	for k in ["hollow", "lamp", "hp", "casts", "cast_t", "sky_ok", "thawed", "wet0"]:
+		state.erase(k)  # later cases read some of these names
+	if not state["struck_ok"]:
+		print("[magic] strike: hurt %s, warned %s" % [hurt, warned])
+	return state["struck_ok"]
 
 
 func _gallery_setup() -> void:
@@ -1189,6 +1305,7 @@ func _someone() -> Object:
 
 func _deeds_setup() -> void:
 	_clear_enemies()
+	world.set_sky({"kind": "clear", "wind": 0, "dir": "N"}, {})  # mist or rain would shorten who sees it
 	var D = world.deeds
 	var seen_crate := _owned_prop("crate", false)
 	var owner: String = D.owner_of(seen_crate)

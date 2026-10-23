@@ -1339,6 +1339,16 @@ func _detonate(z: Dictionary) -> void:
 			fx("burst", z["pos"], {"color": PixelArt.STORM, "r": z["r"], "life": 0.25})
 			if player.pos.distance_to(z["pos"]) < z["r"] + player.radius:
 				hit(player, z["dmg"], 1, (player.pos - z["pos"]).normalized(), 30.0)
+		"skybolt":
+			# a Storm's lightning on an iron lamp (world.gd `_storm`): everyone in the circle
+			fx("bolt", z["pos"], {"color": PixelArt.STORM, "life": 0.3})
+			fx("burst", z["pos"], {"color": PixelArt.STORM, "r": z["r"], "life": 0.3})
+			shake = maxf(shake, 4.0)
+			for u in units.duplicate():
+				if not u.dead and u.pos.distance_to(z["pos"]) < z["r"] + u.radius:
+					hit(u, z["dmg"], 1, (u.pos - z["pos"]).normalized(), 30.0)
+			if town != null:
+				town.sky_strike(z)
 		"lance":
 			fx("beam", z["a"], {"to": z["b"], "color": PixelArt.STORM, "w": z["w"], "life": 0.25})
 			var closest := Geometry2D.get_closest_point_to_segment(player.pos, z["a"], z["b"])
@@ -1705,7 +1715,7 @@ func _draw_zone(z: Dictionary) -> void:
 				var fall: Vector2 = z["pos"] + Vector2(-20, -60) * (1.0 - k)
 				draw_circle(fall, 3.0, PixelArt.FIRE_HOT, true, -1.0, false)
 				draw_texture(_tex["stone"], (fall - Vector2(3, 3)).round(), Color(1, 0.7, 0.4))
-		"storm":
+		"storm", "skybolt":
 			var k := clampf(t / z["delay"], 0.0, 1.0)
 			draw_arc(z["pos"], z["r"], 0, TAU, 32, PixelArt.STORM, 1.0, false)
 			draw_circle(z["pos"], z["r"] * k, Color(PixelArt.STORM, 0.25), true, -1.0, false)
