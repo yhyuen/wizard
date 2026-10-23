@@ -179,6 +179,8 @@
  "items": {"ladder_post": {"name": "The ladder slate", "at": [784, 700], "verb": "Read", "reach": 26}, "board": {"name": "The commissions board", "at": [1675, 922], "verb": "Read", "reach": 30}, "duty_slate": {"name": "The duty slate", "at": [1000, 872], "verb": "Read", "reach": 26}, 
   "cot": {"name": "Your cot", "at": [990, 1160], "verb": "Use", "reach": 26},
   "dwarf_crate": {"name": "The dwarves' salvage crate", "at": [1188, 1066], "verb": "Look", "reach": 28},
+  "cache_trapper": {"name": "A flat stone", "at": [520, 1242], "verb": "Lift", "reach": 26, "cache": "trapper_cache"},
+  "cache_strongbox": {"name": "Loose boards", "at": [1068, 1034], "verb": "Pry up", "reach": 26, "cache": "market_strongbox"},
   "targets": {"name": "The watch's straw targets", "at": [1745, 1050], "verb": "Train", "reach": 30},
   "bench": {"name": "The Lamplighters' bench", "at": [930, 966], "verb": "Work at", "reach": 28},
   "east_gate": {"name": "The east gate", "at": [2104, 1030], "verb": "Look", "reach": 34}

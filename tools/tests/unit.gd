@@ -917,6 +917,47 @@ func _deeds(R) -> void:
 	R.life["ended"] = "turned"
 	ok(A.check() == ["omen"], "finishing a year under an Omen earns its deed")
 	ok(L.carry(R.soul, R.life, "turned", R.lives)["lives"][1]["omens"] == ["hard_foes"], "the life's page names its Omens")
+	# N-7.7: grants, the Codex and caches.
+	ok(A.ids().size() >= 25 and A.ids().all(func(id): return str(A.get_def(id)["kind"]) in A.KINDS), "about 25 achievements, each of a known kind")
+	ok(A.pages().map(func(pg): return pg["id"]) == ["first_ring", "last_day"], "deeds that write a page put it in the Codex")
+	A.earn("first_wall")
+	ok(R.soul["sigils"] == ["cracked_wall"] and R.soul["sigil"] == "cracked_wall", "a sigil is granted, and worn if none is")
+	A.earn("old_hand")
+	ok(R.knows("lesson_old_hand") and "In the Ledger: Every beast has its thing." in A.toast_text("old_hand"), "knowledge goes into the Ledger, and the toast names it")
+	ok(A.shown("two_on_watch")["name"] == "A deed not yet done" and A.shown("two_on_watch")["line"] == "", "a sealed deed shows no name or hint")
+	R.life["day"] = 3
+	ok(not A.mark("refectory_satchel") and A.marked().is_empty(), "a cache you don't remember can't be marked")
+	A.earn("warden")
+	A.earn("field_notes")
+	A.earn("still_standing")
+	ok(A.caches() == ["refectory_satchel", "trapper_cache", "market_strongbox"] and "You'll remember where it was." in A.toast_text("warden"), "a cache is remembered for good")
+	ok(A.mark("refectory_satchel") and A.mark("market_strongbox") and not A.mark("trapper_cache"), "two caches marked a life, no more")
+	ok(A.mark("refectory_satchel") and A.mark("trapper_cache") and A.marked() == ["market_strongbox", "trapper_cache"], "a mark can be moved")
+	var crowns0 := int(R.life.get("crowns", 0))
+	ok(A.open_cache("refectory_satchel").is_empty(), "an unmarked cache gives nothing")
+	var g: Dictionary = A.open_cache("market_strongbox")
+	ok(int(g["crowns"]) == 30 and int(R.life["crowns"]) == crowns0 + 30 and R.life["taken"].has("cache_strongbox"), "a marked cache opens once: its crowns, and the item is gone for the life")
+	ok(A.cache_at("cache_trapper") == "trapper_cache" and A.cache_at("cot") == "", "a map item knows its cache")
+	var Map := load("res://scripts/world/map.gd")
+	var reg: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/maps.json"))
+	var bad: Array = []
+	for cid in A.d["caches"]:
+		var c: Dictionary = A.d["caches"][cid]
+		var mp = Map.new(str(reg["maps"][str(c["map"])]["path"]), str(c["map"]))
+		if not mp.items.has(str(c["item"])) or str(mp.items[str(c["item"])].get("cache", "")) != cid or mp.blocked(mp.items[str(c["item"])]["at"]):
+			bad.append(cid)
+	ok(bad.is_empty(), "every cache lies on open ground on its map: " + ", ".join(bad))
+	R.life["day"] = 40
+	ok(not A.mark("refectory_satchel") and not A.can_mark(), "caches are marked in the first moon only")
+	var life_s = R.soul.duplicate(true)
+	R.life = R.fresh_life()
+	ok(A.marked().is_empty() and A.caches().size() == 3 and R.soul["codex"] == life_s["codex"], "a new life forgets its marks, not the caches or pages")
+	R.bump("collapse")
+	ok(story.test("tally(\"collapse\") >= 1") and R.tally("collapse") == 1, "a life counts what it did")
+	var rules2: Dictionary = R.lives.duplicate(true)
+	R.lives["roads"]["lamplighter"]["opens_by"] = "roof_down"
+	ok("Something will be waiting next year." in A.grant_text("roof_down") and not "amplighter" in A.grant_text("roof_down"), "a road grant never names the road")
+	R.lives = rules2
 	# The profile keeps a copy (save spec §3).
 	R.save_dir = "user://unit_test_slot/"
 	R.profile_path = "user://unit_test_profile.json"

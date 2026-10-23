@@ -49,7 +49,9 @@ It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `c
   can open the next tier; [world.md](world.md) Bonds), `calamity_in(id)` (days until
   that calamity, after the Early Bell) and `calamity_variant(id)` (its later-lives variant, 0 before
   it has been Held; [loop.md](loop.md) Calamities) (only while a life's
-  ending checks achievements). Achievements' conditions (`data/world/achievements.json`) are
+  ending checks achievements). For achievements (N-7.7): `calamity_tier(id)` ("" until it
+  passes), `calamity_hurt(id)`, `best_stage()`, `school_rank()`, `tally(kind)`,
+  `commissions_done()` and `games_beaten()`. Achievements' conditions (`data/world/achievements.json`) are
   linted with the scenes'.
   A new effect or header key is a change to this spec.
 

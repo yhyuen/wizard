@@ -389,7 +389,7 @@ kind, grade gates in map data, people clearing rubble over days, Time mending a 
   that fills, dust falling and the deck shaking, for `telegraph_s` 1.5 s (never less than the
   fair-dodge delay for its size). Then it **comes down**: Impact 3 and 30 damage to everyone under
   it (foes and you), the same Impact on the props there, its other posts break, and its cells
-  become **rubble**.
+  become **rubble**. The life counts it (`Run.bump("collapse")`, for an achievement, [loop.md](loop.md)).
 - **Rubble** (a cell state, grey blots on the ground): anyone on it moves 30% slower; it smothers
   a fire on its cell; an Impact shot at grade II or more clears the rubble it lands on.
 - A fallen structure stays down for the life (it stands again when you wake). Rewind mends a

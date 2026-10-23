@@ -258,6 +258,15 @@ func _initialize() -> void:
 		for key in ["name", "hint", "kind"]:
 			if str(ach[id].get(key, "")) == "":
 				problems.append("achievement %s: no %s" % [id, key])
+		# What it grants (N-7.7) must exist: its sigil, Codex page, cache and Ledger entries.
+		var achd: Dictionary = _json("res://data/world/achievements.json")
+		var gr: Dictionary = ach[id].get("grants", {})
+		for pair in [["sigil", "sigils"], ["codex", "pages"], ["cache", "caches"]]:
+			if gr.has(pair[0]) and not achd.get(pair[1], {}).has(str(gr[pair[0]])):
+				problems.append("achievement %s: no %s %s" % [id, pair[0], gr[pair[0]]])
+		for k in gr.get("knowledge", []):
+			if not ledger.has(str(k)):
+				problems.append("achievement %s: teaches unknown Ledger entry %s" % [id, k])
 	# Confrontations (N-7.6.7): each scene is solvable and its evidence conditions are sound.
 	for fn in DirAccess.get_files_at(Confront.DIR):
 		if fn.ends_with(".json"):
@@ -309,6 +318,8 @@ func _initialize() -> void:
 			problems.append("person %s: no fallback talk scene (no days, no when)" % id)
 	for mid in maps:
 		for id in maps[mid]["items"]:
+			if maps[mid]["items"][id].has("cache"):
+				continue  # a remembered cache opens without a scene (achievements.gd open_cache)
 			if not story.scenes.values().any(func(sc): return sc["use"] == id and sc["cast"] == ""):
 				problems.append("map %s, item %s: no use scene" % [mid, id])
 	# Encounters and the Ledger's own references.

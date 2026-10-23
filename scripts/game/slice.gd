@@ -84,6 +84,9 @@ var map_tab := 0  # in the map: 0 here, 1 the Reach (the region map), 2 the cale
 var cal_moon := 0  # the moon the calendar shows (0: this one)
 var reach_pick := ""  # the region picked on the region map
 var ledger_tab := 0
+var codex_tab := 0  # the Codex (N): 0 Pages, 1 Caches
+var codex_page := 0  # the page open on the Pages tab
+var deeds_kind := ""  # the Deeds tab's kind filter ("" every kind)
 var ledger_q := ""  # the question picked in the Questions tab
 var ledger_note := ""  # feedback on a wrong deduction, shown in the Ledger
 var toasts: Array = []  # {"text", "t", "gold"}
@@ -221,6 +224,8 @@ func begin_day() -> void:
 func _morning_notes() -> void:
 	if run.day() == 1 and run.loop() > 1:
 		toast("The Ledger has a new page: Life %d (L, then 6)." % (run.loop() - 1))
+		if not deeds.caches().is_empty():
+			toast("You remember where things were left. Mark up to %d in the Codex (N, then 2)." % int(deeds.d.get("marks", 2)))
 		var offers: Array = run.road_offers()
 		if offers.size() > 1:
 			toast("Roads open to you: " + ", ".join(offers.map(func(r): return run.road_name(r))))
@@ -675,9 +680,28 @@ func talk(id: String, scene := "") -> void:
 
 
 func use(id: String) -> void:
+	var cid: String = deeds.cache_at(id)
+	if cid != "":
+		_open_cache(cid)
+		return
 	var s: String = story.use_scene(id)
 	if s != "":
 		play(s)
+
+
+## A cache you remembered and marked (N-7.7): it's where you left it, every life.
+func _open_cache(cid: String) -> void:
+	var g: Dictionary = deeds.open_cache(cid)
+	if g.is_empty():
+		return
+	var got: Array = []
+	if g.has("reagents"):
+		growth.add_reagents(g["reagents"])
+		got.append(_reagent_list(g["reagents"]))
+	if g.has("crowns"):
+		got.append("%d crowns" % int(g["crowns"]))
+	Sfx.play("chime")
+	toast("%s, where you remembered it: %s." % [deeds.cache(cid)["name"], ", ".join(got)], true)
 
 
 func _stop_talking() -> void:
@@ -1340,6 +1364,11 @@ func toggle_ledger() -> void:
 		overlay = "" if overlay == "ledger" else "ledger"
 
 
+func toggle_codex() -> void:
+	if screen in ["world", "death", "hurt"]:
+		overlay = "" if overlay == "codex" else "codex"
+
+
 func toggle_map() -> void:
 	if screen == "world" and cur.is_empty():
 		overlay = "" if overlay == "map" else "map"
@@ -1436,6 +1465,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 		return
 	if k == KEY_L:
 		toggle_ledger()
+	elif k == KEY_N:
+		toggle_codex()
 	elif k == KEY_F8:
 		Sfx.muted = not Sfx.muted
 		Sfx.ambience(not Sfx.muted and screen == "world")
@@ -1448,6 +1479,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 		ledger_tab = k - KEY_1
 	elif overlay == "ledger" and k == KEY_0:
 		ledger_tab = 9
+	elif overlay == "codex" and k >= KEY_1 and k <= KEY_2:
+		codex_tab = k - KEY_1
 	elif overlay == "map" and k >= KEY_1 and k <= KEY_3:
 		map_tab = k - KEY_1
 	elif (dlg or overlay == "book") and k >= KEY_1 and k <= KEY_9:
@@ -1525,7 +1558,10 @@ func _draw() -> void:
 		"confront":
 			begin_buttons()
 			_draw_confront()
-	if overlay != "ledger":
+		"codex":
+			begin_buttons()
+			_draw_codex()
+	if not overlay in ["ledger", "codex"]:
 		_draw_toasts()
 	end_buttons()
 
@@ -1564,7 +1600,7 @@ func _draw_title() -> void:
 	var g: String = {"auto": "auto", "high": "high", "low": "low"}.get(main.gfx, "auto")
 	text(Vector2(0, 446), "Tab  ·  Controls: %s        F4  ·  Graphics: %s" % [ctl.NAMES[ctl.scheme], g], 15, GOLD, HORIZONTAL_ALIGNMENT_CENTER, 960)
 	var walk := "Right-click to walk and to talk" if ctl.league() else "WASD to walk"
-	text(Vector2(0, 472), "%s  ·  G talks and uses  ·  M map  ·  Z wait  ·  L Ledger  ·  F8 sound" % walk, 13, DIM, HORIZONTAL_ALIGNMENT_CENTER, 960)
+	text(Vector2(0, 472), "%s  ·  G talks and uses  ·  M map  ·  Z wait  ·  L Ledger  ·  N Codex  ·  F8 sound" % walk, 13, DIM, HORIZONTAL_ALIGNMENT_CENTER, 960)
 
 
 ## The town's own layer: the day card, the place you walked into, what people say as you pass,
@@ -1775,6 +1811,12 @@ func _draw_here() -> void:
 			var c := to_map(p.pos)
 			draw_circle(c, 3.0, HOURS)
 			text(c + Vector2(5, 4), p.name, 10, Color(HOURS, 0.9))
+	for cid in deeds.marked():  # a remembered cache you marked this life (N-7.7)
+		var iid: String = str(deeds.cache(cid)["item"])
+		if m.items.has(iid) and world.item_visible(iid):
+			var c := to_map(m.items[iid]["at"])
+			star(c, 5.0, GOLD)
+			text(c + Vector2(-70, -10), str(deeds.cache(cid)["name"]), 11, GOLD, HORIZONTAL_ALIGNMENT_CENTER, 140)
 	var you := to_map(world.player_pos())
 	draw_circle(you, 4.5, Color(0.5, 0.75, 1.0))
 	draw_arc(you, 7.5, 0, TAU, 16, Color(0.5, 0.75, 1.0, 0.6), 1.0)
@@ -1943,6 +1985,8 @@ func _draw_book() -> void:
 	draw_rect(r, NIGHT)
 	panel(r, Color(GOLD, 0.6))
 	title(r.position + Vector2(40, 40), "Your spellbook", 22, GOLD)
+	if str(run.soul.get("sigil", "")) != "":
+		_sigil(r.position + Vector2(20, 32), str(run.soul["sigil"]))  # the worn sigil (N-7.7)
 	var at := Vector2(r.position.x + 40, r.position.y + 70)
 	var sch: String = "no school yet" if growth.school() == "" else "%s %s" % [growth.prog.school_name(growth.school()), growth.rank_name(growth.school_rank())]
 	if powers.power() != "":
@@ -2513,46 +2557,179 @@ func _draw_lives(r: Rect2) -> void:
 		text(Vector2(x, r.end.y - 20), "Roads open to you this life: " + ", ".join(run.road_offers().map(func(o): return run.road_name(o))), 12, HOURS)
 
 
-## The Deeds tab (lives spec §7.3): every achievement, earned ones in gold with when; hidden ones
-## as "?" and their hint, sealed ones only as a deed not yet done. Above them, the titles you have
-## earned: click one to wear it.
+## The Deeds tab (lives spec §7.3): every achievement, earned ones in gold with when and what they
+## granted; hidden ones as "?" and their hint, sealed ones only as a deed not yet done. A row of
+## kinds filters them. Above them, the titles and sigils you have earned: click one to wear it.
 func _draw_deeds(r: Rect2) -> void:
 	var x := r.position.x + 28.0
-	var y := r.position.y + 78.0
+	var y := r.position.y + 112.0  # under the second row of tabs
 	var titles: Array = run.soul.get("titles", [])
-	var worn: String = str(run.soul.get("title", ""))
 	if titles.is_empty():
 		text(Vector2(x, y), "No title yet. Deeds earn them.", 13, DIM)
 	else:
-		text(Vector2(x, y), "Title worn:", 13, DIM)
-		var tx := x + 84.0
-		for t in titles:
-			var tw := text_w(str(t), 13) + 18.0
-			var br := Rect2(tx, y - 16, tw, 22)
-			var on: bool = t == worn
-			draw_rect(br, Color(GOLD, 0.25) if on else Color(0, 0, 0, 0.3))
-			draw_rect(br, Color(GOLD, 0.8 if on else 0.3), false, 1.0)
-			text(br.position + Vector2(9, 16), str(t), 13, GOLD if on else PAPER)
-			buttons.append({"r": br, "act": func(): run.soul["title"] = t, "key": 0})
-			tx += tw + 8.0
-	y += 30.0
+		_wear_row(Vector2(x, y), "Title:", titles, titles, str(run.soul.get("title", "")), "title")
+	var sigils: Array = run.soul.get("sigils", [])
+	if not sigils.is_empty():
+		y += 26.0
+		_wear_row(Vector2(x, y), "Sigil:", sigils, sigils.map(func(sg): return deeds.sigil_name(sg)), str(run.soul.get("sigil", "")), "sigil")
+	y += 28.0
 	var got := 0
 	for id in deeds.ids():
 		if deeds.earned(id):
 			got += 1
-	text(Vector2(r.end.x - 128, r.position.y + 78), "%d of %d" % [got, deeds.ids().size()], 13, DIM, HORIZONTAL_ALIGNMENT_RIGHT, 100)
-	for id in deeds.ids():
+	text(Vector2(r.end.x - 128, r.position.y + 112), "%d of %d" % [got, deeds.ids().size()], 13, DIM, HORIZONTAL_ALIGNMENT_RIGHT, 100)
+	var kx := x
+	for kd in [""] + Achievements.KINDS:
+		var label: String = "Every kind" if kd == "" else str(kd).capitalize()
+		var kw := text_w(label, 12) + 14.0
+		var kr := Rect2(kx, y - 14, kw, 20)
+		var on: bool = kd == deeds_kind
+		draw_rect(kr, Color(GOLD, 0.25) if on else Color(0, 0, 0, 0.3))
+		draw_rect(kr, Color(GOLD, 0.7 if on else 0.25), false, 1.0)
+		text(kr.position + Vector2(7, 14), label, 12, GOLD if on else PAPER)
+		buttons.append({"r": kr, "act": func(): deeds_kind = kd, "key": 0})
+		kx += kw + 6.0
+	y += 26.0
+	var list: Array = deeds.ids() if deeds_kind == "" else deeds.of_kind(deeds_kind)
+	# Every kind at once leaves the sealed ones not yet done to one line at the end.
+	var unsealed := 0
+	if deeds_kind == "":
+		list = list.filter(func(id): return deeds.earned(id) or not deeds.get_def(id).get("sealed", false))
+		unsealed = deeds.ids().size() - list.size()
+	# Two columns of name and line; what doesn't fit says so (pick a kind to see the rest).
+	var col_w := (r.size.x - 72.0) * 0.5
+	var top := y
+	var col := 0
+	for id in list:
 		var sh: Dictionary = deeds.shown(id)
 		var on: bool = sh["earned"]
-		star(Vector2(x + 6, y - 5), 4.5, GOLD if on else Color(HAIR, 0.5))
-		text(Vector2(x + 20, y), str(sh["name"]), 14, GOLD if on else PAPER, HORIZONTAL_ALIGNMENT_LEFT, 280)
+		var cx := x + col * (col_w + 16.0)
+		star(Vector2(cx + 6, y - 5), 4.5, GOLD if on else Color(HAIR, 0.5))
+		text(Vector2(cx + 18, y), str(sh["name"]), 13, GOLD if on else PAPER, HORIZONTAL_ALIGNMENT_LEFT, col_w - 20)
+		var ly := y + 14.0
 		if str(sh["line"]) != "":
-			y = para(Vector2(x + 310, y), str(sh["line"]), r.size.x - 370, 12, PAPER if on else DIM, 1.2) + 6.0
-		else:
-			y += 24.0
-		if y > r.end.y - 50:
-			text(Vector2(x, r.end.y - 44), "…", 13, DIM)
-			break
+			ly = para(Vector2(cx + 18, y + 15), str(sh["line"]), col_w - 20, 11, PAPER if on else DIM, 1.15) + 2.0
+		y = maxf(ly, y + 16.0) + 8.0
+		if y > r.end.y - 60:
+			if col == 1:
+				text(Vector2(x, r.end.y - 18), "More: pick a kind above.", 12, DIM)
+				unsealed = 0
+				break
+			col = 1
+			y = top
+	if unsealed > 0:
+		text(Vector2(x, r.end.y - 18), "And %d deeds not yet done (Story)." % unsealed, 12, DIM)
+
+
+## A row of earned names to wear (titles or sigils): the worn one in gold, click another to wear it.
+func _wear_row(at: Vector2, label: String, ids: Array, names: Array, worn: String, key: String) -> void:
+	text(at, label, 13, DIM)
+	var tx := at.x + 52.0
+	for i in ids.size():
+		var tw := text_w(str(names[i]), 13) + 18.0
+		var br := Rect2(tx, at.y - 16, tw, 22)
+		var on: bool = ids[i] == worn
+		draw_rect(br, Color(GOLD, 0.25) if on else Color(0, 0, 0, 0.3))
+		draw_rect(br, Color(GOLD, 0.8 if on else 0.3), false, 1.0)
+		text(br.position + Vector2(9, 16), str(names[i]), 13, GOLD if on else PAPER)
+		var v = ids[i]
+		buttons.append({"r": br, "act": func(): run.soul[key] = v, "key": 0})
+		tx += tw + 8.0
+
+
+## A sigil (N-7.7): a small gold mark in a ring, its glyph from achievements.json "sigils".
+func _sigil(c: Vector2, sid: String) -> void:
+	var col := Color(GOLD, 0.9)
+	draw_arc(c, 10.0, 0, TAU, 24, col, 1.2)
+	match str(deeds.d.get("sigils", {}).get(sid, {}).get("glyph", "")):
+		"crack":
+			draw_polyline(PackedVector2Array([c + Vector2(-2, -8), c + Vector2(2, -3), c + Vector2(-2, 1), c + Vector2(3, 8)]), col, 1.4)
+		"ring":
+			draw_arc(c, 5.0, 0, TAU, 16, col, 1.4)
+			draw_circle(c, 1.6, col)
+		"beam":
+			draw_line(c + Vector2(-7, -4), c + Vector2(7, 5), col, 2.0)
+			draw_line(c + Vector2(-6, 6), c + Vector2(6, 6), col, 1.0)
+		"spark":
+			star(c, 5.5, col)
+		_:
+			draw_circle(c, 2.0, col)
+
+
+## The Codex (N; UI spec §5.4, N-7.7): the pages your deeds wrote, and the caches you remember.
+func _draw_codex() -> void:
+	draw_rect(Rect2(0, 0, 960, 540), Color(0, 0, 0, 0.7))
+	var r := Rect2(90, 50, 780, 450)
+	draw_rect(r, NIGHT)
+	panel(r, Color(GOLD, 0.7))
+	title(r.position + Vector2(28, 36), "The Codex", 24, GOLD)
+	var x := r.position.x + 186.0
+	for i in 2:
+		var label: String = "%d  %s" % [i + 1, ["Pages", "Caches"][i]]
+		var tr := Rect2(x, r.position.y + 14, text_w(label, 13) + 18.0, 28)
+		var on := i == codex_tab
+		draw_rect(tr, Color(GOLD, 0.25) if on else Color(0, 0, 0, 0.3))
+		draw_rect(tr, Color(GOLD, 0.8 if on else 0.3), false, 1.0)
+		text(tr.position + Vector2(10, 19), label, 13, GOLD if on else PAPER)
+		buttons.append({"r": tr, "act": func(): codex_tab = i, "key": 0})
+		x += tr.size.x + 4.0
+	if codex_tab == 0:
+		_draw_pages(r)
+	else:
+		_draw_caches(r)
+	text(Vector2(r.position.x, r.end.y - 12), "N or Esc closes", 12, DIM, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+
+
+func _draw_pages(r: Rect2) -> void:
+	var x := r.position.x + 28.0
+	var y := r.position.y + 80.0
+	var pages: Array = deeds.pages()
+	if pages.is_empty():
+		para(Vector2(x, y), "No pages yet. Some deeds leave a page behind, and it stays with you from life to life.", r.size.x - 56, 13, DIM)
+		return
+	codex_page = clampi(codex_page, 0, pages.size() - 1)
+	for i in pages.size():
+		var on := i == codex_page
+		var br := Rect2(x - 6, y - 16, 200, 22)
+		if on:
+			draw_rect(br, Color(GOLD, 0.18))
+		text(Vector2(x, y), str(pages[i]["title"]), 13, GOLD if on else PAPER, HORIZONTAL_ALIGNMENT_LEFT, 190)
+		buttons.append({"r": br, "act": func(): codex_page = i, "key": 0})
+		y += 26.0
+	var pg: Dictionary = pages[codex_page]
+	var px := x + 230.0
+	draw_line(Vector2(px - 18, r.position.y + 64), Vector2(px - 18, r.end.y - 40), Color(GOLD, 0.25), 1.0)
+	title(Vector2(px, r.position.y + 92), str(pg["title"]), 18, GOLD)
+	para(Vector2(px, r.position.y + 124), str(pg["text"]), r.end.x - px - 32, 14, PAPER, 1.35)
+
+
+func _draw_caches(r: Rect2) -> void:
+	var x := r.position.x + 28.0
+	var y := r.position.y + 80.0
+	var known: Array = deeds.caches()
+	if known.is_empty():
+		para(Vector2(x, y), "You remember no caches yet. Some deeds teach you where the world keeps things, and you'll know it every life after.", r.size.x - 56, 13, DIM)
+		return
+	var n := int(deeds.d.get("marks", 2))
+	var head := "Mark up to %d this life; a marked cache is there to open, and on your map." % n if deeds.can_mark() \
+		else "Marks are made in the first moon. This life's stand as they are."
+	text(Vector2(x, y), head, 13, DIM)
+	y += 30.0
+	for cid in known:
+		var c: Dictionary = deeds.cache(cid)
+		var on: bool = cid in deeds.marked()
+		var taken: bool = run.life.get("taken", {}).has(str(c["item"]))
+		star(Vector2(x + 6, y - 5), 5.0, GOLD if on else Color(HAIR, 0.5))
+		text(Vector2(x + 20, y), str(c["name"]), 14, GOLD if on else PAPER, HORIZONTAL_ALIGNMENT_LEFT, 240)
+		text(Vector2(x + 20, y + 17), str(c["where"]), 12, DIM, HORIZONTAL_ALIGNMENT_LEFT, 420)
+		var state := "Opened" if taken else ("Marked" if on else "Mark")
+		var br := Rect2(r.end.x - 150, y - 16, 100, 24)
+		draw_rect(br, Color(GOLD, 0.25) if on else Color(0, 0, 0, 0.3))
+		draw_rect(br, Color(GOLD, 0.7 if (on or deeds.can_mark()) else 0.2), false, 1.0)
+		text(br.position + Vector2(0, 17), state, 13, GOLD if on else PAPER, HORIZONTAL_ALIGNMENT_CENTER, 100)
+		if not taken:
+			buttons.append({"r": br, "act": func(): deeds.mark(cid), "key": 0})
+		y += 46.0
 
 
 ## The Guide tab (enemy spec §12.1, N-6.5): every kind of foe, by faction. Unseen ones are a

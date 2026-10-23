@@ -55,6 +55,9 @@ Reach and Calendar tabs (§5.5).*
   (achievements and titles, [loop.md](loop.md)) and **Guide** (the Field Guide: every kind of foe,
   "?" until seen, then faction and tier, times beaten, the weakness found with its lesson, a gold
   star once mastered; [combat.md](combat.md)).
+- **The Codex** (N; UI spec §5.4, N-7.7) has two tabs: **Pages** (Codex pages your deeds wrote)
+  and **Caches** (the caches you remember, to mark for this life; [loop.md](loop.md)). The walk
+  hint names it.
 - **The main line:** a gold step under the vitals (outside fights) names the next main-story
   action ([loop.md](loop.md)). Under it, the **jobs line** (a hollow diamond, in paper) names the
   commission taken last and its step ([story.md](story.md) Commissions). The calendar row pins

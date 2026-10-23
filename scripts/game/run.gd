@@ -222,6 +222,17 @@ func injured() -> bool:
 	return bool(life.get("injured", false))
 
 
+## Counts something done this life (`kind`: "collapse", a building brought down), for achievements.
+func bump(kind: String, n := 1) -> void:
+	if not life.has("tally"):
+		life["tally"] = {}
+	life["tally"][kind] = int(life["tally"].get(kind, 0)) + n
+
+
+func tally(kind: String) -> int:
+	return int(life.get("tally", {}).get(kind, 0))
+
+
 ## Wake on the first morning of the next life: the life resets, the soul stays.
 func wake() -> void:
 	life = fresh_life()

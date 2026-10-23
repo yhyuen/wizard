@@ -1,26 +1,26 @@
 {
- "_doc": "Achievements (design/lives/lives-and-carryover-spec.md §7; build items N-1.2 frame, N-7.7 the list). Deeds the soul remembers: never raw power. Each has a kind (region, school, life, craft, story, challenge), a name, a hint (shown for hidden ones as '?'), when (a story condition, checked through the day and as a life ends: ended(cause) and omens() are true only then and this life), and grants: title (worn on the Deeds tab; people's reactions come later). A road's opens_by may name an achievement id. hidden: shows as '?' with its hint until earned. sealed: a story achievement, shown only as 'A deed not yet done' (SEALED, written by the story threads).",
+ "_doc": "Achievements (design/lives/lives-and-carryover-spec.md §7; build items N-1.2 frame, N-7.7 the list). Deeds the soul remembers: never raw power. Each has a kind (region, school, life, craft, story, challenge), a name, a hint (shown for hidden ones as '?'), when (a story condition, checked through the day and as a life ends: ended(cause) and omens() are true only then and this life), and grants (N-7.7): title (worn on the Deeds tab; people's reactions come later), sigil (a cosmetic mark on the spellbook, from sigils), codex (a page in the Codex, from pages), knowledge (Ledger ids learnt) and cache (from caches: from then on you remember where the world's own item lies; mark up to `marks` a life while it is moon `mark_moon`, and its map item is there to open). A road's opens_by may name an achievement id. hidden: shows as '?' with its hint until earned. sealed: a story achievement, shown only as 'A deed not yet done' (SEALED, written by the story threads).",
  "list": {
   "first_ring": {
    "kind": "school",
    "name": "The First Ring",
    "hint": "Pass a Ring's trial.",
    "when": "f(\"ring1\")",
-   "grants": {"title": "Ringbearer"}
+   "grants": {"title": "Ringbearer", "codex": "first_ring"}
   },
   "warden": {
    "kind": "region",
    "name": "A Cold Kiln",
    "hint": "Put out the Kiln Warden.",
    "when": "k(\"trial_warden\")",
-   "grants": {"title": "Kiln-Breaker"}
+   "grants": {"title": "Kiln-Breaker", "cache": "refectory_satchel"}
   },
   "eclipse": {
    "kind": "life",
    "name": "To the Last Day",
    "hint": "See a year through to the Eclipse.",
    "when": "ended(\"eclipse\")",
-   "grants": {"title": "Eclipse-Watcher"}
+   "grants": {"title": "Eclipse-Watcher", "codex": "last_day"}
   },
   "omen": {
    "kind": "challenge",
@@ -35,14 +35,14 @@
    "name": "Field Notes",
    "hint": "Find the weakness of five kinds of foe (the Field Guide).",
    "when": "guide_found() >= 5",
-   "grants": {"title": "Tracker"}
+   "grants": {"title": "Tracker", "cache": "trapper_cache"}
   },
   "old_hand": {
    "kind": "challenge",
    "name": "Old Hand",
    "hint": "Master three kinds of foe in the Field Guide.",
    "when": "guide_mastered() >= 3",
-   "grants": {"title": "Old Hand"}
+   "grants": {"title": "Old Hand", "knowledge": ["lesson_old_hand"]}
   },
   "number_five": {"kind": "story", "name": "Number Five", "hint": "Get up too quickly.", "sealed": true, "when": "f(\"fainted_first\")"},
   "seven_doors": {"kind": "story", "name": "Seven Doors", "hint": "Know what every stroke is for.", "sealed": true, "when": "f(\"doors_all\")"},
@@ -55,6 +55,36 @@
   "twenty_four": {"kind": "story", "name": "Twenty-Four", "hint": "Walk the whole round.", "sealed": true, "when": "f(\"round_done\")"},
   "in_the_black": {"kind": "story", "name": "In the Black", "hint": "Turn a handsome profit on exam day.", "sealed": true, "when": "f(\"reckoning_rich\") and f(\"reckoning_passed\")"},
   "passed_in_form": {"kind": "story", "name": "Passed in Form", "hint": "Pass an examination.", "sealed": true, "when": "f(\"exam_passed_thaw\")"},
-  "top_of_the_slate": {"kind": "challenge", "name": "Top of the Slate", "hint": "Hold the top rung of the camp ladder.", "when": "rung() >= 6", "grants": {"title": "Champion of the Ring"}}
+  "top_of_the_slate": {"kind": "challenge", "name": "Top of the Slate", "hint": "Hold the top rung of the camp ladder.", "when": "rung() >= 6", "grants": {"title": "Champion of the Ring", "codex": "the_slate"}},
+  "wrayburn": {"kind": "story", "name": "The Kiln-master's Pupil", "hint": "Finish what was left in the Kiln.", "sealed": true, "when": "f(\"wrayburn_three_done\")"},
+  "market_stood": {"kind": "story", "name": "The Market Stood", "hint": "Hold the Market through the night.", "sealed": true, "when": "f(\"market_held\")"},
+  "first_wall": {"kind": "school", "name": "Through the Wall", "hint": "Make a spell's first breakthrough.", "when": "best_stage() >= 1", "grants": {"sigil": "cracked_wall"}},
+  "masters_hand": {"kind": "school", "name": "A Master's Hand", "hint": "Take a spell to Master.", "when": "best_stage() >= 2", "grants": {"title": "Master's Hand", "codex": "masters_hand"}},
+  "school_adept": {"kind": "school", "name": "Called Adept", "hint": "Reach Adept in a school.", "when": "school_rank() >= 1", "grants": {"sigil": "school_seal"}},
+  "still_standing": {"kind": "life", "name": "Still Standing", "hint": "Come through Lantern Night alive.", "when": "calamity_tier(\"lantern_night\") != \"\"", "grants": {"title": "Survivor", "cache": "market_strongbox"}},
+  "roof_down": {"kind": "craft", "name": "Down Comes the Roof", "hint": "Bring a building down with magic.", "when": "tally(\"collapse\") >= 1", "grants": {"sigil": "fallen_beam"}},
+  "every_job": {"kind": "craft", "name": "Every Job on the Board", "hint": "Finish all eight commissions in one year.", "when": "commissions_done() >= 8", "grants": {"title": "Hired Hand"}},
+  "card_sharp": {"kind": "craft", "name": "Nobody Left to Beat", "hint": "Beat all six players at the camp's tables.", "when": "games_beaten() >= 6", "grants": {"title": "Card Sharp", "sigil": "lucky_spark"}},
+  "walking_wounded": {"kind": "challenge", "name": "Walking Wounded", "hint": "Face a calamity while Injured.", "hidden": true, "when": "calamity_hurt(\"lantern_night\")", "grants": {"title": "Hard to Kill", "codex": "walking_wounded"}}
+ },
+ "marks": 2,
+ "mark_moon": 1,
+ "pages": {
+  "first_ring": {"title": "The First Ring", "text": "The yard trial, the first year you passed it. The sand was cold, the crowd was small and nobody cheered, and that was fine. You walked off the sand a Ring higher than you walked on."},
+  "last_day": {"title": "The Last Day", "text": "You saw the sun go out once, all the way. The whole camp stood and looked up. You remember that it was quiet, and that it was cold, and then nothing, and then morning."},
+  "the_slate": {"title": "Top of the Slate", "text": "Your name in chalk at the top of the ladder slate, with nobody above it. Somebody rubbed it out the next year. Somebody always does."},
+  "masters_hand": {"title": "A Master's Hand", "text": "There was a day a spell stopped being a thing you did and became a thing you were. You can't find that day again, but your hands remember it."},
+  "walking_wounded": {"title": "Walking Wounded", "text": "You went out to meet the night with your ribs strapped and a limp you couldn't hide. You don't remember being brave. You remember being stubborn."}
+ },
+ "sigils": {
+  "cracked_wall": {"name": "The Cracked Wall", "glyph": "crack"},
+  "school_seal": {"name": "The School Seal", "glyph": "ring"},
+  "fallen_beam": {"name": "The Fallen Beam", "glyph": "beam"},
+  "lucky_spark": {"name": "The Lucky Spark", "glyph": "spark"}
+ },
+ "caches": {
+  "refectory_satchel": {"name": "A tinker's satchel", "map": "halls", "item": "cache_satchel", "where": "Behind the refectory hearth, in the College halls.", "gives": {"reagents": {"oil": 3, "glass": 2, "wire": 2, "tar": 1}}},
+  "trapper_cache": {"name": "A trapper's kit", "map": "camp", "item": "cache_trapper", "where": "Under a flat stone by the Mill lane.", "gives": {"reagents": {"powder": 2, "wire": 2}, "crowns": 10}},
+  "market_strongbox": {"name": "The market strongbox", "map": "camp", "item": "cache_strongbox", "where": "Under the loose boards by the market's great lamp.", "gives": {"crowns": 30}}
  }
 }

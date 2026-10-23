@@ -55,6 +55,8 @@ extends RefCounted
 ## chosen, or "lost"; "" if not yet).
 ## N-7.6.8 adds `inherit <id>`: an inheritance's trial rooms begin (scripts/world/trials.gd, the
 ## map's `trials`); passing them sets its `done` flag and plays its reward scene.
+## N-7.7 adds conditions for achievements: calamity_tier(id), calamity_hurt(id), best_stage(),
+## school_rank(), tally(kind), commissions_done() and games_beaten().
 
 const FieldGuide := preload("res://scripts/field_guide.gd")
 const MAPS := "res://data/world/maps.json"
@@ -247,6 +249,38 @@ class Ctx:
 	## Its later-lives variant this life (0 before it has been Held).
 	func calamity_variant(id: String) -> int:
 		return calamity.variant(id) if calamity != null else 0
+
+	## N-7.7, for achievements: how a calamity went this life (its tier id, "" before it passed),
+	## and whether you were Injured when it did.
+	func calamity_tier(id: String) -> String:
+		return str(run.life.get("calamity", {}).get(id, {}).get("tally", {}).get("tier", ""))
+
+	func calamity_hurt(id: String) -> bool:
+		return bool(run.life.get("calamity", {}).get(id, {}).get("tally", {}).get("injured", false))
+
+	## The highest stage any spell reached this life (0 Novice .. 3 Perfected).
+	func best_stage() -> int:
+		if growth == null:
+			return 0
+		var best := 0
+		for id in growth.prog.p["spells"]:
+			best = maxi(best, growth.prog.stage(id))
+		return best
+
+	## Your rank in this life's school (-1 with none).
+	func school_rank() -> int:
+		return growth.school_rank() if growth != null and growth.school() != "" else -1
+
+	## Things done this life, counted (Run.tally: "collapse").
+	func tally(kind: String) -> int:
+		return run.tally(kind)
+
+	func commissions_done() -> int:
+		return commissions.ids().filter(func(id): return commissions.done(id)).size() if commissions != null else 0
+
+	## Players beaten at the camp's tables, in any life.
+	func games_beaten() -> int:
+		return run.soul.get("games_beaten", {}).size()
 
 
 func _init(run = null) -> void:
