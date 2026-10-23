@@ -1509,11 +1509,15 @@ func _deeds_setup() -> void:
 	state["missed"] = (run.life.get("unseen", []) as Array).size() == state["unseen"] + 1
 	state["sus"] = int(run.life.get("suspicion", {}).get(state["lone_owner"], 0))
 	who.pos = lone["pos"] + Vector2(0, 30)  # someone comes by
+	state["who"] = who
 
 
 func _deeds() -> bool:
 	var D = world.deeds
 	if int(run.life.get("suspicion", {}).get(state["lone_owner"], 0)) <= state["sus"]:
+		# the passer-by stays by the lone crate until they notice it (their schedule would walk them off)
+		state["who"].pos = state["lone"]["pos"] + Vector2(0, 30)
+		state["who"].fade = 0.0
 		return false
 	var lone: Dictionary = state["lone"]
 	run.life["day"] = run.day() + 3
