@@ -851,6 +851,7 @@ func _carry(R) -> void:
 	_deeds(R)
 	_events(R)
 	_weather(R)
+	_seasons(R)
 	_matter()
 	_cells()
 	_camp_redress()
@@ -1042,6 +1043,46 @@ func _weather(R) -> void:
 	R.soul = s
 	R.life = R.fresh_life()
 	ok(wx.known("camp", 30) == year[29] and wx.known("camp", 31) == "" and int(R.soul["seed"]) == 4242, "the Almanac and the seed carry into the next life")
+	R.new_run()
+
+
+## Seasons dress the world (seasons spec §5, N-4.5.3): the dark times by season and sky, the
+## rivers, the fields' crop by moon, nature's pace and the roads' extra days.
+func _seasons(R) -> void:
+	R.new_run()
+	var S = load("res://scripts/world/seasons.gd")
+	var at := func(m: int, t: int) -> void:
+		R.life["day"] = R.day_of(m, 10)
+		R.life["time"] = t
+	at.call(1, 3)
+	ok(not S.dark(R, "clear") and S.dark(R, "mist"), "a spring dusk is dark only under a grey sky")
+	at.call(5, 3)
+	ok(not S.dark(R, "overcast") and S.first_dark(R, "storm") == 4, "a summer dusk stays light, even overcast")
+	at.call(11, 3)
+	ok(S.dark(R, "clear") and S.first_dark(R, "clear") == 3, "a winter dusk is dark")
+	at.call(12, 2)
+	ok(S.dark(R, "snow") and not S.dark(R, "clear"), "a Long Night afternoon is dark under cloud")
+	ok(S.river(R, 2) == "high" and S.river(R, 6) == "low" and S.river(R, 11) == "frozen" and S.river(R, 9) == "", "rivers: high in the Thaw, low in summer, frozen in winter")
+	var crops := []
+	for m in range(1, 14):
+		crops.append(S.field_state(R, m))
+	ok(crops == ["mud", "mud", "sown", "growing", "growing", "growing", "growing", "harvest", "stubble", "stubble", "frozen", "frozen", "frozen"], "the fields' year: %s" % [crops])
+	at.call(1, 0)
+	ok(S.regrow_days(R, 3) == 2, "spring regrows burnt grass in 2 days")
+	at.call(6, 0)
+	ok(S.regrow_days(R, 7) == 7, "summer regrows brambles in 7")
+	at.call(12, 0)
+	ok(S.regrow_days(R, 3) == -1, "nothing regrows in winter")
+	var Reach = load("res://scripts/game/reach.gd")
+	var rc = Reach.new(R)
+	at.call(1, 0)
+	var spring: int = rc.days_between("camp", "mill")
+	at.call(2, 0)
+	var thaw: int = rc.days_between("camp", "mill")
+	var thaw_city: int = rc.days_between("camp", "city")
+	at.call(11, 0)
+	var winter: int = rc.days_between("camp", "city")
+	ok(thaw == spring + 1 and thaw_city == 1 and winter == 2, "the Thaw adds a day at a ford, winter a day on every road (%d %d %d)" % [spring, thaw, winter])
 	R.new_run()
 
 

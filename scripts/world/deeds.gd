@@ -13,6 +13,8 @@ extends RefCounted
 
 const OWNERS := "res://data/world/owners.json"
 
+const Seasons := preload("res://scripts/world/seasons.gd")
+
 var W  # scripts/world/world.gd
 var d: Dictionary
 var _find_t := 0.0
@@ -53,10 +55,11 @@ func standing(owner: String) -> int:
 	return int(_life().get("standing", {}).get(owner, 0))
 
 
-## How far someone sees a change now: less at dusk and night, and less in mist, rain or snow (the
-## lower of the two; the day's sight is 12 m, weather's `sight_m`; N-4.5.2).
+## How far someone sees a change now: less in the dark (the season's dark times, N-4.5.3), and
+## less in mist, rain or snow (the lower of the two; the day's sight is 12 m, weather's `sight_m`;
+## N-4.5.2).
 func sight() -> float:
-	var r := float(d["sight"]["night" if W.run.time_id() in ["dusk", "night"] else "day"])
+	var r := float(d["sight"]["night" if W.dark() else "day"])
 	var m := float(W.sky_kind().get("sight_m", 12.0))
 	return minf(r, float(d["sight"]["day"]) * m / 12.0)
 
@@ -79,11 +82,12 @@ func _line(kind: String) -> String:
 
 ## You broke it or set it burning (`how`: "broke", "burned"). Counted once until it's put back.
 func damaged(p: Dictionary, how: String) -> void:
+	if not p.has("broke_day"):
+		p["broke_day"] = W.run.day()  # nature mends the wild too, so even nobody's things are dated
 	var owner := owner_of(p)
 	if owner == "" or p.get("damaged", false):
 		return
 	p["damaged"] = true
-	p["broke_day"] = W.run.day()
 	var seen := witnesses(p["pos"])
 	if seen.is_empty():
 		var unseen: Array = _life().get("unseen", [])
@@ -157,15 +161,25 @@ func update(dt: float) -> void:
 		W.events_log.append(["found", u["owner"]])
 
 
-## Dawn: owners put back what was broken or burned long enough ago, on every map this life.
+## Dawn: owners put back what was broken or burned long enough ago, on every map this life;
+## nature grows back its plants (seasons.json `regrow` props, by the season; N-4.5.3).
 func new_day() -> void:
 	var day: int = W.run.day()
 	var lists: Array = [[W.map_id, W.props]]
 	for id in W._saved:
 		lists.append([id, W._saved[id]["props"]])
+	var plants: Dictionary = Seasons.data()["regrow"]["props"]
 	for pair in lists:
 		for p in pair[1]:
 			if not p.has("broke_day"):
+				continue
+			if plants.has(p["kind"]):
+				var need: int = Seasons.regrow_days(W.run, int(plants[p["kind"]]))
+				if Seasons.regrows_on(pair[0]) and need >= 0 and day - int(p["broke_day"]) >= need:
+					W.restore(p)
+					p.erase("damaged")
+					p.erase("broke_day")
+					W.events_log.append(["regrew", p["kind"]])
 				continue
 			var owner := _owner_on(pair[0], p)
 			if owner == "" or not d["owners"].get(owner, {}).get("repairs", false):

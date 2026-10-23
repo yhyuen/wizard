@@ -58,6 +58,7 @@ extends SceneTree
 ## loses its fire to a draught and holds it with every door slammed; water fails the rush room and
 ## a Cinder Lattice (cast for real) on the embers' line chokes its pyre; the reward teaches the
 ## spell, and once you know her, a later life opens every room and needs one.
+## N-4.5.3: Hollows wait for the dark; the fields' crop, the rivers and nature's regrowth by the moon.
 ## N-4.5.2 (weather on matter): on a snowy day wet ground is ice and a Spark charges nothing;
 ## fire thaws it and then a Spark charges it; Heat dries twice as fast, snow slows walking, mist
 ## shortens a witness's sight; in a Storm the iron lamp nearest you draws a telegraphed strike that
@@ -173,6 +174,10 @@ func _initialize() -> void:
 			func(): return state["thawed"] and _logged_kind("ground_charged")],
 		["Heat dries wet ground twice as fast; Frost freezes by the hour; snow slows you; mist shortens sight", _sky_setup, _sky_felt],
 		["in a Storm the iron lamp nearest you draws a strike: a Hollow beside it is hurt, the wet street charged", _strike_setup, _struck],
+		["Hollows walk in the dark: a clear spring dusk is light, a misty one dark; a Long Night afternoon under snow lights the lamps", _dark_setup_n453, _dark_felt],
+		["the Mill fields wear the moon's crop: spring mud is wet ground that carries a Spark's charge, summer's wheat is grass", _crop_setup, _crop_felt],
+		["the Thaw's high water closes the millrace but for its bridge; in winter the pond freezes and the islet is a walk", _river_setup, _river_felt],
+		["burnt grass grows back in two spring dawns and a burnt bramble in five; in winter nothing grows back", _regrow_setup, _regrew],
 	]
 
 
@@ -628,6 +633,182 @@ func _struck() -> bool:
 	if not state["struck_ok"]:
 		print("[magic] strike: hurt %s, warned %s" % [hurt, warned])
 	return state["struck_ok"]
+
+
+# --- N-4.5.3: seasons dress the world -------------------------------------------------
+
+## Day `md` of moon `m` at time `t` (an index of Run.TIMES), and the world's sky applied for it.
+func _when(m: int, t: int, md := 10) -> void:
+	run.life["day"] = run.day_of(m, md)
+	run.life["time"] = t
+	world._apply_sky()
+
+
+func _dark_setup_n453() -> void:
+	world.load_map("camp")
+	slice.set_screen("world")
+	main.enter_world(world.map.spots["market_c"])
+	_clear_enemies()
+	state["day0"] = run.day()
+	state["time0"] = run.time()
+	run.life.erase("done_patrol")  # not fought tonight
+	_sky("clear")
+	_when(1, 3)
+
+
+func _dark_felt() -> bool:
+	if state.has("dark_ok"):
+		return state["dark_ok"]
+	var ctx = slice.story.ctx
+	var patrol: Dictionary = slice.story.scenes["patrol"]
+	var clear_dusk: bool = not ctx.dark() and not slice.story.eligible_any(patrol)
+	var clear_sight: float = world.deeds.sight()
+	_sky("mist")
+	var mist_dusk: bool = ctx.dark() and slice.story.eligible_any(patrol)
+	_sky("snow")
+	_when(12, 2)
+	for l in world.lamps:
+		l["lit"] = false
+		l["by"] = ""
+	world._lamps_by_time()
+	var lit: bool = world.lamps.any(func(l): return l["group"] in ["college", "street"] and l["lit"])
+	_sky("clear")
+	_when(12, 2)
+	for l in world.lamps:
+		l["lit"] = false
+		l["by"] = ""
+	world._lamps_by_time()
+	var unlit: bool = not world.lamps.any(func(l): return l["lit"])
+	_sky("clear")
+	_when(1, 0)
+	run.life["day"] = state["day0"]
+	run.life["time"] = state["time0"]
+	world._apply_sky()
+	state["dark_ok"] = clear_dusk and is_equal_approx(clear_sight, 110.0) and mist_dusk and lit and unlit
+	if not state["dark_ok"]:
+		print("[magic] dark: clear dusk %s (sight %.0f), mist dusk %s, snow afternoon lit %s, clear unlit %s" % [clear_dusk, clear_sight, mist_dusk, lit, unlit])
+	return state["dark_ok"]
+
+
+func _crop_setup() -> void:
+	world.load_map("fields")
+	slice.set_screen("world")
+	main.enter_world(world.map.spots["barns"])
+	_clear_enemies()
+	_sky("clear")
+	state["day0"] = run.day()
+	state["field"] = Vector2(900, 2080)  # the south field, below the barns
+	_when(1, 1)
+	world._fresh_cells()  # this map's ground as it is dressed at dawn
+	world.events_log.clear()
+	_book(STORM_BOOK)
+	state["casts"] = int(main.arena.stats["casts"])
+	main.place_player(state["field"] + Vector2(-60, 0))
+	_cast_at(state["field"], "spark", 40.0)
+
+
+func _crop_felt() -> bool:
+	var c = world.cells
+	var i: int = c.index(state["field"])
+	if int(main.arena.stats["casts"]) <= state["casts"] or not _logged_kind("ground_charged"):
+		return false
+	if state.has("crop_ok"):
+		return state["crop_ok"]
+	var mud: bool = c.material_at(state["field"]) == "earth" and c.soaked.has(i) and c.is_wet(i)
+	_when(5, 1)
+	var wheat: bool = c.material_at(state["field"]) == "grass" and not c.soaked.has(i) and c.dressed == "growing"
+	_when(1, 1)
+	run.life["day"] = state["day0"]
+	world._apply_sky()
+	state["crop_ok"] = mud and wheat
+	if not state["crop_ok"]:
+		print("[magic] crop: mud %s, wheat %s" % [mud, wheat])
+	return state["crop_ok"]
+
+
+func _river_setup() -> void:
+	_clear_enemies()
+	state["race"] = Vector2(290, 800)  # the millrace, away from its bridge
+	state["bridge"] = Vector2(290, 1300)
+	state["wade"] = Vector2(1030, 560)  # deep pond water between the bank and the islet
+	state["day0"] = run.day()
+	state["river_wade"] = not world.map.blocked(state["race"])
+	_when(2, 1)
+	state["high"] = world.map.blocked(state["race"]) and not world.map.blocked(state["bridge"])
+	_when(11, 1)
+
+
+func _river_felt() -> bool:
+	if state.has("river_ok"):
+		return state["river_ok"]
+	var pond_cell: int = world.cells.index(state["wade"])
+	var route: PackedVector2Array = world.map.path(world.map.spots["mill_pond"], world.map.spots["pond_islet"], 7.0)
+	var frozen: bool = not world.map.blocked(state["wade"]) and world.cells.is_ice(pond_cell) and route.size() > 0 \
+		and route[route.size() - 1] == world.map.spots["pond_islet"]
+	_when(1, 1)
+	var back: bool = world.map.blocked(state["wade"])
+	run.life["day"] = state["day0"]
+	world._apply_sky()
+	state["river_ok"] = state["river_wade"] and state["high"] and frozen and back
+	if not state["river_ok"]:
+		print("[magic] river: wade %s, high %s, frozen %s, back %s" % [state["river_wade"], state["high"], frozen, back])
+	return state["river_ok"]
+
+
+func _regrow_setup() -> void:
+	_clear_enemies()
+	state["day0"] = run.day()
+	_when(1, 0, 4)
+	var c = world.cells
+	state["grass"] = Vector2(2000, 1150)  # open grass by the bramble field
+	var i: int = c.index(state["grass"])
+	c.fire(i, 1)
+	c.burn_out(i)
+	var bramble := {}
+	for p in world.props:
+		if p["kind"] == "bramble" and p["state"] == "":
+			bramble = p
+			break
+	state["bramble"] = bramble
+	bramble.erase("broke_day")
+	bramble.erase("damaged")
+	world.deeds.damaged(bramble, "burned")
+	bramble["state"] = "ash"
+
+
+func _regrew() -> bool:
+	if state.has("regrew_ok"):
+		return state["regrew_ok"]
+	var c = world.cells
+	var i: int = c.index(state["grass"])
+	var bramble: Dictionary = state["bramble"]
+	var burnt: bool = c.ash.has(i)
+	_when(1, 0, 5)
+	world.reset_day()
+	var one: bool = c.ash.has(i)
+	_when(1, 0, 6)
+	world.reset_day()
+	var grass_back: bool = not c.ash.has(i) and c.fuel[i] > 0.0
+	var bramble_wait: bool = bramble["state"] == "ash"
+	_when(1, 0, 9)
+	world.reset_day()
+	var bramble_back: bool = bramble["state"] == ""
+	# winter: burnt the 4th of the Long Night, still ash a moon on
+	_when(12, 0, 1)
+	c.fire(i, 1)
+	c.burn_out(i)
+	_when(13, 0, 1)
+	world.reset_day()
+	var winter: bool = c.ash.has(i)
+	c.renew(i)
+	run.life["day"] = state["day0"]
+	world._apply_sky()
+	state["regrew_ok"] = burnt and one and grass_back and bramble_wait and bramble_back and winter
+	for k in ["bramble", "grass", "day0", "time0", "field", "casts", "race", "bridge", "wade"]:
+		state.erase(k)
+	if not state["regrew_ok"]:
+		print("[magic] regrow: burnt %s, a day on %s, grass back %s, bramble waits %s, back %s, winter %s" % [burnt, one, grass_back, bramble_wait, bramble_back, winter])
+	return state["regrew_ok"]
 
 
 func _gallery_setup() -> void:
@@ -1328,11 +1509,15 @@ func _deeds_setup() -> void:
 	state["missed"] = (run.life.get("unseen", []) as Array).size() == state["unseen"] + 1
 	state["sus"] = int(run.life.get("suspicion", {}).get(state["lone_owner"], 0))
 	who.pos = lone["pos"] + Vector2(0, 30)  # someone comes by
+	state["who"] = who
 
 
 func _deeds() -> bool:
 	var D = world.deeds
 	if int(run.life.get("suspicion", {}).get(state["lone_owner"], 0)) <= state["sus"]:
+		# the passer-by stays by the lone crate until they notice it (their schedule would walk them off)
+		state["who"].pos = state["lone"]["pos"] + Vector2(0, 30)
+		state["who"].fade = 0.0
 		return false
 	var lone: Dictionary = state["lone"]
 	run.life["day"] = run.day() + 3

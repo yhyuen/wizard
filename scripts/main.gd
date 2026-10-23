@@ -113,7 +113,7 @@ func _build_3d(_vis: Dictionary) -> void:
 ## A new day, or a new loop: the wizard stands at `at` with nothing attacking. Waking after a
 ## death in the ruin rebuilds the camp's 3D first.
 func enter_world(at: Vector2) -> void:
-	if view != null and view.built_for != world.map_id:
+	if view != null and view.built_for != view.build_key():
 		view.rebuild()
 		view.prewarm()
 	arena.start_world(world.map, world, at)

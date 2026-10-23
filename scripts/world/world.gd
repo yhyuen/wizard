@@ -20,6 +20,7 @@ const Cells := preload("res://scripts/world/cells.gd")
 const Deeds := preload("res://scripts/world/deeds.gd")
 const Gates := preload("res://scripts/world/gates.gd")
 const Trials := preload("res://scripts/world/trials.gd")
+const Seasons := preload("res://scripts/world/seasons.gd")
 const Tris := preload("res://scripts/ui/tris.gd")
 const MAPS := "res://data/world/maps.json"
 const CAMP := "camp"
@@ -223,6 +224,27 @@ func _apply_sky() -> void:
 	cells.freezing = bool(k.get("freezes", false)) and (ft.is_empty() or run.time_id() in ft)
 	cells.snow = bool(k.get("snow_cover", false))
 	_sky_time = run.time_id()
+	# N-4.5.3: the season on top: summer dries faster, a frozen winter ices all standing water,
+	# the rivers rise or freeze, and the fields wear this moon's crop.
+	cells.day = run.day()
+	cells.dry_k *= float(Seasons.rules(run).get("dry", 1.0))
+	var river := Seasons.river(run)
+	cells.freezing = cells.freezing or river == "frozen"
+	map.set_river(river, Seasons.rivers_on(map_id))
+	var fs := Seasons.field_state(run)
+	if cells.dressed != fs:
+		var f: Dictionary = Seasons.field(run)
+		var rects := Seasons.field_rects(map_id)
+		if not rects.is_empty() and not f.is_empty():
+			cells.dress(rects, str(f["material"]), bool(f.get("soaked", false)), fs)
+		else:
+			cells.dressed = fs
+
+
+## Whether it is dark here now (seasons spec §5.3): the season's dark times, and more under a grey
+## sky. Hollows walk and witnesses see less.
+func dark() -> bool:
+	return Seasons.dark(run, str(sky.get("kind", "")))
 
 
 ## What today's weather is, as data/world/weather.json describes it ({} for none, and indoors).
@@ -303,8 +325,24 @@ func reset_day() -> void:
 		b["lit"] = b["kept"]
 	people.reset_day()
 	deeds.new_day()  # owners put back what was broken long enough ago
+	_regrow()
 	here = map.place_at(player_pos())
 	_in_exit = map.exit_at(player_pos())
+
+
+## Dawn: burnt grass grows back where nature mends (seasons spec §5.1; not in winter, and never
+## in the ruins), on every map this life.
+func _regrow() -> void:
+	var base: Dictionary = Seasons.data()["regrow"]["cells"]
+	var days := {}
+	for m in base:
+		days[m] = Seasons.regrow_days(run, int(base[m]))
+	var all: Array = [[map_id, cells]]
+	for id in _saved:
+		all.append([id, _saved[id]["cells"]])
+	for pair in all:
+		if pair[1] != null and Seasons.regrows_on(pair[0]) and pair[1].regrow(run.day(), days) > 0:
+			events_log.append(["regrew", pair[0]])
 
 
 func player_pos() -> Vector2:
@@ -384,7 +422,8 @@ func tick(dt: float) -> void:
 			request({"t": "exit", "id": ex})
 
 
-## The College and the main streets come on at dusk; the lane waits for Mira; the ruin's lamps
+## The College and the main streets come on at dusk, or sooner on a darker day (a Long Night
+## afternoon under cloud); the lane waits for Mira; the ruin's lamps
 ## only by fire. On a dusk you walk Mira's round (the Lamplighter road, N-7.4) the market's circuits
 ## are left to you.
 func _lamps_by_time() -> void:
@@ -396,7 +435,7 @@ func _lamps_by_time() -> void:
 				l["lit"] = false  # the round is yours: the town's taper goes back in the box
 				l["by"] = ""
 			continue
-		if t >= 3 and l["group"] in ["college", "street"] and not l["lit"] and l["by"] != "doused":
+		if t >= mini(3, Seasons.first_dark(run, str(sky.get("kind", "")))) and l["group"] in ["college", "street"] and not l["lit"] and l["by"] != "doused":
 			l["lit"] = true
 			l["by"] = "town"
 
@@ -807,8 +846,11 @@ func draw_ground(g: CanvasItem, at: Vector2, r: float) -> void:
 	var s: float = cells.size
 	var ci := g.get_canvas_item()
 	if not cells.indoors:
+		_draw_fields(g)
 		if cells.snow:
 			g.draw_rect(map.bounds, Color(0.93, 0.95, 1.0, 0.32))  # snow lies over everything
+		elif Seasons.season(run) == "winter":
+			g.draw_rect(map.bounds, Color(0.86, 0.9, 0.98, 0.12))  # winter's rime on the ground
 		if cells.freezing:
 			for wr: Rect2 in map.water:
 				g.draw_rect(wr, Color(0.86, 0.94, 1.0, 0.55))  # standing water iced over
@@ -842,6 +884,30 @@ func draw_ground(g: CanvasItem, at: Vector2, r: float) -> void:
 			var a := c + Vector2(-s * 0.35, (k - 1) * s * 0.2)
 			_ground_g.polyline(PackedVector2Array([a, a + Vector2(s * 0.2, -s * 0.15), a + Vector2(s * 0.4, s * 0.12), a + Vector2(s * 0.7, -s * 0.05)]), Color(PixelArt.STORM, 0.9), 1.0)
 	_ground_g.flush(ci)
+
+
+## The Mill fields this moon (N-4.5.3): the field's ground, and its furrows or crop rows, broken
+## into tufts so a row reads as planted, not ruled (built once per crop, then cached).
+func _draw_fields(g: CanvasItem) -> void:
+	var f: Dictionary = Seasons.field(run)
+	if f.is_empty() or Seasons.field_rects(map_id).is_empty():
+		return
+	_ground_g.cached(g.get_canvas_item(), "fields", [map_id, cells.dressed], func():
+		var fill := Color(str(f["color"]), 0.4)
+		var rows := Color(str(f["rows"]), 0.6)
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash(map_id)
+		for r: Rect2 in Seasons.field_rects(map_id):
+			_ground_g.rect(r, fill)
+			var y := r.position.y + 10.0
+			while y < r.end.y - 4.0:
+				var x := r.position.x + rng.randf_range(4.0, 20.0)
+				while x < r.end.x - 10.0:
+					var seg := minf(rng.randf_range(26.0, 70.0), r.end.x - 6.0 - x)
+					var dy := rng.randf_range(-1.5, 1.5)
+					_ground_g.line(Vector2(x, y + dy), Vector2(x + seg, y - dy), rows.darkened(rng.randf() * 0.25), rng.randf_range(2.5, 4.0))
+					x += seg + rng.randf_range(4.0, 14.0)
+				y += 20.0)
 
 
 # --- props ----------------------------------------------------------------------------

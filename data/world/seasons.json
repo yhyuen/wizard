@@ -1,0 +1,33 @@
+{
+ "_doc": "Seasons dress the world (design/seasons/seasons-and-calamities-spec.md §5; build item N-4.5.3). The season is each moon's `season` in calendar.json. seasons: per season, `dark` (the times of day that are dark: Hollows walk, witnesses see 55 px, the town's lamps are lit by the first of them at the latest), `dim` (more dark times on a day whose weather is one of `dim_kinds`), `dim_moons` (moon -> more dark times on such a day in that moon), `regrow` (how fast nature mends: × on the days below, 0 nothing regrows), `dry` (wet ground dries that many times faster) and `travel` (days added to every road). dim_kinds: the grey-sky weathers. rivers: the water by moon (`by_moon`: high, low or frozen; normal when not listed); `maps` lists, per map, the water rects (by index in the map's water) that are rivers: in high water they are too deep to wade except on their bridges; frozen, no water is deep anywhere outdoors (ice is walked on) and all standing water and wet ground is ice; `fords`: roads [a, b] that cross a ford and take `ford_days` more in high water. fields: the Mill fields' crops by moon (`by_moon`, the state from that moon until the next listed), each state's ground `material` (grass burns fast), `soaked` (the cells count as wet) and its look on the ground (`color`, `rows`: the furrows or crop rows) and in the wheat stands (`wheat`: colour, height ×, count ×); `maps` gives the field rects per map. regrow: nature's mending (where `maps` lists): a ground cell of `cells` material burnt to ash grows back after that many days, and a prop kind in `props` after that many, both ÷ the season's regrow (rounded up); owners don't mend those kinds.",
+ "seasons": {
+  "spring": {"dark": ["night"], "dim": ["dusk"], "regrow": 1.5, "dry": 1.0, "travel": 0},
+  "summer": {"dark": ["night"], "dim": [], "regrow": 1.0, "dry": 2.0, "travel": 0},
+  "autumn": {"dark": ["night"], "dim": ["dusk"], "regrow": 1.0, "dry": 1.0, "travel": 0},
+  "winter": {"dark": ["dusk", "night"], "dim": [], "dim_moons": {"12": ["afternoon"]}, "regrow": 0.0, "dry": 1.0, "travel": 1}
+ },
+ "dim_kinds": ["overcast", "mist", "rain", "storm", "snow"],
+ "rivers": {
+  "by_moon": {"2": "high", "5": "low", "6": "low", "7": "low", "11": "frozen", "12": "frozen", "13": "frozen"},
+  "maps": {"fields": [0]},
+  "fords": [["camp", "mill"], ["mill", "holds"]],
+  "ford_days": 1
+ },
+ "fields": {
+  "by_moon": {"1": "mud", "3": "sown", "4": "growing", "8": "harvest", "9": "stubble", "11": "frozen"},
+  "states": {
+   "mud": {"name": "mud", "material": "earth", "soaked": true, "color": "3e3024", "rows": "2a2018", "wheat": {"color": "8a7a52", "h": 0.45, "n": 0.6}},
+   "sown": {"name": "sown", "material": "earth", "color": "4a3a2a", "rows": "6a8a4a", "wheat": {"color": "7a9a52", "h": 0.25, "n": 1.0}},
+   "growing": {"name": "growing", "material": "grass", "color": "3e5a32", "rows": "5e8a3e", "wheat": {"color": "6f9a46", "h": 1.0, "n": 1.0}},
+   "harvest": {"name": "ripe", "material": "grass", "color": "6a5a2a", "rows": "c8a850", "wheat": {"color": "d8b45a", "h": 1.1, "n": 1.0}},
+   "stubble": {"name": "stubble", "material": "grass", "color": "5a4e34", "rows": "a89060", "wheat": {"color": "b09a68", "h": 0.2, "n": 0.8}},
+   "frozen": {"name": "frozen", "material": "earth", "color": "8a8a90", "rows": "c8d0dc", "wheat": {"color": "c8ccd4", "h": 0.15, "n": 0.5}}
+  },
+  "maps": {"fields": [[350, 1920, 1250, 300], [350, 60, 1150, 300]]}
+ },
+ "regrow": {
+  "maps": ["camp", "fields", "east_road"],
+  "cells": {"grass": 3},
+  "props": {"bramble": 7}
+ }
+}

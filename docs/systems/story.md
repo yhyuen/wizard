@@ -51,7 +51,9 @@ It adds story conditions (`bond`, `taste_known`, `companion`, `rumour_heard`, `c
   it has been Held; [loop.md](loop.md) Calamities) (only while a life's
   ending checks achievements). For achievements (N-7.7): `calamity_tier(id)` ("" until it
   passes), `calamity_hurt(id)`, `best_stage()`, `school_rank()`, `tally(kind)`,
-  `commissions_done()` and `games_beaten()`. Achievements' conditions (`data/world/achievements.json`) are
+  `commissions_done()` and `games_beaten()`. For the seasons (N-4.5.3): `dark()` (the season's dark
+  times and a grey sky, [world.md](world.md) Seasons; the Hollow sites ask it instead of `times:
+  night`) and `season()`. Achievements' conditions (`data/world/achievements.json`) are
   linted with the scenes'.
   A new effect or header key is a change to this spec.
 

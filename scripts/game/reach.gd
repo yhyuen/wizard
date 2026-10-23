@@ -4,6 +4,7 @@ extends RefCounted
 ## (data/world/calendar.json) that you know of and can rest until.
 
 const REGIONS := "res://data/world/regions.json"
+const Seasons := preload("res://scripts/world/seasons.gd")
 
 var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(REGIONS))
 var run  # the Run autoload
@@ -36,6 +37,12 @@ func region_of(map_id: String) -> String:
 	return ""
 
 
+## Days road [a, b, days] takes now: winter adds a day to every road, and the Thaw's high water a
+## day at a ford (seasons spec §5.2, N-4.5.3).
+func road_days(road: Array) -> int:
+	return int(road[2]) + (Seasons.road_extra(run, str(road[0]), str(road[1])) if run != null else 0)
+
+
 ## Days along the cheapest roads from `a` to `b`, or -1 if no road leads there.
 func days_between(a: String, b: String) -> int:
 	if a == b:
@@ -53,7 +60,7 @@ func days_between(a: String, b: String) -> int:
 				to = road[0]
 			if to == "":
 				continue
-			var cost: int = int(best[at]) + int(road[2])
+			var cost: int = int(best[at]) + road_days(road)
 			if not best.has(to) or cost < int(best[to]):
 				best[to] = cost
 				open.append(to)

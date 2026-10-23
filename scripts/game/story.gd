@@ -57,6 +57,8 @@ extends RefCounted
 ## map's `trials`); passing them sets its `done` flag and plays its reward scene.
 ## N-7.7 adds conditions for achievements: calamity_tier(id), calamity_hurt(id), best_stage(),
 ## school_rank(), tally(kind), commissions_done() and games_beaten().
+## N-4.5.3 adds the conditions dark() (the season's dark times; Hollow sites wait for them) and
+## season().
 
 const FieldGuide := preload("res://scripts/field_guide.gd")
 const MAPS := "res://data/world/maps.json"
@@ -84,6 +86,7 @@ class Ctx:
 	var ladder  # scripts/game/ladder.gd, when the slice has one
 	var games  # scripts/game/minigames/games.gd, when the slice has one
 	var companions  # scripts/game/companions.gd, when the slice has one
+	var world  # scripts/world/world.gd, when the slice has one: the dark and today's sky
 
 	## A once-a-day action (meditate, train) already done today.
 	func done(op: String) -> bool:
@@ -270,6 +273,17 @@ class Ctx:
 	## Your rank in this life's school (-1 with none).
 	func school_rank() -> int:
 		return growth.school_rank() if growth != null and growth.school() != "" else -1
+
+	## It is dark now (seasons spec §5.3, N-4.5.3): the season's dark times, and more under a grey
+	## sky. Hollows walk in the dark. With no world (the linter), only Night is dark.
+	func dark() -> bool:
+		if world != null:
+			return world.dark()
+		return run.time_id() == "night"
+
+	## This moon's season: "spring", "summer", "autumn" or "winter".
+	func season() -> String:
+		return str(run.cal["moons"][run.moon() - 1]["season"]).to_lower()
 
 	## Things done this life, counted (Run.tally: "collapse").
 	func tally(kind: String) -> int:

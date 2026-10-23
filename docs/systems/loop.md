@@ -70,7 +70,11 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
 - **Rest until…** (the map's Calendar tab): from the camp, with nothing hunting you, skip in one
   step to the next moon or a known event (`scripts/game/reach.gd` `rest_targets`); you wake on
   your cot that morning, rested. Days skipped don't play their scenes.
-- **Travel** between regions costs days too ([world.md](world.md)).
+- **Travel** between regions costs days too, a day more on every road in winter and at a ford in
+  the Thaw ([world.md](world.md)).
+- **Seasons** (N-4.5.3): each moon's season dresses the world: which times of day are dark, the
+  rivers, the Mill fields' crop, how fast nature mends ([world.md](world.md) "Seasons dress the
+  world").
 
 ## How a loop ends, and losing (`data/world/lives.json`)
 
