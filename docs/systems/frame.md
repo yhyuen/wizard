@@ -99,6 +99,14 @@ GitHub Pages. In order:
 - `tools/ci/godot.sh` (fails on any script error) with `tools/tests/unit.gd`, `story_lint.gd`,
   `route.gd`, `relearn.gd`, `deaths.gd`, `calamity.gd`, `encounters.gd`, `world_magic.gd` (the fight tests with
   `--fixed-fps 60`), then `tools/map_preview.gd`.
-- The web export (`wizard-web` artifact), which also checks the story files were packed.
+- The web export (`wizard-web` artifact), which also checks every story file was packed (each
+  file's first scene is in the pack). The export presets (`export_presets.cfg`) pack `data/*.json`
+  and `data/*.story` at any depth; until N-8.1 they missed the city's, the undercroft's, the
+  fields' and the east road's stories, so those maps had no scenes on the web.
+- The desktop exports (N-8.1): **Windows** (`Wizard.exe`, x86-64), **macOS** (`Wizard.zip`, a
+  universal app, signed ad hoc, not notarized: macOS asks before the first launch) and **Linux**
+  (`wizard.x86_64`), each one file with the game packed in (`wizard-windows`, `wizard-macos`,
+  `wizard-linux` artifacts, kept 14 days). The Linux build is started headless and must quit
+  cleanly. A universal macOS build needs ETC2/ASTC texture import (`project.godot`).
 
 Merge policy: once CI is green and nothing is left open on the PR, merge it.
