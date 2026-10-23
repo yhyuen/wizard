@@ -137,6 +137,7 @@
   "model_smoke_jar": {"kind": "model", "title": "Smoke Jar (device)", "text": "Powder that blooms into a cloud. What can't see you can't hit you."},
   "model_star_lantern": {"kind": "model", "title": "Star Lantern (combined)", "text": "College work and Lamplighter work in one glass. Hang it, and the stars line up for you."},
   "model_tar_pot": {"kind": "model", "title": "Tar Pot (device)", "text": "Pitch for the ground. It holds feet, and it holds a flame longer."},
+  "lesson_old_hand": {"kind": "insight", "title": "Every beast has its thing", "text": "Every kind of foe has a thing it can't stand. Find it once and the rest of the herd is half-beaten before it knows it."},
   "model_cinder_lattice": {"kind": "model", "title": "Cinder Lattice (wild)", "text": "A net of small fires that stays where it's put, from a cell behind the Kiln. Any road can cast it."},
   "wrayburn": {"kind": "person", "title": "Magister Edda Wrayburn", "text": "The Kiln-master, ninety years dead. Her cell behind the Kiln still talks, and still sets its three rooms. She'll want only one of me next time."},
   "q_wren": {

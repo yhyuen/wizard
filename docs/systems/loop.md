@@ -190,21 +190,50 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
 
 ## Achievements (`data/world/achievements.json`, `scripts/game/achievements.gd`, lives spec §7)
 
-- The frame (N-1.2; the full list is N-7.7). Each has a kind, name, hint, `when` (a story
-  condition) and `grants` (a `title` so far). The game checks every 0.5 s in the world and once as
-  a life ends, before the Turning; `ended(cause)` and `omens()` let a condition need the way a life
-  ended. Earning one keeps it in the soul (with life, moon and day), adds its title (worn at once
-  if you wear none), lists it on the life's page under Opened, writes the soul, and copies it to
-  the profile (`user://profile.json`, save spec §3). A gold toast names the deed and its title.
-- Seven so far, none from the story: **The First Ring** (a Ring's trial), **A Cold Kiln** (the
-  Kiln Warden), **To the Last Day** (a year to the Eclipse), **Under a Bad Sky** (hidden: a
-  year finished, at the Eclipse or by turning, under an Omen), and from the Field Guide **Field
-  Notes** (five kinds' weaknesses found, `guide_found()`) and **Old Hand** (three kinds mastered,
-  `guide_mastered()`), and from the camp ladder **Top of the Slate** (hold the top rung,
-  `rung() >= 6`; title Champion of the Ring).
-- The Ledger's **Deeds** tab (7): the titles earned (click one to wear it), then every
-  achievement: earned ones in gold with when, hidden ones as "?" and the hint, sealed (story) ones
-  as "A deed not yet done". A road's `opens_by` may name an achievement as well as a deed.
+- The frame (N-1.2) and the list with its grants (N-7.7). Each has a kind (region, school, life,
+  craft, story, challenge), name, hint, `when` (a story condition) and `grants`. The game checks
+  every 0.5 s in the world and once as a life ends, before the Turning; `ended(cause)` and
+  `omens()` let a condition need the way a life ended. Earning one keeps it in the soul (with
+  life, moon and day), applies its grants, lists it on the life's page under Opened, writes the
+  soul, and copies it to the profile (`user://profile.json`, save spec §3). A gold toast names the
+  deed and each grant ("Title: Survivor. You'll remember where it was."); a road an achievement
+  opens (a road's `opens_by`) is only "Something will be waiting next year".
+- **Grants**, never power: a **title** (worn at once if you wear none), a **sigil** (`sigils`: a
+  small gold mark beside the spellbook's name, worn the same way), a **Codex page** (`pages`),
+  **knowledge** (Ledger entries learnt) and a **cache** (`caches`).
+- **Caches** (lives spec §7.1): an earned cache is remembered for good. Each life, while it is moon
+  `mark_moon` (1), you mark up to `marks` (2) on the Codex's Caches tab (and can move a mark); a
+  marked cache's map item (one with `cache`) is there to open, and a gold star marks it on the
+  map's Here tab. Opening it gives what it lists (crowns for the life, reagents) and it's gone for
+  the life. Unmarked, it isn't there. Three: **a tinker's satchel** (the College halls' refectory
+  hearth: reagents; from A Cold Kiln), **a trapper's kit** (by the Mill lane: reagents and 10
+  crowns; from Field Notes) and **the market strongbox** (by the great lamp: 30 crowns; from Still
+  Standing). The first morning of a later life says to mark them, if you know any.
+- **The list: 28.** Region: **A Cold Kiln** (the Kiln Warden; title Kiln-Breaker, the satchel).
+  School: **The First Ring** (a Ring's trial; Ringbearer, a page), **Through the Wall** (a spell's
+  first breakthrough, `best_stage() >= 1`; sigil The Cracked Wall), **A Master's Hand** (a spell to
+  Master; title and a page), **Called Adept** (Adept in a school, `school_rank() >= 1`; sigil The
+  School Seal). Life: **To the Last Day** (a year to the Eclipse; Eclipse-Watcher, a page), **Still
+  Standing** (Lantern Night passed, `calamity_tier(id) != ""`; Survivor, the strongbox). Craft:
+  **Down Comes the Roof** (a building brought down, `tally("collapse")`; sigil The Fallen Beam),
+  **Every Job on the Board** (all eight commissions in one life, `commissions_done()`; Hired
+  Hand), **Nobody Left to Beat** (all six players at the tables, in any lives, `games_beaten()`;
+  Card Sharp and sigil The Lucky Spark). Challenge: **Under a Bad Sky** (hidden: a year finished
+  under an Omen), **Field Notes** (five kinds' weaknesses, `guide_found()`; Tracker, the trapper's
+  kit), **Old Hand** (three kinds mastered, `guide_mastered()`; Old Hand and the Ledger insight
+  "Every beast has its thing"), **Top of the Slate** (the ladder's top rung; Champion of the Ring,
+  a page), **Walking Wounded** (hidden: Lantern Night passed while Injured, `calamity_hurt(id)`;
+  Hard to Kill, a page). Story (sealed, written by the story threads): thirteen, granting nothing
+  beyond the deed.
+- `Run.bump(kind)` / `tally(kind)` count things done this life for conditions (`collapse`, from
+  `world.gd` when a structure falls). The calamity's tally records whether you were Injured.
+- The Ledger's **Deeds** tab (7): the titles and sigils earned (click one to wear it), then a row
+  of kinds to filter by, then the achievements in two columns: earned ones in gold with when and
+  what they granted, hidden ones as "?" and the hint, sealed (story) ones as "A deed not yet done"
+  (under "Every kind" they're one line at the end: "And N deeds not yet done"). A road's
+  `opens_by` may name an achievement as well as a deed.
+- **The Codex** (N; `slice.gd` `_draw_codex`): **Pages** (the pages earned, a list and the open
+  page) and **Caches** (each remembered cache, where it lies, and Mark / Marked / Opened).
 
 ## Omens (`lives.json` `omens`, lives spec §6.4)
 

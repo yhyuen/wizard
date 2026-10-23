@@ -111,6 +111,7 @@
   "archive_stair": {"name": "The Archive stair", "at": [1100, 124], "verb": "Look", "reach": 40},
   "great_clock": {"name": "The great clock", "at": [1470, 1420], "verb": "Look", "reach": 36, "height": 2.2},
   "wren_chalk": {"name": "A chalk mark", "at": [690, 640], "verb": "Look", "reach": 32, "height": 1.2},
+  "cache_satchel": {"name": "The refectory hearth", "at": [384, 1396], "verb": "Search", "reach": 28, "cache": "refectory_satchel"},
   "cell_seal": {"name": "A bricked-up doorway", "at": [722, 300], "verb": "Look", "reach": 34, "height": 1.4}
  },
  "spawns": {

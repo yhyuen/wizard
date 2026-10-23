@@ -689,6 +689,7 @@ func _collapse(st: Dictionary) -> void:
 	if st["bridges"]:
 		map.bridge_pits(rc)  # it fell across the gap: you can walk its length for the life
 	events_log.append(["collapse", st["id"]])
+	run.bump("collapse")  # for the achievement
 
 
 ## How fast a unit at `p` walks over the ground (1 normally; rubble slows).
@@ -1213,6 +1214,9 @@ func on_wall(p: Dictionary) -> void:
 # --- what the wizard can reach ---------------------------------------------------------
 
 func item_visible(id: String) -> bool:
+	var c: String = str(map.items[id].get("cache", "")) if map.items.has(id) else ""
+	if c != "" and not c in run.life.get("marked", []):
+		return false  # a cache: there only for one who remembers it and marked it (N-7.7)
 	return not run.life.get("taken", {}).has(id)
 
 

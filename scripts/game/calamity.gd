@@ -183,6 +183,7 @@ func settle(id: String, t: String, lamps: int, lost: int, absent: bool) -> Dicti
 		if not run.soul.has("calamity_held"):
 			run.soul["calamity_held"] = {}
 		run.soul["calamity_held"][id] = int(run.soul["calamity_held"].get(id, 0)) + 1
-	var tally := {"id": id, "tier": t, "lamps": lamps, "lost": lost, "absent": absent, "line": str(af.get("line", ""))}
+	var tally := {"id": id, "tier": t, "lamps": lamps, "lost": lost, "absent": absent, "line": str(af.get("line", "")),
+		"injured": run.injured()}
 	st["tally"] = tally
 	return tally
