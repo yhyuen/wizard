@@ -1,6 +1,7 @@
 # Every PR and push to main: the spec check, unit checks, the town's story checks, a bot walking
-# the route through the town, the fights in place, magic meeting the world, and a web build
-# (uploaded as an artifact). Pushes to main also publish the web build to GitHub Pages.
+# the route through the town, the fights in place, magic meeting the world, a web build and the
+# desktop builds for Windows, macOS and Linux (each uploaded as an artifact). Pushes to main also
+# publish the web build to GitHub Pages.
 name: CI
 
 on:
@@ -36,9 +37,9 @@ jobs:
           path: |
             .godot-bin
             ~/.local/share/godot/export_templates
-          key: godot-${{ env.GODOT_VERSION }}-linux-web
+          key: godot-${{ env.GODOT_VERSION }}-linux-web-desktop
 
-      - name: Download Godot and the web template
+      - name: Download Godot and the export templates (web and desktop)
         if: steps.godot-cache.outputs.cache-hit != 'true'
         run: |
           base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
@@ -50,7 +51,8 @@ jobs:
           curl -sSL -o templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
           dest="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
           mkdir -p "$dest"
-          unzip -j -q templates.tpz templates/web_nothreads_release.zip templates/version.txt -d "$dest"
+          unzip -j -q templates.tpz templates/web_nothreads_release.zip templates/linux_release.x86_64 \
+            templates/windows_release_x86_64.exe templates/macos.zip templates/version.txt -d "$dest"
           rm godot.zip templates.tpz
 
       - name: Import
@@ -97,14 +99,47 @@ jobs:
           mkdir -p export/web
           "$GODOT" --headless --path . --export-release "Web" export/web/index.html
           test -s export/web/index.wasm
-          # The story is plain text, not a resource: make sure the export filter packed it.
-          grep -q "=== wake_first" export/web/index.pck
-          grep -q "=== shrine_release" export/web/index.pck
+          # The story is plain text, not a resource: make sure the export filter packed every file
+          # of it (each one's first scene is in the pack).
+          for f in $(find data -name '*.story'); do
+            scene=$(grep -m1 '^=== ' "$f")
+            grep -qF "$scene" export/web/index.pck || { echo "not packed: $f ($scene)"; exit 1; }
+          done
 
       - uses: actions/upload-artifact@v4
         with:
           name: wizard-web
           path: export/web
+
+      - name: Desktop exports (Windows, macOS, Linux)
+        run: |
+          mkdir -p export/windows export/macos export/linux
+          "$GODOT" --headless --path . --export-release "Linux" export/linux/wizard.x86_64
+          "$GODOT" --headless --path . --export-release "Windows" export/windows/Wizard.exe
+          "$GODOT" --headless --path . --export-release "macOS" export/macos/Wizard.zip
+          test -s export/windows/Wizard.exe
+          unzip -l export/macos/Wizard.zip | grep -q "Contents/MacOS/"
+          grep -qF "=== wall_gap" export/linux/wizard.x86_64
+          # the Linux build starts and quits cleanly
+          timeout 120 export/linux/wizard.x86_64 --headless --quit-after 120
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wizard-windows
+          path: export/windows
+          retention-days: 14
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wizard-macos
+          path: export/macos
+          retention-days: 14
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wizard-linux
+          path: export/linux
+          retention-days: 14
 
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/main'
