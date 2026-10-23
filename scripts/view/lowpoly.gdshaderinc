@@ -6,6 +6,7 @@ uniform bool use_vcol = false;       // the ground: UV.x picks a kind colour, CO
 uniform vec3 kind_cols[4];           // the ground's dirt, grass, hill and path colours
 uniform bool vcol_albedo = false;    // merged scenery: COLOR.rgb (linear) is the colour
 uniform float glow = 0.0;            // > 0: emits albedo * glow (blooms at night)
+uniform float vcol_glow = 0.0;       // merged scenery: a lit window (COLOR.a 0) emits this, not `glow`
 uniform float facet = 1.0;           // 1 = flat faces, 0 = smooth
 uniform float wrap = 0.25;           // how far round the light reaches
 uniform vec4 rim_color : source_color = vec4(0.62, 0.72, 0.9, 1.0);
@@ -71,10 +72,13 @@ void fragment() {
 	} else if (vcol_albedo) {
 		c = COLOR.rgb * albedo.rgb;
 	}
-	c *= 1.0 - mottle + mottle * 2.0 * h;
+	bool window = vcol_albedo && COLOR.a < 0.5;
+	if (!window) {
+		c *= 1.0 - mottle + mottle * 2.0 * h;
+	}
 	ALBEDO = c * (1.0 - darken);
 	ROUGHNESS = 1.0;
-	EMISSION = c * glow + flash_color.rgb * flash;
+	EMISSION = c * (window ? vcol_glow : glow) + flash_color.rgb * flash;
 #ifdef DISSOLVE
 	if (fade > 0.0 && bayer4(FRAGCOORD.xy) < fade) {
 		discard;

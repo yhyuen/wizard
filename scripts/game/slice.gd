@@ -1529,7 +1529,9 @@ func _draw() -> void:
 			draw_rect(Rect2(0, 0, 960, 540), NIGHT)
 			_draw_title()
 		"world":
-			if main.mode in ["world", "fight"]:
+			if main.backdrop != null:
+				draw_texture_rect(main.backdrop, Rect2(0, 0, 960, 540), false)
+			elif main.mode in ["world", "fight"]:
 				_draw_world()
 		"death":
 			draw_rect(Rect2(0, 0, 960, 540), NIGHT)
@@ -1543,7 +1545,7 @@ func _draw() -> void:
 		"loading":
 			draw_rect(Rect2(0, 0, 960, 540), NIGHT)
 			_draw_loading()
-	if screen == "world" and main.mode in ["world", "fight"]:
+	if screen == "world" and main.mode in ["world", "fight"] and main.backdrop == null:
 		_draw_precip()
 	match overlay:
 		"ledger":
@@ -2652,16 +2654,18 @@ func _draw_precip() -> void:
 	var lean := wind * (14.0 if snowing else 22.0)
 	var n := 160 if snowing else 220
 	var pts := PackedVector2Array()
+	var flakes := Tris.new()  # one draw call for every flake, not one each
 	for i in n:
 		var sx := fposmod(i * 0.618034, 1.0) * 960.0  # spread evenly (golden-ratio steps)
 		var sp := (40.0 if snowing else 520.0) * (0.8 + fposmod(i * 0.414214, 0.4))
 		var y := fposmod(fposmod(i * 0.754878, 1.0) * 560.0 + t * sp, 560.0) - 10.0
 		var x := fposmod(sx + y / 540.0 * lean * 6.0 + (sin(t * 1.3 + i) * 6.0 if snowing else 0.0), 980.0) - 10.0
 		if snowing:
-			draw_circle(Vector2(x, y), 1.4 + fposmod(i * 0.37, 1.0), Color(1, 1, 1, 0.55))
+			flakes.circle(Vector2(x, y), 1.4 + fposmod(i * 0.37, 1.0), Color(1, 1, 1, 0.55), 6)
 		else:
 			pts.append(Vector2(x, y))
 			pts.append(Vector2(x + lean * 0.12, y + 12.0))
+	flakes.flush(get_canvas_item())
 	if not pts.is_empty():
 		draw_multiline(pts, Color(0.75, 0.82, 0.95, 0.32), 1.0)
 

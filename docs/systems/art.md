@@ -34,10 +34,26 @@ rules it draws come from the [spell and combat spec](/mnt/project-files/design/c
 
 ## Budgets (web)
 
-- Static geometry merged into a few meshes; lamps are baked vertex colour plus additive pools, not
-  lights; at most four real lights (spells); one shadow pass; distance-field fonts.
+**At most 150 draw calls and 4 real lights in any frame** (GDD 06 §6.5), checked in CI on every
+review screenshot (`tools/world_shot.gd --check`, [frame.md](frame.md) 'Checks before merging').
+After the N-8.2 pass the busiest are the Calendar (142), the market at noon (123) and the
+brigands' toll fight (111); the rest of Ring 1 is 20 to 110.
+
+- Static geometry merged into one mesh per 18 m chunk (`town_mesh.gd` `CHUNK_PX`), lit windows
+  included (vertex alpha 0 marks a window, which glows by the time of day, `vcol_glow`); a
+  building's front walls and roof, which lift while you're inside, are one more mesh. Lamps are
+  baked vertex colour plus additive pools, not lights; at most four real lights (spells); one
+  shadow pass; distance-field fonts. A figure's small parts (hats, hoods, bags) cast no shadow.
 - Only buildings on the line of sight get the cutaway shader (`lowpoly_cut.gdshader`, which
   `discard`s); everything else uses `lowpoly_solid.gdshader`.
-- Anything drawn once per ground cell (fires, blots) goes out as one batch (a MultiMesh, or one
-  triangle array on the decal), never a node or draw call per cell: a grass fire is dozens of cells.
-- `tools/world_shot.gd` (needs a display) takes review screenshots and prints draw calls and lights.
+- Anything drawn many times goes out as one batch, never a node or draw call each: every flame
+  (ground fires, a burning foe, the Warden's ring, the Cinder Lattice) is one MultiMesh, every halo
+  another (its colour in the instance's custom data, `halo.gdshader` `batched`); every flat mark
+  on the ground (telegraphs, rings, shot shadows) is one triangle array on the decal
+  (`arena.gd` `mark_*`, `scripts/ui/tris.gd`), as are the ground's ash, water and charge, and the
+  snow's flakes.
+- A menu over the standing town (the map, the book, the Ledger, the Codex, a game) is drawn over a
+  still picture of the town taken as it opens ([frame.md](frame.md)), so the 3D is not drawn
+  behind it.
+- `tools/world_shot.gd` (needs a display) takes review screenshots and prints draw calls and
+  lights; CI keeps them as the `review-shots` artifact.

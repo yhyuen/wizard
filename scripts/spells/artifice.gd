@@ -179,33 +179,33 @@ func _rod(z: Dictionary, dt: float) -> void:
 		Progression.add_xp("arc_rod", float(s["xp_hit"]))
 
 
-func draw_field(c: CanvasItem) -> void:
+func draw_field(c) -> void:
 	for z in A.zones:
 		match z["kind"]:
 			"throw":
 				# the device in the air over a ring where it will land
 				var k := clampf(float(z["t"]) / maxf(0.01, float(z["delay"])), 0.0, 1.0)
 				var at: Vector2 = z["from"].lerp(z["pos"], k) + Vector2(0, -26.0 * sin(PI * k))
-				c.draw_circle(at, 2.0, _col(z["device"]), true, -1.0, true)
-				c.draw_arc(z["pos"], float(z["r"]), 0, TAU, 24, Color(_col(z["device"]), 0.4 + 0.5 * k), 1.0, true)
+				c.mark_circle(at, 2.0, _col(z["device"]), true, -1.0, true)
+				c.mark_arc(z["pos"], float(z["r"]), 0, TAU, 24, Color(_col(z["device"]), 0.4 + 0.5 * k), 1.0, true)
 			"smoke":
 				var fade := clampf((float(z["life"]) - float(z["t"])) / 1.0, 0.0, 1.0)
 				for i in 6:
 					var o := Vector2.from_angle(i * 1.05 + float(z["t"]) * 0.3) * float(z["r"]) * 0.45
-					c.draw_circle(z["pos"] + o, float(z["r"]) * 0.6, Color(0.55, 0.58, 0.64, 0.16 * fade), true, -1.0, true)
+					c.mark_circle(z["pos"] + o, float(z["r"]) * 0.6, Color(0.55, 0.58, 0.64, 0.16 * fade), true, -1.0, true)
 			"tar":
-				c.draw_circle(z["pos"], float(z["r"]), Color(0.06, 0.05, 0.04, 0.55), true, -1.0, true)
-				c.draw_arc(z["pos"], float(z["r"]), 0, TAU, 24, Color(PixelArt.FIRE, 0.25), 1.0, true)
+				c.mark_circle(z["pos"], float(z["r"]), Color(0.06, 0.05, 0.04, 0.55), true, -1.0, true)
+				c.mark_arc(z["pos"], float(z["r"]), 0, TAU, 24, Color(PixelArt.FIRE, 0.25), 1.0, true)
 			"arc_rod":
-				c.draw_arc(z["pos"], float(z["r"]), 0, TAU, 32, Color(PixelArt.STORM, 0.18), 1.0, true)
+				c.mark_arc(z["pos"], float(z["r"]), 0, TAU, 32, Color(PixelArt.STORM, 0.18), 1.0, true)
 			"lantern":
 				# its ring on the ground, eight gold stars turning round it
 				var fade := clampf((float(z["life"]) - float(z["t"])) / 1.5, 0.2, 1.0)
-				c.draw_arc(z["pos"], float(z["r"]), 0, TAU, 40, Color(PixelArt.GOLD, 0.45 * fade), 1.0, true)
-				c.draw_circle(z["pos"], float(z["r"]), Color(PixelArt.GOLD, 0.05 * fade), true, -1.0, true)
+				c.mark_arc(z["pos"], float(z["r"]), 0, TAU, 40, Color(PixelArt.GOLD, 0.45 * fade), 1.0, true)
+				c.mark_circle(z["pos"], float(z["r"]), Color(PixelArt.GOLD, 0.05 * fade), true, -1.0, true)
 				for i in 8:
 					var at: Vector2 = z["pos"] + Vector2.from_angle(TAU * i / 8.0 + float(z["t"]) * 0.4) * float(z["r"])
-					c.draw_circle(at, 1.2, Color(PixelArt.GOLD, 0.9 * fade), true, -1.0, true)
+					c.mark_circle(at, 1.2, Color(PixelArt.GOLD, 0.9 * fade), true, -1.0, true)
 
 
 func _col(id: String) -> Color:
@@ -222,13 +222,13 @@ func _col(id: String) -> Color:
 
 
 ## Holding the key shows where it lands and how big what it leaves will be.
-func draw_preview(c: CanvasItem, id: String, _ghost_old: int) -> bool:
+func draw_preview(c, id: String, _ghost_old: int) -> bool:
 	if not Progression.is_device(id):
 		return false
 	var at := land_point(id)
 	var r := size_of(id)
 	var col := _col(id)
-	c.draw_line(K.origin(), at, Color(col, 0.35), 1.0, true)
-	c.draw_arc(at, r, 0, TAU, 28, col, 1.0, true)
-	c.draw_circle(at, r, Color(col, 0.08), true, -1.0, true)
+	c.mark_line(K.origin(), at, Color(col, 0.35), 1.0, true)
+	c.mark_arc(at, r, 0, TAU, 28, col, 1.0, true)
+	c.mark_circle(at, r, Color(col, 0.08), true, -1.0, true)
 	return true

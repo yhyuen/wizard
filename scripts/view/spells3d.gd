@@ -12,11 +12,13 @@ var view
 var arena
 var _pools := {}  # kind -> Array of nodes
 var _used := {}
-## The ground's fires (one per burning cell, often dozens) as two batches, flames and their
-## glow, so a grass fire costs two draw calls instead of four per cell.
+## Every flame and every halo this frame go out as one batch each at the end of sync (_flush):
+## a flame on its own is three draw calls and a halo one, and a grass fire is dozens of cells.
 var _cell_fires: Array = []  # this frame's burning-cell zones
+var _flames: Array = []  # Transform3D
+var _halos: Array = []  # [Transform3D, Color (linear, times its strength)]
 var _fire_mm: MultiMeshInstance3D
-var _fire_halo_mm: MultiMeshInstance3D
+var _halo_mm: MultiMeshInstance3D
 const CELL_HALOS := 40  # the nearest this many cell fires glow; the rest are flames only
 const CELL_LIGHTS := 2  # and the nearest this many ask for a light
 
@@ -111,7 +113,7 @@ func take(kind: String) -> Node3D:
 
 
 ## Every shape _make builds, for warm_up.
-const KINDS := ["halo", "gem", "orb", "fireball", "rock", "boulder", "shard", "cube", "stick", "ring", "flame",
+const KINDS := ["gem", "orb", "fireball", "rock", "boulder", "shard", "cube", "stick", "ring",
 	"spikes", "rod", "tome", "whirl"]
 
 
@@ -121,20 +123,13 @@ func warm_up(at: Vector3) -> void:
 	for i in KINDS.size():
 		var a := i * TAU / KINDS.size()
 		take(KINDS[i]).position = at + Vector3(cos(a), 0.2 * (i % 3), sin(a)) * 1.5
-	_cell_fires = [{"t": 0.0, "pos": arena.player.pos + Vector2(0, 30)}]  # and the ground's fires
+	_cell_fires = [{"t": 0.0, "pos": arena.player.pos + Vector2(0, 30)}]  # and the flames and halos
 	_ground_fires()
+	_flush()
 
 
 func _make(kind: String, i: int) -> Node3D:
 	match kind:
-		"halo":
-			var mi := MeshInstance3D.new()
-			mi.mesh = QuadMesh.new()
-			var hm := ShaderMaterial.new()
-			hm.shader = HALO_SHADER
-			mi.material_override = hm
-			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			return mi
 		"gem":
 			return _mi(octa(0.12, 2.2), Color.WHITE, 1.5)
 		"orb":
@@ -213,19 +208,6 @@ func _make(kind: String, i: int) -> Node3D:
 			tm.rings = 10
 			tm.ring_segments = 3
 			return _mi(tm, Color.WHITE, 1.5)
-		"flame":
-			var n := Node3D.new()
-			for k in 3:
-				var cm := CylinderMesh.new()
-				cm.top_radius = 0.0
-				cm.bottom_radius = 0.13 - 0.03 * k
-				cm.height = 0.5 - 0.12 * k
-				cm.radial_segments = 4
-				cm.rings = 1
-				var mi := _mi(cm, PixelArt.FIRE if k < 2 else PixelArt.FIRE_HOT, 1.6)
-				mi.position = Vector3((k - 1) * 0.08, cm.height * 0.5, (k % 2) * 0.05)
-				n.add_child(mi)
-			return n
 		"spikes":
 			# Pillar: a ring of stone spikes round a fire core
 			var n := Node3D.new()
@@ -294,6 +276,8 @@ func _make(kind: String, i: int) -> Node3D:
 
 func sync(_delta: float) -> void:
 	_used.clear()
+	_flames.clear()
+	_halos.clear()
 	var glow_k: float = view.spell_k()
 	_stones()
 	_projs(glow_k)
@@ -301,6 +285,7 @@ func sync(_delta: float) -> void:
 	_zones(glow_k)
 	_ground_fires()
 	_fx(glow_k)
+	_flush()
 	for kind in _pools:
 		var pool: Array = _pools[kind]
 		for i in range(_used.get(kind, 0), pool.size()):
@@ -311,12 +296,15 @@ func sync(_delta: float) -> void:
 func halo(at: Vector3, col: Color, d: float, strength := 1.0) -> void:
 	if d <= 0.01 or strength <= 0.01:
 		return
-	var h := take("halo") as MeshInstance3D
-	h.position = at
-	h.scale = Vector3.ONE * d
-	var m := h.material_override as ShaderMaterial
-	m.set_shader_parameter("color", col)
-	m.set_shader_parameter("strength", strength * lerpf(0.55, 1.0, view.spell_k()))
+	var k := strength * lerpf(0.55, 1.0, view.spell_k())
+	var lin := col.srgb_to_linear()
+	_halos.append([Transform3D(Basis.from_scale(Vector3.ONE * d), at), Color(lin.r * k, lin.g * k, lin.b * k)])
+
+
+## A flame standing at `at` (the shape of three cones), `size` × its own size, turned `turn` about
+## its height.
+func flame(at: Vector3, size: Vector3, turn := 0.0) -> void:
+	_flames.append(Transform3D(Basis(Vector3.UP, turn) * Basis.from_scale(size), at))
 
 
 func _w(p: Vector2, h := 0.0) -> Vector3:
@@ -443,9 +431,7 @@ func _zones(glow_k: float) -> void:
 	# a burning enemy (N-6.2): a flame on its back
 	for u in arena.units:
 		if u.burn_t > 0.0 and not u.dead:
-			var f := take("flame")
-			f.position = _w(u.shown_pos(), 0.5)
-			f.scale = Vector3(0.6, 0.7 + 0.2 * sin(u.anim * 14.0), 0.6)
+			flame(_w(u.shown_pos(), 0.5), Vector3(0.6, 0.7 + 0.2 * sin(u.anim * 14.0), 0.6))
 			halo(_w(u.shown_pos(), 0.8), PixelArt.FIRE, 1.0, 0.8)
 		if u.dead:
 			continue
@@ -480,11 +466,8 @@ func _zones(glow_k: float) -> void:
 				if z.has("cell"):
 					_cell_fires.append(z)
 					continue
-				var f := take("flame")
-				f.position = _w(z["pos"])
 				var fade := clampf((z["life"] - t) / 1.0, 0.3, 1.0)
-				f.scale = Vector3(1.0, (0.8 + 0.25 * sin(t * 13.0 + z["pos"].x)) * fade, 1.0)
-				f.rotation.y = t * 0.7 + z["pos"].x
+				flame(_w(z["pos"]), Vector3(1.0, (0.8 + 0.25 * sin(t * 13.0 + z["pos"].x)) * fade, 1.0), t * 0.7 + z["pos"].x)
 				halo(_w(z["pos"], 0.45), PixelArt.FIRE, 1.6 * fade, 0.9)
 				view.want_light(_w(z["pos"], 0.5), PixelArt.FIRE, 1.4 * fade, 3.0)
 			"column":
@@ -518,9 +501,7 @@ func _zones(glow_k: float) -> void:
 				var half: float = z["gap"] * 0.5
 				for i in 10:
 					var a: float = float(z["gap_a"]) + half + (TAU - 2.0 * half) * (i + 0.5) / 10.0
-					var f := take("flame")
-					f.position = _w(z["pos"] + Vector2(cos(a), sin(a)) * r)
-					f.scale = Vector3(0.8, 0.6 + 0.2 * sin(t * 11.0 + i), 0.8)
+					flame(_w(z["pos"] + Vector2(cos(a), sin(a)) * r), Vector3(0.8, 0.6 + 0.2 * sin(t * 11.0 + i), 0.8))
 				view.want_light(_w(z["pos"], 1.0), PixelArt.FIRE, 1.6, 4.0)
 			"gravel":
 				for i in 6:
@@ -556,14 +537,10 @@ func _zones(glow_k: float) -> void:
 				var r: float = float(z["r"])
 				for i in 12:
 					var a := i * TAU / 12.0
-					var f := take("flame")
-					f.position = _w(z["pos"] + Vector2(cos(a), sin(a)) * r)
-					f.scale = Vector3(0.5, 0.45 * fade, 0.5)
+					flame(_w(z["pos"] + Vector2(cos(a), sin(a)) * r), Vector3(0.5, 0.45 * fade, 0.5))
 				for i in 6:
 					var a := i * TAU / 6.0 + 0.5
-					var f := take("flame")
-					f.position = _w(z["pos"] + Vector2(cos(a), sin(a)) * r * 0.5)
-					f.scale = Vector3(0.45, 0.4 * fade, 0.45)
+					flame(_w(z["pos"] + Vector2(cos(a), sin(a)) * r * 0.5), Vector3(0.45, 0.4 * fade, 0.45))
 				halo(_w(z["pos"], 0.3), PixelArt.FIRE, r * view.S * 1.6 * fade, 0.8)
 				view.want_light(_w(z["pos"], 0.8), PixelArt.FIRE, 1.6 * fade, 4.0)
 			"lantern":
@@ -624,46 +601,53 @@ func _zones(glow_k: float) -> void:
 ## The burning cells: every flame in one batch, and a glow and a light for the nearest few.
 func _ground_fires() -> void:
 	var n := _cell_fires.size()
+	if n == 0:
+		return
+	var at: Vector2 = arena.player.pos
+	_cell_fires.sort_custom(func(a, b): return a["pos"].distance_squared_to(at) < b["pos"].distance_squared_to(at))
+	for i in n:
+		var z: Dictionary = _cell_fires[i]
+		var t: float = z["t"]
+		var x: float = z["pos"].x
+		flame(_w(z["pos"]), Vector3(1.0, 0.8 + 0.25 * sin(t * 13.0 + x), 1.0), t * 0.7 + x)
+		if i < CELL_HALOS:
+			halo(_w(z["pos"], 0.45), PixelArt.FIRE, 1.6, 0.9)
+		if i < CELL_LIGHTS:
+			view.want_light(_w(z["pos"], 0.5), PixelArt.FIRE, 1.4, 3.0)
+
+
+## This frame's flames and halos into their batches.
+func _flush() -> void:
 	if _fire_mm == null:
-		if n == 0:
+		if _flames.is_empty() and _halos.is_empty():
 			return
 		_fire_mm = _batch(flame_mesh(), Figure.fade_mat(Color.WHITE, 1.6))
 		_fire_mm.material_override.set_shader_parameter("vcol_albedo", true)
 		var hm := ShaderMaterial.new()
 		hm.shader = HALO_SHADER
-		hm.set_shader_parameter("color", PixelArt.FIRE)
-		_fire_halo_mm = _batch(QuadMesh.new(), hm)
-	_fire_mm.visible = n > 0
-	_fire_halo_mm.visible = n > 0
-	if n == 0:
-		return
-	var at: Vector2 = arena.player.pos
-	_cell_fires.sort_custom(func(a, b): return a["pos"].distance_squared_to(at) < b["pos"].distance_squared_to(at))
+		hm.set_shader_parameter("batched", true)
+		_halo_mm = _batch(QuadMesh.new(), hm, true)
 	var mm := _fire_mm.multimesh
-	if mm.instance_count < n:
-		mm.instance_count = n + 32
-	mm.visible_instance_count = n
-	var halos := mini(n, CELL_HALOS)
-	var hmm := _fire_halo_mm.multimesh
-	if hmm.instance_count < halos:
-		hmm.instance_count = CELL_HALOS
-	hmm.visible_instance_count = halos
-	_fire_halo_mm.material_override.set_shader_parameter("strength", 0.9 * lerpf(0.55, 1.0, view.spell_k()))
-	for i in n:
-		var z: Dictionary = _cell_fires[i]
-		var t: float = z["t"]
-		var x: float = z["pos"].x
-		var b := Basis(Vector3.UP, t * 0.7 + x).scaled(Vector3(1.0, 0.8 + 0.25 * sin(t * 13.0 + x), 1.0))
-		mm.set_instance_transform(i, Transform3D(b, _w(z["pos"])))
-		if i < halos:
-			hmm.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3.ONE * 1.6), _w(z["pos"], 0.45)))
-		if i < CELL_LIGHTS:
-			view.want_light(_w(z["pos"], 0.5), PixelArt.FIRE, 1.4, 3.0)
+	if mm.instance_count < _flames.size():
+		mm.instance_count = _flames.size() + 32
+	mm.visible_instance_count = _flames.size()
+	_fire_mm.visible = not _flames.is_empty()
+	for i in _flames.size():
+		mm.set_instance_transform(i, _flames[i])
+	var hmm := _halo_mm.multimesh
+	if hmm.instance_count < _halos.size():
+		hmm.instance_count = _halos.size() + 32
+	hmm.visible_instance_count = _halos.size()
+	_halo_mm.visible = not _halos.is_empty()
+	for i in _halos.size():
+		hmm.set_instance_transform(i, _halos[i][0])
+		hmm.set_instance_custom_data(i, _halos[i][1])
 
 
-func _batch(mesh: Mesh, m: Material) -> MultiMeshInstance3D:
+func _batch(mesh: Mesh, m: Material, custom := false) -> MultiMeshInstance3D:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_custom_data = custom
 	mm.mesh = mesh
 	var mi := MultiMeshInstance3D.new()
 	mi.multimesh = mm

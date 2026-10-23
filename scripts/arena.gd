@@ -24,6 +24,7 @@ const Matter := preload("res://scripts/world/matter.gd")
 const Morale := preload("res://scripts/morale.gd")
 const FieldGuide := preload("res://scripts/field_guide.gd")
 const Armour := preload("res://scripts/armour.gd")
+const Tris := preload("res://scripts/ui/tris.gd")
 const Ally := preload("res://scripts/ally.gd")
 
 var D: Dictionary  # data/spells.json
@@ -1485,7 +1486,10 @@ func _update_fx(dt: float) -> void:
 
 func _draw() -> void:
 	if view != null:
+		_marks_g = Tris.new()
 		_draw_marks()
+		_marks_g.flush(get_canvas_item())
+		_marks_g = null
 		return
 	draw_texture(_tex["ground"], Vector2.ZERO)
 	_draw_shrine()
@@ -1527,10 +1531,10 @@ func _draw() -> void:
 ## draws figures, stones, projectiles, effects and anything standing up.
 func _draw_marks() -> void:
 	if not leash.is_empty():
-		draw_arc(leash["at"], leash["r"], 0, TAU, 72, Color(0.75, 0.8, 0.95, 0.22), 6.0, false)
-		draw_arc(leash["at"], leash["r"] - 5.0, 0, TAU, 72, Color(0.75, 0.8, 0.95, 0.12), 3.0, false)
+		mark_arc(leash["at"], leash["r"], 0, TAU, 72, Color(0.75, 0.8, 0.95, 0.22), 6.0, false)
+		mark_arc(leash["at"], leash["r"] - 5.0, 0, TAU, 72, Color(0.75, 0.8, 0.95, 0.12), 3.0, false)
 	if shrine_ready():
-		draw_arc(shrine_pos() + Vector2(0, -6), float(D["shrine"]["reach"]), 0, TAU, 32, Color(PixelArt.GOLD, 0.35), 1.0, false)
+		mark_arc(shrine_pos() + Vector2(0, -6), float(D["shrine"]["reach"]), 0, TAU, 32, Color(PixelArt.GOLD, 0.35), 1.0, false)
 	if town != null and player != null:
 		town.draw_ground(self, player.pos, 420.0)
 	for z in zones:
@@ -1547,8 +1551,8 @@ func _draw_marks() -> void:
 		if p.get("ghost", false):
 			continue
 		var r := float(p["r"])
-		draw_circle(p["pos"], r, Color(0, 0, 0, 0.4), true, -1.0, true)
-		draw_arc(p["pos"], r, 0, TAU, 16, Color(p["color"], 0.85), 1.0, true)
+		mark_circle(p["pos"], r, Color(0, 0, 0, 0.4), true, -1.0, true)
+		mark_arc(p["pos"], r, 0, TAU, 16, Color(p["color"], 0.85), 1.0, true)
 	for f in fxs:
 		if f["kind"] == "cone":  # a level-up ghost of a cone; the view draws every other effect
 			_draw_fx(f)
@@ -1597,11 +1601,11 @@ func _draw_unit(u: Unit) -> void:
 		var a := u.anim * 8.0
 		for i in 3:
 			var o := Vector2(cos(a + i * TAU / 3.0) * 5.0, sin(a + i * TAU / 3.0) * 1.5)
-			draw_rect(Rect2((head + o).round(), Vector2.ONE), PixelArt.GOLD)
+			mark_rect(Rect2((head + o).round(), Vector2.ONE), PixelArt.GOLD)
 	if u.wet_t > 0.0:
 		# Wet: a drip under the feet and a droplet by the head.
-		draw_rect(Rect2((u.pos + Vector2(-3, 0)).round(), Vector2(6, 1)), Color(PixelArt.WATER, 0.7))
-		draw_rect(Rect2((head + Vector2(5, 2)).round(), Vector2(2, 3)), PixelArt.WATER)
+		mark_rect(Rect2((u.pos + Vector2(-3, 0)).round(), Vector2(6, 1)), Color(PixelArt.WATER, 0.7))
+		mark_rect(Rect2((head + Vector2(5, 2)).round(), Vector2(2, 3)), PixelArt.WATER)
 	if u.team == 1:
 		_draw_pips(u, head + Vector2(0, -1))
 		if u.kind != "rival":
@@ -1617,9 +1621,9 @@ func _draw_pips(u: Unit, at: Vector2) -> void:
 	for i in n:
 		var r := Rect2(Vector2(x0 + i * 3, at.y - 4).round(), Vector2(2, 2))
 		if i < u.pips:
-			draw_rect(r, PixelArt.FIRE_HOT if u.pip_timer > 1.0 or int(u.anim * 10) % 2 == 0 else PixelArt.FIRE)
+			mark_rect(r, PixelArt.FIRE_HOT if u.pip_timer > 1.0 or int(u.anim * 10) % 2 == 0 else PixelArt.FIRE)
 		else:
-			draw_rect(r, Color(PixelArt.FIRE, 0.35), false, 1.0)
+			mark_rect(r, Color(PixelArt.FIRE, 0.35), false, 1.0)
 
 
 ## Enemy HP in chunks of 10 (design doc §4.4).
@@ -1634,10 +1638,10 @@ func _draw_chunks(u: Unit, at: Vector2) -> void:
 			col = PixelArt.DANGER if u.hp >= lo + 10.0 or u.hp >= u.max_hp else Color(PixelArt.DANGER, 0.55)
 		elif u.hp_lag > lo:
 			col = PixelArt.PAPER
-		draw_rect(Rect2(x0 + i * 3, roundf(at.y), 2, 1), col)
+		mark_rect(Rect2(x0 + i * 3, roundf(at.y), 2, 1), col)
 	var top := break_max(u)
 	if top > 0.0 and (u.brk > 0.0 or u.broken_t > 0.0):
-		draw_rect(Rect2(x0, roundf(at.y) + 2, w * (1.0 if u.broken_t > 0.0 else u.brk / top), 1), PixelArt.GOLD)
+		mark_rect(Rect2(x0, roundf(at.y) + 2, w * (1.0 if u.broken_t > 0.0 else u.brk / top), 1), PixelArt.GOLD)
 
 
 func _draw_stone(s: Dictionary) -> void:
@@ -1654,22 +1658,22 @@ func _draw_proj(p: Dictionary) -> void:
 	var col: Color = p["color"]
 	var r := float(p["r"])
 	if p.get("ghost", false):
-		draw_arc(pos, r + 1.0, 0, TAU, 10, Color(PixelArt.PAPER, 0.6 * (1.0 - p["t"] / 1.2)), 1.0, false)
+		mark_arc(pos, r + 1.0, 0, TAU, 10, Color(PixelArt.PAPER, 0.6 * (1.0 - p["t"] / 1.2)), 1.0, false)
 		return
 	var tail: Vector2 = p["vel"].normalized() * -(r + 3.0)
 	match p["kind"]:
 		"pebble":
-			draw_circle(pos, r, PixelArt.EARTH_DARK, true, -1.0, false)
-			draw_circle(pos + Vector2(-0.5, -0.5), maxf(1.0, r - 1.0), PixelArt.EARTH, true, -1.0, false)
+			mark_circle(pos, r, PixelArt.EARTH_DARK, true, -1.0, false)
+			mark_circle(pos + Vector2(-0.5, -0.5), maxf(1.0, r - 1.0), PixelArt.EARTH, true, -1.0, false)
 		"pyro":
-			draw_line(pos, pos + tail * 2.0, Color(PixelArt.FIRE, 0.6), 2.0)
-			draw_circle(pos, r + 1.0, PixelArt.FIRE, true, -1.0, false)
-			draw_circle(pos, r - 1.0, PixelArt.FIRE_HOT, true, -1.0, false)
+			mark_line(pos, pos + tail * 2.0, Color(PixelArt.FIRE, 0.6), 2.0)
+			mark_circle(pos, r + 1.0, PixelArt.FIRE, true, -1.0, false)
+			mark_circle(pos, r - 1.0, PixelArt.FIRE_HOT, true, -1.0, false)
 		_:
-			draw_line(pos, pos + tail, Color(col, 0.55), 1.0)
-			draw_circle(pos, r, col, true, -1.0, false)
+			mark_line(pos, pos + tail, Color(col, 0.55), 1.0)
+			mark_circle(pos, r, col, true, -1.0, false)
 			if p["kind"] == "ember":
-				draw_rect(Rect2(pos - Vector2(0.5, 0.5), Vector2.ONE), PixelArt.FIRE_HOT)
+				mark_rect(Rect2(pos - Vector2(0.5, 0.5), Vector2.ONE), PixelArt.FIRE_HOT)
 
 
 ## A spell's stage on its telegraph (spell spec §6.2): one ring of sigils outside the rim for each
@@ -1681,7 +1685,7 @@ func _sigils(pos: Vector2, r: float, stage: int, col: Color) -> void:
 		for i in n:
 			var a := TAU * (i + 0.5 * ring) / n
 			var c := pos + Vector2(cos(a), sin(a)) * rr
-			draw_colored_polygon(PackedVector2Array([c + Vector2(0, -1), c + Vector2(1, 0), c + Vector2(0, 1), c + Vector2(-1, 0)]), Color(col, 0.85))
+			mark_polygon(PackedVector2Array([c + Vector2(0, -1), c + Vector2(1, 0), c + Vector2(0, 1), c + Vector2(-1, 0)]), Color(col, 0.85))
 
 
 func _draw_zone(z: Dictionary) -> void:
@@ -1699,34 +1703,34 @@ func _draw_zone(z: Dictionary) -> void:
 			for i in 10:
 				var a := i * 2.4
 				var o := Vector2(cos(a), sin(a)) * fmod(i * 3.7, z["r"])
-				draw_rect(Rect2((z["pos"] + o).round(), Vector2.ONE), PixelArt.EARTH_DARK)
+				mark_rect(Rect2((z["pos"] + o).round(), Vector2.ONE), PixelArt.EARTH_DARK)
 		"pillar", "meteor":
 			var col := PixelArt.FIRE
 			var k := clampf(t / z["delay"], 0.0, 1.0)
 			# The telegraph is the hitbox: the outer ring is the exact radius, the inner disc fills
 			# toward it as the delay runs out. Hero effect: only the latest signature stays bright.
 			var bright: bool = z.get("hero", false) or t < 0.3
-			draw_arc(z["pos"], z["r"], 0, TAU, 32, col, 1.0, false)
+			mark_arc(z["pos"], z["r"], 0, TAU, 32, col, 1.0, false)
 			_sigils(z["pos"], z["r"], int(z.get("stage", 0)), col)
 			if z.has("ghost_r"):
 				draw_dashed_circle(z["pos"], z["ghost_r"], Color(PixelArt.PAPER, 0.7))
-			draw_circle(z["pos"], z["r"] * k, Color(col, 0.35 if bright else 0.12), true, -1.0, false)
+			mark_circle(z["pos"], z["r"] * k, Color(col, 0.35 if bright else 0.12), true, -1.0, false)
 			if z["kind"] == "meteor" and view == null:
 				var fall: Vector2 = z["pos"] + Vector2(-20, -60) * (1.0 - k)
-				draw_circle(fall, 3.0, PixelArt.FIRE_HOT, true, -1.0, false)
+				mark_circle(fall, 3.0, PixelArt.FIRE_HOT, true, -1.0, false)
 				draw_texture(_tex["stone"], (fall - Vector2(3, 3)).round(), Color(1, 0.7, 0.4))
 		"storm", "skybolt":
 			var k := clampf(t / z["delay"], 0.0, 1.0)
-			draw_arc(z["pos"], z["r"], 0, TAU, 32, PixelArt.STORM, 1.0, false)
-			draw_circle(z["pos"], z["r"] * k, Color(PixelArt.STORM, 0.25), true, -1.0, false)
+			mark_arc(z["pos"], z["r"], 0, TAU, 32, PixelArt.STORM, 1.0, false)
+			mark_circle(z["pos"], z["r"] * k, Color(PixelArt.STORM, 0.25), true, -1.0, false)
 		"lance":
 			var k := clampf(t / z["delay"], 0.0, 1.0)
 			var dir: Vector2 = (z["b"] - z["a"]).normalized()
 			var n: Vector2 = dir.orthogonal() * z["w"] * 0.5
 			var pts := PackedVector2Array([z["a"] + n, z["b"] + n, z["b"] - n, z["a"] - n, z["a"] + n])
-			draw_polyline(pts, PixelArt.STORM, 1.0)
+			mark_polyline(pts, PixelArt.STORM, 1.0)
 			var mid: Vector2 = z["a"].lerp(z["b"], k)
-			draw_colored_polygon(PackedVector2Array([z["a"] + n, mid + n, mid - n, z["a"] - n]), Color(PixelArt.STORM, 0.25))
+			mark_polygon(PackedVector2Array([z["a"] + n, mid + n, mid - n, z["a"] - n]), Color(PixelArt.STORM, 0.25))
 		"slash":
 			var dir: Vector2 = z["dir"]
 			var k := clampf(t / z["delay"], 0.0, 1.0)
@@ -1735,39 +1739,39 @@ func _draw_zone(z: Dictionary) -> void:
 			for i in 9:
 				var a: float = a0 + z["arc"] * i / 8.0
 				pts.append(z["pos"] + Vector2(cos(a), sin(a)) * z["reach"])
-			draw_colored_polygon(pts, Color(PixelArt.DANGER, 0.12 + 0.25 * k))
+			mark_polygon(pts, Color(PixelArt.DANGER, 0.12 + 0.25 * k))
 			pts.append(z["pos"])
-			draw_polyline(pts, Color(PixelArt.DANGER, 0.8), 1.0)
+			mark_polyline(pts, Color(PixelArt.DANGER, 0.8), 1.0)
 		"line":
 			var k := clampf(t / z["delay"], 0.0, 1.0)
-			draw_line(z["a"], z["b"], Color(PixelArt.PAPER if z.get("net", false) else PixelArt.DANGER, 0.3 + 0.5 * k), 1.0)
+			mark_line(z["a"], z["b"], Color(PixelArt.PAPER if z.get("net", false) else PixelArt.DANGER, 0.3 + 0.5 * k), 1.0)
 		"leak":
 			# an Overdrawn Husk's Aether, pooled where it was Broken: fades as you drink it
 			var k := clampf(float(z["left"]) / float(D["enemies"]["husk"]["leak"]["aether"]), 0.0, 1.0)
 			var fade := clampf((float(z["life"]) - t) / 1.0, 0.0, 1.0)
-			draw_circle(z["pos"], z["r"], Color(0.62, 0.48, 0.95, 0.3 * k * fade), true, -1.0, false)
-			draw_arc(z["pos"], z["r"], 0, TAU, 24, Color(0.62, 0.48, 0.95, 0.8 * fade), 1.0, false)
+			mark_circle(z["pos"], z["r"], Color(0.62, 0.48, 0.95, 0.3 * k * fade), true, -1.0, false)
+			mark_arc(z["pos"], z["r"], 0, TAU, 24, Color(0.62, 0.48, 0.95, 0.8 * fade), 1.0, false)
 		"fuse":
 			# a Saboteur's oil: a dark pool with a ring that closes in as the fuse burns down
 			var k := clampf(t / z["delay"], 0.0, 1.0)
-			draw_circle(z["pos"], z["r"], Color(0.1, 0.08, 0.05, 0.45), true, -1.0, false)
-			draw_arc(z["pos"], z["r"], 0, TAU, 28, PixelArt.DANGER, 1.0, false)
-			draw_arc(z["pos"], z["r"] * (1.0 - k) + 1.0, 0, TAU, 28, PixelArt.FIRE, 1.0, false)
+			mark_circle(z["pos"], z["r"], Color(0.1, 0.08, 0.05, 0.45), true, -1.0, false)
+			mark_arc(z["pos"], z["r"], 0, TAU, 28, PixelArt.DANGER, 1.0, false)
+			mark_arc(z["pos"], z["r"] * (1.0 - k) + 1.0, 0, TAU, 28, PixelArt.FIRE, 1.0, false)
 		"bell":
 			# a Silencer's bell: the circle its ring will silence fills as it swings
 			var k := clampf(t / z["delay"], 0.0, 1.0)
-			draw_arc(z["pos"], z["r"], 0, TAU, 32, PixelArt.PAPER, 1.0, false)
-			draw_circle(z["pos"], z["r"] * k, Color(PixelArt.PAPER, 0.2), true, -1.0, false)
+			mark_arc(z["pos"], z["r"], 0, TAU, 32, PixelArt.PAPER, 1.0, false)
+			mark_circle(z["pos"], z["r"] * k, Color(PixelArt.PAPER, 0.2), true, -1.0, false)
 		"hush":
 			# the ring's silence: no spell inside, fading as it ends
 			var fade := clampf((float(z["life"]) - t) / 0.5, 0.0, 1.0)
-			draw_circle(z["pos"], z["r"], Color(PixelArt.PAPER, 0.14 * fade), true, -1.0, false)
-			draw_arc(z["pos"], z["r"], 0, TAU, 32, Color(PixelArt.PAPER, 0.7 * fade), 1.0, false)
+			mark_circle(z["pos"], z["r"], Color(PixelArt.PAPER, 0.14 * fade), true, -1.0, false)
+			mark_arc(z["pos"], z["r"], 0, TAU, 32, Color(PixelArt.PAPER, 0.7 * fade), 1.0, false)
 		"pot":
 			# a Powder Monkey's pot: the circle where it lands fills as it comes
 			var k := clampf(t / z["delay"], 0.0, 1.0)
-			draw_arc(z["pos"], z["r"], 0, TAU, 28, PixelArt.DANGER, 1.0, false)
-			draw_circle(z["pos"], z["r"] * k, Color(PixelArt.FIRE, 0.25), true, -1.0, false)
+			mark_arc(z["pos"], z["r"], 0, TAU, 28, PixelArt.DANGER, 1.0, false)
+			mark_circle(z["pos"], z["r"] * k, Color(PixelArt.FIRE, 0.25), true, -1.0, false)
 		"ring":
 			# The Warden's fire ring: while the grate glows a thin circle marks the gap; then the
 			# band runs out, open where the gap is.
@@ -1776,11 +1780,11 @@ func _draw_zone(z: Dictionary) -> void:
 			var r: float = z.get("r", z["r0"])
 			if t < float(z["wait"]):
 				var k := clampf(t / float(z["wait"]), 0.0, 1.0)
-				draw_circle(z["pos"], z["r0"], Color(PixelArt.FIRE_HOT, 0.2 + 0.5 * k), true, -1.0, false)
-				draw_arc(z["pos"], z["r0"] + 8.0, gap_a + half, gap_a + TAU - half, 40, Color(PixelArt.DANGER, 0.4 + 0.4 * k), 1.0, false)
+				mark_circle(z["pos"], z["r0"], Color(PixelArt.FIRE_HOT, 0.2 + 0.5 * k), true, -1.0, false)
+				mark_arc(z["pos"], z["r0"] + 8.0, gap_a + half, gap_a + TAU - half, 40, Color(PixelArt.DANGER, 0.4 + 0.4 * k), 1.0, false)
 			else:
-				draw_arc(z["pos"], r, gap_a + half, gap_a + TAU - half, 64, Color(PixelArt.FIRE, 0.8), float(z["w"]), false)
-				draw_arc(z["pos"], r + float(z["w"]) * 0.5, gap_a + half, gap_a + TAU - half, 64, Color(PixelArt.DANGER, 0.9), 1.0, false)
+				mark_arc(z["pos"], r, gap_a + half, gap_a + TAU - half, 64, Color(PixelArt.FIRE, 0.8), float(z["w"]), false)
+				mark_arc(z["pos"], r + float(z["w"]) * 0.5, gap_a + half, gap_a + TAU - half, 64, Color(PixelArt.DANGER, 0.9), 1.0, false)
 		"cone":
 			var dir: Vector2 = z["dir"]
 			var k := clampf(t / z["delay"], 0.0, 1.0)
@@ -1789,44 +1793,44 @@ func _draw_zone(z: Dictionary) -> void:
 			for i in 9:
 				var a: float = a0 + z["arc"] * i / 8.0
 				pts.append(z["pos"] + Vector2(cos(a), sin(a)) * z["reach"])
-			draw_colored_polygon(pts, Color(PixelArt.FIRE, 0.1 + 0.3 * k))
+			mark_polygon(pts, Color(PixelArt.FIRE, 0.1 + 0.3 * k))
 			pts.append(z["pos"])
-			draw_polyline(pts, Color(PixelArt.DANGER, 0.8), 1.0)
+			mark_polyline(pts, Color(PixelArt.DANGER, 0.8), 1.0)
 		"blaze":
 			var fade := clampf((z["life"] - t) / 0.6, 0.0, 1.0)
-			draw_circle(z["pos"], z["r"], Color(PixelArt.FIRE, 0.25 * fade), true, -1.0, false)
-			draw_arc(z["pos"], z["r"], 0, TAU, 20, Color(PixelArt.DANGER, 0.6 * fade), 1.0, false)
+			mark_circle(z["pos"], z["r"], Color(PixelArt.FIRE, 0.25 * fade), true, -1.0, false)
+			mark_arc(z["pos"], z["r"], 0, TAU, 20, Color(PixelArt.DANGER, 0.6 * fade), 1.0, false)
 		"rline":
 			# The inverted shot: red line, and the spot behind you where the stone will appear
 			# grows toward its hitbox; chevrons point home, toward the Slinger.
 			var k := clampf(t / z["delay"], 0.0, 1.0)
 			var dir: Vector2 = (z["b"] - z["a"]).normalized()
 			var n := dir.orthogonal() * 2.0
-			draw_line(z["a"], z["b"], Color(PixelArt.DANGER, 0.3 + 0.5 * k), 1.0)
+			mark_line(z["a"], z["b"], Color(PixelArt.DANGER, 0.3 + 0.5 * k), 1.0)
 			var steps := int(z["a"].distance_to(z["b"]) / 18.0)
 			for i in range(1, steps):
 				var p: Vector2 = z["a"] + dir * 18.0 * i
-				draw_line(p - dir * 3.0 + n, p, Color(PixelArt.DANGER, 0.6), 1.0)
-				draw_line(p - dir * 3.0 - n, p, Color(PixelArt.DANGER, 0.6), 1.0)
+				mark_line(p - dir * 3.0 + n, p, Color(PixelArt.DANGER, 0.6), 1.0)
+				mark_line(p - dir * 3.0 - n, p, Color(PixelArt.DANGER, 0.6), 1.0)
 			var r := float(D["enemies"]["inverted"]["shot_radius"])
-			draw_arc(z["a"], r, 0, TAU, 12, PixelArt.HOURS, 1.0, true)
-			draw_circle(z["a"], r * k, Color(PixelArt.HOURS, 0.5), true, -1.0, true)
+			mark_arc(z["a"], r, 0, TAU, 12, PixelArt.HOURS, 1.0, true)
+			mark_circle(z["a"], r * k, Color(PixelArt.HOURS, 0.5), true, -1.0, true)
 		"tome":
 			if view != null:
 				return
 			var p: Vector2 = z["pos"].round() + Vector2(0, -2 + roundf(sin(t * 3.0)))
-			draw_rect(Rect2(p + Vector2(-4, -3), Vector2(8, 6)), PixelArt.INK)
-			draw_rect(Rect2(p + Vector2(-3, -2), Vector2(3, 4)), PixelArt.PAPER)
-			draw_rect(Rect2(p + Vector2(0, -2), Vector2(3, 4)), PixelArt.PAPER)
-			draw_rect(Rect2(p + Vector2(-1, -3), Vector2(1, 6)), PixelArt.GOLD)
+			mark_rect(Rect2(p + Vector2(-4, -3), Vector2(8, 6)), PixelArt.INK)
+			mark_rect(Rect2(p + Vector2(-3, -2), Vector2(3, 4)), PixelArt.PAPER)
+			mark_rect(Rect2(p + Vector2(0, -2), Vector2(3, 4)), PixelArt.PAPER)
+			mark_rect(Rect2(p + Vector2(-1, -3), Vector2(1, 6)), PixelArt.GOLD)
 			if int(t * 2.0) % 2 == 0:
-				draw_rect(Rect2(p + Vector2(4, -6), Vector2(1, 1)), PixelArt.GOLD)
+				mark_rect(Rect2(p + Vector2(4, -6), Vector2(1, 1)), PixelArt.GOLD)
 		"column":
 			var k: float = 1.0 - t / z["life"]
 			if view != null:
 				return
-			draw_rect(Rect2(z["pos"] + Vector2(-z["r"] * 0.6, -40), Vector2(z["r"] * 1.2, 40)), Color(PixelArt.FIRE, 0.5 * k))
-			draw_rect(Rect2(z["pos"] + Vector2(-z["r"] * 0.3, -40), Vector2(z["r"] * 0.6, 40)), Color(PixelArt.FIRE_HOT, 0.7 * k))
+			mark_rect(Rect2(z["pos"] + Vector2(-z["r"] * 0.6, -40), Vector2(z["r"] * 1.2, 40)), Color(PixelArt.FIRE, 0.5 * k))
+			mark_rect(Rect2(z["pos"] + Vector2(-z["r"] * 0.3, -40), Vector2(z["r"] * 0.6, 40)), Color(PixelArt.FIRE_HOT, 0.7 * k))
 
 
 func _draw_fx(f: Dictionary) -> void:
@@ -1834,39 +1838,39 @@ func _draw_fx(f: Dictionary) -> void:
 	var col: Color = f.get("color", PixelArt.PAPER)
 	match f["kind"]:
 		"burst":
-			draw_arc(f["pos"], f["r"] * (0.4 + 0.6 * k), 0, TAU, 24, Color(col, 1.0 - k), 2.0, false)
+			mark_arc(f["pos"], f["r"] * (0.4 + 0.6 * k), 0, TAU, 24, Color(col, 1.0 - k), 2.0, false)
 		"ring":
-			draw_arc(f["pos"], f["r"] * k, 0, TAU, 32, Color(col, 1.0 - k), 1.0, false)
+			mark_arc(f["pos"], f["r"] * k, 0, TAU, 32, Color(col, 1.0 - k), 1.0, false)
 		"dust":
 			for i in 6:
 				var a := i * TAU / 6.0
-				draw_rect(Rect2((f["pos"] + Vector2(cos(a), sin(a) * 0.6) * f["r"] * k).round(), Vector2.ONE), Color("a08a6a", 1.0 - k))
+				mark_rect(Rect2((f["pos"] + Vector2(cos(a), sin(a) * 0.6) * f["r"] * k).round(), Vector2.ONE), Color("a08a6a", 1.0 - k))
 		"clink":
-			draw_line(f["pos"] + Vector2(-2, -2), f["pos"] + Vector2(2, 2), Color(PixelArt.PAPER, 1.0 - k), 1.0)
-			draw_line(f["pos"] + Vector2(2, -2), f["pos"] + Vector2(-2, 2), Color(PixelArt.PAPER, 1.0 - k), 1.0)
+			mark_line(f["pos"] + Vector2(-2, -2), f["pos"] + Vector2(2, 2), Color(PixelArt.PAPER, 1.0 - k), 1.0)
+			mark_line(f["pos"] + Vector2(2, -2), f["pos"] + Vector2(-2, 2), Color(PixelArt.PAPER, 1.0 - k), 1.0)
 		"spark_line":
-			draw_line(f["pos"], f["to"], Color(col, 1.0 - k), 1.0)
+			mark_line(f["pos"], f["to"], Color(col, 1.0 - k), 1.0)
 		"beam":
-			draw_line(f["pos"], f["to"], Color(PixelArt.PAPER, 1.0 - k), f["w"])
-			draw_line(f["pos"], f["to"], Color(col, 1.0 - k), maxf(1.0, f["w"] - 4.0))
+			mark_line(f["pos"], f["to"], Color(PixelArt.PAPER, 1.0 - k), f["w"])
+			mark_line(f["pos"], f["to"], Color(col, 1.0 - k), maxf(1.0, f["w"] - 4.0))
 		"bolt":
 			var p: Vector2 = f["pos"]
 			var prev := p + Vector2(0, -80)
 			for i in range(1, 6):
 				var nxt := p + Vector2(rng.randf_range(-4, 4) if i < 5 else 0.0, -80 + i * 16)
-				draw_line(prev, nxt, Color(col, 1.0 - k), 1.0)
+				mark_line(prev, nxt, Color(col, 1.0 - k), 1.0)
 				prev = nxt
 		"swipe":
 			var dir: Vector2 = f["dir"]
-			draw_arc(f["pos"], f["r"], dir.angle() - 0.9, dir.angle() + 0.9, 10, Color(PixelArt.PAPER, 1.0 - k), 1.0, false)
+			mark_arc(f["pos"], f["r"], dir.angle() - 0.9, dir.angle() + 0.9, 10, Color(PixelArt.PAPER, 1.0 - k), 1.0, false)
 		"trail":
-			draw_line(f["pos"], f["to"], Color(col, 0.7 * (1.0 - k)), 3.0)
+			mark_line(f["pos"], f["to"], Color(col, 0.7 * (1.0 - k)), 3.0)
 		"levelup":
-			draw_arc(f["pos"], 6.0 + 18.0 * k, 0, TAU, 32, Color(PixelArt.GOLD, 1.0 - k), 1.0, false)
+			mark_arc(f["pos"], 6.0 + 18.0 * k, 0, TAU, 32, Color(PixelArt.GOLD, 1.0 - k), 1.0, false)
 			for i in 8:
 				var a := i * TAU / 8.0 + k
 				var o := Vector2(cos(a) * 9.0, -20.0 * k + sin(a) * 3.0)
-				draw_rect(Rect2((f["pos"] + o).round(), Vector2.ONE), Color(PixelArt.GOLD, 1.0 - k))
+				mark_rect(Rect2((f["pos"] + o).round(), Vector2.ONE), Color(PixelArt.GOLD, 1.0 - k))
 		"zap":
 			var a: Vector2 = f["pos"]
 			var b: Vector2 = f["to"]
@@ -1875,21 +1879,21 @@ func _draw_fx(f: Dictionary) -> void:
 			var steps := maxi(2, int(a.distance_to(b) / 8.0))
 			for i in range(1, steps + 1):
 				var nxt := a.lerp(b, float(i) / steps) + (n * rng.randf_range(-3, 3) if i < steps else Vector2.ZERO)
-				draw_line(prev, nxt, Color(col, 1.0 - k), f.get("w", 1.0))
+				mark_line(prev, nxt, Color(col, 1.0 - k), f.get("w", 1.0))
 				prev = nxt
 		"spray":
 			var dir: Vector2 = f["dir"]
 			for i in 7:
 				var a := dir.angle() + lerpf(-f["cone"] * 0.5, f["cone"] * 0.5, i / 6.0)
 				var p: Vector2 = f["pos"] + Vector2.from_angle(a) * f["r"] * (0.3 + 0.7 * k) * (0.8 + 0.2 * fmod(i * 1.7, 1.0))
-				draw_rect(Rect2(p.round(), Vector2(2, 1)), Color(PixelArt.WATER, 1.0 - k))
+				mark_rect(Rect2(p.round(), Vector2(2, 1)), Color(PixelArt.WATER, 1.0 - k))
 		"cone":
 			# A level-up ghost for a bolt cone: the old size, dashed.
 			var dir: Vector2 = f["dir"]
 			var gc := Color(PixelArt.PAPER, 0.7 * (1.0 - k))
 			draw_dashed_line(f["pos"], f["pos"] + Vector2.from_angle(dir.angle() - f["cone"] * 0.5) * f["r"], gc)
 			draw_dashed_line(f["pos"], f["pos"] + Vector2.from_angle(dir.angle() + f["cone"] * 0.5) * f["r"], gc)
-			draw_arc(f["pos"], f["r"], dir.angle() - f["cone"] * 0.5, dir.angle() + f["cone"] * 0.5, 12, gc, 1.0, false)
+			mark_arc(f["pos"], f["r"], dir.angle() - f["cone"] * 0.5, dir.angle() + f["cone"] * 0.5, 12, gc, 1.0, false)
 		"rise":
 			if view != null:
 				return
@@ -1905,19 +1909,72 @@ func _draw_order() -> void:
 	if not o.is_empty():
 		var k: float = o["t"] / controls.ORDER_LIFE
 		var col := Color(PixelArt.DANGER if o["attack"] else PixelArt.GOLD, 0.9 * (1.0 - k))
-		draw_arc(o["at"], 7.0 * (1.0 - k) + 2.0, 0, TAU, 16, col, 1.0, true)
+		mark_arc(o["at"], 7.0 * (1.0 - k) + 2.0, 0, TAU, 16, col, 1.0, true)
 	var t: Unit = controls.target
 	if t != null and not t.dead:
-		draw_arc(t.pos + Vector2(0, 1), t.radius + 3.0, 0, TAU, 20, Color(PixelArt.DANGER, 0.75), 1.0, true)
+		mark_arc(t.pos + Vector2(0, 1), t.radius + 3.0, 0, TAU, 20, Color(PixelArt.DANGER, 0.75), 1.0, true)
 
 
 func _draw_reticle() -> void:
 	var m := mouse.round()
 	var col := Color(PixelArt.PAPER, 0.85)
-	draw_rect(Rect2(m + Vector2(-4, 0), Vector2(2, 1)), col)
-	draw_rect(Rect2(m + Vector2(3, 0), Vector2(2, 1)), col)
-	draw_rect(Rect2(m + Vector2(0, -4), Vector2(1, 2)), col)
-	draw_rect(Rect2(m + Vector2(0, 3), Vector2(1, 2)), col)
+	mark_rect(Rect2(m + Vector2(-4, 0), Vector2(2, 1)), col)
+	mark_rect(Rect2(m + Vector2(3, 0), Vector2(2, 1)), col)
+	mark_rect(Rect2(m + Vector2(0, -4), Vector2(1, 2)), col)
+	mark_rect(Rect2(m + Vector2(0, 3), Vector2(1, 2)), col)
+
+
+# --- flat shapes ------------------------------------------------------------------------------
+
+## While the 3D view takes the marks (_draw_marks), every flat shape goes into one batch, drawn as
+## one command at the end: the browser spends a draw call on most circles, arcs and polygons, and
+## a busy fight lays dozens. The flat view draws them as it goes, between its sprites. The spells
+## and the kit draw through these too (their `c` is the arena).
+var _marks_g: Tris
+
+
+func mark_circle(c: Vector2, r: float, col: Color, filled := true, width := -1.0, aa := false) -> void:
+	if _marks_g == null:
+		draw_circle(c, r, col, filled, width, aa)
+	elif filled:
+		_marks_g.circle(c, r, col)
+	else:
+		_marks_g.arc(c, r, 0.0, TAU, clampi(int(r) + 8, 12, 48), col, width)
+
+
+func mark_arc(c: Vector2, r: float, a0: float, a1: float, segs: int, col: Color, width := -1.0, aa := false) -> void:
+	if _marks_g == null:
+		draw_arc(c, r, a0, a1, segs, col, width, aa)
+	else:
+		_marks_g.arc(c, r, a0, a1, segs, col, width)
+
+
+func mark_line(a: Vector2, b: Vector2, col: Color, width := -1.0, aa := false) -> void:
+	if _marks_g == null:
+		draw_line(a, b, col, width, aa)
+	else:
+		_marks_g.line(a, b, col, width)
+
+
+func mark_rect(r: Rect2, col: Color, filled := true, width := -1.0) -> void:
+	if _marks_g == null:
+		draw_rect(r, col, filled, width)
+	else:
+		_marks_g.rect(r, col, filled, maxf(width, 1.0))
+
+
+func mark_polygon(pts: PackedVector2Array, col: Color) -> void:
+	if _marks_g == null:
+		draw_colored_polygon(pts, col)
+	else:
+		_marks_g.polygon(pts, col)
+
+
+func mark_polyline(pts: PackedVector2Array, col: Color, width := -1.0, aa := false) -> void:
+	if _marks_g == null:
+		draw_polyline(pts, col, width, aa)
+	else:
+		_marks_g.polyline(pts, col, width)
 
 
 func draw_ellipse_px(c: Vector2, rx: float, ry: float, col: Color) -> void:
@@ -1925,7 +1982,7 @@ func draw_ellipse_px(c: Vector2, rx: float, ry: float, col: Color) -> void:
 	for i in 12:
 		var a := i * TAU / 12.0
 		pts.append(c + Vector2(cos(a) * rx, sin(a) * ry))
-	draw_colored_polygon(pts, col)
+	mark_polygon(pts, col)
 
 
 ## The Orrery: a brass armillary on a plinth. It glows while it can be used.
@@ -1933,18 +1990,18 @@ func _draw_shrine() -> void:
 	var p := shrine_pos().round()
 	var ready := shrine_ready()
 	draw_ellipse_px(p + Vector2(0, 1), 9.0, 3.0, Color(0, 0, 0, 0.35))
-	draw_rect(Rect2(p + Vector2(-5, -5), Vector2(10, 5)), PixelArt.STONE)
-	draw_rect(Rect2(p + Vector2(-1, -12), Vector2(2, 7)), PixelArt.GOLD)
+	mark_rect(Rect2(p + Vector2(-5, -5), Vector2(10, 5)), PixelArt.STONE)
+	mark_rect(Rect2(p + Vector2(-1, -12), Vector2(2, 7)), PixelArt.GOLD)
 	var spin := Time.get_ticks_msec() / 900.0
-	draw_arc(p + Vector2(0, -17), 6.0, 0, TAU, 16, PixelArt.GOLD, 1.0, false)
-	draw_arc(p + Vector2(0, -17), 6.0 * absf(cos(spin)), 0, TAU, 16, Color(PixelArt.GOLD, 0.8), 1.0, false)
-	draw_rect(Rect2(p + Vector2(-1, -18), Vector2(2, 2)), PixelArt.FIRE_HOT if ready else PixelArt.PAPER)
+	mark_arc(p + Vector2(0, -17), 6.0, 0, TAU, 16, PixelArt.GOLD, 1.0, false)
+	mark_arc(p + Vector2(0, -17), 6.0 * absf(cos(spin)), 0, TAU, 16, Color(PixelArt.GOLD, 0.8), 1.0, false)
+	mark_rect(Rect2(p + Vector2(-1, -18), Vector2(2, 2)), PixelArt.FIRE_HOT if ready else PixelArt.PAPER)
 	if ready:
-		draw_arc(p + Vector2(0, -6), float(D["shrine"]["reach"]), 0, TAU, 32, Color(PixelArt.GOLD, 0.35), 1.0, false)
+		mark_arc(p + Vector2(0, -6), float(D["shrine"]["reach"]), 0, TAU, 32, Color(PixelArt.GOLD, 0.35), 1.0, false)
 
 
 func draw_dashed_circle(c: Vector2, r: float, col: Color) -> void:
 	var n := 16
 	for i in n:
 		if i % 2 == 0:
-			draw_arc(c, r, i * TAU / n, (i + 1) * TAU / n, 4, col, 1.0, false)
+			mark_arc(c, r, i * TAU / n, (i + 1) * TAU / n, 4, col, 1.0, false)

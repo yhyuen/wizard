@@ -93,6 +93,23 @@ jobs:
           name: map-preview
           path: map-preview
 
+      - name: Draw budgets (every review screenshot within 150 draw calls and 4 lights)
+        run: |
+          command -v xvfb-run >/dev/null || (sudo apt-get update -q && sudo apt-get install -yq xvfb)
+          mkdir -p review-shots
+          timeout 1200 xvfb-run -a -s "-screen 0 1440x810x24" "$GODOT" --path . --rendering-driver opengl3 \
+            --resolution 1440x810 --fixed-fps 60 --script res://tools/world_shot.gd -- --out "$PWD/review-shots" --check \
+            2>&1 | tee shots.log
+          test "${PIPESTATUS[0]}" -eq 0
+          ! grep -qE "SCRIPT ERROR|Parse Error" shots.log
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: review-shots
+          path: review-shots
+          retention-days: 14
+
       - name: Web export
         run: |
           printf 'extends RefCounted\n## Written by CI before the web export.\nconst ID := "%s %s"\n' "${GITHUB_SHA::7}" "$(date -u +%F)" > scripts/game/build_id.gd

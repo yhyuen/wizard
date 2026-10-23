@@ -9,12 +9,17 @@ extends SceneTree
 ## Warden's rings and vents, the end card, and the fallen city: the wall gap, the Sunken Square,
 ## the glassworks, Bell Street's barricade and the Old Watch at dusk; the undercroft's stair,
 ## channel and grate hall; the Mill fields' bridge, pond, orchard and east fence at dusk; the east road's picket, toll
-## bridge, waystation, quarry and the Holds gate at dusk.
+## bridge, waystation, quarry and the Holds gate at dusk, and that road in the snow.
 ##
 ##   xvfb-run -a -s "-screen 0 1440x810x24" godot --rendering-driver opengl3 --resolution 1440x810 \
 ##       --fixed-fps 60 --script res://tools/world_shot.gd -- --out DIR
+##
+## Every shot is held to the web budgets (GDD 06 §6.5, docs/systems/art.md): at most MAX_DRAW_CALLS
+## draw calls and MAX_LIGHTS real lights. With --check (CI) a shot over either fails the run.
 
 const FieldGuide := preload("res://scripts/field_guide.gd")
+const MAX_DRAW_CALLS := 150
+const MAX_LIGHTS := 4
 
 var main
 var slice
@@ -23,6 +28,8 @@ var frames := 0
 var out := "user://shots"
 var plan: Array = []  # [frame, callable]
 var stats: Array = []
+var over: Array = []  # shots over budget
+var check := false
 
 
 func _initialize() -> void:
@@ -30,6 +37,8 @@ func _initialize() -> void:
 	for i in args.size():
 		if args[i] == "--out":
 			out = args[i + 1]
+		if args[i] == "--check":
+			check = true
 	DirAccess.make_dir_recursive_absolute(out)
 	run = root.get_node("Run")
 	run.save_enabled = false
@@ -49,6 +58,8 @@ func _shot(name: String) -> void:
 		Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0]
 	stats.append(line)
 	print("[world-shot] ", line)
+	if dc > MAX_DRAW_CALLS or lights > MAX_LIGHTS:
+		over.append(line)
 
 
 ## Jumps to `place` (a spot or a place) at time `t` of day `d`.
@@ -366,7 +377,19 @@ func _process(_dt: float) -> bool:
 			_go(W.map.spots["holds_road"], 2, 3)
 		3320:
 			_shot("44_holds_gate_dusk")
+			# Winter: snow falling on the road in the Long Night (moon 12), the river frozen.
+			_go(W.map.spots["waystation"] + Vector2(0, 60), 11 * 28 + 3, 1)
+			slice.weather.set_today(slice.region(), "snow", 2)
+			W.set_sky(slice.weather.on(slice.region()), slice.weather.d["kinds"])
+		3360:
+			_shot("45_snow_road")
 			var f := FileAccess.open(out.path_join("stats.txt"), FileAccess.WRITE)
 			f.store_string("\n".join(stats) + "\n")
+			for o in over:
+				print("[world-shot] OVER BUDGET (%d draw calls, %d lights): %s" % [MAX_DRAW_CALLS, MAX_LIGHTS, o])
+			print("[world-shot] %d shots, %d over budget" % [stats.size(), over.size()])
+			if check and not over.is_empty():
+				quit(1)
+				return false
 			return true
 	return false
