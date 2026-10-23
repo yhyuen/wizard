@@ -302,6 +302,7 @@ func _commit_parts() -> void:
 		finish(m, "figure")
 		mats.append(m)
 		mi.material_override = m
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF  # too small to see, a draw call each
 		at.add_child(mi)
 	_parts.clear()
 

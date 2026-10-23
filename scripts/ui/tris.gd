@@ -52,6 +52,13 @@ func poly(p: PackedVector2Array, col: Color) -> void:
 		_tri(p[0], p[i], p[i + 1], col)
 
 
+## Any simple polygon, convex or not (cut into triangles).
+func polygon(p: PackedVector2Array, col: Color) -> void:
+	var t := Geometry2D.triangulate_polygon(p)
+	for i in range(0, t.size(), 3):
+		_tri(p[t[i]], p[t[i + 1]], p[t[i + 2]], col)
+
+
 func circle(c: Vector2, r: float, col: Color, segs := 0) -> void:
 	var n := segs if segs > 0 else clampi(int(r * 2.0) + 8, 10, 32)
 	var prev := c + Vector2(r, 0)

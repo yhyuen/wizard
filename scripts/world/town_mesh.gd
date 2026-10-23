@@ -7,24 +7,26 @@ extends Node3D
 ## is "town" (the camp). The ruin kit (ruin_mesh.gd, which extends this) adds broken walls,
 ## rubble, pillars, pits, cracks, tents and the rest from the same chunks and materials.
 ##
-## Everything that stands still is merged into one solid and one glowing mesh per 12 m chunk,
-## with the colour in the vertices, so the browser draws a handful of meshes near the camera
+## Everything that stands still is merged into one mesh per 18 m chunk, with the colour in the
+## vertices (and the lit windows marked by alpha 0, which glow by the time of day), so the browser draws a handful of meshes near the camera
 ## and culls the rest. Lamps, the wheel, roofs you can lift and props that move are their own
 ## nodes; the world view (world_view.gd) drives them.
 
 const Figure := preload("res://scripts/view/figure.gd")
 const POOL_SHADER := preload("res://scripts/view/pool.gdshader")
-const CHUNK_PX := 216.0
+const CHUNK_PX := 324.0
 
 var view  # world_view.gd: to_world() and S
 var map  # scripts/world/map.gd
 var cfg: Dictionary  # data/visual.json "world" "town"
 var pal: Dictionary
 var rng := RandomNumberGenerator.new()
-var _chunks := {}  # Vector2i -> {"solid": SurfaceTool, "glow": SurfaceTool, "n": int}
+var _chunks := {}  # Vector2i -> {"solid": SurfaceTool, "ns": int}
 var solid_mat: ShaderMaterial  # chunks on the line of sight, which the cutaway can dissolve
-var glow_mat: ShaderMaterial  # every lit window: its glow follows the time of day
 var solid_far: ShaderMaterial  # the same, for every other chunk: no cutaway, so no `discard`
+## Their lit windows glow by the time of day (vcol_glow); so do glow_mat and glow_far, for glowing
+## things that are their own nodes (the ruin kit's cracks).
+var glow_mat: ShaderMaterial
 var glow_far: ShaderMaterial
 var chunk_mis: Array = []  # [MeshInstance3D, near material, far material, centre, radius]
 var lit_mat: ShaderMaterial  # a lit lantern
@@ -152,9 +154,7 @@ func _chunk(at: Vector3) -> Dictionary:
 	if not _chunks.has(k):
 		var s := SurfaceTool.new()
 		s.begin(Mesh.PRIMITIVE_TRIANGLES)
-		var g := SurfaceTool.new()
-		g.begin(Mesh.PRIMITIVE_TRIANGLES)
-		_chunks[k] = {"solid": s, "glow": g, "ns": 0, "ng": 0}
+		_chunks[k] = {"solid": s, "ns": 0}
 	return _chunks[k]
 
 
@@ -165,8 +165,10 @@ func _add(mesh: Mesh, xf: Transform3D, col: Color, glow := false, st: SurfaceToo
 	var ch := {}
 	if st == null:
 		ch = _chunk(xf.origin)
-		st = ch["glow"] if glow else ch["solid"]
-		ch["ng" if glow else "ns"] += 1
+		st = ch["solid"]
+		ch["ns"] += 1
+		if glow:
+			lin.a = 0.0  # a lit window in the chunk
 	var nb := xf.basis.inverse().transposed()
 	for s in mesh.get_surface_count():
 		var arr := mesh.surface_get_arrays(s)
@@ -210,8 +212,6 @@ func _commit() -> void:
 		var ch: Dictionary = _chunks[k]
 		if ch["ns"] > 0:
 			_track(_mesh(ch["solid"].commit(), solid_far, true), solid_mat, solid_far)
-		if ch["ng"] > 0:
-			_track(_mesh(ch["glow"].commit(), glow_far, false), glow_mat, glow_far)
 
 
 func _track(mi: MeshInstance3D, near: Material, far: Material) -> void:
@@ -397,7 +397,12 @@ func _building(id: String, bd: Dictionary) -> void:
 	for w in back:
 		_rect_box(w, h, wall)
 		_rect_box(w.grow(1.0), 0.15, c("stone"), h)
-	var front_mi := _own(func(st):
+	var pm := PrismMesh.new()
+	var a: Vector3 = view.to_world(rect.position)
+	var b: Vector3 = view.to_world(rect.end)
+	var rh := 2.4
+	# The front walls and the roof as one mesh (one draw call, and one in the shadows)
+	var lift_mi := _own(func(st):
 		for w in front:
 			_rect_box(w, h, wall, 0.0, st)
 			_rect_box(w.grow(1.0), 0.15, c("stone"), h, st)
@@ -408,17 +413,11 @@ func _building(id: String, bd: Dictionary) -> void:
 			if absf(x - fw.x) < 0.1 and str(bd["door"]["side"]) == "south":
 				continue
 			_box(Vector3(0.6, 0.9, 0.08), Vector3(x, h * 0.6, fw.z + 0.05), c("window"), 0.0, false, st)
-	, solid_mat, lift)
-	var pm := PrismMesh.new()
-	var a: Vector3 = view.to_world(rect.position)
-	var b: Vector3 = view.to_world(rect.end)
-	var rh := 2.4
-	var roof_mi := _own(func(st):
 		pm.size = Vector3(b.z - a.z + 0.6, rh, b.x - a.x + 0.4)
 		_add(pm, Transform3D(Basis(Vector3.UP, PI / 2.0), Vector3((a.x + b.x) * 0.5, h + rh * 0.5, (a.z + b.z) * 0.5)), c(str(bd.get("roof", "roof"))), false, st)
 		_box(Vector3(0.5, 1.4, 0.5), Vector3(a.x + (b.x - a.x) * 0.25, h + rh * 0.7, (a.z + b.z) * 0.5), c("stone"), 0.0, false, st)
 	, solid_mat, lift)
-	roofs[id] = [front_mi, roof_mi]
+	roofs[id] = [lift_mi]
 	# The floor inside: planks.
 	_box(Vector3(b.x - a.x - 0.4, 0.06, b.z - a.z - 0.4), Vector3((a.x + b.x) * 0.5, 0.03, (a.z + b.z) * 0.5), c("planks"))
 

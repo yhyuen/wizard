@@ -622,7 +622,7 @@ func detonate(z: Dictionary) -> bool:
 	return false
 
 
-func draw_field(c: CanvasItem) -> void:
+func draw_field(c) -> void:
 	for m in modules:
 		m.draw_field(c)
 
@@ -631,13 +631,13 @@ func draw_field(c: CanvasItem) -> void:
 
 ## While a spell winds up, its telegraph shows exactly what will be hit (a Swift bolt shows its
 ## line). After a level-up, a dashed ghost shows the old size for a few casts.
-func draw(c: CanvasItem) -> void:
+func draw(c) -> void:
 	var P: Unit = A.player
 	if not P.dead and aligned():
 		# Aligned: a ring of eight stars round your feet (Astral Rite, spell spec §7)
 		for i in 8:
 			var at: Vector2 = P.pos + Vector2(0, 1) + Vector2.from_angle(TAU * i / 8.0 + still_t * 0.6) * Vector2(11, 5)
-			c.draw_circle(at, 0.9, Color(PixelArt.GOLD, 0.85))
+			c.mark_circle(at, 0.9, Color(PixelArt.GOLD, 0.85))
 	if P.dead or holding == "":
 		return
 	var id = slot_spell(holding)
@@ -654,12 +654,12 @@ func draw(c: CanvasItem) -> void:
 	Progression.boost = {}
 	if not drawn:
 		var o: Vector2 = P.pos + Vector2(0, -4)
-		c.draw_line(o, o + aim_dir() * (16.0 + 44.0 * wind_k()), Color(element_color(Progression.spell(id)["element"]), 0.9), 1.0)
+		c.mark_line(o, o + aim_dir() * (16.0 + 44.0 * wind_k()), Color(element_color(Progression.spell(id)["element"]), 0.9), 1.0)
 
 
-func draw_cone(c: CanvasItem, dir: Vector2, cone: float, reach_len: float, col: Color) -> void:
+func draw_cone(c, dir: Vector2, cone: float, reach_len: float, col: Color) -> void:
 	var o: Vector2 = A.player.pos + Vector2(0, -4)
 	var a = dir.angle()
-	c.draw_line(o, o + Vector2.from_angle(a - cone * 0.5) * reach_len, col, 1.0)
-	c.draw_line(o, o + Vector2.from_angle(a + cone * 0.5) * reach_len, col, 1.0)
-	c.draw_arc(o, reach_len, a - cone * 0.5, a + cone * 0.5, 16, col, 1.0, false)
+	c.mark_line(o, o + Vector2.from_angle(a - cone * 0.5) * reach_len, col, 1.0)
+	c.mark_line(o, o + Vector2.from_angle(a + cone * 0.5) * reach_len, col, 1.0)
+	c.mark_arc(o, reach_len, a - cone * 0.5, a + cone * 0.5, 16, col, 1.0, false)

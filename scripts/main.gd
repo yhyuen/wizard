@@ -38,6 +38,10 @@ var input_cool := 0.0  # seconds after a panel closes in which a click doesn't a
 ## Walking up to a person or thing to talk or use it once in reach (League right-click, or the
 ## map): {"type", "id", "pos"}.
 var going_to := {}
+## A menu over the standing town (the map, the book, the Ledger, a game) is drawn over a still
+## picture of the town taken as it opens, so the 3D and the HUD behind it are not drawn again
+## every frame (docs/systems/frame.md, budgets). null while no menu is open.
+var backdrop: Texture2D
 
 
 func _ready() -> void:
@@ -211,7 +215,9 @@ func _toast_controls() -> void:
 
 
 func _process(dt: float) -> void:
-	_show_3d(mode in ["world", "fight", "cutscene"] or (view != null and view.warm > 0))
+	_update_backdrop()
+	_show_3d((mode in ["world", "fight", "cutscene"] and backdrop == null) or (view != null and view.warm > 0))
+	hud.visible = backdrop == null
 	if view == null or bot.is_valid():
 		return
 	if Input.is_action_just_pressed("graphics"):
@@ -241,6 +247,20 @@ func _load_settings() -> void:
 			gfx = d["gfx"]
 	if view != null and gfx == "low":
 		view.set_low(true)
+
+
+## Takes the still picture of the town as a menu opens over it (the last frame drawn, which is
+## from before the menu), and drops it as the menu closes.
+func _update_backdrop() -> void:
+	var still: bool = mode == "world" and slice.overlay != "" and view != null and view.warm <= 0
+	if still == (backdrop != null) or DisplayServer.get_name() == "headless":
+		return
+	if not still:
+		backdrop = null
+		return
+	var img := get_viewport().get_texture().get_image()
+	if img != null and not img.is_empty():
+		backdrop = ImageTexture.create_from_image(img)
 
 
 ## The death and end screens cover the whole window, so the town behind them is not drawn.

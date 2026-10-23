@@ -19,7 +19,8 @@ page [Enemy Field Guide](https://claude.ai/artifact/NfkV4YFAufXzUP1pBuGcAK)). Un
 - **One sim, flat and 2D.** `scripts/arena.gd` simulates every unit (`scripts/unit.gd`),
   projectile, telegraph, zone, field object and effect in sim pixels (the old yard is 480×270).
   The 3D view only reads it ([art.md](art.md)), so **a telegraph is the hitbox** and a shot's
-  ground shadow is its exact hitbox. The sim steps 60 times a second; each unit (and each
+  ground shadow is its exact hitbox. The arena, the kit and the spells draw those flat marks with
+  `mark_circle`, `mark_arc` and the rest, which the 3D view's decal takes as one batch. The sim steps 60 times a second; each unit (and each
   person in town) keeps `prev_pos`, and the view draws it at `shown_pos()`, between the last two
   steps, so movement stays smooth on faster screens or a late frame (a jump of over 20 px, such
   as a blink, is drawn where it lands).

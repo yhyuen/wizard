@@ -19,7 +19,7 @@ func update(_dt: float) -> void:
 	pass
 
 
-func draw_field(_c: CanvasItem) -> void:
+func draw_field(_c) -> void:
 	pass
 
 
@@ -342,24 +342,24 @@ func meteor_hits(z: Dictionary) -> void:
 
 # --- previews -----------------------------------------------------------------
 
-func draw_preview(c: CanvasItem, id: String, ghost_old: int) -> bool:
+func draw_preview(c, id: String, ghost_old: int) -> bool:
 	var P: Unit = A.player
 	var ghost_col = Color(PixelArt.PAPER, 0.7)
 	match id:
 		"pillar":
 			var at = _pillar_target()
 			var r = Progression.stat("pillar", "radius")
-			c.draw_arc(at, r, 0, TAU, 32, Color(PixelArt.FIRE, 0.9), 1.0, false)
-			c.draw_circle(at, r, Color(PixelArt.FIRE, 0.12), true, -1.0, false)
+			c.mark_arc(at, r, 0, TAU, 32, Color(PixelArt.FIRE, 0.9), 1.0, false)
+			c.mark_circle(at, r, Color(PixelArt.FIRE, 0.12), true, -1.0, false)
 			if ghost_old > 0:
 				A.draw_dashed_circle(at, Progression.stat("pillar", "radius", ghost_old), ghost_col)
 		"cinder_lattice":
 			var at: Vector2 = A.clamp_in(P.pos + (K.aim - P.pos).limit_length(Progression.reach("cinder_lattice")))
 			var r = Progression.stat("cinder_lattice", "radius")
-			c.draw_arc(at, r, 0, TAU, 32, Color(PixelArt.FIRE, 0.9), 1.0, false)
+			c.mark_arc(at, r, 0, TAU, 32, Color(PixelArt.FIRE, 0.9), 1.0, false)
 			for i in 6:
 				var a := i * PI / 6.0
-				c.draw_line(at - Vector2(cos(a), sin(a)) * r, at + Vector2(cos(a), sin(a)) * r, Color(PixelArt.FIRE, 0.3), 1.0)
+				c.mark_line(at - Vector2(cos(a), sin(a)) * r, at + Vector2(cos(a), sin(a)) * r, Color(PixelArt.FIRE, 0.3), 1.0)
 		"fling":
 			var reach_len = Progression.reach("fling") * (1.5 if Progression.has_mut("pebble", "far_fling") else 1.0)
 			K.draw_cone(c, K.aim_dir(), deg_to_rad(Progression.stat("fling", "cone")), reach_len, Color(PixelArt.EARTH, 0.9))
@@ -367,21 +367,21 @@ func draw_preview(c: CanvasItem, id: String, ghost_old: int) -> bool:
 				K.draw_cone(c, K.aim_dir(), deg_to_rad(Progression.stat("fling", "cone", ghost_old)), reach_len, ghost_col)
 		"pyroclasm":
 			var o = P.pos + Vector2(0, -6)
-			c.draw_line(o, o + K.aim_dir() * 40.0, Color(PixelArt.FIRE, 0.8), 1.0)
+			c.mark_line(o, o + K.aim_dir() * 40.0, Color(PixelArt.FIRE, 0.8), 1.0)
 			var reach_len = Progression.stat("pyroclasm", "range")
 			for e in A.enemies():
 				if e.pips > 0:
-					c.draw_arc(e.pos, 7.0, 0, TAU, 12, Color(PixelArt.FIRE, 0.9), 1.0, false)
-			c.draw_arc(K.aim, reach_len, 0, TAU, 40, Color(PixelArt.FIRE, 0.25), 1.0, false)
+					c.mark_arc(e.pos, 7.0, 0, TAU, 12, Color(PixelArt.FIRE, 0.9), 1.0, false)
+			c.mark_arc(K.aim, reach_len, 0, TAU, 40, Color(PixelArt.FIRE, 0.25), 1.0, false)
 			if ghost_old > 0:
 				A.draw_dashed_circle(K.aim, Progression.stat("pyroclasm", "range", ghost_old), ghost_col)
 		"avalanche":
 			var t = avalanche_target()
 			if t:
-				c.draw_arc(t.pos, 8.0, 0, TAU, 16, PixelArt.EARTH, 1.0, false)
+				c.mark_arc(t.pos, 8.0, 0, TAU, 16, PixelArt.EARTH, 1.0, false)
 				for st in A.stones:
 					if st["state"] in ["orbit", "ground", "return"]:
-						c.draw_line(st["pos"], t.pos, Color(PixelArt.EARTH, 0.4), 1.0)
+						c.mark_line(st["pos"], t.pos, Color(PixelArt.EARTH, 0.4), 1.0)
 		"meteor":
 			if Progression.knows("meteor"):
 				A.draw_dashed_circle(K.aim, 70.0, Color(PixelArt.FIRE_HOT, 0.7))

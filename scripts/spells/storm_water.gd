@@ -409,7 +409,7 @@ func arc_hits(z: Dictionary) -> void:
 # --- drawing ------------------------------------------------------------------
 
 ## Field objects and the wizard's own telegraphs, drawn under the units.
-func draw_field(c: CanvasItem) -> void:
+func draw_field(c) -> void:
 	for z in A.zones:
 		var t: float = z["t"]
 		match z["kind"]:
@@ -423,39 +423,39 @@ func draw_field(c: CanvasItem) -> void:
 					for i in 4:
 						var a: float = t * 9.0 + i * TAU / 4.0
 						var q: Vector2 = z["pos"] + Vector2(cos(a) * z["r"] * 0.7, sin(a) * z["r"] * 0.4)
-						c.draw_line(q, q + Vector2(3, -2).rotated(a), PixelArt.STORM, 1.0)
-					c.draw_arc(z["pos"], z["r"], 0, TAU, 24, Color(PixelArt.STORM, 0.6), 1.0, false)
+						c.mark_line(q, q + Vector2(3, -2).rotated(a), PixelArt.STORM, 1.0)
+					c.mark_arc(z["pos"], z["r"], 0, TAU, 24, Color(PixelArt.STORM, 0.6), 1.0, false)
 			"rod":
 				if A.view != null:
 					continue  # the 3D view stands it up
 				var p: Vector2 = z["pos"].round()
-				c.draw_rect(Rect2(p + Vector2(-1, -12), Vector2(2, 12)), PixelArt.STEEL)
-				c.draw_rect(Rect2(p + Vector2(-2, -13), Vector2(4, 2)), PixelArt.STORM)
+				c.mark_rect(Rect2(p + Vector2(-1, -12), Vector2(2, 12)), PixelArt.STEEL)
+				c.mark_rect(Rect2(p + Vector2(-2, -13), Vector2(4, 2)), PixelArt.STORM)
 				if z["zap_t"] < 0.15 or int(t * 4.0) % 2 == 0:
-					c.draw_rect(Rect2(p + Vector2(-1, -15), Vector2(2, 2)), Color(PixelArt.STORM, 0.8))
+					c.mark_rect(Rect2(p + Vector2(-1, -15), Vector2(2, 2)), Color(PixelArt.STORM, 0.8))
 			"whirl":
 				var bright: bool = z.get("hero", false)
-				c.draw_arc(z["pos"], z["r"], 0, TAU, 32, Color(PixelArt.WATER, 0.9), 1.0, false)
-				c.draw_circle(z["pos"], z["r"], Color(PixelArt.WATER, 0.18 if bright else 0.08), true, -1.0, false)
+				c.mark_arc(z["pos"], z["r"], 0, TAU, 32, Color(PixelArt.WATER, 0.9), 1.0, false)
+				c.mark_circle(z["pos"], z["r"], Color(PixelArt.WATER, 0.18 if bright else 0.08), true, -1.0, false)
 				for i in 3:
 					var a: float = -t * 5.0 + i * TAU / 3.0
-					c.draw_arc(z["pos"], z["r"] * (0.35 + 0.2 * i), a, a + 2.0, 8, Color(PixelArt.PAPER, 0.45), 1.0, false)
+					c.mark_arc(z["pos"], z["r"] * (0.35 + 0.2 * i), a, a + 2.0, 8, Color(PixelArt.PAPER, 0.45), 1.0, false)
 			"strike":
 				var k := clampf(t / z["delay"], 0.0, 1.0)
 				var bright: bool = z.get("hero", false) or t < 0.3
-				c.draw_arc(z["pos"], z["r"], 0, TAU, 32, PixelArt.STORM, 1.0, false)
-				c.draw_arc(z["pos"], maxf(1.0, z["r"] - 2.0), 0, TAU, 32, Color(PixelArt.PAPER, 0.5), 1.0, false)
-				c.draw_circle(z["pos"], z["r"] * k, Color(PixelArt.STORM, 0.3 if bright else 0.12), true, -1.0, false)
+				c.mark_arc(z["pos"], z["r"], 0, TAU, 32, PixelArt.STORM, 1.0, false)
+				c.mark_arc(z["pos"], maxf(1.0, z["r"] - 2.0), 0, TAU, 32, Color(PixelArt.PAPER, 0.5), 1.0, false)
+				c.mark_circle(z["pos"], z["r"] * k, Color(PixelArt.STORM, 0.3 if bright else 0.12), true, -1.0, false)
 	for w in waves:
 		if w["delay"] > 0.0:
 			continue
 		var n: Vector2 = w["dir"].orthogonal() * w["w"] * 0.5
 		var p: Vector2 = w["pos"]
-		c.draw_colored_polygon(PackedVector2Array([p + n, p + n - w["dir"] * 6.0, p - n - w["dir"] * 6.0, p - n]), Color(PixelArt.WATER, 0.45))
-		c.draw_line(p + n, p - n, PixelArt.PAPER, 1.0)
+		c.mark_polygon(PackedVector2Array([p + n, p + n - w["dir"] * 6.0, p - n - w["dir"] * 6.0, p - n]), Color(PixelArt.WATER, 0.45))
+		c.mark_line(p + n, p - n, PixelArt.PAPER, 1.0)
 
 
-func draw_preview(c: CanvasItem, id: String, ghost_old: int) -> bool:
+func draw_preview(c, id: String, ghost_old: int) -> bool:
 	var ghost_col := Color(PixelArt.PAPER, 0.7)
 	var P: Unit = A.player
 	match id:
@@ -464,17 +464,17 @@ func draw_preview(c: CanvasItem, id: String, ghost_old: int) -> bool:
 			var dir: Vector2 = K.aim_dir()
 			var full: bool = K.hold_t >= Progression.stat("arc_lance", "charge")
 			var w := float(Progression.spell("arc_lance")["width"])
-			c.draw_line(a, a + dir * Progression.stat("arc_lance", "range"), Color(PixelArt.STORM, 0.3), 1.0)
+			c.mark_line(a, a + dir * Progression.stat("arc_lance", "range"), Color(PixelArt.STORM, 0.3), 1.0)
 			var b: Vector2 = A.clamp_in(a + dir * lance_length())
 			var n := dir.orthogonal() * w * 0.5
-			c.draw_polyline(PackedVector2Array([a + n, b + n, b - n, a - n, a + n]), PixelArt.PAPER if full else PixelArt.STORM, 1.0)
+			c.mark_polyline(PackedVector2Array([a + n, b + n, b - n, a - n, a + n]), PixelArt.PAPER if full else PixelArt.STORM, 1.0)
 			if ghost_old > 0:
 				A.draw_dashed_line(a, a + dir * Progression.stat("arc_lance", "range", ghost_old), ghost_col)
 		"storm_call":
 			var shape := _strike_shape()
 			var centre: Vector2 = K.aim_point(Progression.reach("storm_call"))
 			for p in strike_spots(centre, int(Progression.stat("storm_call", "strikes")), shape["r"]):
-				c.draw_arc(p, shape["r"], 0, TAU, 24, Color(PixelArt.STORM, 0.9), 1.0, false)
+				c.mark_arc(p, shape["r"], 0, TAU, 24, Color(PixelArt.STORM, 0.9), 1.0, false)
 			if ghost_old > 0:
 				A.draw_dashed_circle(centre, Progression.stat("storm_call", "radius", ghost_old), ghost_col)
 		"undertow":
@@ -483,8 +483,8 @@ func draw_preview(c: CanvasItem, id: String, ghost_old: int) -> bool:
 			var n := dir.orthogonal() * Progression.stat("undertow", "width") * 0.5
 			var a: Vector2 = P.pos
 			var b: Vector2 = P.pos + dir * dist
-			c.draw_polyline(PackedVector2Array([a + n, b + n, b - n, a - n, a + n]), Color(PixelArt.WATER, 0.9), 1.0)
-			c.draw_colored_polygon(PackedVector2Array([a + n, b + n, b - n, a - n]), Color(PixelArt.WATER, 0.12))
+			c.mark_polyline(PackedVector2Array([a + n, b + n, b - n, a - n, a + n]), Color(PixelArt.WATER, 0.9), 1.0)
+			c.mark_polygon(PackedVector2Array([a + n, b + n, b - n, a - n]), Color(PixelArt.WATER, 0.12))
 			if ghost_old > 0:
 				var go := dir.orthogonal() * Progression.stat("undertow", "width", ghost_old) * 0.5
 				A.draw_dashed_line(a + go, b + go, ghost_col)
@@ -492,15 +492,15 @@ func draw_preview(c: CanvasItem, id: String, ghost_old: int) -> bool:
 		"maelstrom":
 			var at: Vector2 = K.aim_point(Progression.reach("maelstrom"))
 			var r := Progression.stat("maelstrom", "radius")
-			c.draw_arc(at, r, 0, TAU, 32, Color(PixelArt.WATER, 0.9), 1.0, false)
-			c.draw_circle(at, r, Color(PixelArt.WATER, 0.12), true, -1.0, false)
+			c.mark_arc(at, r, 0, TAU, 32, Color(PixelArt.WATER, 0.9), 1.0, false)
+			c.mark_circle(at, r, Color(PixelArt.WATER, 0.12), true, -1.0, false)
 			if ghost_old > 0:
 				A.draw_dashed_circle(at, Progression.stat("maelstrom", "radius", ghost_old), ghost_col)
 		"conductor":
 			if Progression.knows("conductor"):
 				A.draw_dashed_circle(P.pos, Progression.magick_stat("conductor", "range"), Color(PixelArt.STORM, 0.5))
 				for u in conductor_targets():
-					c.draw_arc(u.pos, 7.0, 0, TAU, 12, PixelArt.STORM, 1.0, false)
+					c.mark_arc(u.pos, 7.0, 0, TAU, 12, PixelArt.STORM, 1.0, false)
 		_:
 			return false
 	return true

@@ -47,7 +47,11 @@ Reach and Calendar tabs (§5.5).*
   weather glyph and, once Aldous has told you, tomorrow's ([world.md](world.md)). Under it: moon
   name, date, weekday, weather and place; in a fight, the date and the fight's numbers.
 - **Rain and snow** fall over the world view and outdoor fights (`slice.gd` `_draw_precip`):
-  slanted streaks in rain and storm, drifting flakes in snow; none indoors.
+  slanted streaks in rain and storm, drifting flakes in snow (one batch); none indoors.
+- **Menus over the town** (the map, the book, the Ledger, the Codex, a game, a confrontation): as
+  one opens while the town stands still, `main.gd` takes a still picture of the last frame
+  (`backdrop`) and the menu is drawn over that, with the 3D view and the HUD switched off until it
+  closes (the budgets, [art.md](art.md)). Not in a fight, where the world keeps moving.
 - **The map** (M, `scripts/game/slice.gd`) has three tabs (1–3, or click): **Here** (this map,
   as built), **The Reach** (the region map and travel, [world.md](world.md)) and **Calendar**
   (the year's moons, click one to see its weeks by weekday, known dates, the weather glyphs you
@@ -99,6 +103,10 @@ GitHub Pages. In order:
 - `tools/ci/godot.sh` (fails on any script error) with `tools/tests/unit.gd`, `story_lint.gd`,
   `route.gd`, `relearn.gd`, `deaths.gd`, `calamity.gd`, `encounters.gd`, `world_magic.gd` (the fight tests with
   `--fixed-fps 60`), then `tools/map_preview.gd`.
+- **Draw budgets** (N-8.2): `tools/world_shot.gd --check` under `xvfb-run` takes all the
+  review screenshots (Ring 1's camp, halls, city, undercroft, fields and road, its fights, menus
+  and weather) and fails if any is over 150 draw calls or 4 lights ([art.md](art.md)
+  'Budgets (web)'); the shots are the `review-shots` artifact.
 - The web export (`wizard-web` artifact), which also checks every story file was packed (each
   file's first scene is in the pack). The export presets (`export_presets.cfg`) pack `data/*.json`
   and `data/*.story` at any depth; until N-8.1 they missed the city's, the undercroft's, the

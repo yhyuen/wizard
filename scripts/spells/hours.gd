@@ -72,39 +72,39 @@ func on_proj_hit(p: Dictionary, u: Unit) -> bool:
 
 
 ## A forming shard: its line home follows you, so the telegraph is always the real path.
-func draw_field(c: CanvasItem) -> void:
+func draw_field(c) -> void:
 	for z in A.zones:
 		if z["kind"] != "rewind_form":
 			continue
 		var k := clampf(z["t"] / z["delay"], 0.0, 1.0)
 		_draw_path(c, z["pos"], K.origin(), z["r"], 0.5 + 0.4 * k)
-		c.draw_circle(z["pos"], z["r"] * (0.4 + 0.6 * k), Color(PixelArt.HOURS, 0.5), true, -1.0, true)
+		c.mark_circle(z["pos"], z["r"] * (0.4 + 0.6 * k), Color(PixelArt.HOURS, 0.5), true, -1.0, true)
 
 
-func draw_preview(c: CanvasItem, id: String, _ghost_old: int) -> bool:
+func draw_preview(c, id: String, _ghost_old: int) -> bool:
 	if id != "rewind":
 		return false
 	var at := form_point()
 	var r := Progression.stat("rewind", "radius")
 	_draw_path(c, at, K.origin(), r, 0.8)
-	c.draw_arc(at, r, 0, TAU, 16, PixelArt.HOURS, 1.0, true)
+	c.mark_arc(at, r, 0, TAU, 16, PixelArt.HOURS, 1.0, true)
 	return true
 
 
 ## The flight home as a band its exact width, with chevrons pointing back at you.
-func _draw_path(c: CanvasItem, from: Vector2, to: Vector2, r: float, alpha: float) -> void:
+func _draw_path(c, from: Vector2, to: Vector2, r: float, alpha: float) -> void:
 	var d := to - from
 	if d.length() < 1.0:
 		return
 	var dir := d.normalized()
 	var n := dir.orthogonal() * r
 	var col := Color(PixelArt.HOURS, alpha)
-	c.draw_line(from + n, to + n, col, 1.0, true)
-	c.draw_line(from - n, to - n, col, 1.0, true)
-	c.draw_colored_polygon(PackedVector2Array([from + n, to + n, to - n, from - n]), Color(PixelArt.HOURS, 0.1 * alpha))
+	c.mark_line(from + n, to + n, col, 1.0, true)
+	c.mark_line(from - n, to - n, col, 1.0, true)
+	c.mark_polygon(PackedVector2Array([from + n, to + n, to - n, from - n]), Color(PixelArt.HOURS, 0.1 * alpha))
 	var steps := int(d.length() / 14.0)
 	var phase := fmod(Time.get_ticks_msec() / 400.0, 1.0)
 	for i in steps:
 		var p := from + dir * (14.0 * (i + phase))
-		c.draw_line(p - dir * 3.0 + n * 0.7, p, col, 1.0, true)
-		c.draw_line(p - dir * 3.0 - n * 0.7, p, col, 1.0, true)
+		c.mark_line(p - dir * 3.0 + n * 0.7, p, col, 1.0, true)
+		c.mark_line(p - dir * 3.0 - n * 0.7, p, col, 1.0, true)

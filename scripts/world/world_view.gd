@@ -516,8 +516,11 @@ func _apply_world_mood() -> void:
 		cols.append(Vector3(c.r, c.g, c.b))
 	_ground.set_shader_parameter("kind_cols", cols)
 	_overlay_mat.set_shader_parameter("boost", m["overlay"])
+	var win: float = float(wc["town"].get("window_glow", 1.4)) * m["window"]
 	for gm in [town.glow_mat, town.glow_far]:
-		gm.set_shader_parameter("glow", float(wc["town"].get("window_glow", 1.4)) * m["window"])
+		gm.set_shader_parameter("glow", win)
+	for sm in [town.solid_mat, town.solid_far]:
+		sm.set_shader_parameter("vcol_glow", win)
 
 
 func deep() -> float:
