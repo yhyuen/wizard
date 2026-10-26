@@ -235,9 +235,14 @@ func set_gfx(g: String) -> void:
 	gfx = g
 	if view != null:
 		view.set_low(g == "low")
+	save_settings()
+
+
+## Graphics and the first-time tips (slice.gd's help card), in SETTINGS.
+func save_settings() -> void:
 	var f := FileAccess.open(SETTINGS, FileAccess.WRITE)
 	if f:
-		f.store_string(JSON.stringify({"gfx": gfx}))
+		f.store_string(JSON.stringify({"gfx": gfx, "tips": slice.tips.on}))
 
 
 func _load_settings() -> void:
@@ -245,6 +250,8 @@ func _load_settings() -> void:
 		var d = JSON.parse_string(FileAccess.get_file_as_string(SETTINGS))
 		if d is Dictionary and str(d.get("gfx", "")) in ["auto", "high", "low"]:
 			gfx = d["gfx"]
+		if d is Dictionary:
+			slice.tips.on = bool(d.get("tips", true))
 	if view != null and gfx == "low":
 		view.set_low(true)
 
@@ -313,7 +320,8 @@ func _pick_input() -> void:
 
 
 func _town_input() -> void:
-	if Input.is_action_just_pressed("autoplay") and mode == "fight":
+	# F2 autoplay and F1 practice are playtest tools: debug builds only, not the web or desktop exports.
+	if Input.is_action_just_pressed("autoplay") and mode == "fight" and OS.is_debug_build():
 		if autoplay == null:
 			autoplay = load("res://scripts/bot.gd").new()
 			bot = func(a): return autoplay.intent(a)
@@ -325,7 +333,7 @@ func _town_input() -> void:
 	if autoplay != null and mode == "world":
 		autoplay = null  # autoplay only fights
 		bot = Callable()
-	if Input.is_action_just_pressed("practice"):
+	if Input.is_action_just_pressed("practice") and OS.is_debug_build():
 		for id in Progression.data["spells"]:
 			Progression.set_level(id, Progression.level(id) + 1)
 		hud.push_toast("Practice: every spell +1 level", PixelArt.GOLD)

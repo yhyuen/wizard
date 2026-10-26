@@ -13,10 +13,11 @@ M0-1 (these specs and the spec check).*
 - Autoloads (`project.godot`): `InputSetup`, `Progression` ([growth.md](growth.md)), `Run`
   ([loop.md](loop.md)), `Sfx`.
 - `slice.gd` screens: title, world (with the dialogue panel, map M, spellbook, Ledger L over it),
-  loading (the card between maps), death. First-loop hints show until done once. The title and
-  death screens have **Copy run summary** and **Feedback form** (the playtest notes artifact).
+  loading (the card between maps), death. The title and death screens have **Copy run summary**
+  and **Feedback form** (the playtest notes artifact). Onboarding is under 'Tips and help' below.
 - **Input** becomes an intent dictionary each physics frame (`scripts/controls.gd`), so tests and
-  F2 autoplay drive the same code. Schemes: Classic (WASD; LMB staff, hold RMB Ward, Q E R F
+  F2 autoplay drive the same code (F1 practice and F2 autoplay work in debug builds only, not in the
+  web or desktop exports). Schemes: Classic (WASD; LMB staff, hold RMB Ward, Q E R F
   spells, 1 2 cantrips), League (right-click move, right-click an enemy or A to strike it with the
   staff, Q W E R spells, D F cantrips, hold C Ward) and League smart cast (a spell commits on the
   key going down); Tab cycles any time; kept in `user://settings.cfg`.
@@ -93,6 +94,31 @@ Reach and Calendar tabs (§5.5).*
 - When a fight ends, `main.gd` hands the story its outcome and how many were beaten: kills plus
   the ones who yielded ([combat.md](combat.md) 'Morale').
 - `scripts/game/build_id.gd` says which build this is; CI writes it before the web export.
+
+## Tips and help (onboarding, N-8.4)
+
+*Plan: [design/onboarding/first-30-minutes.md](/mnt/project-files/design/onboarding/first-30-minutes.md)
+(what a new player does in the first 30 minutes, and the five fixes). Built: the help card, the
+tips, the merged Ledger toasts, the title line. Not yet: the Day 1 drill and early goals (B, A),
+the map's goal marker and compass (D).*
+
+- **Hints** (`slice.gd` `HINTS`): the walk hint (under the wizard until 12 s into the morning) and
+  the talk hint (over the first dialogue panel), first life only.
+- **Tips** (`data/world/tips.json`, `scripts/game/tips.gd`): one at a time, once per soul
+  (`soul.hints`, shared with the hints), first life only, in the hint box: under the wizard while
+  walking (`where: world`: no scene, no menu, the dawn card and walk hint gone) or at the top of a
+  fight (`where: fight`), for `s` seconds on screen. A tip whose moment passes (a fight ends) shows
+  next time. Keys in its text follow the control scheme. Who asks for each: `help` when the walk
+  hint is done; `fight` when a fight starts (not the tests' resolver or bot); `ledger` on a Ledger
+  toast; `wait` on Z; `day` at a dawn from day 2; `hurt` waking Injured (instead of `day`); `dark`
+  at a time of day that is dark (`world.dark()`); `board`, `ladder`, `stair` on walking into the
+  places in `places`. The setting `tips` (`user://settings.json`, beside `gfx`) turns them off.
+- **How to play** (H, or the title's button; overlay `help`): the keys of the current scheme
+  (walking and fighting), and three rules: time, losing, the Ledger and the gold line. T toggles
+  tips; H, Esc or Space closes. Over the title, the town, a scene, the end card; not mid-fight
+  (a toast says so).
+- **Ledger toasts** learnt within a second of each other share one toast: "Ledger +3: A · B · C".
+- **Title:** "Ring 1 · the survivors' camp, the fallen city and the Mill fields", and H in the key line.
 
 ## Checks before merging
 

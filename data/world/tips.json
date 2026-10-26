@@ -1,0 +1,16 @@
+{
+ "_doc": "First-time tips (onboarding, N-8.4; docs/systems/frame.md 'Tips and help'). Each tip shows once per soul, in the first life only, one at a time, in a box under the wizard (where: world) or at the top of a fight (where: fight), for s seconds of time it is on screen. Keys in braces follow the control scheme: {move} {staff} {slot1} {slot2} {cant1} {cant2} {ward} {blink}. Who queues each one is in frame.md. The setting 'tips' (user://settings.json, toggled on the help card) turns them all off.",
+ "tips": {
+  "help": {"where": "world", "s": 8, "text": "H opens How to play: every key, and how time works."},
+  "fight": {"where": "fight", "s": 16, "text": "{staff} strikes with your staff. Hold {slot1} or {slot2} to wind up a spell and let go to cast it at the cursor; letting go early cancels it. {ward} raises your Ward. {blink} Blinks."},
+  "ledger": {"where": "world", "s": 8, "text": "What you learn goes in the Ledger. L opens it."},
+  "wait": {"where": "world", "s": 9, "text": "Only actions pass time: waiting (Z), training, meditating and travel. Walking and talking are free. Sleep on your cot to end the day."},
+  "day": {"where": "world", "s": 9, "text": "A new day. The row at the top is the calendar: the moon, today, and the dates you know. The gold line on the left is what to do next."},
+  "dark": {"where": "world", "s": 9, "text": "It's getting dark. After dark, things walk the College ruins; the lamps of the camp are safer."},
+  "hurt": {"where": "world", "s": 10, "text": "You lost a fight. Losing never ends the year: you wake days later, Injured until you sleep a full night on your cot."},
+  "board": {"where": "world", "s": 8, "text": "The commissions board: paid jobs. G reads it."},
+  "ladder": {"where": "world", "s": 8, "text": "The duel ring: climb the camp's ladder one duel at a time. The slate (G) says who's next."},
+  "stair": {"where": "world", "s": 8, "text": "The north stair goes down into the ruins. A trip down takes the whole day."}
+ },
+ "places": {"board": "board", "duel_ring": "ladder", "north_door": "stair"}
+}

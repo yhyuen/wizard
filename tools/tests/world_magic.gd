@@ -1496,7 +1496,8 @@ func _deeds_setup() -> void:
 	state["owner"] = owner
 	state["before"] = D.standing(owner)
 	world.apply_force(seen_crate, "impact", 4, 4.0)
-	state["seen"] = D.standing(owner) < state["before"] and who.bark != ""
+	# the nearest witness speaks up, and a crowd figure can stand nearer than the one placed
+	state["seen"] = D.standing(owner) < state["before"] and D.witnesses(seen_crate["pos"]).any(func(q): return q.bark != "")
 	# one nobody sees: everyone well away first
 	var lone := _owned_prop("crate", true)
 	for q in world.people.list:

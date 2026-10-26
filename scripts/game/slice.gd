@@ -29,6 +29,7 @@ const Tris := preload("res://scripts/ui/tris.gd")
 const Achievements := preload("res://scripts/game/achievements.gd")
 const FieldGuide := preload("res://scripts/field_guide.gd")
 const BuildId := preload("res://scripts/game/build_id.gd")
+const Tips := preload("res://scripts/game/tips.gd")
 ## Where playtesters send their notes (design/slice/README.md §5, M5).
 const FEEDBACK_URL := "https://claude.ai/artifact/HryjwPHEs8S6swcQYFam6c"
 ## First-loop hints (onboarding), shown until they're done once.
@@ -56,6 +57,8 @@ var commissions  # scripts/game/commissions.gd: the board's paid jobs, and crown
 var ladder  # scripts/game/ladder.gd: the camp's dueling ladder
 var games  # scripts/game/minigames/games.gd: Star-charts and Sparks, and what carries
 var companions  # scripts/game/companions.gd: who walks with you, their night talks and road sense
+var tips  # scripts/game/tips.gd: first-time tips (N-8.4)
+var tip := ""  # the tip on screen this frame
 var game  # the match being played (star_charts.gd or sparks.gd), or null
 var game_who := ""
 var game_mode := ""  # free or work
@@ -79,7 +82,7 @@ var main_steps: Array = []  # data/world/main_line.json "steps"
 
 var screen := "title"  # title, world, loading (the card between maps), death, hurt (a lost fight)
 var load_to := {}  # while the loading card is up: {"map", "spot", "t"}
-var overlay := ""  # over the town: "", "map", "book", "ledger"
+var overlay := ""  # over the town: "", "map", "book", "ledger", "help" (also over the title)
 var map_tab := 0  # in the map: 0 here, 1 the Reach (the region map), 2 the calendar
 var cal_moon := 0  # the moon the calendar shows (0: this one)
 var reach_pick := ""  # the region picked on the region map
@@ -150,6 +153,7 @@ func setup(the_main) -> void:
 	weather = Weather.new(run)
 	deeds = Achievements.new(run, story)
 	world.busy = busy
+	tips = Tips.new(run)
 	run.learned.connect(_on_learned)
 
 
@@ -212,6 +216,10 @@ func begin_day() -> void:
 	dawn_t = 0.0
 	Sfx.play("chime")
 	_morning_notes()
+	if run.injured():
+		tips.want("hurt")
+	elif run.day() >= 2:
+		tips.want("day")
 	_start_period()
 	var nt: String = companions.next_talk()  # a night by the fire: your companion talks as you wake
 	if nt != "":
@@ -242,6 +250,8 @@ func _start_period() -> void:
 		return
 	if _fixed_events():
 		return
+	if world.dark():
+		tips.want("dark")
 	var f: String = story.forced()
 	if f != "":
 		play(f)
@@ -368,6 +378,7 @@ func wait() -> void:
 	if not world.map_def().get("clock", true):
 		toast("There's no telling the hour down here.")
 		return
+	tips.want("wait")
 	world.request({"t": "period"})
 
 
@@ -611,13 +622,26 @@ func _process(dt: float) -> void:
 		if world.here != _place:
 			_place = world.here
 			place_t = 0.0
+			tips.want_place(_place)
 		if not busy() and main.mode == "world":
 			handle_requests()
 		deeds_t += dt
 		if deeds_t >= 0.5:
 			deeds_t = 0.0
 			check_deeds()
+	tip = tips.tick(dt, _tip_place())
 	queue_redraw()
+
+
+## Where a first-time tip may show now: "fight", "world" (walking, nothing else on screen) or "".
+func _tip_place() -> String:
+	if screen != "world" or overlay != "" or main == null or main.bot.is_valid():
+		return ""
+	if main.mode == "fight":
+		return "fight"
+	if main.mode == "world" and not in_dialogue() and dawn_t > float(world.cfg["dawn_card_s"]) and hint_for("walk") == "":
+		return "world"
+	return ""
 
 
 ## Earns any achievement whose condition now holds, with a gold toast for each.
@@ -1096,6 +1120,8 @@ func _start_fight(id: String) -> void:
 		enc["flooded"] = true
 	if enc.has("shorter") and run.flag(str(enc["shorter"]["flag"])):
 		enc["survive"] = int(enc["shorter"]["survive"])  # the cut came late: a shorter Peak
+	if not fight_resolver.is_valid() and not main.bot.is_valid():
+		tips.want("fight")
 	if fight_resolver.is_valid():
 		var r = fight_resolver.call(id)  # won, or {"won", "kills"}
 		if r is Dictionary:
@@ -1330,6 +1356,7 @@ func _on_learned(id: String) -> void:
 		push_warning("no Ledger entry for " + id)
 	elif e["kind"] != "trial":
 		toast("Ledger: %s" % e["title"])
+		tips.want("ledger")
 	# Questions open as soon as anything they're about is known.
 	for qid in ledger:
 		var q: Dictionary = ledger[qid]
@@ -1355,7 +1382,17 @@ func _reagent_list(got: Dictionary) -> String:
 
 
 func toast(s: String, gold := false) -> void:
+	# Ledger entries learnt together share one toast: "Ledger +3: A · B · C".
+	var last: Dictionary = {} if toasts.is_empty() else toasts[-1]
+	if s.begins_with("Ledger: ") and last.has("names") and float(last["t"]) < 1.0:
+		last["names"].append(s.trim_prefix("Ledger: "))
+		var n: int = last["names"].size()
+		last["text"] = "Ledger +%d: %s" % [n, " · ".join(last["names"].slice(0, 3)) + (" …" if n > 3 else "")]
+		last["t"] = 0.0
+		return
 	toasts.append({"text": s, "t": 0.0, "gold": gold})
+	if s.begins_with("Ledger: "):
+		toasts[-1]["names"] = [s.trim_prefix("Ledger: ")]
 	if toasts.size() > 6:
 		toasts.pop_front()
 
@@ -1368,6 +1405,22 @@ func toggle_ledger() -> void:
 func toggle_codex() -> void:
 	if screen in ["world", "death", "hurt"]:
 		overlay = "" if overlay == "codex" else "codex"
+
+
+## H: How to play, over the title, the town or a scene; not mid-fight.
+func toggle_help() -> void:
+	if overlay == "help":
+		overlay = ""
+	elif main.mode == "fight":
+		toast("H opens How to play after the fight.")
+	elif screen in ["title", "world", "death", "hurt"] and overlay in ["", "help"]:
+		overlay = "help"
+
+
+## T on the help card: first-time tips on or off (kept in user://settings.json).
+func toggle_tips() -> void:
+	tips.on = not tips.on
+	main.save_settings()
 
 
 func toggle_map() -> void:
@@ -1464,6 +1517,17 @@ func _unhandled_input(ev: InputEvent) -> void:
 			return
 		get_viewport().set_input_as_handled()
 		return
+	if overlay == "help":
+		if k in [KEY_H, KEY_ESCAPE, KEY_SPACE, KEY_ENTER, KEY_KP_ENTER]:
+			overlay = ""
+		elif k == KEY_T:
+			toggle_tips()
+		get_viewport().set_input_as_handled()
+		return
+	if k == KEY_H:
+		toggle_help()
+		get_viewport().set_input_as_handled()
+		return
 	if k == KEY_L:
 		toggle_ledger()
 	elif k == KEY_N:
@@ -1547,6 +1611,9 @@ func _draw() -> void:
 			_draw_loading()
 	if screen == "world" and main.mode in ["world", "fight"] and main.backdrop == null:
 		_draw_precip()
+		if tip != "" and overlay == "":
+			# at the top in a fight, clear of the toasts; under the wizard while walking
+			_draw_hint(tips.text(tip, main.controls), Rect2(230, 96, 460, 0) if main.mode == "fight" else Rect2(250, 322, 460, 0))
 	match overlay:
 		"ledger":
 			begin_buttons()
@@ -1566,7 +1633,10 @@ func _draw() -> void:
 		"codex":
 			begin_buttons()
 			_draw_codex()
-	if not overlay in ["ledger", "codex"]:
+		"help":
+			begin_buttons()
+			_draw_help()
+	if not overlay in ["ledger", "codex", "help"]:
 		_draw_toasts()
 	end_buttons()
 
@@ -1589,10 +1659,60 @@ func _draw_hint(h: String, r: Rect2) -> void:
 		text(r.position + Vector2(14, 20 + i * 17), rows[i], 13, Color(HOURS, 0.95))
 
 
+## How to play (H, N-8.4): the keys of the current scheme, and the three rules a new player
+## can't guess (time, losing, the Ledger).
+func _draw_help() -> void:
+	draw_rect(Rect2(0, 0, 960, 540), Color(0, 0, 0, 0.7))
+	var r := Rect2(100, 40, 760, 460)
+	draw_rect(r, NIGHT)
+	panel(r, Color(GOLD, 0.6))
+	var ctl = main.controls
+	var lol: bool = ctl.league()
+	title(r.position + Vector2(40, 42), "How to play", 24, GOLD)
+	text(Vector2(r.position.x, r.position.y + 36), "Controls: %s  ·  Tab switches" % ctl.NAMES[ctl.scheme], 13, HAIR, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 40)
+	var walk: Array = [
+		["Right-click" if lol else "WASD", "walk, and go up to people" if lol else "walk"],
+		["G", "talk to people, use things"],
+		["M", "the map: click a place to go"],
+		["Z", "wait for the next time of day"],
+		["L  ·  N", "the Ledger  ·  the Codex"],
+		["F4  ·  F8", "graphics  ·  sound"],
+	]
+	var cast := "cast as the key goes down" if ctl.smart() else "hold, then let go to cast"
+	var fight: Array = [
+		["A" if lol else "LMB", "staff strike (or right-click a foe)" if lol else "strike with your staff"],
+		["Q W E R" if lol else "Q E R F", cast],
+		["D  ·  F" if lol else "1  ·  2", "cantrips (they recharge)"],
+		["Hold C" if lol else "Hold RMB", "Ward: block, costs Aether"],
+		["Space", "Blink out of danger"],
+	]
+	var cols := [["Walking", walk, r.position.x + 40], ["Fighting", fight, r.position.x + 400]]
+	for c in cols:
+		var y: float = r.position.y + 84
+		title(Vector2(c[2], y), c[0], 16, HAIR)
+		y += 24.0
+		for row in c[1]:
+			text(Vector2(c[2], y), row[0], 13, GOLD)
+			text(Vector2(c[2] + 130, y), row[1], 13, PAPER)
+			y += 22.0
+	var rules: Array = [
+		["Time", "Only actions pass time: waiting, training, meditating and travel. Walking, talking and fighting are free. Sleep on your cot to end the day. The year runs to the Eclipse."],
+		["Losing", "A lost fight doesn't end the year: you wake days later, Injured until a full night's sleep."],
+		["The Ledger", "What you learn is written in the Ledger (L). The gold line under your vitals says what to do next."],
+	]
+	var y := r.position.y + 262
+	for i in rules.size():
+		var x: float = r.position.x + 40 + i * 230
+		title(Vector2(x, y), rules[i][0], 15, HAIR)
+		para(Vector2(x, y + 22), rules[i][1], 210, 12, Color(PAPER, 0.85))
+	button(Rect2(r.position.x + 40, r.end.y - 48, 200, 32), "Tips: %s  (T)" % ("on" if tips.on else "off"), toggle_tips, 0, 14)
+	button(Rect2(r.end.x - 240, r.end.y - 48, 200, 32), "Close  (H)", func(): overlay = "", 0, 14)
+
+
 func _draw_title() -> void:
 	title(Vector2(0, 150), "The Shattered Orrery", 50, HAIR, HORIZONTAL_ALIGNMENT_CENTER, 960)
-	text(Vector2(0, 186), "First playable, R1  ·  the survivors' camp and the way down", 16, PAPER, HORIZONTAL_ALIGNMENT_CENTER, 960)
-	text(Vector2(0, 210), "The Orrery fell last night and took most of Vellmar with it. Wren is somewhere below.", 13, DIM, HORIZONTAL_ALIGNMENT_CENTER, 960)
+	text(Vector2(0, 186), "Ring 1  ·  the survivors' camp, the fallen city and the Mill fields", 16, PAPER, HORIZONTAL_ALIGNMENT_CENTER, 960)
+	text(Vector2(0, 210), "The Orrery fell last night and took most of Vellmar with it.", 13, DIM, HORIZONTAL_ALIGNMENT_CENTER, 960)
 	var y := 250.0
 	if run.has_save() and not run.known_ids().is_empty():
 		button(Rect2(370, y, 220, 34), "Continue  (loop %d, %s)" % [run.loop(), run.date_name()], continue_month, 1, 15)
@@ -1600,12 +1720,14 @@ func _draw_title() -> void:
 		button(Rect2(370, y, 220, 34), "Begin a new month", new_month, 2, 15)
 	else:
 		button(Rect2(370, y, 220, 34), "Begin", new_month, 1, 15)
+	y += 44.0
+	button(Rect2(370, y, 220, 34), "How to play  (H)", toggle_help, 0, 15)
 	_draw_playtest_buttons(run.has_save() and not run.known_ids().is_empty())
 	var ctl = main.controls
 	var g: String = {"auto": "auto", "high": "high", "low": "low"}.get(main.gfx, "auto")
 	text(Vector2(0, 446), "Tab  ·  Controls: %s        F4  ·  Graphics: %s" % [ctl.NAMES[ctl.scheme], g], 15, GOLD, HORIZONTAL_ALIGNMENT_CENTER, 960)
 	var walk := "Right-click to walk and to talk" if ctl.league() else "WASD to walk"
-	text(Vector2(0, 472), "%s  ·  G talks and uses  ·  M map  ·  Z wait  ·  L Ledger  ·  N Codex  ·  F8 sound" % walk, 13, DIM, HORIZONTAL_ALIGNMENT_CENTER, 960)
+	text(Vector2(0, 472), "%s  ·  G talks and uses  ·  M map  ·  Z wait  ·  L Ledger  ·  N Codex  ·  H how to play" % walk, 13, DIM, HORIZONTAL_ALIGNMENT_CENTER, 960)
 
 
 ## The town's own layer: the day card, the place you walked into, what people say as you pass,
@@ -1622,7 +1744,7 @@ func _draw_world() -> void:
 		var me: Vector2 = world.player_pos()
 		near.sort_custom(func(a, b): return a.pos.distance_squared_to(me) < b.pos.distance_squared_to(me))
 		var taken: Array = [Rect2(0, 0, 960, 90), Rect2(0, 0, 236, 150), Rect2(220, 405, 740, 135)]
-		if overlay == "" and hint_for("walk") != "":
+		if overlay == "" and (hint_for("walk") != "" or tip != ""):
 			taken.append(Rect2(250, 322, 460, 50))  # the walk hint, drawn below
 		var shown := 0
 		for p in near:
@@ -1675,6 +1797,7 @@ func _draw_world() -> void:
 			_draw_hint(h, Rect2(250, 322, 460, 0))  # under the wizard, clear of the place name
 			if scene_t > 12.0 or world.clock > 20.0:
 				run.soul["hints"]["walk"] = true
+				tips.want("help")
 
 
 ## A speech bubble over a head: a line someone says as you pass.

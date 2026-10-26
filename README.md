@@ -52,8 +52,9 @@ The fights are the spellbook prototype below, started from the story with an enc
 | 1, 2 | The two **cantrips**: Kindle and Douse (instant, on charges). 1 / 2 also pick a milestone mutation when one is offered |
 | G | Use or talk (in the old Mill fight, the **Orrery** shrine) |
 | Space | Blink (charges grow with your Ring); it also cancels a wind-up |
-| F1 | Practice: every spell +1 level (to see milestones and mutations quickly) |
-| F2 | Autoplay: a bot plays; press again to take over |
+| F1 | Practice: every spell +1 level (to see milestones and mutations quickly); debug builds only |
+| F2 | Autoplay: a bot plays; press again to take over; debug builds only |
+| H | How to play: the keys of your scheme and the rules of time, losing and the Ledger |
 | F3 | Flip the light between the waves' night and the duel's deeper night (to compare them) |
 
 **League-style controls.** Press Tab (on the title card, mid-fight or on the Ledger) to cycle Classic, League and League with smart cast (the choice is remembered). In League mode: right-click the ground to walk there (hold to keep following the cursor), right-click an enemy (or press A) to walk up and strike it with the staff, S to stop, Q W E R for the four spells (cast at the cursor), D F for the cantrips, hold C to Ward, Space to blink toward the cursor. With smart cast, a spell is committed the moment its key goes down: it winds up and casts without waiting for the key to come up.
