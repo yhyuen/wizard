@@ -121,7 +121,9 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
 
 ## The main line (`data/world/main_line.json`, UI spec §3.4)
 
-- One gold step under the vitals, outside fights: the first step whose `when` holds. Life 1's
+- One gold step under the vitals, outside fights: the first step whose `when` holds. A step's
+  `at` (`map:place`) is where it happens, for the map's goal ring and the HUD compass
+  ([frame.md](frame.md) 'Tips and help'). Life 1's
   first days (N-8.4): the drill at the straw targets until it's run or skipped (`drill_done`),
   then, to Ashmoon 2, Crane's date with "meet the camp, sleep on your cot"; Marrow's step says
   the board has work till then; Ashmoon 6–7 name the free things (board, duel ring, north

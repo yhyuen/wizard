@@ -99,8 +99,8 @@ Reach and Calendar tabs (§5.5).*
 
 *Plan: [design/onboarding/first-30-minutes.md](/mnt/project-files/design/onboarding/first-30-minutes.md)
 (what a new player does in the first 30 minutes, and the five fixes). Built: the help card, the
-tips, the merged Ledger toasts, the title line, the Day 1 drill and the early goals. Not yet: the
-map's goal marker and compass (D).*
+tips, the merged Ledger toasts, the title line, the Day 1 drill, the early goals, and the map's
+goal marker and the HUD compass.*
 
 - **The drill** (life 1, the square's straw targets, `data/world/story/tutorial.story`, run or
   skipped with "I know how"; `drill_done`): the fight `drill` ([combat.md](combat.md)) with a
@@ -123,6 +123,13 @@ map's goal marker and compass (D).*
   (walking and fighting), and three rules: time, losing, the Ledger and the gold line. T toggles
   tips; H, Esc or Space closes. Over the title, the town, a scene, the end card; not mid-fight
   (a toast says so).
+- **Where to go** (the main line's `at`, [loop.md](loop.md) 'The main line'; `slice.gd`
+  `main_goal`): on the Here map (M, 1) the goal place has a gold ring and a gold star and label;
+  if the step is on another map, a gold line names that map. Labels draw goal first, then the one
+  under the mouse; a label that would overlap one already drawn is left out (its star and click
+  stay). In the HUD, the star before the gold step is a compass needle (`hud.gd` `_goal_mark`)
+  pointing from the wizard to the goal on this map; it stays a star with no goal, the goal on
+  another map, or the wizard already there.
 - **Ledger toasts** learnt within a second of each other share one toast: "Ledger +3: A · B · C".
 - **Title:** "Ring 1 · the survivors' camp, the fallen city and the Mill fields", and H in the key line.
 
