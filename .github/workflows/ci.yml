@@ -85,6 +85,9 @@ jobs:
       - name: Magic meets the world (fire, water, force, lightning, Rewind, lamplight, people)
         run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/world_magic.gd
 
+      - name: The first morning's drill (a bot presses the keys; it ends won and moves the main line on)
+        run: tools/ci/godot.sh --fixed-fps 60 --script res://tools/tests/drill.gd
+
       - name: Map previews
         run: tools/ci/godot.sh --script res://tools/map_preview.gd -- --out "$PWD/map-preview"
 

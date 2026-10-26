@@ -52,6 +52,8 @@ func _initialize() -> void:
 	encounters = JSON.parse_string(FileAccess.get_file_as_string("res://data/world/encounters.json"))["encounters"]
 	for profile in ["fresh", "strong"]:
 		for id in encounters:
+			if encounters[id].get("drill", false):
+				continue  # the drill's straw men never fall for good: tools/tests/drill.gd plays it
 			cases.append({"id": id, "profile": profile, "millrace": false, "flooded": false})
 	for profile in ["fresh", "strong"]:
 		cases.append({"id": "warden", "profile": profile, "millrace": false, "flooded": true})

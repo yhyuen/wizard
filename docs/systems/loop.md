@@ -121,8 +121,11 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
 
 ## The main line (`data/world/main_line.json`, UI spec §3.4)
 
-- One gold step under the vitals, outside fights: the first step whose `when` holds. The
-  Apprentice road's opening (N-7.3.1): Crane's first lesson (Ashmoon 3, or 4) and Marrow's
+- One gold step under the vitals, outside fights: the first step whose `when` holds. Life 1's
+  first days (N-8.4): the drill at the straw targets until it's run or skipped (`drill_done`),
+  then, to Ashmoon 2, Crane's date with "meet the camp, sleep on your cot"; Marrow's step says
+  the board has work till then; Ashmoon 6–7 name the free things (board, duel ring, north
+  stair). The Apprentice road's opening (N-7.3.1): Crane's first lesson (Ashmoon 3, or 4) and Marrow's
   (Ashmoon 5, or 6), Aldous's ask and his cellar (Ashmoon 8–28), the Thaw examination (Thaw 21)
   and Wren's ask (Seedmoon 1–10) and meeting (Seedmoon 11) (N-7.3.2), then the first playable's
   two (the way to the Kiln, past the Kiln) until the rest of the road replaces them.
@@ -299,6 +302,9 @@ Nothing of it is built beyond the four dated events below; the gaps are in [drif
   each person this life and every taste learned in any life (N-7.6.1).
 
 ## Tests
+
+`tools/tests/drill.gd` (N-8.4): a bot runs the first morning's drill with real key presses; it
+must end won, set `drill_done`, move the main line on, never hurt you and stay out of the Guide.
 
 `tools/tests/route.gd` (loop 1 through the camp and the halls, loses to the Warden on day 2 and
 wakes Injured on day 4, lets the loop go at the shrine, then loop 2), `tools/tests/deaths.gd`

@@ -30,6 +30,7 @@ const Achievements := preload("res://scripts/game/achievements.gd")
 const FieldGuide := preload("res://scripts/field_guide.gd")
 const BuildId := preload("res://scripts/game/build_id.gd")
 const Tips := preload("res://scripts/game/tips.gd")
+const Drill := preload("res://scripts/game/drill.gd")
 ## Where playtesters send their notes (design/slice/README.md §5, M5).
 const FEEDBACK_URL := "https://claude.ai/artifact/HryjwPHEs8S6swcQYFam6c"
 ## First-loop hints (onboarding), shown until they're done once.
@@ -59,6 +60,7 @@ var games  # scripts/game/minigames/games.gd: Star-charts and Sparks, and what c
 var companions  # scripts/game/companions.gd: who walks with you, their night talks and road sense
 var tips  # scripts/game/tips.gd: first-time tips (N-8.4)
 var tip := ""  # the tip on screen this frame
+var drill  # scripts/game/drill.gd while the first morning's drill is being fought, else null
 var game  # the match being played (star_charts.gd or sparks.gd), or null
 var game_who := ""
 var game_mode := ""  # free or work
@@ -630,6 +632,8 @@ func _process(dt: float) -> void:
 			deeds_t = 0.0
 			check_deeds()
 	tip = tips.tick(dt, _tip_place())
+	if drill != null and main.mode == "fight" and main.arena.phase == "enc" and drill.update(dt, main.arena):
+		main.arena._end(true)  # every step done: the drill is over
 	queue_redraw()
 
 
@@ -1122,6 +1126,7 @@ func _start_fight(id: String) -> void:
 		enc["survive"] = int(enc["shorter"]["survive"])  # the cut came late: a shorter Peak
 	if not fight_resolver.is_valid() and not main.bot.is_valid():
 		tips.want("fight")
+	drill = Drill.new() if enc.get("drill", false) else null
 	if fight_resolver.is_valid():
 		var r = fight_resolver.call(id)  # won, or {"won", "kills"}
 		if r is Dictionary:
@@ -1164,6 +1169,7 @@ func cutscene_done() -> void:
 
 ## Called by main.gd when a fight started here is over.
 func fight_done(won: bool, kills := 0) -> void:
+	drill = null
 	if kills > 0:
 		gain_wells(kills * int(growth.d["wells"]["kill"]))
 	var cw: String = companions.who()
@@ -1611,6 +1617,8 @@ func _draw() -> void:
 			_draw_loading()
 	if screen == "world" and main.mode in ["world", "fight"] and main.backdrop == null:
 		_draw_precip()
+		if drill != null and main.mode == "fight":
+			_draw_drill()
 		if tip != "" and overlay == "":
 			# at the top in a fight, clear of the toasts; under the wizard while walking
 			_draw_hint(tips.text(tip, main.controls), Rect2(230, 96, 460, 0) if main.mode == "fight" else Rect2(250, 322, 460, 0))
@@ -1657,6 +1665,26 @@ func _draw_hint(h: String, r: Rect2) -> void:
 	draw_rect(r, Color(HOURS, 0.6), false, 1.0)
 	for i in rows.size():
 		text(r.position + Vector2(14, 20 + i * 17), rows[i], 13, Color(HOURS, 0.95))
+
+
+## The drill's steps beside the fight, under the vitals: done ones struck through in gold.
+func _draw_drill() -> void:
+	var rows: Array = drill.lines(main.arena, main.controls)
+	var r := Rect2(12, 154, 236, 34 + rows.size() * 19)
+	draw_rect(r, Color(BG, 0.9))
+	draw_rect(r, Color(GOLD, 0.5), false, 1.0)
+	title(r.position + Vector2(12, 20), "The drill", 15, GOLD)
+	var first := true
+	for i in rows.size():
+		var y := r.position.y + 42 + i * 19
+		var ok: bool = rows[i][1]
+		var now := not ok and first
+		if now:
+			first = false
+		star(Vector2(r.position.x + 16, y - 4), 4.0 if now else 3.0, Color(GOLD, 1.0 if ok or now else 0.35))
+		text(Vector2(r.position.x + 28, y), rows[i][0], 12, Color(GOLD, 0.7) if ok else (PAPER if now else DIM), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 34)
+		if ok:
+			draw_line(Vector2(r.position.x + 28, y - 4), Vector2(r.position.x + 28 + minf(text_w(rows[i][0], 12), r.size.x - 34), y - 4), Color(GOLD, 0.7), 1.0)
 
 
 ## How to play (H, N-8.4): the keys of the current scheme, and the three rules a new player
@@ -2901,6 +2929,8 @@ func _draw_guide(r: Rect2) -> void:
 	var faction := ""
 	for kind in kinds:
 		var k: Dictionary = kinds[kind]
+		if not bool(k.get("guide", true)):
+			continue
 		if str(k.get("faction", "")) != faction:
 			if faction != "":
 				y += 5.0  # a little gap between factions

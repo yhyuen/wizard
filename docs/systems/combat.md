@@ -71,11 +71,18 @@ page [Enemy Field Guide](https://claude.ai/artifact/NfkV4YFAufXzUP1pBuGcAK)). Un
   | `com_rats` (C7) | fields, granary | while the job is open | 3 waves of 4 Granary Rats |
 
   | `ladder_1`..`ladder_6` | camp, duel ring | Dusk, once a week, from the slate | one duelist each, a duel to 3 hits |
+  | `drill` | camp, the square's straw targets | the first morning's drill (life 1) | 3 Straw men |
 
   The `com_*` fights are the commissions' ([story.md](story.md) Commissions), none lethal. The
   `ladder_*` fights are the camp ladder's duels ([story.md](story.md) The camp ladder): `hits: 3`,
   a **clean hit** being `hit_min` (8) damage or Impact 3 either way (enemy spec §9), or a KO; any
   enemy in a duel counts as the duelist. Not lethal: a loss is a bruise.
+
+  The `drill` (N-8.4, [frame.md](frame.md) 'Tips and help') teaches the keys: its **Straw men**
+  (`straw_man`: speed 0, damage 0, cloth so they burn, `guide: false` so the Field Guide leaves
+  them out) are `unkillable`, knocked down for 2 s. `scripts/game/drill.gd` ticks its steps off
+  the fight's counts (the kit keeps `stats.by_cantrip` and `stats.blinks` for it) and ends it won
+  when all are done.
 
   The terrain hooks are the places' own props and ground (the keg, the hay cart, the scaffold, the
   stream, the channel's water). `encounters.gd` plays each placed fight from its spot.
