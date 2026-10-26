@@ -268,10 +268,22 @@ func job_line() -> String:
 
 
 func main_line() -> String:
+	return str(_main_step().get("text", ""))
+
+
+## Where the main line's step happens (its `at`, N-8.4): {"map", "place"}, or {} if it names none.
+func main_goal() -> Dictionary:
+	var at: String = str(_main_step().get("at", ""))
+	if not ":" in at:
+		return {}
+	return {"map": at.get_slice(":", 0), "place": at.get_slice(":", 1)}
+
+
+func _main_step() -> Dictionary:
 	for st in main_steps:
 		if story.test(str(st["when"])):
-			return str(st["text"])
-	return ""
+			return st
+	return {}
 
 
 ## Fixed events (lives spec §6.2, N-1.5): each happens once a life, at its date and time of day.
@@ -1948,19 +1960,40 @@ func _draw_here() -> void:
 		star(er.get_center(), 4.0, HOURS)
 	var mouse := get_local_mouse_position()
 	var events: Array = story.known_events()
-	for id in m.places:
-		if id in ["streets", "college"]:
-			continue
+	# The main line's place glows; its label, then the one under the mouse, win over any they'd
+	# overlap, and a label that would overlap one already drawn is left to its star (N-8.4).
+	var goal := main_goal()
+	var goal_here: String = str(goal.get("place", "")) if goal.get("map", "") == world.map_id and m.places.has(goal.get("place", "")) else ""
+	var order: Array = m.places.keys().filter(func(id): return not id in ["streets", "college"])
+	var hot_id := ""
+	for id in order:
+		if to_map(m.place_centre(id)).distance_to(mouse) < 26.0:
+			hot_id = id
+	order.sort_custom(func(a, b): return [goal_here == a, hot_id == a] > [goal_here == b, hot_id == b])
+	var labels: Array = []
+	if goal_here != "":
+		var gc: Vector2 = to_map(m.place_centre(goal_here))
+		draw_circle(gc, 13.0, Color(GOLD, 0.18))
+		draw_arc(gc, 13.0, 0, TAU, 24, Color(GOLD, 0.9), 1.5)
+	elif not goal.is_empty():
+		text(MAP_RECT.position + Vector2(20, 42), "The next step is on another map: %s (the Reach, 2)" % str(world.maps.get(goal["map"], {}).get("name", goal["map"])), 12, GOLD)
+	for id in order:
 		var c: Vector2 = to_map(m.place_centre(id))
-		var hot := c.distance_to(mouse) < 26.0
-		star(c, 6.0 if hot else 4.0, GOLD if hot else Color(PAPER, 0.85))
-		text(c + Vector2(-70, 18), m.place_name(id), 12, GOLD if hot else PAPER, HORIZONTAL_ALIGNMENT_CENTER, 140)
+		var hot: bool = id == hot_id
+		var is_goal: bool = id == goal_here
+		star(c, 6.0 if hot or is_goal else 4.0, GOLD if hot or is_goal else Color(PAPER, 0.85))
+		buttons.append({"r": Rect2(c - Vector2(30, 14), Vector2(60, 40)), "act": map_walk.bind(id), "key": 0})
+		var name_s: String = m.place_name(id)
+		var lr := Rect2(c + Vector2(-text_w(name_s, 12) * 0.5 - 3, 6), Vector2(text_w(name_s, 12) + 6, 15))
+		if not (hot or is_goal) and labels.any(func(o): return o.intersects(lr)):
+			continue
+		labels.append(lr)
+		text(c + Vector2(-70, 18), name_s, 12, GOLD if hot or is_goal else PAPER, HORIZONTAL_ALIGNMENT_CENTER, 140)
 		var ky := c.y + 32
 		for e in events:
 			if id in str(e["where"]).split(", ") or _where_place(e["where"]) == id:
 				text(Vector2(c.x - 80, ky), "%s: %s" % [str(e["time"]).capitalize(), e["title"]], 11, HOURS, HORIZONTAL_ALIGNMENT_CENTER, 160)
 				ky += 13
-		buttons.append({"r": Rect2(c - Vector2(30, 14), Vector2(60, 40)), "act": map_walk.bind(id), "key": 0})
 	for p in world.people.list:
 		var known_as: String = KNOWN_PEOPLE.get(p.id, "")
 		if p.on and known_as != "" and run.knows(known_as):

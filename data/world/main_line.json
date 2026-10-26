@@ -1,20 +1,20 @@
 {
- "_doc": "The main line (UI spec §3.4; build item N-1.5): one gold step under the vitals naming the next main-story action, in the camp's voice. The first step whose when (a story condition) holds is shown; none shows nothing. Hidden in fights. Written by the story threads as the story grows; these cover the first playable.",
+ "_doc": "The main line (UI spec §3.4; build item N-1.5): one gold step under the vitals naming the next main-story action, in the camp's voice. at (N-8.4): map:place where it happens, glowing on the map and pointed at by the HUD's compass needle. The first step whose when (a story condition) holds is shown; none shows nothing. Hidden in fights. Written by the story threads as the story grows; these cover the first playable.",
  "steps": [
-  {"when": "loop == 1 and not f(\"drill_done\") and day <= 2", "text": "Warm up: run the drill at the Watch's straw targets in the square (G)."},
-  {"when": "not seen(\"crane_lesson\") and day <= 2", "text": "Crane's lesson is at Morning on Ashmoon 3, by the College tents. Till then, meet the camp (G), and sleep on your cot to end the day."},
-  {"when": "not seen(\"crane_lesson\") and day <= 4", "text": "Be on the practice ground by the College tents at Morning on Ashmoon 3: Crane wants every apprentice."},
-  {"when": "not seen(\"marrow_lesson\") and day <= 6", "text": "Lector Marrow teaches on the practice ground at Morning on Ashmoon 5. Till then, the commissions board in the square has paid work."},
-  {"when": "on_road(\"lamplighter\") and not f(\"rule_one\")", "text": "Fennick wants you at the Guild bench, at the back of the market."},
-  {"when": "on_road(\"lamplighter\") and day == 70 and not seen(\"reckoning\")", "text": "The Market reckoning is this morning, in the Lantern Market."},
+  {"when": "loop == 1 and not f(\"drill_done\") and day <= 2", "at": "camp:square", "text": "Warm up: run the drill at the Watch's straw targets in the square (G)."},
+  {"when": "not seen(\"crane_lesson\") and day <= 2", "at": "camp:college_tents", "text": "Crane's lesson is at Morning on Ashmoon 3, by the College tents. Till then, meet the camp (G), and sleep on your cot to end the day."},
+  {"when": "not seen(\"crane_lesson\") and day <= 4", "at": "camp:college_tents", "text": "Be on the practice ground by the College tents at Morning on Ashmoon 3: Crane wants every apprentice."},
+  {"when": "not seen(\"marrow_lesson\") and day <= 6", "at": "camp:college_tents", "text": "Lector Marrow teaches on the practice ground at Morning on Ashmoon 5. Till then, the commissions board in the square has paid work."},
+  {"when": "on_road(\"lamplighter\") and not f(\"rule_one\")", "at": "camp:guild_bench", "text": "Fennick wants you at the Guild bench, at the back of the market."},
+  {"when": "on_road(\"lamplighter\") and day == 70 and not seen(\"reckoning\")", "at": "camp:market", "text": "The Market reckoning is this morning, in the Lantern Market."},
   {"when": "on_road(\"lamplighter\") and day < 70 and day >= 57", "text": "The Market reckoning is on the morning of Seedmoon 14. Fennick wants you in the black by nightfall."},
-  {"when": "day >= 8 and day <= 28 and not f(\"cellar_asked\")", "text": "Aldous at the Mill has been asking for you."},
-  {"when": "f(\"cellar_asked\") and not f(\"cellar_done\") and day <= 28", "text": "Aldous needs his seed barley. Go down into the Mill cellar, under the mill."},
-  {"when": "day >= 6 and day <= 7 and not on_road(\"lamplighter\")", "text": "Free days. Try the commissions board in the square, the duel ring by the College, or the north stair down into the ruins."},
-  {"when": "day <= 49 and not seen(\"thaw_exam\") and not on_road(\"lamplighter\")", "text": "The Thaw examination is at Morning on Thaw 21, on the practice ground by the College tents."},
+  {"when": "day >= 8 and day <= 28 and not f(\"cellar_asked\")", "at": "camp:mill", "text": "Aldous at the Mill has been asking for you."},
+  {"when": "f(\"cellar_asked\") and not f(\"cellar_done\") and day <= 28", "at": "fields:mill_cellar", "text": "Aldous needs his seed barley. Go down into the Mill cellar, under the mill."},
+  {"when": "day >= 6 and day <= 7 and not on_road(\"lamplighter\")", "at": "camp:board", "text": "Free days. Try the commissions board in the square, the duel ring by the College, or the north stair down into the ruins."},
+  {"when": "day <= 49 and not seen(\"thaw_exam\") and not on_road(\"lamplighter\")", "at": "camp:college_tents", "text": "The Thaw examination is at Morning on Thaw 21, on the practice ground by the College tents."},
   {"when": "day >= 57 and day < 67 and not f(\"daybook_asked\")", "text": "Wren has been looking for you."},
   {"when": "f(\"daybook_yes\") and day <= 67 and not f(\"daybook\")", "text": "Meet Wren at the Archive stair, past the Kiln, on Seedmoon 11."},
-  {"when": "not k(\"trial_warden\")", "text": "Go down the north stair and find a way through the College halls to the Kiln."},
+  {"when": "not k(\"trial_warden\")", "at": "camp:north_door", "text": "Go down the north stair and find a way through the College halls to the Kiln."},
   {"when": "not seen(\"archive_stair\")", "text": "Go on past the Kiln hall, deeper into the College."}
  ]
 }

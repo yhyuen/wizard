@@ -252,7 +252,7 @@ func _draw_fight() -> void:
 	if main.mode == "world" and main.slice.screen == "world":
 		var step: String = main.slice.main_line()
 		if step != "":
-			star(Vector2(17, pr.end.y + 14), 3.5, PixelArt.GOLD)
+			_goal_mark(Vector2(16, pr.end.y + 14))
 			var rows_t: Array = main.slice.wrap_text(step, 200.0, 12)
 			for i in rows_t.size():
 				_text(Vector2(26, pr.end.y + 18 + i * 15), rows_t[i], 12, Color(PixelArt.GOLD, 0.9))
@@ -303,6 +303,25 @@ func _draw_fight() -> void:
 ## four weeks of seven, each in its weekday Sphere's colour, today ringed, known calamities as dark
 ## discs, the Great Eclipse as a black sun at the end, and a dial for the time of day. In a fight
 ## it collapses to one line.
+## Beside the main line: a compass needle pointing at its place while it is on this map and you're
+## not there yet (UI spec: a compass, no minimap; N-8.4), else the gold star.
+func _goal_mark(at: Vector2) -> void:
+	var sl = main.slice
+	var goal: Dictionary = sl.main_goal()
+	var W = sl.world
+	if goal.is_empty() or goal["map"] != W.map_id or not W.map.places.has(goal["place"]) or W.here == goal["place"] or main.view == null:
+		star(at + Vector2(1, 0), 3.5, PixelArt.GOLD)
+		return
+	var d: Vector2 = main.view.to_screen(W.map.place_centre(goal["place"])) - main.view.to_screen(W.player_pos())
+	if d.length() < 1.0:
+		star(at + Vector2(1, 0), 3.5, PixelArt.GOLD)
+		return
+	d = d.normalized()
+	draw_arc(at, 7.0, 0, TAU, 16, Color(PixelArt.GOLD, 0.5), 1.0)
+	var side := Vector2(-d.y, d.x) * 2.5
+	draw_colored_polygon(PackedVector2Array([at + d * 7.0, at + side, at - d * 3.0, at - side]), PixelArt.GOLD)
+
+
 func _draw_moons() -> void:
 	var run = main.slice.run
 	var known := ""
