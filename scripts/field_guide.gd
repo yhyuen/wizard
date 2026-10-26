@@ -62,6 +62,11 @@ func _soul() -> Dictionary:
 	return A.get_node("/root/Run").soul
 
 
+## Whether the Guide lists this kind (the drill's straw men, `guide: false`, aren't foes).
+static func listed(kind: String) -> bool:
+	return bool(data()["kinds"].get(kind, {}).get("guide", true))
+
+
 func entry(kind: String) -> Dictionary:
 	var g := book(_soul())
 	if not g.has(kind):
@@ -70,12 +75,16 @@ func entry(kind: String) -> Dictionary:
 
 
 func seen(u: Unit) -> void:
+	if not listed(u.kind):
+		return
 	var e := entry(u.kind)
 	if int(e["seen"]) == 0:
 		e["seen"] = A.get_node("/root/Run").loop()
 
 
 func beaten(u: Unit) -> void:
+	if not listed(u.kind):
+		return
 	var e := entry(u.kind)
 	e["beaten"] = int(e["beaten"]) + 1
 	if u.flags.get("flooded", false):

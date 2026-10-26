@@ -60,6 +60,11 @@ func tick(dt: float, where: String) -> String:
 
 ## Tip `id`'s text with the keys of the current control scheme.
 func text(id: String, controls) -> String:
+	return keyed(d["tips"][id]["text"], controls)
+
+
+## `s` with {move} {staff} {slot1} {slot2} {cant1} {cant2} {ward} {blink} as the scheme's keys.
+static func keyed(s: String, controls) -> String:
 	var lol: bool = controls.league()
 	var keys := {
 		"move": "Right-click" if lol else "WASD",
@@ -67,7 +72,6 @@ func text(id: String, controls) -> String:
 		"slot1": "Q", "slot2": "W" if lol else "E",
 		"cant1": "D" if lol else "1", "cant2": "F" if lol else "2",
 		"ward": "Hold C" if lol else "Hold RMB", "blink": "Space"}
-	var s: String = d["tips"][id]["text"]
 	for k in keys:
 		s = s.replace("{%s}" % k, keys[k])
 	return s

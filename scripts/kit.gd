@@ -521,6 +521,7 @@ func blink() -> void:
 	P.flags.erase("net_t")  # out of a brigand's net (N-6.3)
 	P.iframes = maxf(P.iframes, 0.18)
 	blink_charges -= 1
+	A.stats["blinks"] = int(A.stats.get("blinks", 0)) + 1
 
 
 # --- staff, Ward and cantrips -------------------------------------------------
@@ -602,6 +603,8 @@ func cast_cantrip(slot: String) -> void:
 	last_element = c["element"]
 	Sfx.play("cast_" + last_element, 3.0)
 	A.stats["cantrips"] = int(A.stats.get("cantrips", 0)) + 1
+	A.stats["by_cantrip"] = A.stats.get("by_cantrip", {})
+	A.stats["by_cantrip"][id] = int(A.stats["by_cantrip"].get(id, 0)) + 1
 
 
 # --- hooks from the arena -----------------------------------------------------

@@ -99,8 +99,14 @@ Reach and Calendar tabs (§5.5).*
 
 *Plan: [design/onboarding/first-30-minutes.md](/mnt/project-files/design/onboarding/first-30-minutes.md)
 (what a new player does in the first 30 minutes, and the five fixes). Built: the help card, the
-tips, the merged Ledger toasts, the title line. Not yet: the Day 1 drill and early goals (B, A),
-the map's goal marker and compass (D).*
+tips, the merged Ledger toasts, the title line, the Day 1 drill and the early goals. Not yet: the
+map's goal marker and compass (D).*
+
+- **The drill** (life 1, the square's straw targets, `data/world/story/tutorial.story`, run or
+  skipped with "I know how"; `drill_done`): the fight `drill` ([combat.md](combat.md)) with a
+  panel under the vitals (`slice.gd` `_draw_drill`, `scripts/game/drill.gd`): staff, the two
+  slots, the two cantrips, the Ward held 0.6 s, Blink, three knock-downs; the next step bright,
+  done ones struck through. Keys follow the scheme (`tips.gd` `keyed`). It costs no time.
 
 - **Hints** (`slice.gd` `HINTS`): the walk hint (under the wizard until 12 s into the morning) and
   the talk hint (over the first dialogue panel), first life only.

@@ -51,6 +51,7 @@
         "scripts/controls.gd", "scripts/autoload/input_setup.gd", "scripts/autoload/sfx.gd",
         "scripts/game/build_id.gd",
         "scripts/game/tips.gd",
+        "scripts/game/drill.gd",
         "data/world/tips.json",
         "scenes/main.tscn"
       ]
